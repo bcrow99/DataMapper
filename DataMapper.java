@@ -141,6 +141,157 @@ public class DataMapper
 	    return(area);
 	}
 	
+
+    public void avgAreaXTransform(int src[], int xdim, int ydim, int dst[], int new_xdim, int start_fraction[], int end_fraction[], int number_of_pixels[])
+    {
+        int    i, j, k, x, y;
+        int    weight, current_whole_number, previous_whole_number;
+        int    total, factor;
+        double real_position, differential, previous_position;
+    
+        differential = (double)xdim / (double)new_xdim;
+        weight       = (int)(differential * xdim);
+        weight       *= 1000;
+        factor       = 1000 * xdim;
+
+        real_position = 0.;
+        current_whole_number = 0;
+        for(i = 0; i < new_xdim; i++)
+        {
+            previous_position     = real_position;
+            previous_whole_number = current_whole_number;
+            real_position        += differential;
+            current_whole_number  = (int)(real_position);
+            number_of_pixels[i]   = current_whole_number - previous_whole_number;
+            start_fraction[i]     = (int)(1000. * (1. - (previous_position - (double)(previous_whole_number)))); 
+            end_fraction[i]       = (int)(1000. * (real_position - (double)(current_whole_number)));
+        }
+
+        for(y = 0; y < ydim; y++)
+        {
+            i = y * new_xdim;
+            j = y * xdim;
+            for(x = 0; x < new_xdim - 1; x++)
+            {
+                if(number_of_pixels[x] == 0)
+                {
+                    dst[i] = src[j];
+                    i++;
+                }
+                else
+                {
+                    total = start_fraction[x] * xdim * src[j];
+                    j++;
+                    k = number_of_pixels[x] - 1;
+                    while(k > 0)
+                    {
+                        total += factor * src[j];
+                        j++;
+                        k--;
+                    }
+                    total += end_fraction[x] * xdim * src[j];
+                    total /= weight;
+                    dst[i] = total;
+                    i++;
+                }
+            }
+            if(number_of_pixels[x] == 0)
+                dst[i] = src[j];
+            else
+            {
+                total = start_fraction[x] * xdim * src[j];
+                j++;
+                k = number_of_pixels[x] - 1;
+                while(k > 0)
+                {
+                    total += factor * src[j];
+                    j++;
+                    k--;
+                }
+                total /= weight - end_fraction[x] * xdim;
+                dst[i] = total;
+            }
+        }
+    }
+
+    public void avgAreaYTransform(int src[], int xdim, int ydim, int dst[], int new_ydim, int start_fraction[], int end_fraction[], int number_of_pixels[])
+    {
+        int    i, j, k, x, y;
+        int    weight, current_whole_number, previous_whole_number;
+        int    total, factor;
+        double real_position, differential, previous_position;
+    
+        differential = (double)ydim / (double)new_ydim;
+        weight       = (int)(differential * ydim);
+        weight       *= 1000;
+        factor       = ydim * 1000;
+        
+        real_position = 0.;
+        current_whole_number = 0;
+        for(i = 0; i < new_ydim; i++)
+        {
+            previous_position     = real_position;
+            previous_whole_number = current_whole_number;
+            real_position        += differential;
+            current_whole_number  = (int)(real_position);
+            number_of_pixels[i]   = current_whole_number - previous_whole_number;
+            start_fraction[i]     = (int) (1000. * (1. - (previous_position - (double)(previous_whole_number)))); 
+            end_fraction[i]       = (int) (1000. * (real_position - (double)(current_whole_number)));
+        }
+
+        for(x = 0; x < xdim; x++)
+        {
+            i = j = x;
+            for(y = 0; y < new_ydim - 1; y++)
+            {
+                if(number_of_pixels[y] == 0)
+                {
+                    dst[i] = src[j];
+                    i += xdim;
+                }
+                else
+                {
+                    total    = start_fraction[y] * ydim * src[j];
+                    j       += xdim;
+                    k        = number_of_pixels[y] - 1;
+                    while(k > 0)
+                    {
+                        total += factor * src[j];
+                        j += xdim;
+                        k--;
+                    }
+                    total   += end_fraction[y] * ydim * src[j];
+                    total   /= weight;
+                    dst[i]   = total;
+                    i       += xdim;
+                }
+            }
+            if(number_of_pixels[y] == 0)
+                dst[i] = src[j];
+            else
+            {
+                total    = start_fraction[y] * ydim * src[j];
+                j       += xdim;
+                k        = number_of_pixels[y] - 1;
+                while(k > 0)
+                {
+                    total += factor * src[j];
+                    j += xdim;
+                    k--;
+                }
+                total /= weight - end_fraction[y] * ydim;
+                dst[i]   = total;
+            }
+        }
+    }
+
+    public void avgAreaTransform(int src[], int xdim, int ydim, int dst[], int new_xdim, int new_ydim, int workspace[], int start_fraction[], int end_fraction[], int number_of_pixels[])
+    {
+        avgAreaXTransform(src, xdim, ydim, workspace, new_xdim, start_fraction, end_fraction, number_of_pixels);
+        avgAreaYTransform(workspace, new_xdim, ydim, dst, new_ydim, start_fraction, end_fraction, number_of_pixels);
+    }
+
+
 	public static int getLocationType(int xindex, int yindex, int xdim, int ydim)
 	{ 
 		int location_type = 0;
