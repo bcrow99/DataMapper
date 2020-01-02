@@ -20,9 +20,6 @@ public class GetImage
         double minimum_intensity, maximum_intensity;
         
         //Information we collect during the course of the program.
-        //We're now doing direct interpolation without tessellating but
-        //I don't want to change the language for now.
-        //Where I say tessellation I mean interpolation.
         boolean isPopulated[][];          
         boolean hasNeighbors[][];  
         boolean isInterpolated[][];
@@ -155,6 +152,7 @@ public class GetImage
         
         
         // This is meters and we want quarter meters, the resolution of our sensors.
+        // Could try playing around with this parameter.
         xdim *= resolution;
         ydim *= resolution;
         //System.out.println("The xdim of the data grid is " + xdim);
@@ -212,8 +210,7 @@ public class GetImage
         	{
         		double xcenter = j * increment + increment / 2. + x_origin;
         		//We'll make separate lists of samples based on location
-    	    	//to facilitate the search for bounding triangles
-        		//or quadrilaterals.
+    	    	//to facilitate the search for nearest lines.
         		ArrayList northwest_list = new ArrayList();
     	    	ArrayList north_list     = new ArrayList();
     	    	ArrayList northeast_list = new ArrayList();
@@ -229,7 +226,9 @@ public class GetImage
         	    	ArrayList current_cell_list = (ArrayList)close_data_array.get(data_index);
         	    	
         	    	//Sort interior points.
-        	    	
+        	    	//Originally I thought that simply assigning everything to the corner lists
+        	    	//would work but it creates problems somehow that I don't understand.
+        	    	//For whatever reasons, this works better.
         	    	for(int k = 0; k < current_cell_list.size(); k++)
         	    	{
         	    		Sample current_sample = (Sample)current_cell_list.get(k);
@@ -441,12 +440,7 @@ public class GetImage
         	    list.add(southeast_list);
         	    
     	    	//Now we're going to order the neighbor lists based on how close they are to the center
-    	    	//of the cell.	We're doing this so that we check for smaller polygons first.  It's
-        	    //possible that's not the ideal polygon if it's irregular enough--that is, a large
-        	    //perimeter compared to the area.  We might want to go through the entire list and see
-        	    //if some polygons with points further from the center have a smaller product of the 
-        	    //perimeter and area.  Good experiment once everything is working.  Right now we'll
-        	    //settle for the bounding polygon with the closest points.
+    	    	//of the cell.	We're doing this to make it easy to find the nearest lines.
     	    	for(int m = 0; m < 8; m++)
     	    	{
     	    		//Get a list of samples.
@@ -478,8 +472,6 @@ public class GetImage
     	    		    //Kludgy, but any workaround that doesn't corrupt
     	    		    //the actual data will be tedious and add a lot
     	    		    //of code and alter basic data structures.
-    	    		    //The two intensity values are different so I'm not
-    	    		    //adding the same sample twice.  
     	    		    //Something noisy in the data--same location with different value.
 
     	    		    double previous_distance = (double)distance_list.get(0);
@@ -537,7 +529,7 @@ public class GetImage
         	            list.set(m, sorted_list);
     	    		}
     	        }
-    	    	//Keep this information handy so we have an alternative to nearest neighbors later.
+    	    	//Keep this information handy so we can find nearest lines later.
     	    	data_array.add(list); 
         	}
         }
@@ -731,7 +723,6 @@ public class GetImage
     	    	    }
         		}
         			
-                // Looking for triangles from three corners.  Don't really need to check for an empty like we're doing, should be interpolated if it isn't.
         		int    current_case = 0;
         		if(northwest_list.size()      != 0 && northeast_list.size() != 0 && southwest_list.size() != 0 && southeast_list.size() == 0 && isInterpolated[i][j] == false)
         	        current_case = 1;
@@ -1061,7 +1052,7 @@ public class GetImage
         			ArrayList second_list = new ArrayList();
         		    switch(current_case)
         		    {
-        		    case 1:  first_list = south_list;  //Adjusting coordinate system, probably not necessary
+        		    case 1:  first_list = south_list;  
         		             second_list = north_list;
         		             break;
         		             
@@ -2055,7 +2046,7 @@ public class GetImage
         
         try 
         {  
-            ImageIO.write(data_image, "jpg", new File("C:/Users/Brian Crowley/Desktop/data_image.jpg")); 
+            ImageIO.write(data_image, "jpg", new File("C:/Users/Brian Crowley/Desktop/bisector.jpg")); 
         } 
         catch(IOException e) 
         {  
