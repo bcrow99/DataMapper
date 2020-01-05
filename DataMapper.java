@@ -141,7 +141,7 @@ public class DataMapper
 	    return(area);
 	}
 	
-	public void smooth(int src[], int xdim, int ydim, double smooth_factor, int number_of_iterations, int dst[])
+	public static void smooth(int src[], int xdim, int ydim, double smooth_factor, int number_of_iterations, int dst[])
     {
         double even[]    = new double[xdim * ydim];
         double odd[]     = new double[xdim * ydim];
@@ -228,7 +228,150 @@ public class DataMapper
         for(i = 0; i < xdim * ydim; i++)
             dst[i] = (int)current_dst[i];
     }
+    
+	public static int getLocationType(int xindex, int yindex, int xdim, int ydim)
+	{ 
+		int location_type = 0;
+		if(yindex == 0)
+		{
+		    if(xindex == 0) 
+		    {
+		        location_type = 1;
+		    }
+		    else if(xindex % xdim != xdim - 1)
+		    {
+		        location_type = 2;
+		    }
+		    else
+		    {
+		        location_type = 3;
+		    }
+		}
+		else if(yindex % ydim != ydim - 1)
+		{
+			if(xindex == 0) 
+		    {
+		        location_type = 4;
+		    }
+		    else if(xindex % xdim != xdim - 1)
+		    {
+		    	location_type = 5;
+		    }
+		    else
+		    {
+		        location_type = 6;
+		    }
+		}
+		else
+		{
+	        if(xindex == 0) 
+		    {
+		        location_type = 7;
+		    }
+		    else if(xindex % xdim != xdim - 1)
+		    {
+		        location_type = 8;
+		    }
+		    else
+		    {
+		    	location_type = 9;
+		    }   
+		}
+		return(location_type);
+	}
+	
+	//Seems like this should be based on a generic get neighbors function
+	//but this offers a handle to customizing the way we collect variances.
+	public static void getPixelVariance(int src[], int xdim, int ydim, int dst[])
+	{	
+		for(int i = 0; i < ydim; i++)
+		{
+			for(int j = 0; j < xdim; j++)
+			{
+				int location_type = getLocationType(j, i, xdim, ydim);
+				int variance      = 0;
+				int k             = 0;
+				
+				switch(location_type)
+				{
+				case 1: variance += Math.abs(src[0] - src[1]);
+				        variance += Math.abs(src[0] - src[xdim]);
+				        variance += Math.abs(src[0] - src[xdim + 1]);
+				        dst[j]    = variance;
+				        break;
+				        
+				case 2: variance += Math.abs(src[j] - src[j - 1]);
+				        variance += Math.abs(src[j] - src[j + 1]);
+				        variance += Math.abs(src[j] - src[j + xdim - 1]);
+				        variance += Math.abs(src[j] - src[j + xdim]);
+				        variance += Math.abs(src[j] - src[j + xdim + 1]);
+				        dst[j]    = variance;
+				        break;
+				
+				case 3: variance += Math.abs(src[j] - src[j - 1]);
+				        variance += Math.abs(src[j] - src[j + xdim - 1]);
+				        variance += Math.abs(src[j] - src[j + xdim]);
+				        dst[j] = variance;
+				        break;
+					
+				case 4: k = i * xdim;
+				        variance += Math.abs(src[k] - src[k - xdim]);
+				        variance += Math.abs(src[k] - src[k - xdim + 1]);
+				        variance += Math.abs(src[k] - src[k + 1]);
+				        variance += Math.abs(src[k] - src[k + xdim]);
+				        variance += Math.abs(src[k] - src[k + xdim + 1]);
+				        dst[j] = variance;
+				        break;
 
+				case 5: k = i * xdim + j;
+				        variance += Math.abs(src[k] - src[k - xdim - 1]);
+				        variance += Math.abs(src[k] - src[k - xdim]);
+				        variance += Math.abs(src[k] - src[k - xdim + 1]);
+				        variance += Math.abs(src[k] - src[k - 1]);
+				        variance += Math.abs(src[k] - src[k + 1]);
+				        variance += Math.abs(src[k] - src[k + xdim - 1]);
+				        variance += Math.abs(src[k] - src[k + xdim]);
+				        variance += Math.abs(src[k] - src[k + xdim + 1]);
+					    break;
+				
+				
+				case 6: k = i * xdim + j;
+				        variance += Math.abs(src[k] - src[k - xdim]);
+				        variance += Math.abs(src[k] - src[k - xdim - 1]);
+				        variance += Math.abs(src[k] - src[k - 1]);
+				        variance += Math.abs(src[k] - src[k + xdim]);
+				        variance += Math.abs(src[k] - src[k + xdim - 1]);
+				        dst[j] = variance;
+				        break;
+				
+				case 7: k = i * xdim;
+				        variance += Math.abs(src[k] - src[k - xdim]);
+				        variance += Math.abs(src[k] - src[k - xdim + 1]);
+				        variance += Math.abs(src[k] - src[k + 1]);
+				        dst[j] = variance;
+				        break;
+				        
+				case 8: k = i * xdim + j;
+				        variance += Math.abs(src[k] - src[k - xdim - 1]);
+				        variance += Math.abs(src[k] - src[k - xdim]);
+				        variance += Math.abs(src[k] - src[k - xdim + 1]);
+				        variance += Math.abs(src[k] - src[k - 1]);
+				        variance += Math.abs(src[k] - src[k + 1]);
+				        dst[j] = variance;
+				        break;
+				        
+				case 9: k = i * xdim + j;
+				        variance += Math.abs(src[k] - src[k - xdim]);
+		                variance += Math.abs(src[k] - src[k - xdim - 1]);
+		                variance += Math.abs(src[k] - src[k - 1]);
+		                dst[j] = variance;
+				        break;       
+				}
+			}
+		}
+	}
+	
+	
     public void avgAreaXTransform(int src[], int xdim, int ydim, int dst[], int new_xdim, int start_fraction[], int end_fraction[], int number_of_pixels[])
     {
         int    i, j, k, x, y;
@@ -379,56 +522,7 @@ public class DataMapper
     }
 
 
-	public static int getLocationType(int xindex, int yindex, int xdim, int ydim)
-	{ 
-		int location_type = 0;
-		if(yindex == 0)
-		{
-		    if(xindex == 0) 
-		    {
-		        location_type = 1;
-		    }
-		    else if(xindex % xdim != xdim - 1)
-		    {
-		        location_type = 2;
-		    }
-		    else
-		    {
-		        location_type = 3;
-		    }
-		}
-		else if(yindex % ydim != ydim - 1)
-		{
-			if(xindex == 0) 
-		    {
-		        location_type = 4;
-		    }
-		    else if(xindex % xdim != xdim - 1)
-		    {
-		    	location_type = 5;
-		    }
-		    else
-		    {
-		        location_type = 6;
-		    }
-		}
-		else
-		{
-	        if(xindex == 0) 
-		    {
-		        location_type = 7;
-		    }
-		    else if(xindex % xdim != xdim - 1)
-		    {
-		        location_type = 8;
-		    }
-		    else
-		    {
-		    	location_type = 9;
-		    }   
-		}
-		return(location_type);
-	}
+	
 	
 	public static Point[]  getOrderedPositionList(int xdimension, int ydimension, int direction)
 	{
