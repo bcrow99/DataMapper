@@ -289,18 +289,20 @@ public class DataMapper
 			for(int j = 0; j < xdim; j++)
 			{
 				int location_type = getLocationType(j, i, xdim, ydim);
-				int variance      = 0;
-				int k             = 0;
+				int variance;
+				int k;
 				
 				switch(location_type)
 				{
-				case 1: variance += Math.abs(src[0] - src[1]);
+				case 1: variance = 0;
+				        variance += Math.abs(src[0] - src[1]);
 				        variance += Math.abs(src[0] - src[xdim]);
 				        variance += Math.abs(src[0] - src[xdim + 1]);
-				        dst[j]    = variance;
+				        dst[0]    = variance;
 				        break;
 				        
-				case 2: variance += Math.abs(src[j] - src[j - 1]);
+				case 2: variance = 0;
+				        variance += Math.abs(src[j] - src[j - 1]);
 				        variance += Math.abs(src[j] - src[j + 1]);
 				        variance += Math.abs(src[j] - src[j + xdim - 1]);
 				        variance += Math.abs(src[j] - src[j + xdim]);
@@ -308,22 +310,25 @@ public class DataMapper
 				        dst[j]    = variance;
 				        break;
 				
-				case 3: variance += Math.abs(src[j] - src[j - 1]);
+				case 3: variance = 0;
+				        variance += Math.abs(src[j] - src[j - 1]);
 				        variance += Math.abs(src[j] - src[j + xdim - 1]);
 				        variance += Math.abs(src[j] - src[j + xdim]);
 				        dst[j] = variance;
 				        break;
 					
-				case 4: k = i * xdim;
+				case 4: k = i * xdim + j;
+				        variance = 0;
 				        variance += Math.abs(src[k] - src[k - xdim]);
 				        variance += Math.abs(src[k] - src[k - xdim + 1]);
 				        variance += Math.abs(src[k] - src[k + 1]);
 				        variance += Math.abs(src[k] - src[k + xdim]);
 				        variance += Math.abs(src[k] - src[k + xdim + 1]);
-				        dst[j] = variance;
+				        dst[k] = variance;
 				        break;
 
 				case 5: k = i * xdim + j;
+				        variance = 0;
 				        variance += Math.abs(src[k] - src[k - xdim - 1]);
 				        variance += Math.abs(src[k] - src[k - xdim]);
 				        variance += Math.abs(src[k] - src[k - xdim + 1]);
@@ -332,40 +337,47 @@ public class DataMapper
 				        variance += Math.abs(src[k] - src[k + xdim - 1]);
 				        variance += Math.abs(src[k] - src[k + xdim]);
 				        variance += Math.abs(src[k] - src[k + xdim + 1]);
+				        dst[k] = variance;
 					    break;
 				
 				
 				case 6: k = i * xdim + j;
+				        variance = 0;
 				        variance += Math.abs(src[k] - src[k - xdim]);
 				        variance += Math.abs(src[k] - src[k - xdim - 1]);
 				        variance += Math.abs(src[k] - src[k - 1]);
 				        variance += Math.abs(src[k] - src[k + xdim]);
 				        variance += Math.abs(src[k] - src[k + xdim - 1]);
-				        dst[j] = variance;
+				        dst[k]= variance;
 				        break;
 				
-				case 7: k = i * xdim;
+				case 7: k = i * xdim + j;
+		                variance = 0;
 				        variance += Math.abs(src[k] - src[k - xdim]);
 				        variance += Math.abs(src[k] - src[k - xdim + 1]);
 				        variance += Math.abs(src[k] - src[k + 1]);
-				        dst[j] = variance;
+			            dst[k] = variance;
 				        break;
 				        
 				case 8: k = i * xdim + j;
+		                variance = 0;
 				        variance += Math.abs(src[k] - src[k - xdim - 1]);
 				        variance += Math.abs(src[k] - src[k - xdim]);
 				        variance += Math.abs(src[k] - src[k - xdim + 1]);
 				        variance += Math.abs(src[k] - src[k - 1]);
 				        variance += Math.abs(src[k] - src[k + 1]);
-				        dst[j] = variance;
+				        dst[k] = variance;
 				        break;
 				        
 				case 9: k = i * xdim + j;
+				        variance = 0;
 				        variance += Math.abs(src[k] - src[k - xdim]);
 		                variance += Math.abs(src[k] - src[k - xdim - 1]);
 		                variance += Math.abs(src[k] - src[k - 1]);
-		                dst[j] = variance;
-				        break;       
+		                dst[k] = variance;
+				        break; 
+				        
+				default: System.out.println("Location type is " + location_type);
 				}
 			}
 		}
