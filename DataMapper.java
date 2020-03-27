@@ -136,7 +136,15 @@ public class DataMapper
 	{
 	 
 	    double area1 = getTriangleArea(upper_left, lower_left, upper_right);
+	    if(Double.isNaN(area1))
+	    {
+	        //System.out.println("Area 1 is not a number.");	
+	    }
 	    double area2 = getTriangleArea(lower_left, lower_right, upper_right);
+	    if(Double.isNaN(area2))
+	    {
+	    	//System.out.println("Area 2 is not a number.");	
+	    }
 	    double area = area1 + area2;
 	    return(area);
 	}
@@ -388,7 +396,7 @@ public class DataMapper
 	// Could be rewritten to do iterations inside function.
 	// Also, using single index into image to keep low level code simple--will have to reformat
 	// data for processing--see getVarianceImage.
-	public static void getImageDilation(int src[], boolean isInterpolated[], int xdim, int ydim, int dst[])
+	public static void getImageDilation(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
 	{	
 		for(int i = 0; i < ydim; i++)
 		{
@@ -401,8 +409,8 @@ public class DataMapper
 				{
 					double diagonal_weight     = 0.7071;  // Orthogonal weight is 1.
 					double total_weight        = 0;
+					double value               = 0.;
 					int    number_of_neighbors = 0;
-					int    value               = 0;
 				    int location_type          = getLocationType(j, i, xdim, ydim);
 				    switch(location_type)
 				    {
@@ -422,7 +430,7 @@ public class DataMapper
 				                }
 				                
 				                //Diagonal
-				                if(isInterpolated[k + xdim + 1]) //Diagonal
+				                if(isInterpolated[k + xdim + 1]) 
 				                {
 				                	number_of_neighbors++;
 				        	        total_weight += diagonal_weight;
@@ -874,7 +882,40 @@ public class DataMapper
     }
 
 
-	
+	public double getBisectingAverage(Sample sample1, Sample sample2, Sample sample3)
+	{ 
+		double x1 = sample1.x;
+		double y1 = sample1.y;
+		double x2 = sample2.x;
+		double y2 = sample2.y;
+		double x3 = sample3.x;
+		double y3 = sample3.y;
+		
+		Line2D.Double determinant_line  = new Line2D.Double(x2, y2, x3, y3);
+		Line2D.Double reference_line    = new Line2D.Double(x1, y1, x2, y2);
+		double        determinant_slope = Math.abs(DataMapper.getSlope(determinant_line));          //B
+		double        determinant_length = DataMapper.getLength(determinant_line);
+		double        reference_slope   = Math.abs(DataMapper.getSlope(reference_line));
+		double        reference_length  = DataMapper.getLength(reference_line);
+		
+		// Get the degrees and apply the law of sines.
+		double        first_degrees        = DataMapper.getDegrees(determinant_slope);                 //a
+		double        second_degrees       = DataMapper.getDegrees(reference_slope);                   //b
+		double        third_degrees        = 0;                                                        //c
+		if(first_degrees < second_degrees)
+		   third_degrees = second_degrees - first_degrees;
+		else
+			third_degrees = first_degrees - second_degrees;
+		double fourth_degrees =  90 - third_degrees;                                                      //d
+		double segment_length  = reference_length * DataMapper.sin(fourth_degrees) / DataMapper.sin(90);  //C
+		
+		
+		double weight1 = segment_length / determinant_length;
+		double weight2 = (determinant_length - segment_length) / determinant_length;
+		double value = weight1 * sample2.intensity + weight2 * sample3.intensity;
+		//double value = 0.0;
+		return(value);
+	}
 	
 	public static Point[]  getOrderedPositionList(int xdimension, int ydimension, int direction)
 	{
