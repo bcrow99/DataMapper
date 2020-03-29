@@ -26,12 +26,13 @@ public class DataMapper
 	    double x2 = line.getX2();
 	    double y2 = line.getY2();  	
 	    double slope = (y2 - y1) / (x2 - x1);   
-	    return(slope);
+	    double radians = StrictMath.atan(slope);
+	    return(radians);
 	}
 	
 	public static double getDegrees(double slope)
 	{
-		double degrees = StrictMath.atan(slope);
+		double degrees = slope / 0.0174533;
 		return(degrees);
 	}
 	
@@ -882,41 +883,187 @@ public class DataMapper
     }
 
 
-	public double getBisectingAverage(Sample sample1, Sample sample2, Sample sample3)
+    // This returns the bisecting average from a line determined by two samples, or the nearest endpoint sample value if no bisecting line from the point exists.
+	public static double getBisectingAverage(Sample sample1, Sample sample2, Point2D.Double point)
 	{ 
 		double x1 = sample1.x;
 		double y1 = sample1.y;
 		double x2 = sample2.x;
 		double y2 = sample2.y;
-		double x3 = sample3.x;
-		double y3 = sample3.y;
+		double x3 = point.getX();
+		double y3 = point.getY();
 		
-		Line2D.Double determinant_line  = new Line2D.Double(x2, y2, x3, y3);
-		Line2D.Double reference_line    = new Line2D.Double(x1, y1, x2, y2);
-		double        determinant_slope = Math.abs(DataMapper.getSlope(determinant_line));          //B
-		double        determinant_length = DataMapper.getLength(determinant_line);
-		double        reference_slope   = Math.abs(DataMapper.getSlope(reference_line));
-		double        reference_length  = DataMapper.getLength(reference_line);
-		
-		// Get the degrees and apply the law of sines.
-		double        first_degrees        = DataMapper.getDegrees(determinant_slope);                 //a
-		double        second_degrees       = DataMapper.getDegrees(reference_slope);                   //b
-		double        third_degrees        = 0;                                                        //c
-		if(first_degrees < second_degrees)
-		   third_degrees = second_degrees - first_degrees;
+        
+		Line2D.Double determinant_line     = new Line2D.Double(x1, y1, x2, y2);
+		double        determinant_distance = determinant_line.ptSegDist(x3, y3);
+		double        determinant_length   = DataMapper.getLength(determinant_line);
+		// Find out if there's a bisecting line.
+		Line2D.Double endpoint_line1 = new Line2D.Double(x1, y1, x3, y3);
+		Line2D.Double endpoint_line2 = new Line2D.Double(x2, y2, x3, y3);
+		double length1 = DataMapper.getLength(endpoint_line1);
+		double length2 = DataMapper.getLength(endpoint_line2);
+		if(determinant_distance == length1 || determinant_distance == length2) // No biscecting line, return one of the endpoint values.
+		{
+			if(determinant_distance == length1)
+				return(sample1.intensity);
+			else
+				return(sample2.intensity);
+		}
+
+		if(x1 == x2)
+		{
+		    double segment_length = Math.abs(y2 - y3);
+		    double weight1        = segment_length / determinant_length;
+		    double weight2 = (determinant_length - segment_length) / determinant_length;
+		    double value = weight1 * sample1.intensity + weight2 * sample2.intensity;
+		    return(value);
+		    
+		}
+		else if(y1 == y2)
+		{
+			double segment_length = Math.abs(x2 - x3);
+		    double weight1        = segment_length / determinant_length;
+		    double weight2 = (determinant_length - segment_length) / determinant_length; 
+		    double value = weight1 * sample1.intensity + weight2 * sample2.intensity;
+		    return(value);
+		}
 		else
-			third_degrees = first_degrees - second_degrees;
-		double fourth_degrees =  90 - third_degrees;                                                      //d
-		double segment_length  = reference_length * DataMapper.sin(fourth_degrees) / DataMapper.sin(90);  //C
-		
-		
-		double weight1 = segment_length / determinant_length;
-		double weight2 = (determinant_length - segment_length) / determinant_length;
-		double value = weight1 * sample2.intensity + weight2 * sample3.intensity;
-		//double value = 0.0;
-		return(value);
+		{
+			// We know the slope is neither 0 nor infinity.
+			double        determinant_slope = Math.abs(DataMapper.getSlope(determinant_line));          //B  
+			
+			// Get degrees of significant angles and apply the law of sines.
+		    double        first_degrees        = DataMapper.getDegrees(determinant_slope);                 //a
+			
+		    Line2D.Double reference_line    = new Line2D.Double(x1, y1, x3, y3);
+		    double        reference_length  = DataMapper.getLength(reference_line);
+		    double        second_degrees    = 0.0;   
+		    if(x1 == x3)
+		    {
+		    	second_degrees = 90.;
+		    }
+		    else if(y1 == y3)
+		    {
+		    	second_degrees = 0;
+		    }
+		    else
+		    {
+		    	double reference_slope = Math.abs(DataMapper.getSlope(reference_line));	
+		    	second_degrees       = DataMapper.getDegrees(reference_slope);                   //b
+		    }
+		       
+		    double        third_degrees        = 0;                                                        //c
+		    if(first_degrees < second_degrees)
+		       third_degrees = second_degrees - first_degrees;
+		    else
+			   third_degrees = first_degrees - second_degrees;
+		    double fourth_degrees =  90 - third_degrees;                                                      //d
+		    double segment_length  = reference_length * DataMapper.sin(fourth_degrees) / DataMapper.sin(90);  //C
+		    double weight1 = segment_length / determinant_length;
+		    double weight2 = (determinant_length - segment_length) / determinant_length;
+		    double value = weight1 * sample1.intensity + weight2 * sample2.intensity;
+		    return(value);
+		}
 	}
 	
+	// This returns the bisecting point from a line determined by two samples, or the nearest endpoint location if no bisecting line from the point exists.
+	public static Point2D.Double getBisectingPoint(Sample sample1, Sample sample2, Point2D.Double point)
+	{ 
+	    double x1 = sample1.x;
+	    double y1 = sample1.y;
+	    double x2 = sample2.x;
+		double y2 = sample2.y;
+		double x3 = point.getX();
+		double y3 = point.getY();
+			
+	        
+		Line2D.Double determinant_line     = new Line2D.Double(x1, y1, x2, y2);
+		double        determinant_distance = determinant_line.ptSegDist(x3, y3);
+		double        determinant_length   = DataMapper.getLength(determinant_line);
+		// Find out if there's a bisecting line.
+		Line2D.Double endpoint_line1 = new Line2D.Double(x1, y1, x3, y3);
+		Line2D.Double endpoint_line2 = new Line2D.Double(x2, y2, x3, y3);
+		double length1 = DataMapper.getLength(endpoint_line1);
+		double length2 = DataMapper.getLength(endpoint_line2);
+		if(determinant_distance == length1 || determinant_distance == length2) // No biscecting line, return one of the endpoint values.
+		{
+			if(determinant_distance == length1)
+			{
+				Point2D.Double bisecting_point = new  Point2D.Double(x1, y1);
+				return(bisecting_point);
+			}
+			else
+			{
+				Point2D.Double bisecting_point = new  Point2D.Double(x2, y2);
+				return(bisecting_point);  
+			}
+		}
+
+		if(x1 == x2)
+		{
+			Point2D.Double bisecting_point = new  Point2D.Double(x1, y3);
+			return(bisecting_point);    
+		}
+		else if(y1 == y2)
+		{
+			Point2D.Double bisecting_point = new  Point2D.Double(x3, y1);
+			return(bisecting_point);  	
+		}
+		else
+		{
+				// We know the slope is neither 0 nor infinity.
+				double        determinant_slope = Math.abs(DataMapper.getSlope(determinant_line));          //B  
+				System.out.println("Determinant slope in radians is " + determinant_slope);
+				
+				// Get degrees of significant angles and apply the law of sines.
+			    double        first_degrees        = DataMapper.getDegrees(determinant_slope);                 //a
+			    
+			    System.out.println("Determinant slope in degrees is " + first_degrees );
+				
+			    Line2D.Double reference_line    = new Line2D.Double(x1, y1, x3, y3);
+			    double        reference_length  = DataMapper.getLength(reference_line);
+			    double        second_degrees    = 0.0;   
+			    if(x1 == x3)
+			    {
+			    	second_degrees = 90.;
+			    }
+			    else if(y1 == y3)
+			    {
+			    	second_degrees = 0;
+			    }
+			    else
+			    {
+			    	double reference_slope = Math.abs(DataMapper.getSlope(reference_line));	
+			    	second_degrees       = DataMapper.getDegrees(reference_slope);                   //b
+			    	System.out.println("Reference slope is " + second_degrees + " degrees.");
+			    }
+			    double        third_degrees        = 0;                                                        //c
+			    if(first_degrees < second_degrees)
+			       third_degrees = second_degrees - first_degrees;
+			    else
+				   third_degrees = first_degrees - second_degrees;
+			    double fourth_degrees =  90 - third_degrees;                                                      //d    
+			    double segment_length  = reference_length * DataMapper.sin(fourth_degrees) / DataMapper.sin(90);  //C
+			    
+			    double determinant    = DataMapper.sin(90) / segment_length;
+			    double fifth_degrees  = 90 - first_degrees;
+			    double delta_x        = DataMapper.sin(fifth_degrees) / determinant;
+			    double delta_y        = DataMapper.sin(first_degrees) / determinant;  
+			    double x4 = 0.;
+			    double y4 = 0.;
+			    if(x1 < x2)
+			    	x4 = x1 + delta_x;
+			    else
+			    	x4 = x1 - delta_x;
+			    if(y1 < y2)
+			    	y4 = y1 + delta_y;
+			    else
+			    	x4 = y1 - delta_y;	 
+			    Point2D.Double bisecting_point = new  Point2D.Double(x4, y4);
+				return(bisecting_point); 
+		}
+	}
+		
 	public static Point[]  getOrderedPositionList(int xdimension, int ydimension, int direction)
 	{
 		int number_of_positions = xdimension * ydimension;
