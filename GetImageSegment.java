@@ -130,11 +130,11 @@ public class GetImageSegment
         */
         
         
-        String file_string = new String("C:/Users/Brian Crowley/Desktop/obj8.jpg");
+        String file_string = new String("C:/Users/Brian Crowley/Desktop/obj21.jpg");
             
         // Obj 21
         
-        /*
+        
         for(int i = 226375; i < 227780; i++)
         {
         	Sample sample = (Sample)complete_sample_list.get(i);
@@ -169,12 +169,12 @@ public class GetImageSegment
         	sample_list.add(sample);
         }
         
-        */
+        
        
         
         
         // Obj 8
-        
+        /*
         for(int i = 127850; i < 129090; i++)
         {
         	Sample sample = (Sample)complete_sample_list.get(i);
@@ -194,7 +194,7 @@ public class GetImageSegment
         	Sample sample = (Sample)complete_sample_list.get(i);
         	sample_list.add(sample);
         }
-        
+        */
         
         /*
         for(int i = 182975; i < 183640; i++)
@@ -733,16 +733,30 @@ public class GetImageSegment
         	    	double x5, y5, x6, y6;
         	    
         	    	double slope = DataMapper.getSlope(top);
-        	    	double y_intercept = DataMapper.getYIntercept(upper_left, slope);
-        	    	y5 = slope * xcenter + y_intercept;
+        	    	if(slope == 0)
+        	    	{
+        	    	    y5 = y1;	
+        	    	}
+        	    	else
+        	    	{
+        	    	    double y_intercept = DataMapper.getYIntercept(upper_left, slope);
+        	    	    y5 = slope * xcenter + y_intercept;
+        	    	}
         	    	slope = DataMapper.getSlope(bottom);
-        	    	y_intercept = DataMapper.getYIntercept(lower_left, slope);
-        	    	y6 = slope * xcenter + y_intercept;
+        	    	if(slope == 0)
+        	    	{
+        	    	    y6 = y4;	
+        	    	}
+        	    	else
+        	    	{
+        	    	    double y_intercept = DataMapper.getYIntercept(lower_left, slope);
+        	    	    y6 = slope * xcenter + y_intercept;
+        	    	}
         	    	    			    
         	    	if(x2 != x3)
         	    	{
         	    	    slope = DataMapper.getSlope(right);
-        	    	    y_intercept = DataMapper.getYIntercept(upper_right, slope);
+        	    	    double y_intercept = DataMapper.getYIntercept(upper_right, slope);
         	    	    x5 = (ycenter - y_intercept) / slope;
         	    	}
         	    	else
@@ -754,7 +768,7 @@ public class GetImageSegment
         	    	if(x1 != x4)
         	    	{
         	    	    slope = DataMapper.getSlope(left);
-        	    	    y_intercept = DataMapper.getYIntercept(lower_left, slope);
+        	    	    double y_intercept = DataMapper.getYIntercept(lower_left, slope);
         	    	    x6 = (ycenter - y_intercept) / slope;
         	    	}
         	    	else
@@ -785,7 +799,12 @@ public class GetImageSegment
         	    	    		       second_sample.intensity * weight2 + 
         	    	    		       third_sample.intensity * weight3 +
         	    	    		       fourth_sample.intensity * weight4;
+        	    	if(Double.isNaN(intensity))
+    		        	System.out.println("Intensity value is not a number.");
+        	    	if(intensity <= minimum_intensity)
+        	    		System.out.println("Intensity value is less than or equal to the minimum_intensity.");
         	    	cell_intensity[i][j] = intensity;
+        	    	//cell_intensity[i][j] = maximum_intensity;
         	    	isInterpolated[i][j] = true;	  
         	    }
         	    //Test for this after looking for corner cases.  Same code as four corners.
@@ -835,16 +854,30 @@ public class GetImageSegment
         	    	double x5, y5, x6, y6;
         	    
         	    	double slope = DataMapper.getSlope(top);
-        	    	double y_intercept = DataMapper.getYIntercept(upper_left, slope);
-        	    	y5 = slope * xcenter + y_intercept;
+        	    	if(slope == 0)
+        	    	{
+        	    		y5 = y1;
+        	    	}
+        	    	else
+        	    	{
+        	    	    double y_intercept = DataMapper.getYIntercept(upper_left, slope);
+        	    	    y5 = slope * xcenter + y_intercept;
+        	    	}
         	    	slope = DataMapper.getSlope(bottom);
-        	    	y_intercept = DataMapper.getYIntercept(lower_left, slope);
-        	    	y6 = slope * xcenter + y_intercept;
+        	    	if(slope == 0)
+        	    	{
+        	    		y6 = y4;
+        	    	}
+        	    	else
+        	    	{
+        	    	    double y_intercept = DataMapper.getYIntercept(lower_left, slope);
+        	    	    y6 = slope * xcenter + y_intercept;
+        	    	}
         	    	    			    
         	    	if(x2 != x3)
         	    	{
         	    	    slope = DataMapper.getSlope(right);
-        	    	    y_intercept = DataMapper.getYIntercept(upper_right, slope);
+        	    	    double y_intercept = DataMapper.getYIntercept(upper_right, slope);
         	    	    x5 = (ycenter - y_intercept) / slope;
         	    	}
         	    	else
@@ -856,7 +889,7 @@ public class GetImageSegment
         	    	if(x1 != x4)
         	    	{
         	    	    slope = DataMapper.getSlope(left);
-        	    	    y_intercept = DataMapper.getYIntercept(lower_left, slope);
+        	    	    double y_intercept = DataMapper.getYIntercept(lower_left, slope);
         	    	    x6 = (ycenter - y_intercept) / slope;
         	    	}
         	    	else
@@ -865,10 +898,10 @@ public class GetImageSegment
         	    	    x6              = xcenter - distance;
         	    	}
         	    	    			      
-        	    	Point2D.Double middle_top  = new Point2D.Double(xcenter, y5);
+        	    	Point2D.Double middle_top    = new Point2D.Double(xcenter, y5);
         	    	Point2D.Double middle_bottom = new Point2D.Double(xcenter, y6);
-        	    	Point2D.Double middle_right = new Point2D.Double(x5, ycenter);
-        	    	Point2D.Double middle_left  = new Point2D.Double(x6, ycenter); 
+        	    	Point2D.Double middle_right  = new Point2D.Double(x5, ycenter);
+        	    	Point2D.Double middle_left   = new Point2D.Double(x6, ycenter); 
         	    	    		        
         	    	double area1 = DataMapper.getQuadrilateralArea(middle_left, upper_left, middle_top, origin);
         	    	double area2 = DataMapper.getQuadrilateralArea(origin, middle_top, upper_right, middle_right);
@@ -888,6 +921,7 @@ public class GetImageSegment
         	    	    		       third_sample.intensity * weight3 +
         	    	    		       fourth_sample.intensity * weight4;
         	    	cell_intensity[i][j] = intensity;
+        	    	//cell_intensity[i][j] = maximum_intensity;
         	    	isInterpolated[i][j] = true;	   	
         	    }
         	    
@@ -973,36 +1007,37 @@ public class GetImageSegment
         	    	ArrayList first_list  = (ArrayList)neighbor_list.get(first_index);
         	    	ArrayList second_list = (ArrayList)neighbor_list.get(second_index);
         	    	ArrayList third_list  = (ArrayList)neighbor_list.get(third_index);
-        	    	double x1,y1,x2,y2,x3,y3 = 0;
+        	    	
         	    	boolean foundTriangle = false;
         	    	outer: for(int m = 0; m < first_list.size(); m++)
         	    	{
         	    	    for(int n = 0; n < second_list.size(); n++)
         	    	    {
         	    	    	for(int p = 0; p < third_list.size(); p++)
-        	    	    	{
-        	    	    		Sample first_sample  = (Sample)first_list.get(m);
-        	    	    		x1 = first_sample.x;
-        	        	    	y1 = first_sample.y; 
-        	        	    	Sample second_sample = (Sample)second_list.get(n);
-        	        	    	x2 = second_sample.x;
-        	        	    	y2 = second_sample.y;
-        	        	    	Sample third_sample  = (Sample)third_list.get(p);
-        	        	    	x3 = third_sample.x;
-        	        	    	y3 = third_sample.y;
-        	        	    	Path2D.Double path = new Path2D.Double();
-        	        		    path.moveTo(x1, y1);
-        	        		    path.lineTo(x2, y2);
-        	        		    path.lineTo(x3, y3);
-        	        		    path.closePath();
-        	    	    		if(path.contains(xcenter, ycenter)) 
+        	    	    	{ 
+        	    	    		Point2D.Double origin        = new Point2D.Double(xcenter, ycenter);
+        	    	    		Sample         first_sample  = (Sample)first_list.get(m);
+        	    	    		Sample         second_sample = (Sample)second_list.get(n);
+        	    	    		Sample         third_sample  = (Sample)third_list.get(p);
+        	    	    		boolean        isContained   = DataMapper.containsPoint(origin, first_sample, second_sample, third_sample);
+        	        	    	
+        	    	    		if(isContained) 
         	    	    		{
         	    	    			foundTriangle = true;
+        	    	    			
+        	    	    			double x1 = first_sample.x;
+            	        	    	double y1 = first_sample.y; 
+            	        	    	
+            	        	    	double x2 = second_sample.x;
+            	        	    	double y2 = second_sample.y;
+            	        	    	
+            	        	    	double x3 = third_sample.x;
+            	        	    	double y3 = third_sample.y;
         	    	    			
         	    	    			Point2D.Double base1  = new Point2D.Double(x1, y1);
     	    	    		        Point2D.Double top    = new Point2D.Double(x2, y2);
     	    	    		        Point2D.Double base2  = new Point2D.Double(x3, y3); 
-    	    	    		        Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
+    	    	    		        origin                = new Point2D.Double(xcenter, ycenter);
     	    	    		        
     	    	    		        double area1 = DataMapper.getTriangleArea(origin, base2, top);
     	    	    		        double area2 = DataMapper.getTriangleArea(base1, base2, origin);
@@ -1017,6 +1052,7 @@ public class GetImageSegment
     	    	    		        		           second_sample.intensity * weight2 + 
     	    	    		        		           third_sample.intensity * weight3;
     	    	    		        cell_intensity[i][j] = intensity;
+    	    	    		        //cell_intensity[i][j] = maximum_intensity;
         	    	    			isInterpolated[i][j] = true;
     	    	    		        break outer;
         	    	    		}
@@ -1025,7 +1061,8 @@ public class GetImageSegment
         	    	} 
         	    	if(!foundTriangle)
         	    	{
-        	            //Do a weighted average of the nearest neighbors.
+        	            //This would be a weighted average of the nearest neighbors.
+        	    		
                 	    //Sample first_sample  = (Sample)first_list.get(0);
                 	    //Sample second_sample = (Sample)second_list.get(0);
         	        	//Sample third_sample  = (Sample)third_list.get(0);
@@ -1037,18 +1074,22 @@ public class GetImageSegment
         	        	//double weight2 = second_sample.distance / total_distance;
         	        	//double weight3 = third_sample.distance / total_distance;
         	        	//double intensity = first_sample.intensity * weight1 + second_sample.intensity * weight2 + third_sample.intensity * weight3;
-        	        	    
+        	        	
+        	    		
+        	    		//This is probably more accurate in the sense that we're doing something
+        	    		//that involves information about where the other points are in relation 
+        	    		//to each other, which nearest neighbors does not do.
         	    		Sample first_sample = (Sample)first_list.get(0);
-        	    	    x1           = first_sample.x;
-        	    	    y1           = first_sample.y;
+        	    	    double x1           = first_sample.x;
+        	    	    double y1           = first_sample.y;
         	    	    
         	    	    Sample second_sample  = (Sample)second_list.get(0);
-        	    	    x2             = second_sample.x;
-        	    	    y2             = second_sample.y;
+        	    	    double x2             = second_sample.x;
+        	    	    double y2             = second_sample.y;
         	    	    
         	    	    Sample third_sample = (Sample)third_list.get(0);
-        	    	    x3           = third_sample.x;
-        	    	    y3           = third_sample.y;
+        	    	    double x3           = third_sample.x;
+        	    	    double y3           = third_sample.y;
     	    		    
         	    	    Point2D.Double origin     = new Point2D.Double(xcenter, ycenter);
         	    	    Line2D.Double first_line  = new Line2D.Double(x1, y1, x2, y2);
@@ -1094,14 +1135,11 @@ public class GetImageSegment
         	    	    	cell_intensity[i][j] = first_sample.intensity;
         	    	    	isInterpolated[i][j] = true;
         	    	    }
+        	    	    //cell_intensity[i][j] = maximum_intensity;
         	    	}
         	    }
         	    
-        	    // This is a small number of samples with the current set, and is also 
-        	    // more complex to process.  The payoff would be with a sparser data set.
-        	    // Check for three sides after checking four sides.
-        	    // Mostly the same code as three corners and two corners and a side, but we wanted to
-        	    // check for four sides first.
+        	    // All these scenarios can be processed with the same code.
         	    else if((neighborPopulated[1] && neighborPopulated[3] && neighborPopulated[4]) ||
         	    		(neighborPopulated[3] && neighborPopulated[4] && neighborPopulated[6]) ||
         	    		(neighborPopulated[4] && neighborPopulated[6] && neighborPopulated[1]) ||
@@ -1139,7 +1177,6 @@ public class GetImageSegment
         	    	ArrayList first_list  = (ArrayList)neighbor_list.get(first_index);
         	    	ArrayList second_list = (ArrayList)neighbor_list.get(second_index);
         	    	ArrayList third_list  = (ArrayList)neighbor_list.get(third_index);
-        	    	double x1,y1,x2,y2,x3,y3 = 0;
         	    	boolean foundTriangle = false;
         	    	outer: for(int m = 0; m < first_list.size(); m++)
         	    	{
@@ -1147,27 +1184,27 @@ public class GetImageSegment
         	    	    {
         	    	    	for(int p = 0; p < third_list.size(); p++)
         	    	    	{
-        	    	    		Sample first_sample  = (Sample)first_list.get(m);
-        	    	    		x1 = first_sample.x;
-        	        	    	y1 = first_sample.y; 
-        	        	    	Sample second_sample = (Sample)second_list.get(n);
-        	        	    	x2 = second_sample.x;
-        	        	    	y2 = second_sample.y;
-        	        	    	Sample third_sample  = (Sample)third_list.get(p);
-        	        	    	x3 = third_sample.x;
-        	        	    	y3 = third_sample.y;
-        	        	    	Path2D.Double path = new Path2D.Double();
-        	        		    path.moveTo(x1, y1);
-        	        		    path.lineTo(x2, y2);
-        	        		    path.lineTo(x3, y3);
-        	        		    path.closePath();
-        	    	    		if(path.contains(xcenter, ycenter)) 
+        	    	    		Point2D.Double origin        = new Point2D.Double(xcenter, ycenter);
+        	    	    		Sample         first_sample  = (Sample)first_list.get(m);
+        	    	    		Sample         second_sample = (Sample)second_list.get(n);
+        	    	    		Sample         third_sample  = (Sample)third_list.get(p);
+        	    	    		boolean        isContained   = DataMapper.containsPoint(origin, first_sample, second_sample, third_sample);
+        	    	    		if(isContained) 
         	    	    		{
         	    	    			foundTriangle = true;
+        	    	    			
+        	    	    			double x1 = first_sample.x;
+            	        	    	double y1 = first_sample.y; 
+            	        	    	
+            	        	    	double x2 = second_sample.x;
+            	        	    	double y2 = second_sample.y;
+            	        	    	
+            	        	    	double x3 = third_sample.x;
+            	        	    	double y3 = third_sample.y;
+        	    	    			
         	    	    			Point2D.Double base1  = new Point2D.Double(x1, y1);
     	    	    		        Point2D.Double top    = new Point2D.Double(x2, y2);
     	    	    		        Point2D.Double base2  = new Point2D.Double(x3, y3); 
-    	    	    		        Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
     	    	    		        
     	    	    		        double area1 = DataMapper.getTriangleArea(origin, base2, top);
     	    	    		        double area2 = DataMapper.getTriangleArea(base1, base2, origin);
@@ -1182,6 +1219,7 @@ public class GetImageSegment
     	    	    		        		           second_sample.intensity * weight2 + 
     	    	    		        		           third_sample.intensity * weight3;
     	    	    		        cell_intensity[i][j] = intensity;
+    	    	    		        //cell_intensity[i][j] = maximum_intensity;
         	    	    			isInterpolated[i][j] = true;
     	    	    		        break outer;
         	    	    		}
@@ -1191,6 +1229,7 @@ public class GetImageSegment
         	    	if(!foundTriangle)
         	    	{
         	    		//Do a weighted average of the nearest neighbors.
+        	    		
                 	    //Sample first_sample  = (Sample)first_list.get(0);
                 	    //Sample second_sample = (Sample)second_list.get(0);
         	        	//Sample third_sample  = (Sample)third_list.get(0);
@@ -1202,17 +1241,19 @@ public class GetImageSegment
         	        	//double weight2 = second_sample.distance / total_distance;
         	        	//double weight3 = third_sample.distance / total_distance;
         	        	//double intensity = first_sample.intensity * weight1 + second_sample.intensity * weight2 + third_sample.intensity * weight3;
-        	    		Sample first_sample = (Sample)first_list.get(0);
-        	    	    x1           = first_sample.x;
-        	    	    y1           = first_sample.y;
+        	    		
+        	    		//Doing something different because it might be more accurate.
+        	    		Sample first_sample  = (Sample)first_list.get(0);
+        	    	    double x1            = first_sample.x;
+        	    	    double y1            = first_sample.y;
         	    	    
-        	    	    Sample second_sample  = (Sample)second_list.get(0);
-        	    	    x2             = second_sample.x;
-        	    	    y2             = second_sample.y;
+        	    	    Sample second_sample = (Sample)second_list.get(0);
+        	    	    double x2            = second_sample.x;
+        	    	    double y2            = second_sample.y;
         	    	    
-        	    	    Sample third_sample = (Sample)third_list.get(0);
-        	    	    x3           = third_sample.x;
-        	    	    y3           = third_sample.y;
+        	    	    Sample third_sample  = (Sample)third_list.get(0);
+        	    	    double x3            = third_sample.x;
+        	    	    double y3            = third_sample.y;
     	    		    
         	    	    Point2D.Double origin     = new Point2D.Double(xcenter, ycenter);
         	    	    Line2D.Double first_line  = new Line2D.Double(x1, y1, x2, y2);
@@ -1258,6 +1299,7 @@ public class GetImageSegment
         	    	    	cell_intensity[i][j] = first_sample.intensity;
         	    	    	isInterpolated[i][j] = true;
         	    	    }
+        	    	    //cell_intensity[i][j] = maximum_intensity;
 	
         	    	}
         	    }
@@ -1284,20 +1326,24 @@ public class GetImageSegment
         	    	
         	    	ArrayList first_list  = (ArrayList)neighbor_list.get(first_index);
         	    	ArrayList second_list = (ArrayList)neighbor_list.get(second_index);
-        	    	double x1,y1,x2,y2,x3,y3,x4,y4;
+      
         	    	
         	    	Sample first_sample  = (Sample)first_list.get(0);
-        	    	x1                   = first_sample.x;
-        	    	y1                   = first_sample.y;
+        	    	double x1            = first_sample.x;
+        	    	double y1            = first_sample.y;
                     if(first_list.size() == 1)
                     {
                     	Sample second_sample = (Sample)second_list.get(0);
-                    	x2 = second_sample.x;
-                    	y2 = second_sample.y;
+                    	double x2            = second_sample.x;
+                    	double y2            = second_sample.y;
                     	if(second_list.size() == 1)
                     	{
+                    		Point2D.Double origin      = new Point2D.Double(xcenter, ycenter);
                     		first_sample  = (Sample)first_list.get(0);
             	    		second_sample = (Sample)second_list.get(0);
+            	    		
+            	    		// Nearest neighbors--let's try using bisecting average instead.
+            	    		/*
     	        	    	double total_distance = 0.;
     	        	        total_distance += first_sample.distance;
     	        	        total_distance += second_sample.distance;
@@ -1305,6 +1351,9 @@ public class GetImageSegment
     	        	        double weight2 = second_sample.distance / total_distance; 
     	        	        double intensity = first_sample.intensity * weight1 + second_sample.intensity * weight2;
     	        	        cell_intensity[i][j] = intensity;
+    	        	        */
+            	    		//cell_intensity[i][j] = maximum_intensity;
+            	    		cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
                     		isInterpolated[i][j] = true;
                     	}
                     	else
@@ -1315,20 +1364,18 @@ public class GetImageSegment
                     		//because we're working with two lists, not three.
                     		outer: for(int m = 1; m < second_list.size(); m++)
                     		{
-                    		    Sample third_sample = (Sample)second_list.get(m);
-                    		    x3                  = third_sample.x;
-                    		    y3                  = third_sample.y;
-                    		    Path2D.Double path = new Path2D.Double();
-        	        		    path.moveTo(x1, y1);
-        	        		    path.lineTo(x2, y2);
-        	        		    path.lineTo(x3, y3);
-        	        		    path.closePath();
-        	    	    		if(path.contains(xcenter, ycenter)) 
+                    		    Sample third_sample        = (Sample)second_list.get(m);
+                    		    Point2D.Double origin      = new Point2D.Double(xcenter, ycenter);
+        	    	    		boolean        isContained = DataMapper.containsPoint(origin, first_sample, second_sample, third_sample);
+                    		    
+                    		  
+        	    	    		if(isContained) 
         	    	    		{
+        	    	    			double x3           = third_sample.x;
+                        		    double y3           = third_sample.y;
         	    	    			Point2D.Double base1  = new Point2D.Double(x1, y1);
     	    	    		        Point2D.Double top    = new Point2D.Double(x2, y2);
     	    	    		        Point2D.Double base2  = new Point2D.Double(x3, y3); 
-    	    	    		        Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
     	    	    		        
     	    	    		        double area1 = DataMapper.getTriangleArea(origin, base2, top);
     	    	    		        double area2 = DataMapper.getTriangleArea(base1, base2, origin);
@@ -1342,7 +1389,7 @@ public class GetImageSegment
     	    	    		        double intensity = first_sample.intensity * weight1 + 
     	    	    		        		           second_sample.intensity * weight2 + 
     	    	    		        		           third_sample.intensity * weight3;
-    	    	    		        
+    	    	    		        //cell_intensity[i][j] = maximum_intensity;
     	    	    		        cell_intensity[i][j] = intensity;
         	    	    			isInterpolated[i][j] = true;
         	    	    			foundBoundingTriangle = true;
@@ -1373,8 +1420,8 @@ public class GetImageSegment
                 	    	    y2             = second_sample.y;
                 	    	    
                 	    	    Sample third_sample = (Sample)second_list.get(1);
-                	    	    x3           = third_sample.x;
-                	    	    y3           = third_sample.y;
+                	    	    double x3           = third_sample.x;
+                	    	    double y3           = third_sample.y;
             	    		    
                 	    	    Point2D.Double origin     = new Point2D.Double(xcenter, ycenter);
                 	    	    Line2D.Double first_line  = new Line2D.Double(x1, y1, x2, y2);
@@ -1419,6 +1466,7 @@ public class GetImageSegment
                 	    	    	cell_intensity[i][j] = first_sample.intensity;
                 	    	    	isInterpolated[i][j] = true;
                 	    	    }
+                	    	    //cell_intensity[i][j] = maximum_intensity;
                     		}
                     	}
                     }
@@ -1429,28 +1477,23 @@ public class GetImageSegment
                     	Sample third_sample;
                         if(second_list.size() == 1)	
                         {
-                        	third_sample = (Sample)second_list.get(0);
-                		    x3 = third_sample.x;
-                		    y3 = third_sample.y;
+                        	Point2D.Double origin         = new Point2D.Double(xcenter, ycenter);
+                        	third_sample                  = (Sample)second_list.get(0);
                 		    boolean foundBoundingTriangle = false;
-                    		//Try triangles.
                     		outer: for(int m = 1; m < first_list.size(); m++)
                     		{
-                    		    second_sample = (Sample)first_list.get(m);
-                    		    x2 = second_sample.x;
-                    		    y2 = second_sample.y;
-                    		    Path2D.Double path = new Path2D.Double();
-        	        		    path.moveTo(x1, y1);
-        	        		    path.lineTo(x2, y2);
-        	        		    path.lineTo(x3, y3);
-        	        		    path.closePath();
-        	    	    		if(path.contains(xcenter, ycenter)) 
+                    			second_sample       = (Sample)first_list.get(m);
+                    			boolean isContained = DataMapper.containsPoint(origin, first_sample, second_sample, third_sample);
+        	    	    		if(isContained) 
         	    	    		{
+        	    	    		    double x2 = second_sample.x;
+                    		        double y2 = second_sample.y;
+                    			    double x3           = third_sample.x;
+                    		        double y3           = third_sample.y;
         	    	    			//Do a linear interpolation
         	    	    			Point2D.Double base1  = new Point2D.Double(x1, y1);
     	    	    		        Point2D.Double top    = new Point2D.Double(x2, y2);
     	    	    		        Point2D.Double base2  = new Point2D.Double(x3, y3); 
-    	    	    		        Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
     	    	    		        
     	    	    		        double area1 = DataMapper.getTriangleArea(origin, base2, top);
     	    	    		        double area2 = DataMapper.getTriangleArea(base1, base2, origin);
@@ -1465,6 +1508,7 @@ public class GetImageSegment
     	    	    		        		           second_sample.intensity * weight2 + 
     	    	    		        		           third_sample.intensity * weight3;
     	    	    		        
+    	    	    		        //cell_intensity[i][j] = maximum_intensity;
     	    	    		        cell_intensity[i][j] = intensity;
         	    	    			isInterpolated[i][j] = true;
         	    	    			foundBoundingTriangle = true;
@@ -1474,7 +1518,7 @@ public class GetImageSegment
                     		}
                     		if(!foundBoundingTriangle)
                     		{
-                    		    //Do the weighted average of the two closest samples and call it interpolated.
+                    		    //Weighted average of nearest nearest neighbors.
                     			//first_sample  = (Sample)first_list.get(0);
                 	    		//second_sample = (Sample)second_list.get(0);
         	        	    	//double total_distance = 0.;
@@ -1483,23 +1527,22 @@ public class GetImageSegment
         	        	        //double weight1 = first_sample.distance / total_distance;
         	        	        //double weight2 = second_sample.distance / total_distance;    
         	        	        //double intensity = first_sample.intensity * weight1 + second_sample.intensity * weight2;
+                    			
+                    			//Something different.
                     			first_sample = (Sample)first_list.get(0);
                 	    	    x1           = first_sample.x;
                 	    	    y1           = first_sample.y;
                 	    	    
                 	    	    second_sample  = (Sample)second_list.get(0);
-                	    	    x2             = second_sample.x;
-                	    	    y2             = second_sample.y;
+                	    	    double x2             = second_sample.x;
+                	    	    double y2             = second_sample.y;
                 	    	    
                 	    	    third_sample = (Sample)second_list.get(0);
-                	    	    x3           = third_sample.x;
-                	    	    y3           = third_sample.y;
-            	    		    
-                	    	    Point2D.Double origin     = new Point2D.Double(xcenter, ycenter);
+                	    	    double x3           = third_sample.x;
+                	    	    double y3           = third_sample.y; 
                 	    	    Line2D.Double first_line  = new Line2D.Double(x1, y1, x2, y2);
                 	    	    Line2D.Double second_line = new Line2D.Double(x2, y2, x3, y3);
                 	    	    Line2D.Double third_line  = new Line2D.Double(x3, y3, x1, y1);
-                	    	    
                 	    	    double first_length       = first_line.ptSegDist(xcenter, ycenter);	
                 	    	    double second_length      = second_line.ptSegDist(xcenter, ycenter);
                 	    	    double third_length       = third_line.ptSegDist(xcenter, ycenter);
@@ -1538,6 +1581,7 @@ public class GetImageSegment
                 	    	    	cell_intensity[i][j] = first_sample.intensity;
                 	    	    	isInterpolated[i][j] = true;
                 	    	    }
+                	    	    //cell_intensity[i][j] = maximum_intensity;
                     		}
                         }
                         else
@@ -1810,12 +1854,12 @@ public class GetImageSegment
                         		Sample fourth_sample = (Sample)second_list.get(1);
                         		x1 = first_sample.x;
                         		y1 = first_sample.y;
-                        		x2 = second_sample.x;
-                        		y2 = second_sample.y;
-                        		x3 = third_sample.x;
-                        		y3 = third_sample.y;
-                        		x4 = fourth_sample.x;
-                        		y4 = fourth_sample.y;
+                        		double x2 = second_sample.x;
+                        		double y2 = second_sample.y;
+                        		double x3 = third_sample.x;
+                        		double y3 = third_sample.y;
+                        		double x4 = fourth_sample.x;
+                        		double y4 = fourth_sample.y;
                         		Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
                         		Line2D.Double first_line  = new Line2D.Double(x1, y1, x2, y2);
                         		Line2D.Double second_line = new Line2D.Double(x2, y2, x3, y3);
@@ -1846,6 +1890,7 @@ public class GetImageSegment
                         	    	cell_intensity[i][j] = DataMapper.getBisectingAverage(fourth_sample, first_sample, origin);
     	    		                isInterpolated[i][j] = true;	
                         	    }
+                        	    //cell_intensity[i][j] = maximum_intensity;
                     		}
                     }
         	    }
@@ -1996,7 +2041,7 @@ public class GetImageSegment
                         	              double third_distance  = third_line.ptSegDist(xcenter, ycenter);
                         	              double fourth_distance = fourth_line.ptSegDist(xcenter, ycenter);
                         	              Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
-                        	             // Assuming identical distances are (nearly) impossible.
+                        	           
                         	             int line = 0;
                         	             if(first_distance < second_distance && first_distance < third_distance && first_distance < third_distance)
                                  	    {
@@ -2022,11 +2067,13 @@ public class GetImageSegment
                      	    	            isInterpolated[i][j] = true;
                               	            break outer;   
                                  	    }
+                        	             
                                  	}
 		    		            }
 		    	            }
 	                    //}
         	    	}
+                    //cell_intensity[i][j] = maximum_intensity;
                     if(isInterpolated[i][j] == false)
                     {
                         System.out.println("Odd cell was not assigned.");
@@ -2055,6 +2102,7 @@ public class GetImageSegment
             	    			    intensity               += (current_sample.distance / total_distance) * current_sample.intensity;
             	    		    }
             	    	    }
+            	    	    //cell_intensity[i][j] = maximum_intensity;
             	    	    cell_intensity[i][j] = intensity;
             	    	    isInterpolated[i][j] = true;
                         }	
@@ -2093,7 +2141,8 @@ public class GetImageSegment
             for(int j= 0; j < xdim; j++)
             {
             	if(isInterpolated[i][j] == false)
-            		number_of_uninterpolated_cells++;	
+            		number_of_uninterpolated_cells++;
+            		
             }
         }
         boolean even = true;
@@ -2131,6 +2180,7 @@ public class GetImageSegment
             		even = true;
             	}
             	DataMapper.getImageDilation(src, isAssigned, xdim, ydim, dst);
+            	
             	number_of_uninterpolated_cells = 0;
             	int i = xdim * ydim;
             	for(int j = 0; j < i; j++)

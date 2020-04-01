@@ -1,4 +1,5 @@
 import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.awt.Point;
@@ -530,7 +531,7 @@ public class DataMapper
 		                        {
 		                	        number_of_neighbors++;
 		                	        total_weight += diagonal_weight;
-		                	        value        += diagonal_weight * src[k + 1];   	
+		                	        value        += diagonal_weight * src[k - xdim + 1];   	
 		                        }
 				        	    if(isInterpolated[k + xdim + 1])
 		                        {
@@ -574,7 +575,7 @@ public class DataMapper
 		                        {
 		                	        number_of_neighbors++;
 		                	        total_weight += diagonal_weight;
-		                	        value        += diagonal_weight * src[k + 1];   	
+		                	        value        += diagonal_weight * src[k -xdim + 1];   	
 		                        }
 				        	    if(isInterpolated[k + xdim - 1])
 		                        {
@@ -733,7 +734,7 @@ public class DataMapper
 		}
 	}
 	
-    public void avgAreaXTransform(int src[], int xdim, int ydim, int dst[], int new_xdim, int start_fraction[], int end_fraction[], int number_of_pixels[])
+    public static void avgAreaXTransform(int src[], int xdim, int ydim, int dst[], int new_xdim, int start_fraction[], int end_fraction[], int number_of_pixels[])
     {
         int    i, j, k, x, y;
         int    weight, current_whole_number, previous_whole_number;
@@ -805,7 +806,7 @@ public class DataMapper
         }
     }
 
-    public void avgAreaYTransform(int src[], int xdim, int ydim, int dst[], int new_ydim, int start_fraction[], int end_fraction[], int number_of_pixels[])
+    public static void avgAreaYTransform(int src[], int xdim, int ydim, int dst[], int new_ydim, int start_fraction[], int end_fraction[], int number_of_pixels[])
     {
         int    i, j, k, x, y;
         int    weight, current_whole_number, previous_whole_number;
@@ -882,7 +883,23 @@ public class DataMapper
         avgAreaYTransform(workspace, new_xdim, ydim, dst, new_ydim, start_fraction, end_fraction, number_of_pixels);
     }
 
-
+    public static boolean containsPoint(Point2D.Double point, Sample ... sample)
+    {
+    	boolean contains      = false;
+    	Path2D.Double path    = new Path2D.Double();
+    	Sample current_sample = sample[0]; 
+	    path.moveTo(current_sample.x, current_sample.y);
+	    for(int i = 0; i < sample.length; i++)
+	    {
+	    	current_sample = sample[i];
+	    	path.lineTo(current_sample.x, current_sample.y);
+	    }
+	    path.closePath();
+		if(path.contains(point))
+    	    contains = true;
+    	return(contains);
+    }
+    
     // This returns the bisecting average from a line determined by two samples, or the nearest endpoint sample value if no bisecting line from the point exists.
 	public static double getBisectingAverage(Sample sample1, Sample sample2, Point2D.Double point)
 	{ 
@@ -1034,7 +1051,7 @@ public class DataMapper
 			    else
 			    {
 			    	double reference_slope = Math.abs(DataMapper.getSlope(reference_line));	
-			    	second_degrees       = DataMapper.getDegrees(reference_slope);                   //b
+			    	second_degrees         = DataMapper.getDegrees(reference_slope);                   //b
 			    	System.out.println("Reference slope is " + second_degrees + " degrees.");
 			    }
 			    double        third_degrees        = 0;                                                        //c
@@ -2070,6 +2087,5 @@ public class DataMapper
 		    }
 		}
 	    return(neighbor_list);
-	}
-	
+	}	
 }
