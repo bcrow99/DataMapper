@@ -22,13 +22,19 @@ public class DataMapper
 	
 	public static double getSlope(Line2D.Double line)
 	{
-	    double x1 = line.getX1();
+	    
+		double x1 = line.getX1();
 	    double y1 = line.getY1();
 	    double x2 = line.getX2();
-	    double y2 = line.getY2();  	
-	    double slope = (y2 - y1) / (x2 - x1);   
-	    double radians = StrictMath.atan(slope);
-	    return(radians);
+	    double y2 = line.getY2();  
+	    double slope;
+	    
+	    if(y1 == y2)
+	    	return(Double.NaN);
+	    else if(x1 == x2)
+	    	return(0);
+	    else
+	    	return(slope = (y2 - y1) / (x2 - x1));
 	}
 	
 	public static double getDegrees(double radians)
