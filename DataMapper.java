@@ -31,9 +31,9 @@ public class DataMapper
 	    return(radians);
 	}
 	
-	public static double getDegrees(double slope)
+	public static double getDegrees(double radians)
 	{
-		double degrees = slope / 0.0174533;
+		double degrees = radians / 0.0174533;
 		return(degrees);
 	}
 	
@@ -55,6 +55,7 @@ public class DataMapper
 		return (y_intercept);
 	}
 	
+	//Broken
 	public static Point2D.Double getIntersectPoint(Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right, Point2D.Double lower_left)
 	{
 		Line2D.Double first_diagonal       = new Line2D.Double(lower_left,  upper_right);
@@ -86,16 +87,37 @@ public class DataMapper
 		return(intersect_point);
 	}
 	
+	public static double getTrianglePerimeter(Point2D.Double base1, Point2D.Double base2, Point2D.Double top)
+	{
+		Line2D.Double first_side    = new Line2D.Double(base1,  top);	
+		Line2D.Double second_side   = new Line2D.Double(base2,  top);
+		Line2D.Double third_side    = new Line2D.Double(base1,  base2);	
+		double        first_length  = getLength(first_side);
+		double        second_length = getLength(second_side);
+		double        third_length  = getLength(third_side);
+		double        perimeter     = first_length + second_length + third_length;
+		return(perimeter);	
+	}
+	
+	// The orientation of the points is not important, just a convenience to understand the code.
 	public static double getTriangleArea(Point2D.Double base1, Point2D.Double base2, Point2D.Double top)
 	{
+		double x1 = base1.getX();
+		double y1 = base1.getY();
+		double x2 = base2.getX();
+		double y2 = base2.getY();
+		double x3 = top.getX();
+		double y3 = top.getY();
+		
+		// Return 0 if the points are on a line.	
+		if((x1 == x2) && (x2 == x3))
+		    return(0);
+		if((y1 == y2) && (y2 == y3))
+			return(0);
+
 		Line2D.Double base = new Line2D.Double(base1, base2);
 		Line2D.Double height;
-		
 		double base_slope, base_intercept, perpendicular_slope, area, base_length, height_length;
-		
-		//First check to see if the base slope is defined.
-		double x1 = base1.getX();
-		double x2 = base2.getX();
 		
 		if(x1 == x2)
 		{
@@ -107,7 +129,7 @@ public class DataMapper
 		}
 		else
 		{ 
-			base_slope = getSlope(base);
+			base_slope = (y2 - y1)/(x2 - x1);
 			if(base_slope != 0.)
 			{	
 				//Base slope is defined and non-zero.
@@ -117,7 +139,7 @@ public class DataMapper
 		        double x_intersect           = (base_intercept - top_intercept)/(perpendicular_slope - base_slope);
 		        double y_intersect           = base_slope * x_intersect + base_intercept;
 		        Point2D.Double top_intersect = new Point2D.Double(x_intersect, y_intersect);
-		        height                       = new Line2D.Double(top, top_intersect);           
+		        height                       = new Line2D.Double(top, top_intersect);  
 			}
 			else
 			{
@@ -132,10 +154,40 @@ public class DataMapper
         height_length = getLength(height);
         area          = base_length * height_length * .5;
 	    return(area);
+	}	
+	
+	public static double getQuadrilateralPerimeter(Point2D.Double lower_left, Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right)
+	{
+		Line2D.Double first_side    = new Line2D.Double(lower_left,  upper_left);	
+		Line2D.Double second_side   = new Line2D.Double(upper_left,  upper_right);
+		Line2D.Double third_side    = new Line2D.Double(upper_right, lower_right);	
+		Line2D.Double fourth_side   = new Line2D.Double(lower_right, lower_left);
+		double        first_length  = getLength(first_side);
+		double        second_length = getLength(second_side);
+		double        third_length  = getLength(third_side);
+		double        fourth_length = getLength(fourth_side);
+		double        perimeter     = first_length + second_length + third_length + fourth_length;
+		return(perimeter);	
 	}
 	
 	public static double getQuadrilateralArea(Point2D.Double lower_left, Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right)
 	{
+		double x1 = upper_left.getX();
+		double y1 = upper_left.getY();
+		double x2 = upper_right.getX();
+		double y2 = upper_right.getY();
+		double x3 = lower_right.getX();
+		double y3 = lower_right.getY();
+		double x4 = lower_left.getX();
+		double y4 = lower_left.getY();
+		
+		/*
+		System.out.println("x1 = " + x1 + ", y1 = " + y1);
+		System.out.println("x2 = " + x2 + ", y2 = " + y2);
+		System.out.println("x3 = " + x3 + ", y3 = " + y3);
+		System.out.println("x4 = " + x4 + ", y4 = " + y4);
+		
+		*/
 	 
 	    double area1 = getTriangleArea(upper_left, lower_left, upper_right);
 	    if(Double.isNaN(area1))
@@ -150,7 +202,7 @@ public class DataMapper
 	    double area = area1 + area2;
 	    return(area);
 	}
-	
+
 	public static void smooth(int src[], int xdim, int ydim, double smooth_factor, int number_of_iterations, int dst[])
     {
         double even[]    = new double[xdim * ydim];
@@ -575,13 +627,13 @@ public class DataMapper
 		                        {
 		                	        number_of_neighbors++;
 		                	        total_weight += diagonal_weight;
-		                	        value        += diagonal_weight * src[k -xdim + 1];   	
+		                	        value        += diagonal_weight * src[k - xdim - 1];   	
 		                        }
 				        	    if(isInterpolated[k + xdim - 1])
 		                        {
 		                	        number_of_neighbors++;
 		                	        total_weight += diagonal_weight;
-		                	        value        += diagonal_weight * src[k + xdim + 1];   	
+		                	        value        += diagonal_weight * src[k + xdim - 1];   	
 		                        }
 			        	        
 			        	        if(isInterpolated[k - xdim + 1])
@@ -898,6 +950,141 @@ public class DataMapper
 		if(path.contains(point))
     	    contains = true;
     	return(contains);
+    }
+    
+    public static double getLinearInterpolation(Point2D.Double point, Sample ... sample)
+    {
+    	if(sample.length == 3)
+    	{
+    		double x1 = sample[0].x;
+	    	double y1 = sample[0].y; 
+	    	
+	    	double x2 = sample[1].x;
+	    	double y2 = sample[1].y;
+	    	
+	    	double x3 = sample[2].x;
+	    	double y3 = sample[2].y;
+			
+			Point2D.Double base1  = new Point2D.Double(x1, y1);
+	        Point2D.Double top    = new Point2D.Double(x2, y2);
+	        Point2D.Double base2  = new Point2D.Double(x3, y3); 
+	        
+	        
+	        double area1 = DataMapper.getTriangleArea(point, base2, top);
+	        double area2 = DataMapper.getTriangleArea(base1, base2, point);
+	        double area3 = DataMapper.getTriangleArea(base1, point, top);
+	        
+	        double total_area = area1 + area2 + area3;
+	        double weight1    = area1 / total_area;
+	        double weight2    = area2 / total_area;
+	        double weight3    = area3 / total_area;
+	        
+	        double value = sample[0].intensity * weight1 + 
+	        		       sample[1].intensity * weight2 + 
+	        		       sample[2].intensity * weight3;	
+	        return(value);
+    	}
+    	// Implement this later.
+    	else if(sample.length == 4)
+    	{
+    		double x1 = sample[0].x;
+	    	double y1 = sample[0].y; 
+	    	
+	    	double x2 = sample[1].x;
+	    	double y2 = sample[1].y;
+	    	
+	    	double x3 = sample[2].x;
+	    	double y3 = sample[2].y;
+	    	
+	    	double x4 = sample[3].x;
+	    	double y4 = sample[3].y;
+	    	
+	    	Point2D.Double upper_left  = new Point2D.Double(x1, y1);
+	    	Point2D.Double upper_right = new Point2D.Double(x2, y2);
+	    	Point2D.Double lower_right = new Point2D.Double(x3, y3);
+	    	Point2D.Double lower_left  = new Point2D.Double(x4, y4);  
+	    	
+	    	    		          
+	    	Line2D.Double top      = new Line2D.Double(upper_left, upper_right);
+	    	Line2D.Double left     = new Line2D.Double(upper_left, lower_left);
+	    	Line2D.Double bottom   = new Line2D.Double(lower_left, lower_right);
+	    	Line2D.Double right    = new Line2D.Double(lower_right, upper_right);
+	    	    		    	
+	    	//We need to get four more points to do our bilinear interpolation.
+	    	double x5, y5, x6, y6;
+	    
+	    	double slope = DataMapper.getSlope(top);
+	    	if(slope == 0)
+	    	{
+	    		y5 = y1;
+	    	}
+	    	else
+	    	{
+	    	    double y_intercept = DataMapper.getYIntercept(upper_left, slope);
+	    	    y5 = slope * point.getX() + y_intercept;
+	    	}
+	    	slope = DataMapper.getSlope(bottom);
+	    	if(slope == 0)
+	    	{
+	    		y6 = y4;
+	    	}
+	    	else
+	    	{
+	    	    double y_intercept = DataMapper.getYIntercept(lower_left, slope);
+	    	    y6 = slope * point.getX() + y_intercept;
+	    	}
+	    	    			    
+	    	if(x2 != x3)
+	    	{
+	    	    slope = DataMapper.getSlope(right);
+	    	    double y_intercept = DataMapper.getYIntercept(upper_right, slope);
+	    	    x5 = (point.getY() - y_intercept) / slope;
+	    	}
+	    	else
+	    	{
+	    	    double distance = right.ptSegDist(point);
+	    	    x5              = point.getY() + distance;
+	    	}
+	    	    			    
+	    	if(x1 != x4)
+	    	{
+	    	    slope = DataMapper.getSlope(left);
+	    	    double y_intercept = DataMapper.getYIntercept(lower_left, slope);
+	    	    x6 = (point.getY() - y_intercept) / slope;
+	    	}
+	    	else
+	    	{
+	    	    double distance = left.ptSegDist(point);
+	    	    x6              = point.getX() - distance;
+	    	}
+	    	    			      
+	    	Point2D.Double middle_top    = new Point2D.Double(point.getX(), y5);
+	    	Point2D.Double middle_bottom = new Point2D.Double(point.getX(), y6);
+	    	Point2D.Double middle_right  = new Point2D.Double(x5, point.getY());
+	    	Point2D.Double middle_left   = new Point2D.Double(x6, point.getY()); 
+	    	    		        
+	    	double area1 = DataMapper.getQuadrilateralArea(middle_left, upper_left, middle_top, point);
+	    	double area2 = DataMapper.getQuadrilateralArea(point, middle_top, upper_right, middle_right);
+	    	double area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
+	    	double area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
+	    	double total_area = area1 + area2 + area3 + area4;
+	    	    		        
+	    	total_area =  DataMapper.getQuadrilateralArea(lower_left, upper_left, upper_right, lower_right);
+	    	    		
+	    	double weight1 = area3 / total_area;
+	    	double weight2 = area4 / total_area;
+	    	double weight3 = area1 / total_area;
+	    	double weight4 = area2 / total_area;
+	    	    		        
+	    	double value = sample[0].intensity * weight1 + 
+	    	    		   sample[1].intensity * weight2 + 
+	    	    		   sample[2].intensity * weight3 +
+	    	    		   sample[3].intensity * weight4;
+	    	return(value);
+	    	
+    	}
+    	else
+    		return(0.);
     }
     
     // This returns the bisecting average from a line determined by two samples, or the nearest endpoint sample value if no bisecting line from the point exists.
