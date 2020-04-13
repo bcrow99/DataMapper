@@ -239,6 +239,12 @@ public class QuadrantMapper
 		        index[1] = 5;
 		        return index;    	
 	        }
+	        else
+	        {
+	        	index = new int[1];
+	            index[0] = -1;
+	            return index;
+	        }
 	    }
 	       
 	 }
