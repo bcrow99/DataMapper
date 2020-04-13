@@ -196,15 +196,7 @@ public class DataMapper
 		*/
 	 
 	    double area1 = getTriangleArea(upper_left, lower_left, upper_right);
-	    if(Double.isNaN(area1))
-	    {
-	        //System.out.println("Area 1 is not a number.");	
-	    }
 	    double area2 = getTriangleArea(lower_left, lower_right, upper_right);
-	    if(Double.isNaN(area2))
-	    {
-	    	//System.out.println("Area 2 is not a number.");	
-	    }
 	    double area = area1 + area2;
 	    return(area);
 	}
@@ -1018,7 +1010,7 @@ public class DataMapper
 	    	    		    	
 	    	//We need to get four more points to do our bilinear interpolation.
 	    	double x5, y5, x6, y6;
-	    
+	        /*
 	    	double slope = DataMapper.getSlope(top);
 	    	if(slope == 0)
 	    	{
@@ -1063,8 +1055,60 @@ public class DataMapper
 	    	    double distance = left.ptSegDist(point);
 	    	    x6              = point.getX() - distance;
 	    	}
-	    	    			      
-	    	Point2D.Double middle_top    = new Point2D.Double(point.getX(), y5);
+	    	*/
+	    	//We need to get four more points to do our bilinear interpolation.
+  	        //I'm using the perpendicular bisector instead of finding the point on the line orthogonal to the center.
+  	        //Not sure which is better but will use this for now.
+	    	if(x2 == x3)
+  	         {
+  	             x5 = x2;	 
+  	         }
+  	         else 
+  	         {
+  	        	double distance = right.ptSegDist(point.getX(), point.getY());
+  	        	x5              = point.getX() + distance;
+  	         }
+  	         
+  	         if(x1 == x4)
+	         {
+	             x6 = x1;	 
+	         }
+	         else 
+	         {
+	        	 double distance = left.ptSegDist(point.getX(), point.getY());
+	        	 x6              = point.getX() - distance;
+	         }
+  	              
+  	        if(y1 == y2)
+  	        {
+  	            y5 = y1;	
+  	        }
+  	        else 
+  	        {
+  	        	double distance  = top.ptSegDist(point.getX(), point.getY());
+  	        	y5 = point.getY() + distance;
+  	        }
+  	        
+  	        if(y3 == y4)
+  	        {
+  		         y6 = y3;
+  	        }
+  	        else
+  	        {
+  	        	double distance  = bottom.ptSegDist(point.getX(), point.getY());
+  	        	y6 = point.getY() - distance;
+  	        }
+  	        // Might want to revisit how we choose our proportional areas,
+   	        // but we're producing a coherent result with the bisector.
+   	        /*
+   	        System.out.println("x2 = " + x2 + ", x5 = " + x5 + " x3 = " + x3);
+   	        System.out.println("x1 = " + x1 + ", x6 = " + x6 + " x4 = " + x4);
+   	        System.out.println("y1 = " + y1 + ", y5 = " + y5 + " y2 = " + y2);
+   	        System.out.println("y4 = " + y4 + ", y6 = " + y6 + " y3 = " + y3);
+   	        */    			      
+	    	
+  	        
+  	        Point2D.Double middle_top    = new Point2D.Double(point.getX(), y5);
 	    	Point2D.Double middle_bottom = new Point2D.Double(point.getX(), y6);
 	    	Point2D.Double middle_right  = new Point2D.Double(x5, point.getY());
 	    	Point2D.Double middle_left   = new Point2D.Double(x6, point.getY()); 
