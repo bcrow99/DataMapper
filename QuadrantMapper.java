@@ -1,4 +1,6 @@
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 public class QuadrantMapper
 {
@@ -439,7 +441,7 @@ public class QuadrantMapper
 	}
 	
 	// Right now this list only includes triplets since checking doublets involves extra processing.
-	// Start with simple.  Assuming the indices are in ascending order.
+	// Start with simple. 
 	public static ArrayList getPossibleContainingSets(ArrayList quadrant_list)
 	{
 	    ArrayList set_id_list = new ArrayList();
@@ -501,5 +503,91 @@ public class QuadrantMapper
 	    }
 	    return set_id_list;
 	}
+	
+	public static Hashtable getActualQuadrantSetTable(ArrayList possible_set_list, ArrayList neighbor_list, Point2D.Double point_of_interest)
+	{
+	    Hashtable actual_set_table = new Hashtable();
+	    
+	    int size = possible_set_list.size();
+	    System.out.println("There are " + size + " possible sets.");
+	    for(int i = 0; i < size; i++)
+	    {
+	    	int set_id            = (int)possible_set_list.get(i);
+	    	int index[]           = getQuadrantSetIndex(set_id);
+	    	int first_index       = index[0];
+	    	int second_index      = index[1];
+	    	int third_index       = index[2];
+	    	ArrayList first_list  = (ArrayList)neighbor_list.get(first_index);
+	    	ArrayList second_list = (ArrayList)neighbor_list.get(second_index);
+	    	ArrayList third_list  = (ArrayList)neighbor_list.get(third_index);
+	    	
+	    	boolean foundTriangle = false;
+	    	boolean isContained   = false;
+	    	
+	    	while(!foundTriangle)
+	    	{
+	    	    for(int j = 0; j < first_list.size(); j++)
+	    	    {
+	    		    for(int k = 0; k < second_list.size(); k++)
+	    		    {
+	    			    for(int m = 0; m < third_list.size(); m++)
+	    			    {
+	    			        Sample first_sample  = (Sample) first_list.get(j);
+	    			        Sample second_sample = (Sample) second_list.get(k);
+	    			        Sample third_sample  = (Sample) third_list.get(m);
+	    			        isContained = DataMapper.containsPoint(point_of_interest, first_sample, second_sample, third_sample);
+	    			        if(isContained)
+	    			        {
+	    			        	int sample_space[][] = new int[3][2];
+	    			        	sample_space[0][0] = first_index;
+	    			        	sample_space[1][0] = second_index;
+	    			        	sample_space[2][0] = third_index;
+	    			        	sample_space[0][1] = j;
+	    			        	sample_space[1][1] = k;
+	    			        	sample_space[2][0] = m;
+	    			        	
+	    			        	double x1 = first_sample.x;
+	    			        	double y1 = first_sample.y;
+	    			        	double x2 = second_sample.x;
+	    			        	double y2 = second_sample.y;
+	    			        	double x3 = third_sample.x;
+	    			        	double y3 = third_sample.y;
+	    			        	
+	    			        	Point2D.Double first_point  = new Point2D.Double(x1, y1);
+	    			        	Point2D.Double second_point = new Point2D.Double(x2, y2);
+	    			        	Point2D.Double third_point  = new Point2D.Double(x3, y3);
+	    			        	
+	    			        	double area      = DataMapper.getTriangleArea(first_point, second_point, third_point);
+	    			        	double perimeter = DataMapper.getTrianglePerimeter(first_point, second_point, third_point);
+	    			        	double key       = area / perimeter;
+	    			        	
+	    			        	actual_set_table.put(key, sample_space);
+	    			        	foundTriangle = true;
+	    			        }
+	    			    }
+	    		    }
+	    	    }
+	    	}
+	    }
+	    return(actual_set_table);
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 }
