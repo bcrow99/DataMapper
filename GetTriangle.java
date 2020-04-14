@@ -292,12 +292,12 @@ public class GetTriangle
             
             
             
-            // Tried to flip the coordinate system.
-            // Some subtlety here that I'm not getting but shouldn't have to do it anyway--it basically works but scrambles neighbor lists somehow.
+            // Tried to flip the coordinate system but it scrambes the neighbor lists.
+            // Some subtlety here that I'm not getting but shouldn't have to do it anyway.
             // Just try and remember that the original data is oriented the opposite direction from the individual data
-            // (but only when you have to).
-            //double reverse_y = y_range - current_y;
-            //reverse_y *= resolution;
+            // (but only when you have to).  I'll try to figure this out someday.
+            // double reverse_y = y_range - current_y;
+            // reverse_y *= resolution;
             current_x *= resolution;
             current_y *= resolution;
     
@@ -338,13 +338,10 @@ public class GetTriangle
         	    	ArrayList current_cell_list = (ArrayList)close_data_array.get(data_index);
         	    	
         	    	//Sort interior points.
-        	    	
         	    	for(int k = 0; k < current_cell_list.size(); k++)
         	    	{
         	    		Sample current_sample = (Sample)current_cell_list.get(k);
         	    		current_sample.setDistance(xcenter, ycenter);
-        	    		//Make it consistent with xy system
-        	    		
     	    		    if(current_sample.x < xcenter)
     	    		    {
     	    		    	if(current_sample.y < ycenter)
@@ -693,7 +690,6 @@ public class GetTriangle
         	             current_neighbor_list = (ArrayList)neighbor_list.get(index);  // Get the list of actual samples.
         	             int sample_size = current_neighbor_list.size();
         	             
-        	             
         	             if(sample_size == 1)
         	             {
         	            	 Sample sample = (Sample)current_neighbor_list.get(0);
@@ -702,7 +698,6 @@ public class GetTriangle
         	             }
         	             else if(sample_size == 2)
         	             {
-        	            	 
         	            	 // Simple bisecting average with no dx and dy.
         	            	 // Try implementing bisecting average with dx and dy.
         	            	 first_sample  = (Sample)current_neighbor_list.get(0);
@@ -717,146 +712,59 @@ public class GetTriangle
         	             }
         	             break;
         	             
-        	             // Two quadrants contain samples.  See if they might logically contain the center with 
-        	             // a triangle and if so, if they actually do.  If not, use bisecting average, otherwise,
-        	             // bilinear interpolation.
         	    case 2:  first_index = (int)neighbor_index_list.get(0); 
         	             second_index = (int)neighbor_index_list.get(1); 
         	             first_list   = (ArrayList)neighbor_list.get(first_index);
         	             second_list  = (ArrayList)neighbor_list.get(second_index);
-        	             
-        	             
         	             first_sample  = (Sample)first_list.get(0);
     	            	 second_sample = (Sample)second_list.get(0); 
     	            	 cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
      	    			 isInterpolated[i][j] = true; 
         	    	     break;
+        	    
+        	    // The interpolation for cases 1 and 2 works reasonably well.  The value we assign has some error built-in
+        	    // that might be minimized.  Probably not important if we do most of the interpolating with bounding polygons.
+        	    // Something to check later.
+        	    
+        	    /*
+        	    case 3: ArrayList possible_set_list = QuadrantMapper.getPossibleContainingSets(neighbor_index_list);
+	                    int size = possible_set_list.size();
+	                    if(size > 0)
+	                    {
+	                    	int set_id = (int)possible_set_list.get(0);
+	                        System.out.println("There was a possible containing set for case 3 with id " + set_id);
+	                    }      
+	            */
         	    	     
-        	             // Three quadrants contain samples.
-        	    case 3:  first_index = (int)neighbor_index_list.get(0); 
-	                     second_index = (int)neighbor_index_list.get(1);
-	                     third_index = (int)neighbor_index_list.get(2);
-	                   
-	                     boolean couldContain = false;  
-	                     if(first_index == 0 && (second_index == 4 || second_index == 6 || second_index == 7))
-	                    	 couldContain = true;
-	                     else if(first_index == 1 && (second_index == 5 || second_index == 6 || second_index == 7))
-	                    	 couldContain = true;
-	                     else if(first_index == 2 && (second_index == 3 || second_index == 5 || second_index == 6))
-	                    	 couldContain = true;
-	                     else if(first_index == 3 && (second_index == 4 || second_index == 7))
-	                    	 couldContain = true;
-	                     else if(first_index == 4 && (second_index == 5))
-	                    	 couldContain = true;
-	                     if(couldContain)
-	                    	 System.out.println("This set of quadrants could contain the center of the cell.");
-	                     else
-	                    	 System.out.println("This set of quadrants could not contain the center of the cell.");
-	                     System.out.println();
-	                     //No cases that could contain the center of the cell.  Another data set could be different.
-	                     //Let's find the two closest points.
-	                     first_list      = (ArrayList)neighbor_list.get(first_index);
-        	             second_list     = (ArrayList)neighbor_list.get(second_index);
-        	             third_list      = (ArrayList)neighbor_list.get(third_index);
-        	             first_sample    = (Sample)first_list.get(0);
-        	             second_sample   = (Sample)second_list.get(0);
-        	             third_sample    = (Sample)third_list.get(0);
-        	             first_distance  = first_sample.distance;
-        	             second_distance = second_sample.distance;
-        	             third_distance  = third_sample.distance;
-        	             if(third_distance >= first_distance && third_distance >= second_distance)
-        	             {
-        	            	 cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin);	 
-        	             }
-        	             else if(second_distance >= first_distance && second_distance >= third_distance)
-        	             {
-        	            	 cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin); 
-        	             }
-        	             else
-        	             {   
-        	            	 cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin);	 
-        	             }
-        	             isInterpolated[i][j] = true;
-	                     break;
-        	   
-	                     // Three quadrants contain samples.
-        	    case 4:  first_index = (int)neighbor_index_list.get(0); 
-	                     second_index = (int)neighbor_index_list.get(1);
-	                     third_index = (int)neighbor_index_list.get(2);
-	                    
-	                     //System.out.println("Quadrant " + first_index + " and quadrant " + second_index + " and quadrant " + third_index + " are populated.");
-	                     /*
-	                     boolean couldContain = false;  
-	                     if(first_index == 0 && (second_index == 4 || second_index == 6 || second_index == 7))
-	                    	 couldContain = true;
-	                     else if(first_index == 1 && (second_index == 5 || second_index == 6 || second_index == 7))
-	                    	 couldContain = true;
-	                     else if(first_index == 2 && (second_index == 3 || second_index == 5 || second_index == 6))
-	                    	 couldContain = true;
-	                     else if(first_index == 3 && (second_index == 4 || second_index == 7))
-	                    	 couldContain = true;
-	                     else if(first_index == 4 && (second_index == 5))
-	                    	 couldContain = true;
-	                     if(couldContain)
-	                    	 System.out.println("This set of quadrants could contain the center of the cell.");
-	                     else
-	                    	 System.out.println("This set of quadrants could not contain the center of the cell.");
-	                     System.out.println();
-	                     */
-	                     //No cases that could contain the center of the cell.  Another data set could be different.
-	                     //Let's find the two closest points.
-	                     first_list   = (ArrayList)neighbor_list.get(first_index);
-        	             second_list  = (ArrayList)neighbor_list.get(second_index);
-        	             third_list   = (ArrayList)neighbor_list.get(third_index);
-        	             first_sample = (Sample)first_list.get(0);
-        	             second_sample = (Sample)second_list.get(0);
-        	             third_sample = (Sample)third_list.get(0);
-        	             first_distance = first_sample.distance;
-        	             second_distance = second_sample.distance;
-        	             third_distance = third_sample.distance;
-        	             if(third_distance >= first_distance && third_distance >= second_distance)
-        	             {
-        	            	 cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin);	 
-        	             }
-        	             else if(second_distance >= first_distance && second_distance >= third_distance)
-        	             {
-        	            	 cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin); 
-        	             }
-        	             else
-        	             {   
-        	            	 cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin);	 
-        	             }
-        	             isInterpolated[i][j] = true;
-	                     break;
-        	   
-        	    default :
+        	    case 4: ArrayList possible_set_list = QuadrantMapper.getPossibleContainingSets(neighbor_index_list);
+                        int size = possible_set_list.size();
+                        if(size > 0)
+                        {
+                        	System.out.println("There were possible containing sets for case 4.");
+                        	for(int k = 0; k < size; k++)
+                        	{
+                	            int set_id = (int)possible_set_list.get(k);
+                	            System.out.println(" Set " + set_id + " is included.");
+                        	}
+                        	System.out.println();
+                    
+                }      
+              
         	    	     
-        	    	     
-        	    	     
-        	    	     
-	                     if(neighborPopulated[0] && neighborPopulated[2] && neighborPopulated[7] && neighborPopulated[5])
+        	    // This pretty much works and helps show when some other interpolation methods are flawed.
+        	    // Picks up about half the pixels in the image.
+        	    default: if(neighborPopulated[0] && neighborPopulated[2] && neighborPopulated[7] && neighborPopulated[5])
 	                     {
        		                 first_list  = (ArrayList)neighbor_list.get(0);
        	                     second_list = (ArrayList)neighbor_list.get(2);
        	                     third_list  = (ArrayList)neighbor_list.get(7); 
        	                     fourth_list = (ArrayList)neighbor_list.get(5); 
-       	                     // Shouldn't have to compare points for quadrilaterals from set quadrants, just use the closest points.
-       	                     // Do need to search sets of quadrants for smallest quadrilateral.
        	                     first_sample = (Sample)first_list.get(0);
         	    	         second_sample = (Sample)second_list.get(0);
         	    	         third_sample  = (Sample)third_list.get(0);
         	    	         fourth_sample = (Sample)fourth_list.get(0);
         	    	         cell_intensity[i][j] = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample, fourth_sample);
         	    	         isInterpolated[i][j] = true;
-        	    	         // Code for quadrants that don't necessarily contain the center of the cell.
-        	    	         /*
-        	    	         boolean        isContained   = DataMapper.containsPoint(origin, first_sample, second_sample, third_sample, fourth_sample);
-        	    	         if(isContained)
-        	    	         {
-        	    	    	     cell_intensity[i][j] = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample, fourth_sample);
-        	    	             isInterpolated[i][j] = true;
-        	    	         } 
-        	    	         */
         	            }
 	                    else if(neighborPopulated[1] && neighborPopulated[4] && neighborPopulated[6] && neighborPopulated[3])
 	                    {
