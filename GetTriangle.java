@@ -726,31 +726,43 @@ public class GetTriangle
         	    // that might be minimized.  Probably not important if we do most of the interpolating with bounding polygons.
         	    // Something to check later.
         	    
-        	    /*
-        	    case 3: ArrayList possible_set_list = QuadrantMapper.getPossibleContainingSets(neighbor_index_list);
-	                    int size = possible_set_list.size();
-	                    if(size > 0)
-	                    {
-	                    	int set_id = (int)possible_set_list.get(0);
-	                        System.out.println("There was a possible containing set for case 3 with id " + set_id);
-	                    }      
-	            */
-        	    	     
-        	    case 4: ArrayList possible_set_list = QuadrantMapper.getPossibleContainingSets(neighbor_index_list);
-                        int size = possible_set_list.size();
-                        if(size > 0)
+        	   
+        	    case 6: ArrayList possible_set_list = QuadrantMapper.getPossibleContainingSets(neighbor_index_list);
+                        Hashtable actual_set_table  = QuadrantMapper.getActualQuadrantSetTable(possible_set_list, neighbor_list, origin);
+                        if(!actual_set_table.isEmpty())
                         {
-                        	System.out.println("There were possible containing sets for case 4.");
-                        	for(int k = 0; k < size; k++)
-                        	{
-                	            int set_id = (int)possible_set_list.get(k);
-                	            System.out.println(" Set " + set_id + " is included.");
-                        	}
-                        	System.out.println();
-                    
-                }      
-              
-        	    	     
+                        	System.out.println("Getting keys from actual set table:");
+                            Enumeration keys   = actual_set_table.keys();
+                            ArrayList key_list = new ArrayList();
+                            while(keys.hasMoreElements())
+                            {
+                                double key = (double)keys.nextElement();	
+                                key_list.add(key);
+                            }
+                            Collections.sort(key_list);
+                            /*
+                            for(int k = 0; k < key_list.size(); k++)
+                            {
+                            	double key = (double)key_list.get(k);
+                            	System.out.println("key " + k + " is " + key);
+                            }
+                            System.out.println();
+                            */
+                            double key                 = (double)key_list.get(0);
+                            int sample_space[][]       = (int[][])actual_set_table.get(key);
+                            int first_quadrant_index   = sample_space[0][0];
+                            int second_quadrant_index  = sample_space[1][0];
+                            int third_quadrant_index   = sample_space[2][0];
+                            int first_sample_index     = sample_space[0][1];
+                            int second_sample_index    = sample_space[1][1];
+                            int third_sample_index     = sample_space[2][1];
+                            System.out.println("Sample " + first_sample_index + " in quadrant "  + first_quadrant_index + 
+                            		           " and sample " + second_sample_index + " in quadrant " + second_quadrant_index +
+                            		           " and sample " + third_sample_index + " in quadrant " + third_quadrant_index  +
+                            		           " produced the smallest and most regular bounding triangle.");
+                        }
+                        
+     
         	    // This pretty much works and helps show when some other interpolation methods are flawed.
         	    // Picks up about half the pixels in the image.
         	    default: if(neighborPopulated[0] && neighborPopulated[2] && neighborPopulated[7] && neighborPopulated[5])
