@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class QuadrantMapper
 {
 	public static int[] getQuadrantSetIndex(int id)
@@ -69,8 +71,8 @@ public class QuadrantMapper
 	        {
 	        	index    = new int[3];
 		        index[0] = 0;
-		        index[1] = 4;
-		        index[2] = 6;
+		        index[1] = 5;
+		        index[2] = 7;
 		        return index;    	
 	        }
 	        else if(id == 8)
@@ -130,8 +132,8 @@ public class QuadrantMapper
 	        else if(id == 15)
 	        {
 	        	index    = new int[2];
-		        index[0] = 0;
-		        index[1] = 7;
+		        index[0] = 1;
+		        index[1] = 5;
 		        return index;    	
 	        }
 	        else if(id == 16)
@@ -282,7 +284,7 @@ public class QuadrantMapper
 					return(0);	
 				
 			}
-		    if(second_index == 4)
+			else if(second_index == 4)
 		    {
 		        if(!isTriplet)
 		        	return(4);
@@ -292,11 +294,16 @@ public class QuadrantMapper
 		        	    return(5);    	
 		        	else if(third_index == 6)
 		        	    return(6);	
-		        	else if(third_index ==7)
-		        	    return(7);
 		        	else
 		        	    return(4);  // Return the id for the doublet if the third index is irrelevant.
 		        }
+		    }
+			else if(second_index == 5)
+		    {
+		    	if(third_index == 7)
+	        	    return(7);
+		    	else
+		    		return(0);
 		    }
 		    else if(second_index == 6)
 		        return(8);  // The triplet is already accounted for.
@@ -429,6 +436,70 @@ public class QuadrantMapper
 		}
 		else
 			return(0);  // The first index was not less than five so there can be no containing polygon.
+	}
+	
+	// Right now this list only includes triplets since checking doublets involves extra processing.
+	// Start with simple.  Assuming the indices are in ascending order.
+	public static ArrayList getPossibleContainingSets(ArrayList quadrant_list)
+	{
+	    ArrayList set_id_list = new ArrayList();
+	   
+	    int size = quadrant_list.size();
+	    if(size < 3)
+	        return set_id_list;  // Since we're only returning triplets we return the empty set.
+	    int first_index = (int) quadrant_list.get(0);
+	    if(first_index > 3)
+	    	return set_id_list;  // There are no triplets with a first index > 3, return the empty set.
+	    
+	    if(quadrant_list.contains(0))
+	    {
+	    	if(quadrant_list.contains(2) && quadrant_list.contains(5))
+	    		set_id_list.add(1);
+	    	if(quadrant_list.contains(2) && quadrant_list.contains(6))
+	    		set_id_list.add(2);
+	    	if(quadrant_list.contains(2) && quadrant_list.contains(7))
+	    		set_id_list.add(3);
+	    	if(quadrant_list.contains(4) && quadrant_list.contains(5))
+	    		set_id_list.add(4);
+	    	if(quadrant_list.contains(4) && quadrant_list.contains(6))
+	    		set_id_list.add(5);
+	    	if(quadrant_list.contains(5) && quadrant_list.contains(7))
+	    		set_id_list.add(7);	
+	    }
+	    if(quadrant_list.contains(1))
+	    {
+	    	if(quadrant_list.contains(3) && quadrant_list.contains(4))
+	    		set_id_list.add(10);
+	    	if(quadrant_list.contains(3) && quadrant_list.contains(6))
+	    		set_id_list.add(11);
+	    	if(quadrant_list.contains(3) && quadrant_list.contains(7))
+	    		set_id_list.add(12);
+	    	if(quadrant_list.contains(4) && quadrant_list.contains(5))
+	    		set_id_list.add(13);
+	    	if(quadrant_list.contains(4) && quadrant_list.contains(6))
+	    		set_id_list.add(14);
+	    	if(quadrant_list.contains(5) && quadrant_list.contains(7))
+	    		set_id_list.add(16);
+	    	if(quadrant_list.contains(6) && quadrant_list.contains(7))
+	    		set_id_list.add(18);
+	    }
+	    if(quadrant_list.contains(2))
+	    {
+	    	if(quadrant_list.contains(3) && quadrant_list.contains(6))
+	    		set_id_list.add(21);
+	    	if(quadrant_list.contains(3) && quadrant_list.contains(7))
+	    		set_id_list.add(22);
+	    	if(quadrant_list.contains(5) && quadrant_list.contains(7))
+	    		set_id_list.add(24);	
+	    }
+	    if(quadrant_list.contains(3))
+	    {
+	    	if(quadrant_list.contains(4) && quadrant_list.contains(6))
+	    		set_id_list.add(26);
+	    	if(quadrant_list.contains(4) && quadrant_list.contains(7))
+	    		set_id_list.add(27);	
+	    }
+	    return set_id_list;
 	}
 	
 }
