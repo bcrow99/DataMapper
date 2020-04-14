@@ -640,6 +640,13 @@ public class GetTriangle
         	}
         }
         
+        // I'm seeing some alternating light and dark rows I don't like.
+        // Trying to see if I can pin it on one or the other of the interpolation methods.
+        // Can't really pin in it on one or the other.
+        // Will try doing things with quadrilaterals to see if it's smoother.
+        int number_of_linear_interpolations = 0;
+        int number_of_bisecting_averages    = 0;
+        
         // We have the information we need and we can start polygon searching.
         for(int i = 0; i < ydim; i++)
         {
@@ -678,6 +685,8 @@ public class GetTriangle
 	    	    Sample    first_sample, second_sample, third_sample, fourth_sample;
 	    	    int       first_index, second_index, third_index, fourth_index;
 	    	    double    first_distance, second_distance, third_distance;
+	    	    ArrayList possible_set_list;
+	    	    Hashtable actual_set_table;
         	      
         	    switch(number_of_quadrants)
         	    {
@@ -696,20 +705,23 @@ public class GetTriangle
         	            	 cell_intensity[i][j] = sample.intensity;
         	            	 isInterpolated[i][j] = true;
         	             }
-        	             else if(sample_size == 2)
+        	             else if(sample_size >= 2)  // For now we'll just use the two closest points.
         	             {
         	            	 // Simple bisecting average with no dx and dy.
         	            	 // Try implementing bisecting average with dx and dy.
         	            	 first_sample  = (Sample)current_neighbor_list.get(0);
         	            	 second_sample = (Sample)current_neighbor_list.get(1); 
         	            	 cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
+        	            	 number_of_bisecting_averages++;
          	    			 isInterpolated[i][j] = true;
         	             }
-        	             else if(sample_size >= 3)
+        	             /*
+        	             else if(sample_size >= 3)  
         	             {
         	                  // Find line with nearest bisecting point and do above. 
         	            	  // Might want to factor in distance from endpoints.
         	             }
+        	             */
         	             break;
         	             
         	    case 2:  first_index = (int)neighbor_index_list.get(0); 
@@ -719,19 +731,22 @@ public class GetTriangle
         	             first_sample  = (Sample)first_list.get(0);
     	            	 second_sample = (Sample)second_list.get(0); 
     	            	 cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
+    	            	 number_of_bisecting_averages++;
      	    			 isInterpolated[i][j] = true; 
         	    	     break;
-        	    
         	    // The interpolation for cases 1 and 2 works reasonably well.  The value we assign has some error built-in
         	    // that might be minimized.  Probably not important if we do most of the interpolating with bounding polygons.
-        	    // Something to check later.
+        	    // Something to check later.  Should keep track of how many times getBisectingAverage gets used.
+        	    // Could use the bisecting average of two samples adjusted by a delta x and a delta y calculated from a
+        	    // third sample that doesn't actually contain the center of the cell.  Could try adjusting nearest neighbor same 
+        	    // way.
         	    
-        	   
-        	    case 6: ArrayList possible_set_list = QuadrantMapper.getPossibleContainingSets(neighbor_index_list);
-                        Hashtable actual_set_table  = QuadrantMapper.getActualQuadrantSetTable(possible_set_list, neighbor_list, origin);
-                        if(!actual_set_table.isEmpty())
-                        {
-                        	System.out.println("Getting keys from actual set table:");
+        	    
+        	    
+        	   default: possible_set_list = QuadrantMapper.getPossibleContainingSets(neighbor_index_list);
+        	            actual_set_table  = QuadrantMapper.getActualQuadrantSetTable(possible_set_list, neighbor_list, origin);
+        	            if(!actual_set_table.isEmpty())
+        	            {
                             Enumeration keys   = actual_set_table.keys();
                             ArrayList key_list = new ArrayList();
                             while(keys.hasMoreElements())
@@ -740,14 +755,7 @@ public class GetTriangle
                                 key_list.add(key);
                             }
                             Collections.sort(key_list);
-                            /*
-                            for(int k = 0; k < key_list.size(); k++)
-                            {
-                            	double key = (double)key_list.get(k);
-                            	System.out.println("key " + k + " is " + key);
-                            }
-                            System.out.println();
-                            */
+                            
                             double key                 = (double)key_list.get(0);
                             int sample_space[][]       = (int[][])actual_set_table.get(key);
                             int first_quadrant_index   = sample_space[0][0];
@@ -756,13 +764,51 @@ public class GetTriangle
                             int first_sample_index     = sample_space[0][1];
                             int second_sample_index    = sample_space[1][1];
                             int third_sample_index     = sample_space[2][1];
+                            
+                            first_list    = (ArrayList)neighbor_list.get(first_quadrant_index);
+                            second_list   = (ArrayList)neighbor_list.get(second_quadrant_index);
+                            third_list    = (ArrayList)neighbor_list.get(third_quadrant_index);
+                            first_sample  = (Sample)first_list.get(first_sample_index);
+                            second_sample = (Sample)second_list.get(second_sample_index);
+                            third_sample  = (Sample)third_list.get(third_sample_index);
+                            cell_intensity[i][j] = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample);
+      	    	            isInterpolated[i][j] = true;
+      	    	            number_of_linear_interpolations++;
+                            /*
                             System.out.println("Sample " + first_sample_index + " in quadrant "  + first_quadrant_index + 
                             		           " and sample " + second_sample_index + " in quadrant " + second_quadrant_index +
                             		           " and sample " + third_sample_index + " in quadrant " + third_quadrant_index  +
                             		           " produced the smallest and most regular bounding triangle.");
-                        }
-                        
-     
+                            */	
+        	            }
+        	            else
+        	            {
+        	            	Hashtable distance_table = new Hashtable();
+        	            	ArrayList distance_list  = new ArrayList();
+        	            	for(int k = 0; k < neighbor_index_list.size(); k++)
+        	            	{
+        	            		int current_index       = (int)neighbor_index_list.get(k);
+        	            		ArrayList current_list  = (ArrayList)neighbor_list.get(current_index);
+        	            		Sample current_sample   = (Sample)current_list.get(0);
+        	            		double current_distance = current_sample.distance;	
+        	            		distance_list.add(current_distance);
+        	            		distance_table.put(current_distance, current_index);
+        	            	}
+        	            	Collections.sort(distance_list);
+        	            	double first_key = (double)distance_list.get(0);
+        	            	double second_key = (double)distance_list.get(1);
+        	            	first_index = (int)distance_table.get(first_key);
+        	            	second_index = (int)distance_table.get(second_key);
+           	                first_list   = (ArrayList)neighbor_list.get(first_index);
+           	                second_list  = (ArrayList)neighbor_list.get(second_index);
+           	                first_sample  = (Sample)first_list.get(0);
+       	            	    second_sample = (Sample)second_list.get(0); 
+       	            	    cell_intensity[i][j] = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
+       	            	    number_of_bisecting_averages++;
+        	    			isInterpolated[i][j] = true; 
+        	            }
+        	             
+        	    /*
         	    // This pretty much works and helps show when some other interpolation methods are flawed.
         	    // Picks up about half the pixels in the image.
         	    default: if(neighborPopulated[0] && neighborPopulated[2] && neighborPopulated[7] && neighborPopulated[5])
@@ -791,6 +837,7 @@ public class GetTriangle
       	    	            cell_intensity[i][j] = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample, fourth_sample);
       	    	            isInterpolated[i][j] = true;   
 	                    }
+        	            */
         	       }
               }
         }
@@ -814,6 +861,8 @@ public class GetTriangle
             }
         }  
         System.out.println("The number of interpolated cells was " + number_of_interpolated_cells);
+        System.out.println("The number of linear interpolations was " + number_of_linear_interpolations);
+        System.out.println("The number of bisecting averages was " + number_of_bisecting_averages);
         double intensity_range = maximum_intensity - minimum_intensity;
         BufferedImage data_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
         for(int i = 0; i < ydim; i++)
