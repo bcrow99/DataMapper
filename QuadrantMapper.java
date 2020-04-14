@@ -462,9 +462,9 @@ public class QuadrantMapper
 	    	if(quadrant_list.contains(2) && quadrant_list.contains(7))
 	    		set_id_list.add(3);
 	    	if(quadrant_list.contains(4) && quadrant_list.contains(5))
-	    		set_id_list.add(4);
-	    	if(quadrant_list.contains(4) && quadrant_list.contains(6))
 	    		set_id_list.add(5);
+	    	if(quadrant_list.contains(4) && quadrant_list.contains(6))
+	    		set_id_list.add(6);
 	    	if(quadrant_list.contains(5) && quadrant_list.contains(7))
 	    		set_id_list.add(7);	
 	    }
@@ -504,6 +504,76 @@ public class QuadrantMapper
 	    return set_id_list;
 	}
 	
+	
+	public static Hashtable getActualQuadrantSetTable(ArrayList possible_set_list, ArrayList neighbor_list, Point2D.Double point_of_interest)
+	{
+		Hashtable actual_set_table = new Hashtable();
+		int size                   = possible_set_list.size();
+		for(int i = 0; i < size; i++)
+	    {
+			int set_id            = (int)possible_set_list.get(i);
+			int index[]           = getQuadrantSetIndex(set_id);
+			int first_index       = index[0];
+	    	int second_index      = index[1];
+	    	int third_index       = index[2];
+	    	ArrayList first_list  = (ArrayList)neighbor_list.get(first_index);
+	    	int first_list_size = first_list.size();
+	    	//System.out.println("First list size is " + first_list_size);
+	    	ArrayList second_list = (ArrayList)neighbor_list.get(second_index);
+	    	int second_list_size  = second_list.size();
+	    	//System.out.println("Second list size is " + second_list_size);
+	    	ArrayList third_list  = (ArrayList)neighbor_list.get(third_index);
+	    	int third_list_size  = third_list.size();
+	    	//System.out.println("Third list size is " + third_list_size);
+	    	
+	    	outer:for(int j = 0; j < first_list_size; j++)
+	    	{
+	            for(int k = 0; k < second_list_size; k++)
+	    		{
+	    			 for(int m = 0; m < third_list_size; m++)
+	    			 {
+	    			     Sample first_sample  = (Sample) first_list.get(j);
+	    			     Sample second_sample = (Sample) second_list.get(k);
+	    			     Sample third_sample  = (Sample) third_list.get(m);
+	    			     boolean isContained  = DataMapper.containsPoint(point_of_interest, first_sample, second_sample, third_sample);
+	    			     if(isContained)
+	    			     {
+	    			         int sample_space[][] = new int[3][2];
+	    			         sample_space[0][0] = first_index;
+	    			         sample_space[1][0] = second_index;
+	    			         sample_space[2][0] = third_index;
+	    			         sample_space[0][1] = j;
+	    			         sample_space[1][1] = k;
+	    			         sample_space[2][1] = m;
+	    			        	
+	    			         double x1 = first_sample.x;
+     			        	 double y1 = first_sample.y;
+	    			         double x2 = second_sample.x;
+	    			         double y2 = second_sample.y;
+	    			         double x3 = third_sample.x;
+	    			         double y3 = third_sample.y;
+	    			        	
+	    			         Point2D.Double first_point  = new Point2D.Double(x1, y1);
+	    			         Point2D.Double second_point = new Point2D.Double(x2, y2);
+	    			         Point2D.Double third_point  = new Point2D.Double(x3, y3);
+	    			        	
+	    			         double area      = DataMapper.getTriangleArea(first_point, second_point, third_point);
+	    			         double perimeter = DataMapper.getTrianglePerimeter(first_point, second_point, third_point);
+	    			         double key       = area / perimeter;
+	    			        	
+	    			         actual_set_table.put(key, sample_space);
+	    			         //System.out.println("Found a triangle with area " + area);
+	    			         break outer;   
+	    			     }
+	    			 }
+	    		}
+	    	}
+			
+	    }
+		return actual_set_table;
+	}
+	
+	/*
 	public static Hashtable getActualQuadrantSetTable(ArrayList possible_set_list, ArrayList neighbor_list, Point2D.Double point_of_interest)
 	{
 	    Hashtable actual_set_table = new Hashtable();
@@ -513,81 +583,68 @@ public class QuadrantMapper
 	    for(int i = 0; i < size; i++)
 	    {
 	    	int set_id            = (int)possible_set_list.get(i);
+	    	System.out.println("Set id is " + set_id);
 	    	int index[]           = getQuadrantSetIndex(set_id);
 	    	int first_index       = index[0];
 	    	int second_index      = index[1];
 	    	int third_index       = index[2];
 	    	ArrayList first_list  = (ArrayList)neighbor_list.get(first_index);
+	    	int first_list_size = first_list.size();
+	    	System.out.println("First list size is " + first_list_size);
 	    	ArrayList second_list = (ArrayList)neighbor_list.get(second_index);
+	    	int second_list_size  = second_list.size();
+	    	System.out.println("Second list size is " + second_list_size);
 	    	ArrayList third_list  = (ArrayList)neighbor_list.get(third_index);
+	    	int third_list_size  = third_list.size();
+	    	System.out.println("Third list size is " + third_list_size);
 	    	
 	    	boolean foundTriangle = false;
 	    	boolean isContained   = false;
 	    	
-	    	while(!foundTriangle)
+	    	outer:for(int j = 0; j < first_list.size(); j++)
 	    	{
-	    	    for(int j = 0; j < first_list.size(); j++)
-	    	    {
-	    		    for(int k = 0; k < second_list.size(); k++)
-	    		    {
-	    			    for(int m = 0; m < third_list.size(); m++)
-	    			    {
-	    			        Sample first_sample  = (Sample) first_list.get(j);
-	    			        Sample second_sample = (Sample) second_list.get(k);
-	    			        Sample third_sample  = (Sample) third_list.get(m);
-	    			        isContained = DataMapper.containsPoint(point_of_interest, first_sample, second_sample, third_sample);
-	    			        if(isContained)
-	    			        {
-	    			        	int sample_space[][] = new int[3][2];
-	    			        	sample_space[0][0] = first_index;
-	    			        	sample_space[1][0] = second_index;
-	    			        	sample_space[2][0] = third_index;
-	    			        	sample_space[0][1] = j;
-	    			        	sample_space[1][1] = k;
-	    			        	sample_space[2][0] = m;
+	            for(int k = 0; k < second_list.size(); k++)
+	    		{
+	    			 for(int m = 0; m < third_list.size(); m++)
+	    			 {
+	    			     Sample first_sample  = (Sample) first_list.get(j);
+	    			     Sample second_sample = (Sample) second_list.get(k);
+	    			     Sample third_sample  = (Sample) third_list.get(m);
+	    			     isContained = DataMapper.containsPoint(point_of_interest, first_sample, second_sample, third_sample);
+	    			     //System.out.println("Got here.");
+	    			     if(isContained)
+	    			     {
+	    			         int sample_space[][] = new int[3][2];
+	    			         sample_space[0][0] = first_index;
+	    			         sample_space[1][0] = second_index;
+	    			         sample_space[2][0] = third_index;
+	    			         sample_space[0][1] = j;
+	    			         sample_space[1][1] = k;
+	    			         sample_space[2][1] = m;
 	    			        	
-	    			        	double x1 = first_sample.x;
-	    			        	double y1 = first_sample.y;
-	    			        	double x2 = second_sample.x;
-	    			        	double y2 = second_sample.y;
-	    			        	double x3 = third_sample.x;
-	    			        	double y3 = third_sample.y;
+	    			         double x1 = first_sample.x;
+     			        	 double y1 = first_sample.y;
+	    			         double x2 = second_sample.x;
+	    			         double y2 = second_sample.y;
+	    			         double x3 = third_sample.x;
+	    			         double y3 = third_sample.y;
 	    			        	
-	    			        	Point2D.Double first_point  = new Point2D.Double(x1, y1);
-	    			        	Point2D.Double second_point = new Point2D.Double(x2, y2);
-	    			        	Point2D.Double third_point  = new Point2D.Double(x3, y3);
+	    			         Point2D.Double first_point  = new Point2D.Double(x1, y1);
+	    			         Point2D.Double second_point = new Point2D.Double(x2, y2);
+	    			         Point2D.Double third_point  = new Point2D.Double(x3, y3);
 	    			        	
-	    			        	double area      = DataMapper.getTriangleArea(first_point, second_point, third_point);
-	    			        	double perimeter = DataMapper.getTrianglePerimeter(first_point, second_point, third_point);
-	    			        	double key       = area / perimeter;
+	    			         double area      = DataMapper.getTriangleArea(first_point, second_point, third_point);
+	    			         double perimeter = DataMapper.getTrianglePerimeter(first_point, second_point, third_point);
+	    			         double key       = area / perimeter;
 	    			        	
-	    			        	actual_set_table.put(key, sample_space);
-	    			        	foundTriangle = true;
-	    			        }
-	    			    }
+	    			         actual_set_table.put(key, sample_space);
+	    			         break outer;
+	    			         System.out.println("Found a triangle with area " + area);
+	    			     }
 	    		    }
-	    	    }
-	    	}
+	    	  }
 	    }
 	    return(actual_set_table);
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+    */
 }
