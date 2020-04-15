@@ -4,7 +4,7 @@ import java.util.Hashtable;
 
 public class QuadrantMapper
 {
-	public static int[] getQuadrantSetIndex(int id)
+	public static int[] getTriangleSetIndex(int id)
 	{
 		int index[];
 		
@@ -255,7 +255,7 @@ public class QuadrantMapper
 	    	
 
 	// This function assumes the indices are passed in order of increasing value and they are either doublets or triplets.
-	public static int getQuadrantSetID(int ...index)
+	public static int getTriangleSetID(int ...index)
 	{
 		// Find out if we have a doublet or triplet and initialize indices.
 		int first_index = index[0];
@@ -442,7 +442,7 @@ public class QuadrantMapper
 	
 	// Right now this list only includes triplets since checking doublets involves extra processing.
 	// Start with simple. 
-	public static ArrayList getPossibleContainingSets(ArrayList quadrant_list)
+	public static ArrayList getPossibleTriangleSets(ArrayList quadrant_list)
 	{
 	    ArrayList set_id_list = new ArrayList();
 	   
@@ -504,15 +504,14 @@ public class QuadrantMapper
 	    return set_id_list;
 	}
 	
-	
-	public static Hashtable getActualQuadrantSetTable(ArrayList possible_set_list, ArrayList neighbor_list, Point2D.Double point_of_interest)
+	public static Hashtable getActualTriangleSetTable(ArrayList possible_set_list, ArrayList neighbor_list, Point2D.Double point_of_interest)
 	{
 		Hashtable actual_set_table = new Hashtable();
 		int size                   = possible_set_list.size();
 		for(int i = 0; i < size; i++)
 	    {
 			int set_id            = (int)possible_set_list.get(i);
-			int index[]           = getQuadrantSetIndex(set_id);
+			int index[]           = getTriangleSetIndex(set_id);
 			int first_index       = index[0];
 	    	int second_index      = index[1];
 	    	int third_index       = index[2];
@@ -571,80 +570,370 @@ public class QuadrantMapper
 			
 	    }
 		return actual_set_table;
-	}
+	}	
 	
-	/*
-	public static Hashtable getActualQuadrantSetTable(ArrayList possible_set_list, ArrayList neighbor_list, Point2D.Double point_of_interest)
+	//Do the same thing for bounding quadrilaterals but we'll only worry about quadruplets from the get go.
+	//Taking care of triplets and doublets is a serious complication--maybe later.
+	public static int[] getQuadSetIndex(int id)
 	{
-	    Hashtable actual_set_table = new Hashtable();
-	    
-	    int size = possible_set_list.size();
-	    System.out.println("There are " + size + " possible sets.");
-	    for(int i = 0; i < size; i++)
+		int index[];
+		
+	    if(id < 1 || id > 18)          //Not a recognized id.
 	    {
-	    	int set_id            = (int)possible_set_list.get(i);
-	    	System.out.println("Set id is " + set_id);
-	    	int index[]           = getQuadrantSetIndex(set_id);
-	    	int first_index       = index[0];
-	    	int second_index      = index[1];
-	    	int third_index       = index[2];
-	    	ArrayList first_list  = (ArrayList)neighbor_list.get(first_index);
-	    	int first_list_size = first_list.size();
-	    	System.out.println("First list size is " + first_list_size);
-	    	ArrayList second_list = (ArrayList)neighbor_list.get(second_index);
-	    	int second_list_size  = second_list.size();
-	    	System.out.println("Second list size is " + second_list_size);
-	    	ArrayList third_list  = (ArrayList)neighbor_list.get(third_index);
-	    	int third_list_size  = third_list.size();
-	    	System.out.println("Third list size is " + third_list_size);
-	    	
-	    	boolean foundTriangle = false;
-	    	boolean isContained   = false;
-	    	
-	    	outer:for(int j = 0; j < first_list.size(); j++)
-	    	{
-	            for(int k = 0; k < second_list.size(); k++)
-	    		{
-	    			 for(int m = 0; m < third_list.size(); m++)
-	    			 {
-	    			     Sample first_sample  = (Sample) first_list.get(j);
-	    			     Sample second_sample = (Sample) second_list.get(k);
-	    			     Sample third_sample  = (Sample) third_list.get(m);
-	    			     isContained = DataMapper.containsPoint(point_of_interest, first_sample, second_sample, third_sample);
-	    			     //System.out.println("Got here.");
-	    			     if(isContained)
-	    			     {
-	    			         int sample_space[][] = new int[3][2];
-	    			         sample_space[0][0] = first_index;
-	    			         sample_space[1][0] = second_index;
-	    			         sample_space[2][0] = third_index;
-	    			         sample_space[0][1] = j;
-	    			         sample_space[1][1] = k;
-	    			         sample_space[2][1] = m;
-	    			        	
-	    			         double x1 = first_sample.x;
-     			        	 double y1 = first_sample.y;
-	    			         double x2 = second_sample.x;
-	    			         double y2 = second_sample.y;
-	    			         double x3 = third_sample.x;
-	    			         double y3 = third_sample.y;
-	    			        	
-	    			         Point2D.Double first_point  = new Point2D.Double(x1, y1);
-	    			         Point2D.Double second_point = new Point2D.Double(x2, y2);
-	    			         Point2D.Double third_point  = new Point2D.Double(x3, y3);
-	    			        	
-	    			         double area      = DataMapper.getTriangleArea(first_point, second_point, third_point);
-	    			         double perimeter = DataMapper.getTrianglePerimeter(first_point, second_point, third_point);
-	    			         double key       = area / perimeter;
-	    			        	
-	    			         actual_set_table.put(key, sample_space);
-	    			         break outer;
-	    			         System.out.println("Found a triangle with area " + area);
-	    			     }
-	    		    }
-	    	  }
+	    	index    = new int[1];
+	    	index[0] = -1;
+	    	return index;
 	    }
-	    return(actual_set_table);
-	}
-    */
+	    else
+	    {
+	        if(id == 1)
+	        {
+	        	index = new int[4];
+		    	index[0] = 0;
+		    	index[1] = 2;
+		    	index[2] = 5;
+		    	index[3] = 7;
+		    	return index;   	
+	        }
+	        else if(id == 2)
+	        {
+	        	index    = new int[4];
+		        index[0] = 0;
+		        index[1] = 2;
+		        index[2] = 5;
+		        index[3] = 4;
+		        return index;    	
+	        }
+	        else if(id == 3)
+	        {
+	        	index    = new int[4];
+		        index[0] = 0;
+		        index[1] = 2;
+		        index[2] = 5;
+		        index[3] = 6;
+		        return index;    	
+	        }
+	        else if(id == 4)
+	        {
+	        	index    = new int[4];
+		        index[0] = 0;
+		        index[1] = 2;
+		        index[2] = 3;
+		        index[3] = 7;
+		        return index;    	
+	        }
+	        else if(id == 5)
+	        {
+	        	index    = new int[4];
+		        index[0] = 0;
+		        index[1] = 2;
+		        index[2] = 6;
+		        index[3] = 7;
+		        return index;    	
+	        }
+	        else if(id == 6)
+	        {
+	        	index    = new int[4];
+		        index[0] = 0;
+		        index[1] = 1;
+		        index[2] = 5;
+		        index[3] = 7;
+		        return index;    	
+	        }
+	        else if(id == 7)
+	        {
+	        	index    = new int[4];
+		        index[0] = 0;
+		        index[1] = 4;
+		        index[2] = 5;
+		        index[3] = 7;
+		        return index;    	
+	        }
+	        else if(id == 8)
+	        {
+	        	index    = new int[4];
+		        index[0] = 1;
+		        index[1] = 2;
+		        index[2] = 5;
+		        index[3] = 7;
+		        return index;    	
+	        }
+	        else if(id == 9)
+	        {
+	        	index    = new int[4];
+		        index[0] = 3;
+		        index[1] = 2;
+		        index[2] = 5;
+		        index[3] = 7;
+		        return index;    	
+	        }
+	        else if(id == 10)
+	        {
+	        	index    = new int[4];
+		        index[0] = 1;
+		        index[1] = 3;
+		        index[2] = 4;
+		        index[3] = 6;
+		        return index;    	
+	        }
+	        else if(id == 11)
+	        {
+	        	index    = new int[4];
+		        index[0] = 1;
+		        index[1] = 3;
+		        index[2] = 4;
+		        index[3] = 5;
+		        return index;	
+	        }
+	        else if(id == 12)
+	        {
+	        	index    = new int[4];
+		        index[0] = 1;
+		        index[1] = 3;
+		        index[2] = 4;
+		        index[3] = 7;
+		        return index;  	
+	        }
+	        else if(id == 13)
+	        {
+	        	index    = new int[4];
+		        index[0] = 1;
+		        index[1] = 3;
+		        index[2] = 2;
+		        index[3] = 6;
+		        return index;  	
+	        }
+	        else if(id == 14)
+	        {
+	        	index    = new int[4];
+		        index[0] = 1;
+		        index[1] = 3;
+		        index[2] = 7;
+		        index[3] = 6;
+		        return index;  	
+	        }
+	        else if(id == 15)
+	        {
+	        	index    = new int[4];
+		        index[0] = 1;
+		        index[1] = 0;
+		        index[2] = 4;
+		        index[3] = 6;
+		        return index;      	
+	        }
+	        else if(id == 16)
+	        {
+	        	index    = new int[4];
+		        index[0] = 1;
+		        index[1] = 5;
+		        index[2] = 4;
+		        index[3] = 6;
+		        return index;	  	
+	        }
+	        else if(id == 17)
+	        {
+	        	index    = new int[4];
+		        index[0] = 0;
+		        index[1] = 3;
+		        index[2] = 4;
+		        index[3] = 6;
+		        return index;	  	
+	        }
+	        else if(id == 18)
+	        {
+	        	index    = new int[4];
+		        index[0] = 2;
+		        index[1] = 3;
+		        index[2] = 4;
+		        index[3] = 6;
+		        return index;		
+	        }
+	        else
+	        {
+	        	index    = new int[1];
+		    	index[0] = -1;
+		    	return index;	
+	        }
+	    }     
+	 }
+	 
+	
+     public static int getQuadSetID(int ...index)
+     {
+    	// Find out if we have a quadruplet.
+    	// Could find out if we have any or multiple possibilities from larger n-tuples.
+    	// Now we'll just return the empty set.
+ 		if(index.length != 4)
+ 		{
+ 			return 0;
+ 		}
+ 		else
+ 		{ 
+ 			ArrayList index_list = new ArrayList();
+ 			for(int i = 0; i < 4; )
+ 			{
+ 			    index_list.add(index[i]);	
+ 			}
+ 			
+ 			if(index_list.contains(0))
+ 			{
+ 			    if(index_list.contains(2))	
+ 			    {
+ 			    	if(index_list.contains(5))	
+ 	 			    {
+ 			    		if(index_list.contains(7))	
+ 		 			    {
+ 		 			        return 1;	
+ 		 			    }
+ 			    		else if(index_list.contains(4))
+ 			    		{
+ 			    		    return 2;	
+ 			    		}
+ 			    		else if(index_list.contains(6))
+ 			    		{
+ 			    		    return 3;	
+ 			    		}
+ 	 			    }
+ 			    	else if(index_list.contains(3))
+ 			    	{
+ 			    		if(index_list.contains(7))	
+ 		 			    {
+ 		 			        return 4;	
+ 		 			    }    	
+ 			    	}
+ 			    	else if(index_list.contains(6))
+ 			    	{
+ 			    		if(index_list.contains(7))	
+ 		 			    {
+ 		 			        return 5;	
+ 		 			    } 
+ 			    	}	
+ 			    }
+ 			    if(index_list.contains(7))
+ 			    {
+ 				    if(index_list.contains(5))
+ 				    {
+ 					    if(index_list.contains(1))
+ 					    {
+ 					        return 6;	 
+ 					    }
+ 					    else if(index_list.contains(4))
+ 					    {
+ 					        return 7;	
+ 					    }
+ 				    }
+ 			    }
+ 			}
+ 			else if(index_list.contains(1))
+            {
+ 				if(index_list.contains(2) && index_list.contains(5) && index_list.contains(7))
+ 					return 8;
+ 				if(index_list.contains(3))	
+ 			    {
+ 					if(index_list.contains(4))	
+ 	 			    {
+ 						if(index_list.contains(6))	
+ 		 			    {
+ 		 			        return 10;	
+ 		 			    }
+ 						else if(index_list.contains(5))
+ 						{
+ 							return 11;
+ 						}
+ 						else if(index_list.contains(7))
+ 						{
+ 							return 12;
+ 						}
+ 	 			    }
+ 					else if(index_list.contains(6))
+ 					{
+ 						if(index_list.contains(2))	
+ 		 			    {
+ 		 			        return 13;	
+ 		 			    }
+ 						else if(index_list.contains(7))
+ 						{
+ 						    return 14;	
+ 						}
+ 					}
+ 			    }
+ 				else if(index_list.contains(4))
+ 				{
+ 					if(index_list.contains(6))
+ 					{
+ 						if(index_list.contains(0))
+ 						{
+ 							return 15;
+ 						}
+ 						else if(index_list.contains(5))
+ 						{
+ 						    return 16;	
+ 						}
+ 					}
+ 				}
+            }
+ 			else if(index_list.contains(2))
+            {
+ 				if(index_list.contains(3))
+ 	            {	
+ 					if(index_list.contains(4))
+ 		            {
+ 						if(index_list.contains(6))
+ 			            {
+ 						    return 18;	
+ 			            }
+ 		            }
+ 					else if(index_list.contains(5))
+ 		            {
+ 						if(index_list.contains(7))
+ 			            {
+ 						    return 9;	
+ 			            } 	
+ 		            }
+ 	            }
+            }
+ 			if(index_list.contains(0) && index_list.contains(3) && index_list.contains(4) && index_list.contains(6))
+ 				return 17;
+ 			return 0;
+ 		}
+     }
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
 }
