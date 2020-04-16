@@ -8,19 +8,34 @@ import javax.imageio.*;
 public class GetImage
 {
 	public static void main(String[] args)throws IOException, FileNotFoundException  
-	{	 
+	{
+		int object_id = 0;
+		
+		if(args.length != 1)
+		{
+			System.out.println("Usage: GetImage <object id>");
+			System.exit(0);
+		}
+		else
+		{
+			object_id = Integer.parseInt(args[0]);	
+		}
+		Hashtable object_table         = ObjectMapper.getObjectTable();
+	 	int [][]  object_array         = (int [][])object_table.get(object_id);
 		ArrayList complete_sample_list = new ArrayList();
-		ArrayList sample_list = new ArrayList();
-		double minimum_x, maximum_x;
-        double minimum_y, maximum_y;
-        double minimum_intensity, maximum_intensity; 
-        boolean isPopulated[][];          
-        boolean hasNeighbors[][];  
-        boolean isInterpolated[][];
-        int     number_of_samples[][];   
-        int   resolution = 4;
-        double increment = 1. / resolution;
-        double  cell_intensity[][];
+		ArrayList sample_list          = new ArrayList();
+		
+		
+		double    minimum_x, maximum_x;
+        double    minimum_y, maximum_y;
+        double    minimum_intensity, maximum_intensity; 
+        boolean   isPopulated[][];          
+        boolean   hasNeighbors[][];  
+        boolean   isInterpolated[][];
+        int       number_of_samples[][];   
+        int       resolution = 4;
+        double    increment = 1. / resolution;
+        double    cell_intensity[][];
         File file = new File("C:/Users/Brian Crowley/Desktop/CleanData.txt");
         if(file.exists())
         {       
@@ -69,42 +84,24 @@ public class GetImage
         }
          
         String file_string = new String("C:/Users/Brian Crowley/Desktop/foo.jpg");    
-        // Obj 21
+
+        // Load object segments.
+        
+        int length = object_array.length;
+        
+        for(int i = 0; i < length; i++)
+        {
+        	int start = object_array[i][0];
+        	int stop  = object_array[i][1];
+        	for(int j = start; j < stop; j++)
+        	{
+        		Sample sample = (Sample)complete_sample_list.get(j);	
+        		sample_list.add(sample);
+        	}
+        	
+        }
+        
         /*
-        for(int i = 226375; i < 227780; i++)
-        {
-        	Sample sample = (Sample)complete_sample_list.get(i);
-        	sample_list.add(sample);
-        }
-        
-       
-        for(int i = 237900; i < 239290; i++)
-        {
-        	Sample sample = (Sample)complete_sample_list.get(i);
-        	sample_list.add(sample);
-        }
-        
-        for(int i = 253660; i < 254810; i++)
-        {
-        	Sample sample = (Sample)complete_sample_list.get(i);
-        	sample_list.add(sample);
-        }
-        
-        
-        for(int i = 265450; i < 266840; i++)
-        {
-        	Sample sample = (Sample)complete_sample_list.get(i);
-        	sample_list.add(sample);
-        }
-        
-        for(int i = 281030; i < 282565; i++)
-        {
-        	Sample sample = (Sample)complete_sample_list.get(i);
-        	sample_list.add(sample);
-        }
-        */
-        // Obj 8
-        
         for(int i = 127850; i < 129090; i++)
         {
         	Sample sample = (Sample)complete_sample_list.get(i);
@@ -124,6 +121,7 @@ public class GetImage
         	Sample sample = (Sample)complete_sample_list.get(i);
         	sample_list.add(sample);
         }
+        */
         
         int sample_list_size = sample_list.size();
         Sample init_sample = (Sample)sample_list.get(0);
@@ -445,10 +443,7 @@ public class GetImage
     	    			    distance_list.add(sample.distance);
     	    		    }
     	    		    
-    	    		    // Double check if any of the data samples happen to be the
-    	    		    // exact same distance from the center of the cell and
-    	    		    // make a small adjustment so the two samples don't
-    	    		    // step on each other in the hashtable.
+    	    		    /*
     	    		    double previous_distance = (double)distance_list.get(0);
     	    		    for(int n = 1; n < distance_list.size(); n++)
     	    		    {
@@ -462,6 +457,7 @@ public class GetImage
     	    		    		distance_list.set(n, current_distance);
     	    		    	}
     	    		    }
+    	    		    */
     	    		    
     	    		    Collections.sort(distance_list);
     	    		    Hashtable <Double, Integer> location = new Hashtable <Double, Integer>();
