@@ -455,6 +455,44 @@ public class DataMapper
     		return(0.);
     }
     
+    
+    public static boolean areSameSide(Line2D.Double line, double x1, double y1, double x2, double y2)
+    {
+        double a = DataMapper.getSlope(line);
+        if(Double.isNaN(a))
+        {
+        	//Get an endpoint and check x1 and x2.
+        	double endpoint = line.getX1();
+        	if((x1 < endpoint && x2 < endpoint) || (x1 > endpoint && x2 > endpoint))
+        		return true;
+        	else
+        		return false;
+        }
+        else if(a == 0)
+        {
+        	//Get an endpoint and check y1 and y2.
+        	double endpoint = line.getY1();
+        	if((y1 < endpoint && y2 < endpoint) || (y1 > endpoint && y2 > endpoint))
+            	return true;
+            else
+            	return false;
+        }
+        else
+        {
+            double b = -1;
+            double x3 = line.getX1();
+            double y3 = line.getY1();
+            Point2D.Double endpoint = new Point2D.Double(x3, y3);
+            double c = getYIntercept(endpoint, a);
+            c = -c;
+            double fx1 = a * x1 + b * y1 - c; 
+            double fx2 = a * x2 + b * y2 - c; 
+            if((fx1 * fx2) > 0) 
+                return true; 
+            return false;
+        }
+    }
+    
     // This returns the bisecting average from a line determined by two samples, or the nearest endpoint sample value if no bisecting line from the point exists.
 	public static double getBisectingAverage(Sample sample1, Sample sample2, Point2D.Double point)
 	{ 
