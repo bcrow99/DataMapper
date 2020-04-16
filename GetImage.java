@@ -443,7 +443,12 @@ public class GetImage
     	    		    {
     	    			    Sample sample = (Sample)unsorted_list.get(n);
     	    			    distance_list.add(sample.distance);
-    	    		    }	
+    	    		    }
+    	    		    
+    	    		    // Double check if any of the data samples happen to be the
+    	    		    // exact same distance from the center of the cell and
+    	    		    // make a small adjustment so the two samples don't
+    	    		    // step on each other in the hashtable.
     	    		    double previous_distance = (double)distance_list.get(0);
     	    		    for(int n = 1; n < distance_list.size(); n++)
     	    		    {
@@ -457,6 +462,7 @@ public class GetImage
     	    		    		distance_list.set(n, current_distance);
     	    		    	}
     	    		    }
+    	    		    
     	    		    Collections.sort(distance_list);
     	    		    Hashtable <Double, Integer> location = new Hashtable <Double, Integer>();
         	    	    for(int n = 0; n < unsorted_list.size(); n++)
@@ -621,68 +627,18 @@ public class GetImage
             		number_of_interpolated_cells++;
             		
             }
-        }  
- 
+        }
+        
+        double source[][];
+        double dilated_image[][] = new double[ydim][xdim];
         if(number_of_cells != number_of_interpolated_cells)
         {
-            // Some housekeeping here because the image dilation requires extra image buffers
-        	// and uses some image processing routines that are optimized to use arrays with 
-        	// single digit indices.
-        	
-        	//Pointers that switch back and forth between gray1 and gray2.
-        	double src[];
-            double dst[];
-        	double gray1[]       = new double[xdim * ydim];
-            double gray2[]       = new double[xdim * ydim];
-            boolean isAssigned[] = new boolean[xdim * ydim];
-            //Reformat the data to use single digit indices
-            for(int i = 0; i < ydim; i++)
-            {
-                for(int j= 0; j < xdim; j++)
-                {
-                	int k                = i * xdim + j;
-                	double current_value = cell_intensity[i][j];
-                    gray1[k]              = current_value;	
-                    isAssigned[k]        = isInterpolated[i][j];
-                }
-            }
-            boolean even = true;  // Keep track of which buffer is the source and which is the destination.
-            int number_of_uninterpolated_cells = number_of_cells - number_of_interpolated_cells;
-            while(number_of_uninterpolated_cells != 0)  //Do an image dilation.
-            {
-            	if(even == true)
-            	{
-            		src = gray1;
-            		dst = gray2;
-            		even = false;
-            	}
-            	else
-            	{
-            		src = gray2;
-            		dst = gray1;
-            		even = true;
-            	}
-            	ImageMapper.getImageDilation(src, isAssigned, xdim, ydim, dst);
-            	
-            	number_of_uninterpolated_cells = 0;
-            	for(int i = 0; i < number_of_cells; i++)
-            		if(isAssigned[i] = false)
-            			number_of_uninterpolated_cells++;
-            }
-            System.out.println("The image has been dilated so there are no uninterpolated cells.");
-            if(even == true)
-                src = gray1;
-            else
-            	src = gray2;
-            for(int i = 0; i < ydim; i++)
-            {
-                for(int j = 0; j < xdim; j++)
-                {
-            	    int k                = i * xdim + j;
-            	    cell_intensity[i][j] = src[k];
-                }
-            }  
-        } 
+        	source = dilated_image;
+        	ImageMapper.getImageDilation(cell_intensity, isInterpolated, dilated_image); 
+        }
+        else
+        	source = cell_intensity;
+        
         System.out.println("The number of cells was " + number_of_cells);
         System.out.println("The number of interpolated cells was " + number_of_interpolated_cells);
         System.out.println("The number of linear interpolations was " + number_of_linear_interpolations);
@@ -693,7 +649,7 @@ public class GetImage
         {
             for(int j = 0; j < xdim; j++)
             {  	
-                double current_value  = cell_intensity[i][j];
+                double current_value  = source[i][j];
                 current_value        -= minimum_intensity;
                 current_value        /= intensity_range;
                 current_value        *= 255.;
