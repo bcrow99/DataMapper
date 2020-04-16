@@ -482,8 +482,7 @@ public class GetImage
         	}
         }
         int number_of_linear_interpolations = 0;
-        int number_of_weighted_averages    = 0;
-        
+        int number_of_weighted_averages    = 0;    
         for(int i = 0; i < ydim; i++)
         {
         	double ycenter = i * increment + increment * .5 + y_origin;
@@ -517,96 +516,95 @@ public class GetImage
 	    	    ArrayList possible_set_list;
 	    	    Hashtable actual_set_table;
         	      
-        	    switch(number_of_quadrants)
-        	    {
-        	    case 0:  break;  
-        	    
-        	    case 1:  int index             = (int)neighbor_index_list.get(0);      
-        	             current_neighbor_list = (ArrayList)neighbor_list.get(index);  
-        	             Sample sample         = (Sample)current_neighbor_list.get(0); 
-        	             cell_intensity[i][j]  = sample.intensity;
-         	    	     isInterpolated[i][j]  = true;
-         	    	     number_of_weighted_averages++;
-        	             break;
-        	             
-        	    case 2:  first_index           = (int)neighbor_index_list.get(0); 
-        	             second_index          = (int)neighbor_index_list.get(1); 
-        	             first_list            = (ArrayList)neighbor_list.get(first_index);
-        	             second_list           = (ArrayList)neighbor_list.get(second_index);
-        	             first_sample          = (Sample)first_list.get(0);
-    	            	 second_sample         = (Sample)second_list.get(0);
-    	            	 total_distance = first_sample.distance + second_sample.distance;
-    	            	 cell_intensity[i][j]  = first_sample.intensity * first_sample.distance / total_distance + 
-    	            			                 second_sample.intensity * second_sample.distance / total_distance;
-    	            	 isInterpolated[i][j]  = true; 
-     	    			 number_of_weighted_averages++;
-        	    	     break;
-        	    
-        	   default: possible_set_list = QuadrantMapper.getPossibleTriangleSets(neighbor_index_list);
-        	            actual_set_table  = QuadrantMapper.getActualTriangleSetTable(possible_set_list, neighbor_list, origin);
-        	            if(!actual_set_table.isEmpty())
-        	            {
-                            Enumeration keys   = actual_set_table.keys();
-                            ArrayList key_list = new ArrayList();
-                            while(keys.hasMoreElements())
-                            {
-                                double key = (double)keys.nextElement();	
-                                key_list.add(key);
-                            }
-                            Collections.sort(key_list);
-                            
-                            double key                 = (double)key_list.get(0);
-                            int sample_space[][]       = (int[][])actual_set_table.get(key);
-                            int first_quadrant_index   = sample_space[0][0];
-                            int second_quadrant_index  = sample_space[1][0];
-                            int third_quadrant_index   = sample_space[2][0];
-                            int first_sample_index     = sample_space[0][1];
-                            int second_sample_index    = sample_space[1][1];
-                            int third_sample_index     = sample_space[2][1];
-                            
-                            first_list    = (ArrayList)neighbor_list.get(first_quadrant_index);
-                            second_list   = (ArrayList)neighbor_list.get(second_quadrant_index);
-                            third_list    = (ArrayList)neighbor_list.get(third_quadrant_index);
-                            first_sample  = (Sample)first_list.get(first_sample_index);
-                            second_sample = (Sample)second_list.get(second_sample_index);
-                            third_sample  = (Sample)third_list.get(third_sample_index);
-                            cell_intensity[i][j] = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample);
-      	    	            isInterpolated[i][j] = true;
-      	    	            number_of_linear_interpolations++;
-        	            }
-        	            else
-        	            {
-        	            	Hashtable distance_table = new Hashtable();
-        	            	ArrayList distance_list  = new ArrayList();
-        	            	for(int k = 0; k < neighbor_index_list.size(); k++)
-        	            	{
-        	            		int current_index       = (int)neighbor_index_list.get(k);
-        	            		ArrayList current_list  = (ArrayList)neighbor_list.get(current_index);
-        	            		Sample current_sample   = (Sample)current_list.get(0);
-        	            		double current_distance = current_sample.distance;	
-        	            		distance_list.add(current_distance);
-        	            		distance_table.put(current_distance, current_index);
-        	            	}
-        	            	Collections.sort(distance_list);
-        	            	// Take the weighted average of nearest neighbors.
-        	            	total_distance = 0;
-        	            	for(int k = 0; k < distance_list.size(); k++)
-        	            	    total_distance += (double) distance_list.get(k);
-        	            	double weighted_average = 0;
-        	            	for(int k = 0; k < neighbor_index_list.size(); k++)
-        	            	{
-        	            		int current_index       = (int)neighbor_index_list.get(k);
-        	            		ArrayList current_list  = (ArrayList)neighbor_list.get(current_index);
-        	            		Sample current_sample   = (Sample)current_list.get(0);
-        	            		double current_distance = current_sample.distance;
-        	            		weighted_average += current_sample.intensity * current_distance / total_distance;
-        	            	}
-        	            	cell_intensity[i][j] = weighted_average;
-       	            	    number_of_weighted_averages++;
-        	    			isInterpolated[i][j] = true;
-    	            	}         
-        	       }
-              }
+	    	    if(number_of_quadrants == 1)
+	    	    {
+	    	    	int index             = (int)neighbor_index_list.get(0);      
+   	                current_neighbor_list = (ArrayList)neighbor_list.get(index);  
+   	                Sample sample         = (Sample)current_neighbor_list.get(0); 
+   	                cell_intensity[i][j]  = sample.intensity;
+    	    	    isInterpolated[i][j]  = true;
+    	    	    number_of_weighted_averages++;	
+	    	    }
+	    	    else if(number_of_quadrants == 2)
+	    	    {
+	    	    	first_index           = (int)neighbor_index_list.get(0); 
+   	                second_index          = (int)neighbor_index_list.get(1); 
+   	                first_list            = (ArrayList)neighbor_list.get(first_index);
+   	                second_list           = (ArrayList)neighbor_list.get(second_index);
+   	                first_sample          = (Sample)first_list.get(0);
+	            	second_sample         = (Sample)second_list.get(0);
+	            	total_distance = first_sample.distance + second_sample.distance;
+	            	cell_intensity[i][j]  = first_sample.intensity * first_sample.distance / total_distance + 
+	            			                second_sample.intensity * second_sample.distance / total_distance;
+	            	isInterpolated[i][j]  = true; 
+	    			number_of_weighted_averages++;	
+	    	    }
+	    	    else if(number_of_quadrants > 2)
+	    	    {
+	    	    	possible_set_list = QuadrantMapper.getPossibleTriangleSets(neighbor_index_list);
+    	            actual_set_table  = QuadrantMapper.getActualTriangleSetTable(possible_set_list, neighbor_list, origin);
+    	            if(!actual_set_table.isEmpty())
+    	            {
+                        Enumeration keys   = actual_set_table.keys();
+                        ArrayList key_list = new ArrayList();
+                        while(keys.hasMoreElements())
+                        {
+                            double key = (double)keys.nextElement();	
+                            key_list.add(key);
+                        }
+                        Collections.sort(key_list);
+                        double key                 = (double)key_list.get(0);
+                        int sample_space[][]       = (int[][])actual_set_table.get(key);
+                        int first_quadrant_index   = sample_space[0][0];
+                        int second_quadrant_index  = sample_space[1][0];
+                        int third_quadrant_index   = sample_space[2][0];
+                        int first_sample_index     = sample_space[0][1];
+                        int second_sample_index    = sample_space[1][1];
+                        int third_sample_index     = sample_space[2][1];
+              
+                        first_list    = (ArrayList)neighbor_list.get(first_quadrant_index);
+                        second_list   = (ArrayList)neighbor_list.get(second_quadrant_index);
+                        third_list    = (ArrayList)neighbor_list.get(third_quadrant_index);
+                        first_sample  = (Sample)first_list.get(first_sample_index);
+                        second_sample = (Sample)second_list.get(second_sample_index);
+                        third_sample  = (Sample)third_list.get(third_sample_index);
+                        cell_intensity[i][j] = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample);
+  	    	            isInterpolated[i][j] = true;
+  	    	            number_of_linear_interpolations++;
+    	            }
+    	            else
+    	            {
+    	            	Hashtable distance_table = new Hashtable();
+    	            	ArrayList distance_list  = new ArrayList();
+    	            	for(int k = 0; k < neighbor_index_list.size(); k++)
+    	            	{
+    	            		int current_index       = (int)neighbor_index_list.get(k);
+    	            		ArrayList current_list  = (ArrayList)neighbor_list.get(current_index);
+    	            		Sample current_sample   = (Sample)current_list.get(0);
+    	            		double current_distance = current_sample.distance;	
+    	            		distance_list.add(current_distance);
+    	            		distance_table.put(current_distance, current_index);
+    	            	}
+    	            	Collections.sort(distance_list);
+    	            	// Take the weighted average of nearest neighbors.
+    	            	total_distance = 0;
+    	            	for(int k = 0; k < distance_list.size(); k++)
+    	            	    total_distance += (double) distance_list.get(k);
+    	            	double weighted_average = 0;
+    	            	for(int k = 0; k < neighbor_index_list.size(); k++)
+    	            	{
+    	            		int current_index       = (int)neighbor_index_list.get(k);
+    	            		ArrayList current_list  = (ArrayList)neighbor_list.get(current_index);
+    	            		Sample current_sample   = (Sample)current_list.get(0);
+    	            		double current_distance = current_sample.distance;
+    	            		weighted_average += current_sample.intensity * current_distance / total_distance;
+    	            	}
+    	            	cell_intensity[i][j] = weighted_average;
+   	            	    number_of_weighted_averages++;
+    	    			isInterpolated[i][j] = true;
+	            	}         	
+	    	    }
+            }
         }
     	
         int number_of_cells = xdim * ydim;
@@ -684,7 +682,7 @@ public class GetImage
             	    cell_intensity[i][j] = src[k];
                 }
             }  
-        }   
+        } 
         System.out.println("The number of cells was " + number_of_cells);
         System.out.println("The number of interpolated cells was " + number_of_interpolated_cells);
         System.out.println("The number of linear interpolations was " + number_of_linear_interpolations);
@@ -704,7 +702,6 @@ public class GetImage
         	    data_image.setRGB(j, i, rgb_value);  
             }
         }
-        
         try 
         {  
             ImageIO.write(data_image, "jpg", new File(file_string)); 
