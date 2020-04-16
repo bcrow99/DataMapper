@@ -249,12 +249,83 @@ public class ImageMapper
 		}
 	}
 	
+	public static void getImageDilation(double src[][], boolean isInterpolated[][], double dst[][])
+	{
+	    int ydim = src.length;
+	    int xdim = src[0].length;
+	    
+	    System.out.println("Xdim is " + xdim + ", ydim is " + ydim);
+	    double source[];
+        double dest[];
+    	double gray1[]       = new double[xdim * ydim];
+        double gray2[]       = new double[xdim * ydim];
+        boolean isAssigned[] = new boolean[xdim * ydim];
+        int number_of_uninterpolated_cells = 0;
+        for(int i = 0; i < ydim; i++)
+        {
+            for(int j= 0; j < xdim; j++)
+            {
+            	int k                = i * xdim + j;
+                gray1[k]             = src[i][j];	
+                isAssigned[k]        = isInterpolated[i][j];
+                if(isAssigned[k] == false)
+                	number_of_uninterpolated_cells++;	
+            }
+        }
+        boolean even = true;  // Keep track of which buffer is the source and which is the destination.
+        while(number_of_uninterpolated_cells != 0)
+        {
+            if(even == true)
+    	    {
+    		    source = gray1;
+    		    dest   = gray2;
+    		    even   = false;
+    	    }
+    	    else
+    	    {
+    		    source = gray2;
+    		    dest   = gray1;
+    		    even   = true;
+    	    }
+    	    dilateImage(source, isAssigned, xdim, ydim, dest);
+    	    number_of_uninterpolated_cells = 0;
+    	    for(int i = 0; i < xdim * ydim; i++)
+    	    {
+    		    if(isAssigned[i] = false)
+    			    number_of_uninterpolated_cells++;
+    	    }
+        }
+        //System.out.println("Got here.");
+        if(even == true)
+        {
+        	int k = 0;
+        	for(int i = 0; i < ydim; i++)
+        	{
+        		for(int j = 0; j < xdim; j++)
+        		{
+        			dst[i][j] = gray1[k++];
+        		}
+        	}   
+        }
+        else
+        {
+        	int k = 0;
+        	for(int i = 0; i < ydim; i++)
+        	{
+        		for(int j = 0; j < xdim; j++)
+        		{
+        			dst[i][j] = gray2[k++];
+        		}
+        	}
+        }
+	}
+	
+	
 	// This function modifies values in isInterpolated and dst, and can be called multiple times
 	// until all the values in isInterpolated are true.
-	// Could be rewritten to do iterations inside function.
 	// Also, using single index into image to keep low level code simple--will have to reformat
 	// data for processing--see getVarianceImage.
-	public static void getImageDilation(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
+	public static void dilateImage(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
 	{	
 		for(int i = 0; i < ydim; i++)
 		{
