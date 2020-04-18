@@ -45,8 +45,8 @@ public class ObjectMapper
 		object[0][1] = 61055;
 		object[1][0] = 73435;
 		object[1][1] = 74085;
-		object[1][0] = 88090;
-		object[1][1] = 88735;
+		object[2][0] = 88090;
+		object[2][1] = 88735;
 		table.put(key,  object);
 		
 		//Unverified.
@@ -56,8 +56,8 @@ public class ObjectMapper
 		object[0][1] = 46175;
 		object[1][0] = 60845;
 		object[1][1] = 61265;
-		object[1][0] = 73180;
-		object[1][1] = 73655;
+		object[2][0] = 73180;
+		object[2][1] = 73655;
 		table.put(key,  object);
 		
 		//Unverified.
@@ -67,8 +67,8 @@ public class ObjectMapper
 		object[0][1] = 18530;
 		object[1][0] = 33490;
 		object[1][1] = 34100;
-		object[1][0] = 45310;
-		object[1][1] = 45960;
+		object[2][0] = 45310;
+		object[2][1] = 45960;
 		table.put(key,  object);		
 
 		//Unverified.
@@ -78,8 +78,8 @@ public class ObjectMapper
 		object[0][1] = 171250;
 		object[1][0] = 184305;
 		object[1][1] = 184950;
-		object[1][0] = 198215;
-		object[1][1] = 198875;
+		object[2][0] = 198215;
+		object[2][1] = 198875;
 		table.put(key,  object);
 		
 		//Probable.
@@ -89,32 +89,33 @@ public class ObjectMapper
 		object[0][1] = 129090;
 		object[1][0] = 143605;
 		object[1][1] = 144870;
-		object[1][0] = 155625;
-		object[1][1] = 156950;
+		object[2][0] = 155625;
+		object[2][1] = 156950;
 		table.put(key,  object);
+		
 		
 		//Probable.
-	    key          = 9;
+		key          = 9;
 		object       = new int[4][2];
-		object[0][0] = 100845;
-		object[0][1] = 101505;
-		object[1][0] = 115965;
-		object[1][1] = 116535;
-		object[2][0] = 127585;
-		object[2][1] = 128865;
-		object[3][0] = 143820;
-		object[3][1] = 145080;
+		object[0][0] = 115965;
+		object[0][1] = 116990;
+		object[1][0] = 127825;
+		object[1][1] = 128865;
+		object[2][0] = 143820;
+		object[2][1] = 144900;
+		object[3][0] = 155625;
+		object[3][1] = 156740;
 		table.put(key,  object);
 		
-		
+
 		//Probable.
 		key          = 15;
 		object       = new int[3][2];
-		object[0][0] = 116535;
+		object[0][0] = 116135;
 		object[0][1] = 116955;
 		object[1][0] = 127850;
-		object[1][1] = 128280;
-		object[2][0] = 144485;
+		object[1][1] = 128680;
+		object[2][0] = 144000;
 		object[2][1] = 144870;
 		table.put(key,  object);		
 		
