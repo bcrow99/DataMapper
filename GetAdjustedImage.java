@@ -99,6 +99,10 @@ public class GetAdjustedImage
         		
         		Sample sample = new Sample(current_sample.x, current_sample.y, current_sample.intensity);
         		
+        		boolean doAjustement = true;
+        		// We are adjusting an offset between different directions for unknown reasons.
+        		if(doAjustement)
+        		{
         		if(isAscending)
         		{
         			sample.x += next_sample.x;
@@ -114,8 +118,8 @@ public class GetAdjustedImage
         			sample.y += previous_sample.y;
         			sample.y /= 2;
         			sample.y -= 0.75;
-        		}	
-        	
+        		}
+        		}
         		sample_list.add(sample);
         	}	
         }
@@ -161,7 +165,7 @@ public class GetAdjustedImage
         	else if(current_sample.intensity > maximum_intensity)
         		maximum_intensity = current_sample.intensity;		
         }
-        double range = maximum_intensity + minimum_intensity;
+        double range = maximum_intensity - minimum_intensity;
         double average_intensity = minimum_intensity + range / 2;
         
         //Now set up a raster.
@@ -185,12 +189,17 @@ public class GetAdjustedImage
         // This is meters and we want quarter meters, the resolution of our sensors.
         xdim *= resolution;
         ydim *= resolution;
+        
+        
+        /*
         System.out.println("Xdim is "      + xdim);
         System.out.println("Ydim is "      + ydim);
         System.out.println("Minimum x is " + minimum_x);
         System.out.println("Maximum x is " + maximum_x);
         System.out.println("Minimum y is " + minimum_y);
         System.out.println("Maximum y is " + maximum_y);
+        */
+        
         System.out.println("Minimum intensity is " + minimum_intensity);
         System.out.println("Maximum intensity is " + maximum_intensity);
         
@@ -232,6 +241,7 @@ public class GetAdjustedImage
             // Some subtlety here that I'm not getting but shouldn't have to do it anyway.
             // Just try and remember that the original data is oriented the opposite direction from the individual data
             // (but only when you have to).  I'll try to figure this out someday.
+            // This doesn't work:
             // double reverse_y = y_range - current_y;
             // reverse_y *= resolution;
             current_x  *= resolution;
@@ -752,15 +762,36 @@ public class GetAdjustedImage
         BufferedImage data_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
         
         
+        
+        double interpolated_min = maximum_intensity;
+        double interpolated_max = minimum_intensity;
+        for(int i = 0; i < ydim; i++)
+        {
+            for(int j = 0; j < xdim; j++)
+            {
+                if(isInterpolated[i][j] == true)
+                {
+                	if(cell_intensity[i][j] < interpolated_min)
+                		interpolated_min = cell_intensity[i][j];
+                	if(cell_intensity[i][j] > interpolated_max)
+                		interpolated_max = cell_intensity[i][j];	
+                }
+            }
+        }
+        
+        System.out.println("The minimum intensity in the interpolated values was " + interpolated_min);
+        System.out.println("The maximum intensity in the interpolated values was " + interpolated_max);
+        
         if(number_of_cells == number_of_interpolated_cells)
         {
+        	double interpolated_range = interpolated_max - interpolated_min;
             for(int i = 0; i < ydim; i++)
             {
                 for(int j = 0; j < xdim; j++)
                 {  	
                     double current_value  = cell_intensity[i][j];
-                    current_value        -= minimum_intensity;
-                    current_value        /= intensity_range;
+                    current_value        -= interpolated_min;
+                    current_value        /= interpolated_range;
                     current_value        *= 255.;
                     int gray_value        = (int)current_value;
         	        int rgb_value = ((gray_value&0x0ff)<<16)|((gray_value&0x0ff)<<8)|(gray_value&0x0ff);
@@ -774,13 +805,34 @@ public class GetAdjustedImage
             ImageMapper.getImageDilation(cell_intensity, isInterpolated, dilated_image);
             int number_of_cells_assigned_by_dilation = number_of_cells - number_of_interpolated_cells;
             System.out.println("The number of cells assigned by dilation was " + number_of_cells_assigned_by_dilation);
+            double max_value = 0;
+            
+            interpolated_min = maximum_intensity;
+            interpolated_max = minimum_intensity;
+            for(int i = 0; i < ydim; i++)
+            {
+                for(int j = 0; j < xdim; j++)
+                {
+                    if(isInterpolated[i][j] == true)
+                    {
+                    	if(cell_intensity[i][j] < interpolated_min)
+                    		interpolated_min = cell_intensity[i][j];
+                    	if(cell_intensity[i][j] > interpolated_max)
+                    		interpolated_max = cell_intensity[i][j];	
+                    }
+                }
+            }
+            
+            System.out.println("The minimum intensity in the interpolated values after dilating was " + interpolated_min);
+            System.out.println("The maximum intensity in the interpolated values after dilating was " + interpolated_max);
+            double interpolated_range = interpolated_max - interpolated_min;
             for(int i = 0; i < ydim; i++)
             {
                 for(int j = 0; j < xdim; j++)
                 {  	
                     double current_value  = dilated_image[i][j];
-                    current_value        -= minimum_intensity;
-                    current_value        /= intensity_range;
+                    current_value        -= interpolated_min;
+                    current_value        /= interpolated_range;
                     current_value        *= 255.;
                     int gray_value        = (int)current_value;
         	        int rgb_value = ((gray_value&0x0ff)<<16)|((gray_value&0x0ff)<<8)|(gray_value&0x0ff);
@@ -791,19 +843,12 @@ public class GetAdjustedImage
             String filename = new String("C:/Users/Brian Crowley/Desktop/foo.txt");
             try(PrintWriter output = new PrintWriter(filename))
             {
-                for(int i = 0; i < ydim; i++)
+                for(int i = 0; i < xdim; i++)
                 {
-                	for(int j = 0; j < xdim; j++)
+                	for(int j = 0; j < ydim; j++)
                 	{
-                	    String intensity = String.valueOf(dilated_image[i][j]);
-                	    if(j == xdim - 1)
-                	    {
-                	    	output.println(intensity);
-                	    }
-                	    else
-                	    {
-                	    	output.print(intensity + " ");	
-                	    }
+                	    String intensity = String.valueOf(dilated_image[j][i]);
+                	    output.println(i +" " + j + " " + intensity);
                 	}
                 }
                 output.close();
