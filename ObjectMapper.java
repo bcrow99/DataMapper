@@ -446,7 +446,7 @@ public class ObjectMapper
 		
 		
 		
-		
+		//Possible.
 		key = 28;
 		object       = new int[4][2];
 		object[0][0] = 281465;
@@ -458,13 +458,6 @@ public class ObjectMapper
 		object[3][0] = 320500;
 		object[3][1] = 321435;
 		table.put(key,  object);
-		
-		
-		
-		
-		
-		
-		
 		
 		
 		//Probable.
@@ -480,8 +473,51 @@ public class ObjectMapper
 		object[3][1] = 266200;
 		table.put(key,  object);
 		
+
+		//Possible.
+		key          = 30;
+		object       = new int[3][2];
+		object[0][0] = 227900;
+		object[0][1] = 228565;
+		object[1][0] = 236995;
+		object[1][1] = 237675;
+		object[2][0] = 254900;
+		object[2][1] = 255640;
+		table.put(key,  object);
 		
 		
+		
+		
+		
+		
+		
+		
+		//Possible.
+		
+		key          = 31;
+		object       = new int[3][2];
+		object[0][0] = 145615;
+		object[0][1] = 146550;
+		object[1][0] = 153830;
+		object[1][1] = 154745;
+		object[2][0] = 173080;
+		object[2][1] = 174000;
+		table.put(key,  object);
+		
+		
+		//Possible.
+		key          = 32;
+		object       = new int[3][2];
+		object[0][0] = 98095;
+		object[0][1] = 98980;
+		object[1][0] = 118215;
+		object[1][1] = 118800;
+		object[2][0] = 125415;
+		object[2][1] = 126325;
+		table.put(key,  object);
+		
+		
+		// Objects 33 and 34 are not in the regular data set.
 		
 		
 		//Probable.
@@ -495,18 +531,105 @@ public class ObjectMapper
 		object[2][1] = 392100;
 		table.put(key,  object);
 		
+		
+		
+		
+		
+		
+		
+		
+		//Probable.
+		key          = 36;
+		object       = new int[4][2];
+		object[0][0] = 363605;
+		object[0][1] = 364700;
+		object[1][0] = 375200;
+		object[1][1] = 376450;
+		object[2][0] = 391000;
+		object[2][1] = 392220;
+		object[3][0] = 402705;
+		object[3][1] = 403960;
+		table.put(key,  object);
+		
+		
+		
+		
+		
+		//Unverified.
+		
+		key          = 37;
+		object       = new int[4][2];
+		object[0][0] = 292125;
+		object[0][1] = 293005;
+		object[1][0] = 309800;
+		object[1][1] = 310535;
+		object[2][0] = 319775;
+		object[2][1] = 320465;
+		object[3][0] = 337350;
+		object[3][1] = 338100;
+		table.put(key,  object);
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		//Probable.
 	    key          = 38;
 		object       = new int[4][2];
-		object[0][0] = 227955;
+		object[0][0] = 227755;
 		object[0][1] = 228765;
 		object[1][0] = 236760;
-		object[1][1] = 237675;
-		object[2][0] = 255015;
+		object[1][1] = 237775;
+		object[2][0] = 254815;
 		object[2][1] = 255850;
-		object[3][0] = 264355;
-		object[3][1] = 264580;
-		table.put(key,  object);	
+		object[3][0] = 264200;
+		object[3][1] = 265280;
+		table.put(key,  object);
+		
+		// Unverified.
+		key          = 39;
+		object       = new int[4][2];
+		object[0][0] = 181090;
+		object[0][1] = 181860;
+		object[1][0] = 201140;
+		object[1][1] = 201640;
+		object[2][0] = 208880;
+		object[2][1] = 209610;
+		object[3][0] = 228365;
+		object[3][1] = 229000;
+		table.put(key,  object);
+		
+		
+		//Unverified.
+		key          = 42;
+		object       = new int[3][2];
+		object[0][0] = 337900;
+		object[0][1] = 338925;
+		object[1][0] = 346000;
+		object[1][1] = 347250;
+		object[2][0] = 365100;
+		object[2][1] = 366155;
+		table.put(key,  object);
+		
+		//Unverified.
+		key          = 43;
+		object       = new int[4][2];
+		object[0][0] = 263670;
+		object[0][1] = 265000;
+		object[1][0] = 282870;
+		object[1][1] = 284000;
+		object[2][0] = 291360;
+		object[2][1] = 292620;
+		object[3][0] = 310120;
+		object[3][1] = 311345;
+		table.put(key,  object);
+		
+		
+		
 		
 		//Probable.
 		key          = 51;
