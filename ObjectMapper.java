@@ -114,8 +114,6 @@ public class ObjectMapper
 		table.put(key,  object);
 		
 		
-		
-		
 		//Probable.  Extremely smooth background helps pick out
 		//low intensity signal.
 	    key          = 2;
@@ -141,61 +139,33 @@ public class ObjectMapper
 		object[1][1] = 18330;
 		table.put(key,  object);
 		
-
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		//Unverified.  Still no sign of distinguishable signal.
+		//Possible. Not a good signal but a constellation of signals that resembles the iso plot.
 		key          = 4;
 		object       = new int[5][2];
-		object[0][0] = 44840;
+		object[0][0] = 42540;
 		object[0][1] = 47300;
-		object[1][0] = 59650;
-		object[1][1] = 61785;
-		object[2][0] = 72435;
+		object[1][0] = 59600;
+		object[1][1] = 63950;
+		object[2][0] = 70000;
 		object[2][1] = 74785;
-		object[3][0] = 87290;
-		object[3][1] = 89635;
-		object[4][0] = 100000;
-		object[4][1] = 102425;
+		object[3][0] = 87250;
+		object[3][1] = 91635;
+		object[4][0] = 97500;
+		object[4][1] = 102500;
 		table.put(key,  object);
 		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		//Unverified.
+		//Possible.
 		key          = 5;
-		object       = new int[3][2];
-		object[0][0] = 45540;
-		object[0][1] = 46375;
-		object[1][0] = 60545;
-		object[1][1] = 61265;
-		object[2][0] = 73000;
-		object[2][1] = 73855;
+		object       = new int[4][2];
+		object[0][0] = 42800;
+		object[0][1] = 45375;
+		object[1][0] = 61500;
+		object[1][1] = 63700;
+		object[2][0] = 70300;
+		object[2][1] = 72800;
+		object[3][0] = 89190;
+		object[3][1] = 91400;
 		table.put(key,  object);
-		
-		
 		
 		//Probable.  Nice smooth image with narrow range.
 		key          = 6;
@@ -203,7 +173,7 @@ public class ObjectMapper
 		object[0][0] = 17690;
 		object[0][1] = 18530;
 		object[1][0] = 33290;
-		object[1][1] = 34400;
+		object[1][1] = 34200;
 		object[2][0] = 45050;
 		object[2][1] = 45960;
 		table.put(key,  object);		
@@ -280,21 +250,23 @@ public class ObjectMapper
 		object[2][1] = 62950;
 		table.put(key,  object);
 
-		//Unverified.
-	    key          = 13;
-		object       = new int[5][2];
-		object[0][0] = 239000;
-		object[0][1] = 240005;
-		object[1][0] = 252700;
-		object[1][1] = 253595;
-		object[2][0] = 266530;
-		object[2][1] = 267625;
-		object[3][0] = 280215;
-		object[3][1] = 281280;
-		object[4][0] = 294040;
-		object[4][1] = 295090;
+		//Probable.
+		key          = 13;
+		object       = new int[6][2];
+		object[0][0] = 225555;
+		object[0][1] = 228055;
+		object[1][0] = 237400;
+		object[1][1] = 240005;
+		object[2][0] = 252700;
+		object[2][1] = 255095;
+		object[3][0] = 265030;
+		object[3][1] = 267625;
+		object[4][0] = 280215;
+		object[4][1] = 282850;
+		object[5][0] = 292540;
+		object[5][1] = 295090;
 		table.put(key,  object);
-
+	
 		//Probable.
 		key          = 14;
 		object       = new int[4][2];
@@ -402,26 +374,32 @@ public class ObjectMapper
 		object[3][1] = 266510;
 		table.put(key,  object);
 
-		// Unverified.
+		// Probable.
 		key = 23;
-		object       = new int[3][2];
-		object[0][0] = 144870;
-		object[0][1] = 145715;
-		object[1][0] = 154745;
-		object[1][1] = 155625;
-		object[2][0] = 172330;
-		object[2][1] = 173180;
+		object       = new int[4][2];
+		object[0][0] = 115705;
+		object[0][1] = 117900;
+		object[1][0] = 126750;
+		object[1][1] = 128900;
+		object[2][0] = 143600;
+		object[2][1] = 145750;
+		object[3][0] = 154600;
+		object[3][1] = 156900;
+		//object[4][0] = 171000;
+		//object[4][1] = 173250;
 		table.put(key,  object);
 		
-		// Unverified.
+		// Probable.
 		key = 24;
-		object       = new int[3][2];
-		object[0][0] = 228000;
-		object[0][1] = 228600;
-		object[1][0] = 236960;
-		object[1][1] = 237245;
-		object[2][0] = 255000;
-		object[2][1] = 255700;
+		object       = new int[4][2];
+		object[0][0] = 227600;
+		object[0][1] = 229000;
+		object[1][0] = 236300;
+		object[1][1] = 254600;
+		object[2][0] = 254600;
+		object[2][1] = 256100;
+		object[3][0] = 263870;
+		object[3][1] = 265500;
 		table.put(key,  object);
 		
 		// Object 25 is not in the regular data set.
@@ -537,17 +515,17 @@ public class ObjectMapper
 		object[3][1] = 403960;
 		table.put(key,  object);
 		
-		//Unverified.
+		//Probable.
 		key          = 37;
 		object       = new int[4][2];
-		object[0][0] = 292125;
-		object[0][1] = 293005;
-		object[1][0] = 309800;
-		object[1][1] = 310535;
-		object[2][0] = 319775;
-		object[2][1] = 320465;
-		object[3][0] = 337350;
-		object[3][1] = 338100;
+		object[0][0] = 226275;
+		object[0][1] = 228100;
+		object[1][0] = 237300;
+		object[1][1] = 239235;
+		object[2][0] = 253400;
+		object[2][1] = 255150;
+		object[3][0] = 264900;
+		object[3][1] = 266800;
 		table.put(key,  object);
 		
 		//Probable.
@@ -563,7 +541,7 @@ public class ObjectMapper
 		object[3][1] = 265280;
 		table.put(key,  object);
 		
-		// Probable.
+		// Possible.
 		key          = 39;
 		object       = new int[3][2];
 		object[0][0] = 228000;
@@ -576,28 +554,33 @@ public class ObjectMapper
 		
 		//Objects 40 and 41 are not in the regular data set.
 		
-		//Unverified.
+		//Possible. Irregular sampling.
 		key          = 42;
-		object       = new int[3][2];
-		object[0][0] = 337900;
-		object[0][1] = 338925;
-		object[1][0] = 346000;
-		object[1][1] = 347250;
-		object[2][0] = 365100;
-		object[2][1] = 366155;
+		object       = new int[5][2];
+		object[0][0] = 348305;
+		object[0][1] = 351430;
+		object[1][0] = 361060;
+		object[1][1] = 364100;
+		object[2][0] = 375950;
+		object[2][1] = 379000;
+		object[3][0] = 388325;
+		object[3][1] = 391595;
+		object[4][0] = 403400;
+		object[4][1] = 406510;
+		
 		table.put(key,  object);
 		
-		//Unverified.
+		//Probable.
 		key          = 43;
 		object       = new int[4][2];
-		object[0][0] = 263670;
-		object[0][1] = 265000;
-		object[1][0] = 282870;
-		object[1][1] = 284000;
-		object[2][0] = 291360;
-		object[2][1] = 292620;
-		object[3][0] = 310120;
-		object[3][1] = 311345;
+		object[0][0] = 236000;
+		object[0][1] = 239900;
+		object[1][0] = 254600;
+		object[1][1] = 256270;
+		object[2][0] = 252700;
+		object[2][1] = 256070;
+		object[3][0] = 263670;
+		object[3][1] = 267500;
 		table.put(key,  object);
 		
 		//Objects 44, 45 and 46 are not in the regular data set.
@@ -650,10 +633,11 @@ public class ObjectMapper
 		 object[3][0] = 212435;
 		 object[3][1] = 213675;
 		 table.put(key,  object);
-		
-		
-		
-		return table;
+	
+		 
+		 
+		 
+		 return table;
 		
 	}
 }
