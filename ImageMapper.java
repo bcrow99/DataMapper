@@ -6,7 +6,6 @@ import java.awt.Point;
 
 public class ImageMapper
 {
-
 	public static void smoothImage(int src[], int xdim, int ydim, double smooth_factor, int number_of_iterations, int dst[])
     {
         double even[]    = new double[xdim * ydim];
@@ -254,13 +253,13 @@ public class ImageMapper
 	    int ydim = src.length;
 	    int xdim = src[0].length;
 	    
-	    System.out.println("Xdim is " + xdim + ", ydim is " + ydim);
 	    double source[];
         double dest[];
-    	double gray1[]       = new double[xdim * ydim];
-        double gray2[]       = new double[xdim * ydim];
-        boolean isAssigned[] = new boolean[xdim * ydim];
+    	double gray1[]                     = new double[xdim * ydim];
+        double gray2[]                     = new double[xdim * ydim];
+        boolean isAssigned[]               = new boolean[xdim * ydim];
         int number_of_uninterpolated_cells = 0;
+        int number_of_iterations           = 0;
         for(int i = 0; i < ydim; i++)
         {
             for(int j= 0; j < xdim; j++)
@@ -272,9 +271,11 @@ public class ImageMapper
                 	number_of_uninterpolated_cells++;	
             }
         }
+        //System.out.println("Origninal number of uninterpolated_cells is " + number_of_uninterpolated_cells);
         boolean even = true;  // Keep track of which buffer is the source and which is the destination.
         while(number_of_uninterpolated_cells != 0)
         {
+        	number_of_iterations++;
             if(even == true)
     	    {
     		    source = gray1;
@@ -291,11 +292,12 @@ public class ImageMapper
     	    number_of_uninterpolated_cells = 0;
     	    for(int i = 0; i < xdim * ydim; i++)
     	    {
-    		    if(isAssigned[i] = false)
+    		    if(isAssigned[i] == false)
     			    number_of_uninterpolated_cells++;
     	    }
+    	    //System.out.println("The number of uninterpolated cells after dilation was " + number_of_uninterpolated_cells);
         }
-        //System.out.println("Got here.");
+        
         if(even == true)
         {
         	int k = 0;
@@ -318,6 +320,7 @@ public class ImageMapper
         		}
         	}
         }
+        System.out.println("The number of iterations was " + number_of_iterations);
 	}
 	
 	
@@ -327,13 +330,17 @@ public class ImageMapper
 	// data for processing--see getVarianceImage.
 	public static void dilateImage(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
 	{	
+		boolean wasInterpolated[] = new boolean[xdim * ydim];
 		for(int i = 0; i < ydim; i++)
 		{
 			for(int j = 0; j < xdim; j++)
 			{
 				int k = i * xdim + j;
 				if(isInterpolated[k])
+				{
 					dst[k] = src[k];
+					wasInterpolated[k] = true;
+				}
 				else
 				{
 					double diagonal_weight     = 0.7071;  // Orthogonal weight is 1.
@@ -648,16 +655,28 @@ public class ImageMapper
 				        
 				       default: break;
 				    }
+				    
 				    if(number_of_neighbors > 0)               // Found a neighbor this iteration, set value.
                     {
-                	    value            /= total_weight;
-                	    dst[k]            = (int) value;
-                	    isInterpolated[k] = true;
+                	    value             /= total_weight;
+                	    dst[k]             = (int) value;
+                	    wasInterpolated[k] = true;
+                	    //System.out.println("Number of neighbors was " + number_of_neighbors);
                     }
                     else
-                	    dst[k] = 0;                           // No neighbors, set value to zero.
+                    {
+                	    dst[k] = 0;
+                	    wasInterpolated[k] = false;
+                	    //System.out.println("Found a cell with no neighbors.");
+                	    //System.out.println("Set boolean to false.");
+                	    // No neighbors, set value to zero.
+                    }
 				}
 			}
+		}
+		for(int i = 0; i < xdim * ydim; i++)
+		{
+			isInterpolated[i] = wasInterpolated[i];
 		}
 	}
 	
