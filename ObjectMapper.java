@@ -100,6 +100,67 @@ public class ObjectMapper
 		return(line_array);
 	}
 	
+	public static int getInitRow(int object_id)
+	{
+		int init_row[] = new int [54];
+		for(int i = 0; i < 54; i++)
+			init_row[i] = 0;
+		init_row[1]  = 1;
+		init_row[2]  = 4;
+		init_row[3]  = 1;
+		init_row[4]  = 4;
+		init_row[5]  = 4;
+		init_row[6]  = 2;
+		init_row[7]  = 13;
+		init_row[8]  = 10;
+		init_row[9]  = 9;
+		init_row[10] = 4;
+		init_row[11] = 4;
+		init_row[12] = 3;
+		init_row[13] = 17;
+		init_row[14] = 17;
+		init_row[15] = 9;
+		init_row[16] = 9;
+		init_row[17] = 4;
+		init_row[18] = 3;
+		init_row[19] = 1;
+		init_row[20] = 23;
+		init_row[21] = 17;
+		init_row[22] = 17;
+		init_row[23] = 9;
+		init_row[24] = 17;
+		init_row[25] = 0;
+		init_row[26] = 26;
+		init_row[27] = 25;
+		init_row[28] = 21;
+		init_row[29] = 17;
+		init_row[30] = 17;
+		init_row[31] = 11;
+		init_row[32] = 8;
+		init_row[33] = 0;
+		init_row[34] = 0;
+		init_row[35] = 27;
+		init_row[36] = 27;
+		init_row[37] = 17;
+		init_row[38] = 17;
+		init_row[39] = 14;
+		init_row[40] = 0;
+		init_row[41] = 0;
+		init_row[42] = 26;
+		init_row[43] = 17;
+		init_row[44] = 0;
+		init_row[45] = 0;
+		init_row[46] = 0;
+		init_row[47] = 27;
+		init_row[48] = 0;
+		init_row[49] = 0;
+		init_row[50] = 0;
+		init_row[51] = 27;
+		init_row[52] = 18;
+		init_row[53] = 13;
+		return init_row[object_id];
+	}
+	
 	public static Hashtable getObjectTable()
 	{
 		Hashtable table = new Hashtable();
@@ -117,7 +178,7 @@ public class ObjectMapper
 		//Probable.  Extremely smooth background helps pick out
 		//low intensity signal.
 	    key          = 2;
-		object       = new int[5][2];
+		object       = new int[4][2];
 		object[0][0] = 47850;
 		object[0][1] = 49370;
 		object[1][0] = 57400;
@@ -126,8 +187,8 @@ public class ObjectMapper
 		object[2][1] = 76800;
 		object[3][0] = 85055;
 		object[3][1] = 86630;
-		object[4][0] = 103040;
-		object[4][1] = 104440;
+		//object[4][0] = 103040;
+		//object[4][1] = 104440;
 		table.put(key,  object);
 	
 		//Possible.
@@ -543,13 +604,15 @@ public class ObjectMapper
 		
 		// Possible.
 		key          = 39;
-		object       = new int[3][2];
-		object[0][0] = 228000;
-		object[0][1] = 228700;
-		object[1][0] = 236600;
-		object[1][1] = 237445;
-		object[2][0] = 255015;
-		object[2][1] = 255800;
+		object       = new int[4][2];
+		object[0][0] = 181090;
+		object[0][1] = 181860;
+		object[1][0] = 200140;
+		object[1][1] = 202640;
+		object[2][0] = 207880;
+		object[2][1] = 210610;
+		object[3][0] = 228365;
+		object[3][1] = 229000;
 		table.put(key,  object);
 		
 		//Objects 40 and 41 are not in the regular data set.
