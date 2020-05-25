@@ -162,6 +162,20 @@ public class GetSegmentStatistics
         	}	
         }
         
+        double relative_x = minimum_x - global_minimum_x;
+        relative_x /= (global_maximum_x - global_minimum_x);
+        String xstring   = String.format("%.2f", relative_x);
+        
+        double relative_y = minimum_y - global_minimum_y;
+        relative_y /= (global_maximum_y - global_minimum_y);
+        String ystring   = String.format("%.2f", relative_y);
+        
+        System.out.println("The relative position of the segment in the data space is " + xstring + "," + ystring + ".");
+        double segment_area = (maximum_x - minimum_x) * (maximum_y - minimum_y);
+        String area_string   = String.format("%.2f", segment_area);
+        System.out.println("The segment area is " + area_string + " m^2.");
+        
+        
         String filestring = new String("C:/Users/Brian Crowley/Desktop/Object" + object_id + "_histogram.txt");
         double current_intensity = minimum_intensity + interval / 2;
         
