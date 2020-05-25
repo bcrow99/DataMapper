@@ -173,8 +173,22 @@ public class GetSegmentStatistics
         System.out.println("The relative position of the segment in the data space is " + xstring + "," + ystring + ".");
         double segment_area = (maximum_x - minimum_x) * (maximum_y - minimum_y);
         String area_string   = String.format("%.2f", segment_area);
-        System.out.println("The segment area is " + area_string + " m^2.");
+        //System.out.println("The segment area is " + area_string + " m^2.");
         
+        double number_of_columns = 30;
+        double number_of_rows    = 46;
+        
+        int iso_array[][] = ObjectMapper.getIsoArray();
+        
+        int predicted_x = iso_array[object_id][0];
+        int predicted_y = iso_array[object_id][1];
+        
+        relative_x = (double)predicted_x / number_of_columns;
+        relative_y = (double)predicted_y / number_of_rows;
+        
+        xstring   = String.format("%.2f", relative_x);
+        ystring   = String.format("%.2f", relative_y);
+        System.out.println("The predicted position of the segment in the data space is " + xstring + "," + ystring + ".");
         
         String filestring = new String("C:/Users/Brian Crowley/Desktop/Object" + object_id + "_histogram.txt");
         double current_intensity = minimum_intensity + interval / 2;
