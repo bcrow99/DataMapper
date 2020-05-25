@@ -2,6 +2,14 @@ import java.util.Hashtable;
 
 public class ObjectMapper
 {
+	public static int[][] getIsoArray()
+	{
+		int[][] iso_array = new int[53][2];
+		iso_array[51][0] = 26;
+		iso_array[51][1] = 17;  
+		
+		return iso_array;
+	}
 	
 	public static int[][] getLineArray()
 	{
