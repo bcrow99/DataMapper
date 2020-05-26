@@ -4,10 +4,133 @@ public class ObjectMapper
 {
 	public static int[][] getIsoArray()
 	{
-		int[][] iso_array = new int[53][2];
+		int[][] iso_array = new int[54][2];
+		
+		iso_array[1][0] = 1;
+		iso_array[1][1] = 24;
+		
+		iso_array[2][0] = 2;
+		iso_array[2][1] = 24;
+		
+		iso_array[3][0] = 1;
+		iso_array[3][1] = 27;
+		
+		iso_array[4][0] = 5;
+		iso_array[4][1] = 25;
+		
+		iso_array[5][0] = 4;
+		iso_array[5][1] = 26;
+		
+		iso_array[6][0] = 1;
+		iso_array[6][1] = 28;
+		
+		iso_array[7][0] = 14;
+		iso_array[7][1] = 23;
+		
+		iso_array[8][0] = 12;
+		iso_array[8][1] = 25;
+		
+		iso_array[9][0] = 9;
+		iso_array[9][1] = 26;
+		
+		iso_array[10][0] = 8;
+		iso_array[10][1] = 29;
+		
+		iso_array[11][0] = 4;
+		iso_array[11][1] = 31;
+		
+		iso_array[12][0] = 2;
+		iso_array[12][1] = 32;
+		
+		iso_array[13][0] = 19;
+		iso_array[13][1] = 24;
+		
+		iso_array[14][0] = 15;
+		iso_array[14][1] = 25;
+		
+		iso_array[15][0] = 12;
+		iso_array[15][1] = 29;
+		
+		iso_array[16][0] = 9;
+		iso_array[16][1] = 31;
+		
+		iso_array[17][0] = 6;
+		iso_array[17][1] = 32;
+		
+		iso_array[18][0] = 3;
+		iso_array[18][1] = 33;
+		
+		iso_array[19][0] = 0;
+		iso_array[19][1] = 34;
+		
+		iso_array[20][0] = 23;
+		iso_array[20][1] = 23;
+		
+		iso_array[21][0] = 19;
+		iso_array[21][1] = 26;
+		
+		iso_array[22][0] = 15;
+		iso_array[22][1] = 28;
+		
+		iso_array[23][0] = 12;
+		iso_array[23][1] = 31;
+		
+		iso_array[24][0] = 8;
+		iso_array[24][1] = 34;
+		
+		iso_array[26][0] = 27;
+		iso_array[26][1] = 23;
+		
+		iso_array[27][0] = 24;
+		iso_array[27][1] = 26;
+		
+		iso_array[28][0] = 21;
+		iso_array[28][1] = 27;
+		
+		iso_array[29][0] = 19;
+		iso_array[29][1] = 31;
+		
+		iso_array[30][0] = 16;
+		iso_array[30][1] = 32;
+		
+		iso_array[31][0] = 12;
+		iso_array[31][1] = 33;
+		
+		iso_array[32][0] = 8;
+		iso_array[32][1] = 36;
+		
+		iso_array[35][0] = 27;
+		iso_array[35][1] = 25;
+		
+		iso_array[36][0] = 24;
+		iso_array[36][1] = 30;
+		
+		iso_array[37][0] = 22;
+		iso_array[37][1] = 31;
+		
+		iso_array[38][0] = 17;
+		iso_array[38][1] = 32;
+		
+		iso_array[39][0] = 14;
+		iso_array[39][1] = 35;
+		
+		iso_array[42][0] = 24;
+		iso_array[42][1] = 34;
+		
+		iso_array[43][0] = 21;
+		iso_array[43][1] = 34;
+		
+		iso_array[47][0] = 26;
+		iso_array[47][1] = 36;
+		
 		iso_array[51][0] = 26;
 		iso_array[51][1] = 17;  
 		
+		iso_array[52][0] = 19;
+		iso_array[52][1] = 15;  
+		
+		iso_array[53][0] = 11;
+		iso_array[53][1] = 16;  
 		return iso_array;
 	}
 	
@@ -183,28 +306,43 @@ public class ObjectMapper
 		table.put(key,  object);
 		
 		
-		//Probable.  Extremely smooth background helps pick out
-		//low intensity signal.
+		//Possible.  
 	    key          = 2;
-		object       = new int[4][2];
-		object[0][0] = 47850;
-		object[0][1] = 49370;
-		object[1][0] = 57400;
-		object[1][1] = 59050;
-		object[2][0] = 75355;
-		object[2][1] = 76800;
-		object[3][0] = 85055;
-		object[3][1] = 86630;
+	    object       = new int[4][2];
+	    
+		// This is no where near our known objects.
+		// A lucky accident that I found an interesting 
+		// signal in the blind data space worth exploring.
+		// Extremely smooth background helps pick out
+		// low intensity signal.
+		//object[0][0] = 47850;
+		//object[0][1] = 49370;
+		//object[1][0] = 57400;
+		//object[1][1] = 59050;
+		//object[2][0] = 75355;
+		//object[2][1] = 76800;
+		//object[3][0] = 85055;
+		//object[3][1] = 86630;
 		//object[4][0] = 103040;
 		//object[4][1] = 104440;
+		
+		object[0][0] = 18100;
+		object[0][1] = 18365;
+		object[1][0] = 33875;
+		object[1][1] = 34100;
+		object[2][0] = 45525;
+		object[2][1] = 45800;
+		object[3][0] = 61435;
+		object[3][1] = 61690;
+		
 		table.put(key,  object);
 	
 		//Possible.
 		key          = 3;
 		object       = new int[2][2];
 		object[0][0] = 6000;
-		object[0][1] = 6630;
-		object[1][0] = 17800;
+		object[0][1] = 6700;
+		object[1][0] = 17650;
 		object[1][1] = 18330;
 		table.put(key,  object);
 		
@@ -212,15 +350,15 @@ public class ObjectMapper
 		key          = 4;
 		object       = new int[5][2];
 		object[0][0] = 42540;
-		object[0][1] = 47300;
-		object[1][0] = 59600;
-		object[1][1] = 63950;
-		object[2][0] = 70000;
-		object[2][1] = 74785;
-		object[3][0] = 87250;
-		object[3][1] = 91635;
-		object[4][0] = 97500;
-		object[4][1] = 102500;
+		object[0][1] = 45400;
+		object[1][0] = 61550;
+		object[1][1] = 63750;
+		object[2][0] = 70200;
+		object[2][1] = 72685;
+		object[3][0] = 89250;
+		object[3][1] = 91500;
+		object[4][0] = 97700;
+		object[4][1] = 100350;
 		table.put(key,  object);
 		
 		//Possible.
@@ -262,13 +400,18 @@ public class ObjectMapper
 		
 		//Probable.
 		key          = 8;
-		object       = new int[3][2];
-		object[0][0] = 127850;
-		object[0][1] = 129090;
-		object[1][0] = 143605;
-		object[1][1] = 144870;
-		object[2][0] = 155625;
-		object[2][1] = 156950;
+		object       = new int[4][2];
+		object[0][0] = 226275;
+		object[0][1] = 227900;
+		object[1][0] = 237800;
+		object[1][1] = 239200;
+		object[2][0] = 253400;
+		object[2][1] = 255000;
+		object[3][0] = 265100;
+		object[3][1] = 266800;
+		//object[6][0] = 281050;
+		//object[6][1] = 281880;
+		
 		table.put(key,  object);
 		
 		
@@ -464,7 +607,7 @@ public class ObjectMapper
 		object[0][0] = 227600;
 		object[0][1] = 229000;
 		object[1][0] = 236300;
-		object[1][1] = 254600;
+		object[1][1] = 237700;
 		object[2][0] = 254600;
 		object[2][1] = 256100;
 		object[3][0] = 263870;
