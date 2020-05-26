@@ -171,9 +171,17 @@ public class GetSegmentStatistics
         String ystring   = String.format("%.2f", relative_y);
         
         System.out.println("The relative position of the segment in the data space is " + xstring + "," + ystring + ".");
-        double segment_area = (maximum_x - minimum_x) * (maximum_y - minimum_y);
-        String area_string   = String.format("%.2f", segment_area);
-        //System.out.println("The segment area is " + area_string + " m^2.");
+        double xdim = maximum_x - minimum_x;
+        xstring     = String.format("%.2f", xdim);
+        double ydim = maximum_y - minimum_y;
+        ystring     = String.format("%.2f", ydim);
+        //double segment_area = (maximum_x - minimum_x) * (maximum_y - minimum_y);
+        //String area_string   = String.format("%.2f", segment_area);
+        System.out.println("The xdim is " + xstring + " and ydim is " + ystring);
+        
+        String min_string     = String.format("%.2f", minimum_intensity);
+        String max_string     = String.format("%.2f", maximum_intensity);
+        System.out.println("The minimum intensity is " + min_string + " and maximum intensity is " + max_string);
         
         double number_of_columns = 30;
         double number_of_rows    = 46;
