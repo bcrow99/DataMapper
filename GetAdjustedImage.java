@@ -70,11 +70,7 @@ public class GetAdjustedImage
         	System.out.println("File not found.");
         	System.exit(0);
         }
-        
-        
-        String file_string = new String("C:/Users/Brian Crowley/Desktop/foo.jpg");
-        
-        
+        String file_string = new String("C:/Users/Brian Crowley/Desktop/Object" + object_id + ".jpg");
         Sample previous_sample, current_sample, next_sample;
         // Load object segments and also get samples before and after segment to help adjust location.
         int length        = object_array.length;
@@ -109,7 +105,7 @@ public class GetAdjustedImage
         			sample.x /= 2.;
         			sample.y += previous_sample.y;
         			sample.y /= 2;
-        			sample.y += 0.75;
+        			sample.y += .75;
         		}
         		else
         		{
@@ -117,7 +113,7 @@ public class GetAdjustedImage
         			sample.x /= 2.;
         			sample.y += previous_sample.y;
         			sample.y /= 2;
-        			sample.y -= 0.75;
+        			sample.y -= .75;
         		}
         		}
         		sample_list.add(sample);
@@ -165,8 +161,8 @@ public class GetAdjustedImage
         	else if(current_sample.intensity > maximum_intensity)
         		maximum_intensity = current_sample.intensity;		
         }
-        double range = maximum_intensity - minimum_intensity;
-        double average_intensity = minimum_intensity + range / 2;
+        double intensity_range = maximum_intensity - minimum_intensity;
+        double average_intensity = minimum_intensity + intensity_range / 2;
         
         //Now set up a raster.
         double x_range = maximum_x - minimum_x;
@@ -758,7 +754,7 @@ public class GetAdjustedImage
         System.out.println("The number of bisecting averages was "    + number_of_bisecting_averages);
         System.out.println("The number of weighted averages was "     + number_of_weighted_averages);
         System.out.println("The number of nearest neighbors was "     + number_of_nearest_neighbors);
-        double intensity_range = maximum_intensity - minimum_intensity;
+        intensity_range = maximum_intensity - minimum_intensity;
         BufferedImage data_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
         
         
@@ -840,7 +836,7 @@ public class GetAdjustedImage
                 }
             }
             
-            String filename = new String("C:/Users/Brian Crowley/Desktop/foo.txt");
+            String filename = new String("C:/Users/Brian Crowley/Desktop/Object" + object_id + "_3d.txt");
             try(PrintWriter output = new PrintWriter(filename))
             {
                 for(int i = 0; i < xdim; i++)
@@ -848,7 +844,7 @@ public class GetAdjustedImage
                 	for(int j = 0; j < ydim; j++)
                 	{
                 	    String intensity = String.valueOf(dilated_image[j][i]);
-                	    output.println(i +" " + j + " " + intensity);
+                	    output.println(i + " " + j + " " + intensity);
                 	}
                 }
                 output.close();
