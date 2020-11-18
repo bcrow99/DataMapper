@@ -94,7 +94,7 @@ public class PlotCanvas extends Canvas
         	    y2 *= ydim;
         	    
         	    g.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
-        	    next = previous;
+        	    previous = next;
             }
         }
     }   
