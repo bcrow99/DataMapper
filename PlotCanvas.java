@@ -45,12 +45,14 @@ public class PlotCanvas extends Canvas
             		maximum_x = x;
             	if(y < minimum_y)
             		minimum_y = y;
-            	else if(y > maximum_x)
+            	if(y > maximum_y)
             		maximum_y = y;
     		}
     	}
     	xrange = maximum_x - minimum_x;
     	yrange = maximum_y - minimum_y;
+    	System.out.println("The x range is " + xrange);
+    	System.out.println("The y range is " + yrange);
     	
     	setSize(xdim, ydim);
     	frame = new Frame();
@@ -68,8 +70,15 @@ public class PlotCanvas extends Canvas
     
     public void paint(Graphics g) 
     {
+    	xdim = frame.getWidth();
+    	ydim = frame.getHeight();
+    	System.out.println("Xdim is " + xdim);
+    	System.out.println("Ydim is " + ydim);
+    	System.out.println("Minimum y is " + minimum_y);
+    	System.out.println("Maximum y is " + maximum_y);
     	for(int i = 0; i < line.length; i++)
     	{
+    		/*
     		ArrayList current_line  = line[i];
             Point2D.Double previous = (Point2D.Double)current_line.get(0);
             for(int j = 1; j < current_line.size(); j++)
@@ -77,25 +86,33 @@ public class PlotCanvas extends Canvas
             	double x1 = previous.getX();
         	    x1 -= minimum_x;
         	    x1 /= xrange;
-        	    x1 *= xdim;
+        	    x1 *= xdim - 1;
         	    double y1 = previous.getY();
         	    y1 -= minimum_y;
+        	    
+        	    y1 *= ydim - 1;
         	    y1 /= yrange;
-        	    y1 *= ydim;
-            	
             	Point2D.Double next = (Point2D.Double)current_line.get(j);
         	    double x2 = next.getX();
         	    x2 -= minimum_x;
         	    x2 /= xrange;
-        	    x2 *= xdim;
+        	    x2 *= xdim - 1;
         	    double y2 = next.getY();
         	    y2 -= minimum_y;
-        	    y2 /= yrange;
-        	    y2 *= ydim;
         	    
+        	    y2 *= ydim - 1;
+        	    y2 /= yrange;
         	    g.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
         	    previous = next;
             }
+            */
+    		Rectangle visible_area = g.getClipBounds();
+    		int height = (int) visible_area.getHeight();
+    		System.out.println("The height of the visible area is " + height);
+    		int ydifference = ydim - height;
+    		int width = (int) visible_area.getWidth();
+    		int xdifference = xdim - width;
+    		g.drawLine(0, 0, xdim - xdifference - 1, ydim - ydifference);
         }
     }   
 }
