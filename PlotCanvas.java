@@ -76,9 +76,18 @@ public class PlotCanvas extends Canvas
     	System.out.println("Ydim is " + ydim);
     	System.out.println("Minimum y is " + minimum_y);
     	System.out.println("Maximum y is " + maximum_y);
+    	Rectangle visible_area = g.getClipBounds();
+    	int clipped_xdim = (int) visible_area.getWidth();
+		System.out.println("The width of the visible area is " + clipped_xdim);
+		int clipped_ydim = (int) visible_area.getHeight();
+		System.out.println("The height of the visible area is " + clipped_ydim);
+		
+		Graphics2D g2 = (Graphics2D) g;
+        g2.setStroke(new BasicStroke(2));
+        g2.setColor(java.awt.Color.BLACK);
+		
     	for(int i = 0; i < line.length; i++)
     	{
-    		/*
     		ArrayList current_line  = line[i];
             Point2D.Double previous = (Point2D.Double)current_line.get(0);
             for(int j = 1; j < current_line.size(); j++)
@@ -86,33 +95,30 @@ public class PlotCanvas extends Canvas
             	double x1 = previous.getX();
         	    x1 -= minimum_x;
         	    x1 /= xrange;
-        	    x1 *= xdim - 1;
-        	    double y1 = previous.getY();
-        	    y1 -= minimum_y;
+        	    x1 *= clipped_xdim - 1;
         	    
-        	    y1 *= ydim - 1;
+        	    double y1 = previous.getY();
+        	    y1 -= minimum_y;  
         	    y1 /= yrange;
-            	Point2D.Double next = (Point2D.Double)current_line.get(j);
-        	    double x2 = next.getX();
+        	    y1 *= clipped_ydim - 1;
+            	
+        	    Point2D.Double current = (Point2D.Double)current_line.get(j);
+            	
+        	    double x2 = current.getX();
         	    x2 -= minimum_x;
         	    x2 /= xrange;
-        	    x2 *= xdim - 1;
-        	    double y2 = next.getY();
-        	    y2 -= minimum_y;
+        	    x2 *= clipped_xdim - 1;
         	    
-        	    y2 *= ydim - 1;
+        	    double y2 = current.getY();
+        	    y2 -= minimum_y;
         	    y2 /= yrange;
-        	    g.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
-        	    previous = next;
+        	    y2 *= clipped_ydim - 1;
+        	    
+        	    g2.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
+        	    
+        	    previous = current;
             }
-            */
-    		Rectangle visible_area = g.getClipBounds();
-    		int height = (int) visible_area.getHeight();
-    		System.out.println("The height of the visible area is " + height);
-    		int ydifference = ydim - height;
-    		int width = (int) visible_area.getWidth();
-    		int xdifference = xdim - width;
-    		g.drawLine(0, 0, xdim - xdifference - 1, ydim - ydifference);
+            g2.setColor(java.awt.Color.RED);
         }
     }   
 }
