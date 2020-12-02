@@ -133,6 +133,13 @@ public class Comparator
 		double[] x2_interpolation    = new double[resolution];
 		double[] xdelta              = new double[resolution];
 		double[] difference          = new double[resolution];
+		double[] line1_delta         = new double[resolution - 1];
+		double[] line2_delta         = new double[resolution - 1];
+		double[] delta_difference    = new double[resolution - 1];
+		double[] line1_reduction     = new double[resolution - 1];
+		double[] line2_reduction     = new double[resolution - 1];
+		
+		
 		//double offset =  0.;
 
 		int sensor = 0;
@@ -165,8 +172,12 @@ public class Comparator
 					double total_distance = distance1 + distance2;
 					line1_interpolation[i] = previous_sample.intensity * (distance1 / total_distance);
 					line1_interpolation[i] += current_sample.intensity * (distance2 / total_distance);
-					x1_interpolation[i]    = previous_sample.x * (distance1 / total_distance);
-					x1_interpolation[i]    += current_sample.intensity * (distance2 / total_distance);
+					
+					double xdifference = Math.abs(previous_sample.x - current_sample.x);
+					if(previous_sample.x < current_sample.x)
+					    x1_interpolation[i]    =  previous_sample.x + xdifference / (distance1 / total_distance);
+					else
+						x1_interpolation[i]    =  current_sample.x + xdifference / (distance2 / total_distance);
 				}
 			} 
 			else if (current_sample.y > current_y)
@@ -187,13 +198,18 @@ public class Comparator
 				{
 					System.out.println("The index of a bounding sample was " + j);
 					Sample previous_sample = (Sample) line1_sample_list.get(j - 5);
-					double distance1 = Math.abs(current_sample.y - previous_sample.y);
+					//double distance1 = Math.abs(current_sample.y - previous_sample.y);
+					double distance1 = Math.abs(current_y - previous_sample.y);
 					double distance2 = Math.abs(current_y - current_sample.y);
 					double total_distance = distance1 + distance2;
 					line1_interpolation[i] = previous_sample.intensity * (distance1 / total_distance);
 					line1_interpolation[i] += current_sample.intensity * (distance2 / total_distance);
-					x1_interpolation[i]    = previous_sample.x * (distance1 / total_distance);
-					x1_interpolation[i]    += current_sample.x * (distance2 / total_distance);
+					
+					double xdifference = Math.abs(previous_sample.x - current_sample.x);
+					if(previous_sample.x < current_sample.x)
+					    x1_interpolation[i]    =  previous_sample.x + xdifference / (distance1 / total_distance);
+					else
+						x1_interpolation[i]    =  current_sample.x + xdifference / (distance2 / total_distance);
 				}
 			} 
 			else // sample.y == current_y
@@ -226,6 +242,13 @@ public class Comparator
 				    double total_distance = distance1 + distance2;
 				    line2_interpolation[i] = previous_sample.intensity * (distance1 / total_distance);
 				    line2_interpolation[i] += current_sample.intensity * (distance2 / total_distance);
+				    
+				    double xdifference = Math.abs(previous_sample.x - current_sample.x);
+					if(previous_sample.x < current_sample.x)
+					    x2_interpolation[i]    =  previous_sample.x + xdifference / (distance1 / total_distance);
+					else
+						x2_interpolation[i]    =  current_sample.x + xdifference / (distance2 / total_distance);
+				    
 				}
 			} 
 			else if ((current_sample.y + offset) > current_y)
@@ -245,13 +268,18 @@ public class Comparator
 				{
 				    //System.out.println("The index of a bounding sample was " + j);
 				    Sample previous_sample = (Sample) line2_sample_list.get(j - 5);
-				    double distance1 = Math.abs(current_sample.y - (previous_sample.y + offset));
+				    double distance1 = Math.abs(current_y - (previous_sample.y + offset));
 				    double distance2 = Math.abs(current_y - (current_sample.y + offset));
 				    double total_distance = distance1 + distance2;
 				    line2_interpolation[i] = previous_sample.intensity * (distance1 / total_distance);
 				    line2_interpolation[i] += current_sample.intensity * (distance2 / total_distance);
-				    x2_interpolation[i]    = previous_sample.x * (distance1 / total_distance);
-					x2_interpolation[i]    += current_sample.x * (distance2 / total_distance);
+				    
+				    double xdifference = Math.abs(previous_sample.x - current_sample.x);
+					if(previous_sample.x < current_sample.x)
+					    x2_interpolation[i]    =  previous_sample.x + xdifference / (distance1 / total_distance);
+					else
+						x2_interpolation[i]    =  current_sample.x + xdifference / (distance2 / total_distance);
+				   
 				}
 			} 
 			else // sample.y == current_y
@@ -262,44 +290,134 @@ public class Comparator
 			current_y += increment;
 		}
 		
-		for(int i = 0; i < resolution; i++)
-		{
-		    xdelta[i] =  Math.abs(line1_interpolation[i] - line2_interpolation[i]);	
-		}
 		
+		
+		
+		
+		/*
 		double total_difference = 0;
 		for(int i = 0; i < resolution; i++)
 		{
+			
 			if(xdelta[i] < .25)
 			{
 			    difference[i]     = Math.abs(line1_interpolation[i] - line2_interpolation[i]);
+			    
 			    if(xdelta[i] == 0)
 			        total_difference += difference[i];
 			    else
 			    	total_difference += difference[i] * ((.25 - xdelta[i]) / .25);
 			}
+			else
+				System.out.println("X delta out of bounds.");	
 		}
-		System.out.println("Total difference is " + total_difference);
+		System.out.println("Total difference in intensity is " + total_difference);
+		
+		total_difference = 0;
+		for(int i = 0; i < resolution - 2; i++)
+		{
+		    line1_delta[i]      = (line1_interpolation[i] - line1_interpolation[i + 1]);
+		    line2_delta[i]      = (line2_interpolation[i] - line2_interpolation[i + 1]);
+		    line1_reduction[i]  = (line1_interpolation[i] + line1_interpolation[i + 1]) / 2;
+		    line2_reduction[i]  = (line2_interpolation[i] + line2_interpolation[i + 1]) / 2;
+		    delta_difference[i] = line1_delta[i]          - line2_delta[i];
+		    total_difference   += Math.abs(delta_difference[i]);
+		}
+		System.out.println("Total difference in deltas is " + total_difference);
+		
+		*/
+		
+		double min_delta = Double.MAX_VALUE;
+		double max_delta = 0;
+		for(int i = 0; i < resolution; i++)
+		{
+		    xdelta[i] =  Math.abs(x1_interpolation[i] - x2_interpolation[i]);
+		    if(xdelta[i] < min_delta)
+		    	min_delta = xdelta[i];
+		    else if(xdelta[i] > max_delta)
+                max_delta = xdelta[i];
+		}
+		System.out.println("Min delta was " + min_delta + " and max delta was " + max_delta);
+		
+		for(int i = 0; i < resolution - 1; i++)
+		{
+		    line1_delta[i]      = (line1_interpolation[i] - line1_interpolation[i + 1]);
+		    line2_delta[i]      = (line2_interpolation[i] - line2_interpolation[i + 1]);
+		}
+		
+		double[] xdelta_reduction = reduce(xdelta, 2);
+		
+		line1_reduction = reduce(line1_interpolation, 2);
+		double[] line1_delta_reduction = reduce(line1_delta, 2);
+		
+		line2_reduction = reduce(line2_interpolation, 2);
+		double[] line2_delta_reduction = reduce(line2_delta, 2);
+	
+		double total_difference = 0;
+		for(int i = 0; i < xdelta_reduction.length; i++)
+		{
+			if(xdelta_reduction[i] < .25)
+			{
+			    difference[i]     = Math.abs(line1_reduction[i] - line2_reduction[i]);  
+			    if(xdelta_reduction[i] == 0)
+			        total_difference += difference[i];
+			    else
+			    	total_difference += difference[i] * ((.25 - xdelta_reduction[i]) / .25);
+			}
+			else
+				System.out.println("X delta out of bounds.");	
+		}
+		System.out.println("Total difference in intensity is " + total_difference);
+		
+		total_difference = 0;
+		for(int i = 0; i < line1_delta_reduction.length; i++)
+		{
+		    total_difference   += Math.abs(line1_delta_reduction[i] - line2_delta_reduction[i]);
+		}
+		System.out.println("Total difference in deltas is " + total_difference);
 		
 		ArrayList line1_list = new ArrayList();
-		for(int i = 0; i < resolution; i++)
+		for(int i = 0; i < line1_reduction.length; i++)
 		{
 			Point2D.Double point  = new Point2D.Double();
-			point.x               = start_y + i * increment;
-			point.y               = line1_interpolation[i];
+			point.x               = i * increment;
+			point.y               = line1_reduction[i];
 			line1_list.add(point);
 		}
+
 		ArrayList line2_list = new ArrayList();
-		for(int i = 0; i < resolution; i++)
+		for(int i = 0; i < line2_reduction.length; i++)
 		{
 			Point2D.Double point  = new Point2D.Double();
-			point.x               = start_y + i * increment;
-			point.y               = line2_interpolation[i];
+			point.x               = i * increment;
+			point.y               = line2_reduction[i];
 			line2_list.add(point);
 		}
+		
 		ArrayList[] line_vector = new ArrayList[2];
 		line_vector[0] = line1_list;
 		line_vector[1] = line2_list;
-		PlotCanvas linew = new PlotCanvas(200, 400, line_vector);
+		PlotCanvas lines = new PlotCanvas(400, 200, line_vector);
 	}
+	
+	public double[] reduce(double[] source, int iterations)
+	{
+	    int src_length = source.length;
+	    int dst_length = source.length - 1;
+	    double[] src = source;
+		double[] dst = new double[dst_length];;
+	    while(dst_length >= source.length - iterations)
+	    {
+	        for(int i = 0; i < dst_length; i++)
+	        {
+	        	dst[i] = (src[i] + src[i + 1]) / 2;
+	        }
+	        src = dst;
+	        dst_length--;
+	        if(dst_length >= source.length - iterations)
+	        	dst = new double[dst_length];	
+	    }
+	    return(dst);
+	}
+	
 }
