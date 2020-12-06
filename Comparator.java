@@ -126,9 +126,8 @@ public class Comparator
 			sample.y -= ymin;
 			line2_sample_list.add(sample);
 		}
-		// double range = 5;
+		
 		double increment = range / resolution;
-		// double current_y = 20;
 		double current_y = start_y;
 		double[] line1_interpolation = new double[resolution];
 		double[] line2_interpolation = new double[resolution];
@@ -138,160 +137,212 @@ public class Comparator
 		double[] difference = new double[resolution];
 		double[] line1_delta = new double[resolution - 1];
 		double[] line2_delta = new double[resolution - 1];
-		double[] delta_difference = new double[resolution - 1];
 		double[] line1_reduction = new double[resolution - 1];
 		double[] line2_reduction = new double[resolution - 1];
 
-		// double offset = 0.;
-
-		int sensor = 0;
-		if (line1 % 2 == 1)
-			sensor = 4;
-		for (int i = 0; i < resolution; i++)
+		if (line1 % 2 == 0)
 		{
-			Sample current_sample = (Sample) line1_sample_list.get(sensor);
-			if (current_sample.y < current_y)
-			{
-				int j = sensor + 5;
-				while (current_sample.y < current_y)
+		    int sensor = 0;
+		    
+		    Sample current_sample  = (Sample) line1_sample_list.get(sensor);
+		    Sample previous_sample = current_sample;
+		    int i = 1;
+		    while(current_sample.y < start_y)
+		    { 
+		    	previous_sample = current_sample;
+		    	current_sample = (Sample) line1_sample_list.get(sensor + i * 5);
+		    	i++;
+		    }
+		    current_y = start_y;
+		    int number_of_samples = 1;
+		    for(int j = 0; j < resolution; j++)
+		    {
+		    	if (current_sample.y == current_y)
 				{
-					current_sample = (Sample) line1_sample_list.get(j);
-					j += 5;
-				}
-
-				if (current_sample.y == current_y)
-				{
-					line1_interpolation[i] = current_sample.intensity;
-					x1_interpolation[i] = current_sample.x;
-					// System.out.println("Exact match.");
+					line1_interpolation[j] = current_sample.intensity;
+					x1_interpolation[j]    = current_sample.x;
+					System.out.println("Exact match for line 1.");
 				} 
 				else
 				{
-					// System.out.println("The index of a bounding sample was " + j);
-					Sample previous_sample = (Sample) line1_sample_list.get(j - 5);
+					// System.out.println("The index of a bounding sample was " + (sensor + i * 5));
 					double distance1 = Math.abs(current_y - previous_sample.y);
 					double distance2 = Math.abs(current_y - current_sample.y);
 					double total_distance = distance1 + distance2;
-					line1_interpolation[i] = previous_sample.intensity * (distance2 / total_distance);
-					line1_interpolation[i] += current_sample.intensity * (distance1 / total_distance);
+					line1_interpolation[j] = previous_sample.intensity * (distance2 / total_distance);
+					line1_interpolation[j] += current_sample.intensity * (distance1 / total_distance);
 
 					double xdifference = Math.abs(previous_sample.x - current_sample.x);
 					if (previous_sample.x < current_sample.x)
-						x1_interpolation[i] = previous_sample.x + xdifference / (distance2 / total_distance);
+						x1_interpolation[j] = previous_sample.x + xdifference * (distance2 / total_distance);
 					else
-						x1_interpolation[i] = current_sample.x + xdifference / (distance1 / total_distance);
+						x1_interpolation[j] = current_sample.x + xdifference * (distance1 / total_distance);
+					if(j == 0)
+						number_of_samples++;
 				}
-			} 
-			else if (current_sample.y > current_y)
-			{
-				int j = sensor + 5;
-				while (current_sample.y > current_y)
+		    	current_y += increment;
+		    	if(current_sample.y < current_y)
+		    		number_of_samples++;
+		    	while(current_sample.y < current_y)
+			    { 
+			    	previous_sample = current_sample;
+			    	current_sample = (Sample) line1_sample_list.get(sensor + i * 5);
+			    	i++;
+			    }
+		    }  
+		    System.out.println("Number of samples from line 1 was " + number_of_samples);
+		    
+		    current_sample  = (Sample) line2_sample_list.get(sensor);
+		    previous_sample = current_sample;
+		    i = 1;
+		    while(current_sample.y > current_y)
+		    { 
+		    	previous_sample = current_sample;
+		    	current_sample = (Sample) line2_sample_list.get(sensor + i * 5);
+		    	i++;
+		    }
+		    number_of_samples = 1;
+		    for(int j = 0; j < resolution; j++)
+		    {
+		    	if (current_sample.y + offset == current_y)
 				{
-					current_sample = (Sample) line1_sample_list.get(j);
-					j += 5;
-				}
-				if (current_sample.y == current_y)
-				{
-					line1_interpolation[i] = current_sample.intensity;
-					x1_interpolation[i] = current_sample.x;
-					// System.out.println("Exact match.");
+					line2_interpolation[resolution - 1 - j] = current_sample.intensity;
+					x2_interpolation[resolution - 1 - j]    = current_sample.x;
+					System.out.println("Exact match for line 2.");
 				} 
 				else
 				{
-					System.out.println("The index of a bounding sample was " + j);
-					Sample previous_sample = (Sample) line1_sample_list.get(j - 5);
-					// double distance1 = Math.abs(current_sample.y - previous_sample.y);
-					double distance1 = Math.abs(current_y - previous_sample.y);
-					double distance2 = Math.abs(current_y - current_sample.y);
-					double total_distance = distance1 + distance2;
-					line1_interpolation[i] = previous_sample.intensity * (distance2 / total_distance);
-					line1_interpolation[i] += current_sample.intensity * (distance1 / total_distance);
-
-					double xdifference = Math.abs(previous_sample.x - current_sample.x);
-					if (previous_sample.x < current_sample.x)
-						x1_interpolation[i] = previous_sample.x + xdifference / (distance2 / total_distance);
-					else
-						x1_interpolation[i] = current_sample.x + xdifference / (distance1 / total_distance);
-				}
-			} 
-			else // sample.y == current_y
-			{
-				line1_interpolation[i] = current_sample.intensity;
-				x1_interpolation[i] = current_sample.x;
-				// System.out.println("Exact match.");
-			}
-
-			current_sample = (Sample) line2_sample_list.get(sensor);
-			if ((current_sample.y + offset) < current_y)
-			{
-				int j = sensor + 5;
-				while ((current_sample.y + offset) < current_y)
-				{
-					current_sample = (Sample) line2_sample_list.get(j);
-					j += 5;
-				}
-				if ((current_sample.y + offset) == current_y)
-				{
-					line2_interpolation[i] = current_sample.intensity;
-					x2_interpolation[i] = current_sample.x;
-				} 
-				else
-				{
-					// System.out.println("The index of a bounding sample was " + j);
-					Sample previous_sample = (Sample) line2_sample_list.get(j - 5);
+					//System.out.println("The index of a bounding sample was " + (sensor + i * 5));
 					double distance1 = Math.abs(current_y - (previous_sample.y + offset));
 					double distance2 = Math.abs(current_y - (current_sample.y + offset));
 					double total_distance = distance1 + distance2;
-					line2_interpolation[i] = previous_sample.intensity * (distance2 / total_distance);
-					line2_interpolation[i] += current_sample.intensity * (distance1 / total_distance);
+					line2_interpolation[resolution - 1 - j] = previous_sample.intensity * (distance2 / total_distance);
+					line2_interpolation[resolution - 1 - j] += current_sample.intensity * (distance1 / total_distance);
 
 					double xdifference = Math.abs(previous_sample.x - current_sample.x);
 					if (previous_sample.x < current_sample.x)
-						x2_interpolation[i] = previous_sample.x + xdifference / (distance2 / total_distance);
+					    x2_interpolation[resolution - 1 - j] = previous_sample.x + xdifference * (distance2 / total_distance);
 					else
-						x2_interpolation[i] = current_sample.x + xdifference / (distance1 / total_distance);
-
+						x2_interpolation[resolution - 1 - j] = current_sample.x + xdifference * (distance1 / total_distance);
+					if(j == 0)
+						number_of_samples++;
 				}
-			} 
-			else if ((current_sample.y + offset) > current_y)
-			{
-				int j = sensor + 5;
-				while ((current_sample.y + offset) > current_y)
-				{
-					current_sample = (Sample) line2_sample_list.get(j);
-					j += 5;
-				}
-				if ((current_sample.y + offset) == current_y)
-				{
-					line2_interpolation[i] = current_sample.intensity;
-					x2_interpolation[i] = current_sample.x;
-				} 
-				else
-				{
-					// System.out.println("The index of a bounding sample was " + j);
-					Sample previous_sample = (Sample) line2_sample_list.get(j - 5);
-					double distance1 = Math.abs(current_y - (previous_sample.y + offset));
-					double distance2 = Math.abs(current_y - (current_sample.y + offset));
-					double total_distance = distance1 + distance2;
-					line2_interpolation[i] = previous_sample.intensity * (distance2 / total_distance);
-					line2_interpolation[i] += current_sample.intensity * (distance1 / total_distance);
-
-					double xdifference = Math.abs(previous_sample.x - current_sample.x);
-					if (previous_sample.x < current_sample.x)
-						x2_interpolation[i] = previous_sample.x + xdifference / (distance2 / total_distance);
-					else
-						x2_interpolation[i] = current_sample.x + xdifference / (distance1 / total_distance);
-
-				}
-			} 
-			else // sample.y == current_y
-			{
-				line2_interpolation[i] = current_sample.intensity;
-				x2_interpolation[i] = current_sample.x;
-			}
-			current_y += increment;
+		    	current_y -= increment;
+		    	if(current_sample.y + offset > current_y)
+		    		number_of_samples++;
+		    	while(current_sample.y + offset > current_y)
+			    { 
+			    	previous_sample = current_sample;
+			    	current_sample = (Sample) line2_sample_list.get(sensor + i * 5);
+			    	i++;
+			    }
+		    } 
+		    System.out.println("Number of samples from line 2 was " + number_of_samples);
 		}
+		else  // line1 % 2 == 1
+		{
+            int sensor = 4;
+		    
+		    Sample current_sample  = (Sample) line1_sample_list.get(sensor);
+		    Sample previous_sample = current_sample;
+		    int i = 1;
+		    current_y = start_y + resolution * increment;
+		    while(current_sample.y > current_y)
+		    { 
+		    	previous_sample = current_sample;
+		    	current_sample = (Sample) line1_sample_list.get(sensor + i * 5);
+		    	i++;
+		    }
+		    int number_of_samples = 1;
+		    for(int j = 0; j < resolution; j++)
+		    {
+		    	if (current_sample.y == current_y)
+				{
+					line1_interpolation[resolution - 1 - j] = current_sample.intensity;
+					x1_interpolation[resolution - 1 - j]    = current_sample.x;
+					System.out.println("Exact match for line 1.");
+				} 
+				else
+				{
+					// System.out.println("The index of a bounding sample was " + j);
+					//previous_sample = (Sample) line1_sample_list.get(sensor + i * 5 - 5);
+					double distance1 = Math.abs(current_y - previous_sample.y);
+					double distance2 = Math.abs(current_y - current_sample.y);
+					double total_distance = distance1 + distance2;
+					line1_interpolation[resolution - 1 - j] = previous_sample.intensity * (distance2 / total_distance);
+					line1_interpolation[resolution - 1 - j] += current_sample.intensity * (distance1 / total_distance);
 
+					double xdifference = Math.abs(previous_sample.x - current_sample.x);
+					if (previous_sample.x < current_sample.x)
+						x1_interpolation[j] = previous_sample.x + xdifference * (distance2 / total_distance);
+					else
+						x1_interpolation[j] = current_sample.x + xdifference * (distance1 / total_distance);
+					if(j == 0)
+						number_of_samples++;
+				}
+		    	current_y -= increment;
+		    	if(current_sample.y > current_y)
+		    		number_of_samples++;
+		    	while(current_sample.y > current_y)
+			    { 
+			    	previous_sample = current_sample;
+			    	current_sample = (Sample) line1_sample_list.get(sensor + i * 5);
+			    	i++;
+			    }
+		    }  
+		    System.out.println("Number of samples from line 1 was " + number_of_samples);
+		    
+		    current_y       = start_y;
+		    current_sample  = (Sample) line2_sample_list.get(sensor);
+		    previous_sample = current_sample;
+		    i               = 1;
+		    while(current_sample.y < current_y)
+		    { 
+		    	previous_sample = current_sample;
+		    	current_sample  = (Sample) line2_sample_list.get(sensor + i * 5);
+		    	i++;
+		    }
+		    number_of_samples = 1;
+		    for(int j = 0; j < resolution; j++)
+		    {
+		    	if (current_sample.y + offset == current_y)
+				{
+					line2_interpolation[resolution - 1 - j] = current_sample.intensity;
+					x2_interpolation[resolution - 1 - j]    = current_sample.x;
+					System.out.println("Exact match for line 2.");
+				} 
+				else
+				{
+					//System.out.println("The index of a bounding sample was " + (sensor + i * 5));
+					//previous_sample = (Sample) line1_sample_list.get(sensor + i * 5 - 5);
+					double distance1 = Math.abs(current_y - (previous_sample.y + offset));
+					double distance2 = Math.abs(current_y - (current_sample.y + offset));
+					double total_distance = distance1 + distance2;
+					line2_interpolation[resolution - 1 - j] = previous_sample.intensity * (distance2 / total_distance);
+					line2_interpolation[resolution - 1 - j] += current_sample.intensity * (distance1 / total_distance);
+
+					double xdifference = Math.abs(previous_sample.x - current_sample.x);
+					if (previous_sample.x < current_sample.x)
+					    x2_interpolation[resolution - 1 - j] = previous_sample.x + xdifference * (distance2 / total_distance);
+					else
+						x2_interpolation[resolution - 1 - j] = current_sample.x + xdifference * (distance1 / total_distance);
+					if(j == 0)
+						number_of_samples++;
+				}
+		    	current_y += increment;
+		    	if(current_sample.y + offset < current_y)
+		    		number_of_samples++;
+		    	while(current_sample.y + offset < current_y)
+			    { 
+			    	previous_sample = current_sample;
+			    	current_sample = (Sample) line2_sample_list.get(sensor + i * 5);
+			    	i++;
+			    }
+		    } 
+		    System.out.println("Number of samples from line 2 was " + number_of_samples);
+		    
+		}
+		
 		double min_delta = Double.MAX_VALUE;
 		double max_delta = 0;
 		for (int i = 0; i < resolution; i++)
@@ -309,7 +360,7 @@ public class Comparator
 			line1_delta[i] = (line1_interpolation[i] - line1_interpolation[i + 1]);
 			line2_delta[i] = (line2_interpolation[i] - line2_interpolation[i + 1]);
 		}
-
+      
 		if (reduction == 0)
 		{
 			double total_difference = 0;
@@ -323,8 +374,10 @@ public class Comparator
 					else
 						total_difference += difference[i] * ((.25 - xdelta[i]) / .25);
 				} 
+				/*
 				else
 					System.out.println("X delta out of bounds.");
+				*/
 			}
 			System.out.println("Total difference in intensity is " + total_difference);
 
@@ -378,7 +431,8 @@ public class Comparator
 						total_difference += difference[i];
 					else
 						total_difference += difference[i] * ((.25 - xdelta_reduction[i]) / .25);
-				} else
+				} 
+				else
 					System.out.println("X delta out of bounds.");
 			}
 			System.out.println("Total difference in intensity is " + total_difference);
