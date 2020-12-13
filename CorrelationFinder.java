@@ -72,6 +72,27 @@ public class CorrelationFinder
 		}
 	}
 
+	public double[] reduce(double[] source, int iterations)
+	{
+		int src_length = source.length;
+		int dst_length = source.length - 1;
+		double[] src = source;
+		double[] dst = new double[dst_length];
+		;
+		while (dst_length >= source.length - iterations)
+		{
+			for (int i = 0; i < dst_length; i++)
+			{
+				dst[i] = (src[i] + src[i + 1]) / 2;
+			}
+			src = dst;
+			dst_length--;
+			if (dst_length >= source.length - iterations)
+				dst = new double[dst_length];
+		}
+		return (dst);
+	}
+	
 	public CorrelationFinder(String filename)
 	{
 		int    _line, _sensor, _resolution, _reduction; 
