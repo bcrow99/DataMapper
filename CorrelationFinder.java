@@ -169,7 +169,7 @@ public class CorrelationFinder
 		table.setValueAt(header, 0, 6);
 		header = new String("Reduction");
 		table.setValueAt(header, 0, 7);
-		header = new String("Samples");
+		header = new String("Sample Ratio");
 		table.setValueAt(header, 0, 8);
 		header = new String("Delta(i)");
 		table.setValueAt(header, 0, 9);
@@ -300,14 +300,23 @@ public class CorrelationFinder
 				double current_xshift = (double) table.getValueAt(i, 4);
 				double current_yshift = (double) table.getValueAt(i, 5);
 				ArrayList sample_list = new ArrayList();
+				boolean first_sample = true;
 				for(j = 0; j <sensor_list.size(); j++)
 				{
 				    Sample sample = (Sample)sensor_list.get(j);
 				    sample.y += current_yshift;
 				    sample.x += current_xshift;
-				    // Add previous sample as well.
+				    // Add previous sample as well unless location is the same as the offset.
 				    if(sample.y >=  current_offset && sample.y < (current_offset + current_range))
-				    {
+				    {	
+				    	if(first_sample && sample.y > current_offset)
+				    	{
+				    		Sample previous_sample = (Sample)sensor_list.get(j - 1);
+				    		previous_sample.y += current_yshift;
+				    		previous_sample.x += current_yshift; 
+				    		sample_list.add(previous_sample);
+				    		first_sample = false;
+				    	}
 				    	sample_list.add(sample);
 				    }
 				}
@@ -322,8 +331,55 @@ public class CorrelationFinder
 				double current_offset = (double) table.getValueAt(i, 2);
 				double current_range = (double) table.getValueAt(i, 3);
 				int current_resolution = (int) table.getValueAt(i, 6);
-				
+				ArrayList sample_list = new ArrayList();
 				double increment = current_range / current_resolution;
+				double current_y = current_offset;
+				Sample init_sample = (Sample)data_list.get(0);
+				int number_of_samples = 0;
+				int index             = 0;
+				if(init_sample.y < current_y)
+				{
+					 // Could use x position as well, but keeping it simple.
+				     Sample next_sample = (Sample)data_list.get(1); 
+				     double distance1 = Math.abs(current_y - init_sample.y);
+				     double distance2 = Math.abs(current_y - next_sample.y);
+					 double total_distance = distance1 + distance2;
+					 
+					 
+					 Sample sample = new Sample();
+					 sample.intensity  = init_sample.intensity * (distance2 / total_distance);
+					 sample.intensity += next_sample.intensity * (distance1 / total_distance);
+					 sample.x          = init_sample.x * (distance2 / total_distance);
+					 sample.x         += next_sample.x * (distance1 / total_distance);
+					 sample.y          = init_sample.y * (distance2 / total_distance);
+					 sample.y         += next_sample.y * (distance1 / total_distance);
+					 number_of_samples = 2;
+					 index             = 1;
+				}
+				else  // init sample y exactly equals offset
+				{
+				     sample_list.add(init_sample);	
+				     number_of_samples = 1;
+				     index             = 1;
+				}
+				current_y += increment;
+				
+				for(j = 0; j < current_resolution; j++)
+				{
+				    Sample sample = (Sample) data_list.get(index);
+				    if(sample.y > current_y)
+				    {
+				    	
+				    }
+				    else if(sample.y == current_y)
+				    {
+				    	
+				    }
+				    else  // sample.y < current_y
+				    {
+				    	
+				    }
+				}
 				
 				
 				
