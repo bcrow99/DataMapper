@@ -183,14 +183,14 @@ public class CorrelationFinder
 
 		for (int i = 0; i < rows; i++)
 		{
-			table.setValueAt((int) i, i + 1, 0);
-			table.setValueAt((int) 4, i + 1, 1);
-			table.setValueAt((double) 55, i + 1, 2);
-			table.setValueAt((double) 15, i + 1, 3);
+			table.setValueAt((int)i, i + 1, 0);
+			table.setValueAt((String) "4", i + 1, 1);
+			table.setValueAt((String) "60", i + 1, 2);
+			table.setValueAt((String) "10", i + 1, 3);
 			table.setValueAt((String) "0", i + 1, 4);
 			table.setValueAt((String) "0", i + 1, 5);
-			table.setValueAt((int) 100, i + 1, 6);
-			table.setValueAt((int) 0, i + 1, 7);
+			table.setValueAt((String) "100", i + 1, 6);
+			table.setValueAt((String) "0", i + 1, 7);
 		}
 
 		JPanel bottom_panel = new JPanel(new BorderLayout());
@@ -231,7 +231,9 @@ public class CorrelationFinder
 			double xrange    = 0;
 			double yrange    = 0;
 			
-			
+			System.out.println("Got here.");
+			if(size == 0)
+				return;
 			for(int i = 0; i < size; i++)
 	    	{
 				ArrayList current_line  = (ArrayList)plot_data.get(i);
@@ -315,9 +317,10 @@ public class CorrelationFinder
 			line_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
-				int current_line = (int) table.getValueAt(i, 0);
-				int start = line_array[current_line][0];
-				int stop = line_array[current_line][1];
+				System.out.println("Got here too.");
+				int current_line = (int)table.getValueAt(i, 0);
+				int start        = line_array[current_line][0];
+				int stop         = line_array[current_line][1];
 				ArrayList sample_list = new ArrayList();
 				if (current_line % 2 == 0)
 				{
@@ -345,8 +348,8 @@ public class CorrelationFinder
 			{
 				int j = i - 1;
 				ArrayList line_list = (ArrayList) line_data.get(j);
-				int current_line = (int) table.getValueAt(i, 0);
-				int current_sensor = (int) table.getValueAt(i, 1);
+				int current_line    = Integer.parseInt((String) table.getValueAt(i, 0));
+				int current_sensor  = (int) table.getValueAt(i, 1);
 				ArrayList sample_list = new ArrayList();
 
 				if (current_line % 2 == 0)
@@ -375,10 +378,9 @@ public class CorrelationFinder
 				int j = i - 1;
 				ArrayList sensor_list = (ArrayList) sensor_data.get(j);
 				System.out.println("The length of the entire sensor list is " + sensor_list.size());
-				double current_offset = (double) table.getValueAt(i, 2);
-				double current_range  = (double) table.getValueAt(i, 3);
+				double current_offset = Double.valueOf((String) table.getValueAt(i, 2));
+				double current_range  = Double.valueOf((String) table.getValueAt(i, 3));
 				double current_xshift = Double.valueOf((String)table.getValueAt(i, 4));
-				//double current_yshift = (double) table.getValueAt(i, 5);
 				double current_yshift = Double.valueOf((String)table.getValueAt(i, 5));
 				
 				ArrayList sample_list = new ArrayList();
@@ -417,9 +419,9 @@ public class CorrelationFinder
 				//System.out.println("Got here.");
 				int size = data_list.size();
 				//System.out.println("Length of list is " + size);
-				double current_offset = (double) table.getValueAt(i, 2);
-				double current_range = (double) table.getValueAt(i, 3);
-				int current_resolution = (int) table.getValueAt(i, 6);
+				double current_offset  = Double.valueOf((String) table.getValueAt(i, 2));
+				double current_range   = Double.valueOf((String) table.getValueAt(i, 3));
+				int current_resolution = Integer.getInteger((String) table.getValueAt(i, 6));
 				ArrayList sample_list = new ArrayList();
 				double increment = current_range / current_resolution;
 				double current_y = current_offset;
@@ -493,8 +495,8 @@ public class CorrelationFinder
 			reduced_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
-				int current_resolution = (int) table.getValueAt(i, 6);
-				int current_reduction  = (int) table.getValueAt(i, 7);
+				int current_resolution = Integer.getInteger((String) table.getValueAt(i, 6));
+				int current_reduction  = Integer.getInteger((String) table.getValueAt(i, 7));
 				int j = i - 1;
 				ArrayList sample_list = (ArrayList)interpolated_data.get(j);
 				ArrayList plot_list = new ArrayList();
