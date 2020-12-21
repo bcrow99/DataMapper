@@ -180,13 +180,13 @@ public class CorrelationFinder
 		table.setValueAt(header, 0, 10);
 
 		int rows = 2;
-
+        int line = 26;
 		for (int i = 0; i < rows; i++)
 		{
-			table.setValueAt((int)i, i + 1, 0);
-			table.setValueAt((String) "4", i + 1, 1);
-			table.setValueAt((String) "60", i + 1, 2);
-			table.setValueAt((String) "10", i + 1, 3);
+			table.setValueAt((String)Integer.toString(line++), i + 1, 0);
+			table.setValueAt((String) "0", i + 1, 1);
+			table.setValueAt((String) "30", i + 1, 2);
+			table.setValueAt((String) "20", i + 1, 3);
 			table.setValueAt((String) "0", i + 1, 4);
 			table.setValueAt((String) "0", i + 1, 5);
 			table.setValueAt((String) "100", i + 1, 6);
@@ -223,7 +223,7 @@ public class CorrelationFinder
 			g2.drawLine(clipped_xdim - 2, clipped_ydim - 2, clipped_xdim - 2, 1);
 			*/
 			int size = plot_data.size();
-			System.out.println("The plot data is size " + size);
+			//System.out.println("The plot data is size " + size);
 			double minimum_x = 0;
 			double minimum_y = 0;
 			double maximum_x = 0;
@@ -231,11 +231,11 @@ public class CorrelationFinder
 			double xrange    = 0;
 			double yrange    = 0;
 			
-			System.out.println("Got here.");
 			if(size == 0)
 				return;
 			for(int i = 0; i < size; i++)
 	    	{
+				
 				ArrayList current_line  = (ArrayList)plot_data.get(i);
 				Point2D.Double point    = (Point2D.Double)current_line.get(0);
 				maximum_x = minimum_x = point.x;
@@ -264,8 +264,11 @@ public class CorrelationFinder
 			
 			xrange = maximum_x - minimum_x;
 			yrange = maximum_y - minimum_y;
+			g2.setColor(java.awt.Color.BLACK);
 			for(int i = 0; i < size; i++)
 	    	{
+				if(i > 0)
+					g2.setColor(java.awt.Color.RED);	
 	    		ArrayList current_line  = (ArrayList)plot_data.get(i);
 	            Point2D.Double previous = (Point2D.Double)current_line.get(0);
 	            for(int j = 1; j < current_line.size(); j++)
@@ -317,8 +320,7 @@ public class CorrelationFinder
 			line_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
-				System.out.println("Got here too.");
-				int current_line = (int)table.getValueAt(i, 0);
+				int current_line = Integer.parseInt((String)table.getValueAt(i, 0));
 				int start        = line_array[current_line][0];
 				int stop         = line_array[current_line][1];
 				ArrayList sample_list = new ArrayList();
@@ -349,7 +351,7 @@ public class CorrelationFinder
 				int j = i - 1;
 				ArrayList line_list = (ArrayList) line_data.get(j);
 				int current_line    = Integer.parseInt((String) table.getValueAt(i, 0));
-				int current_sensor  = (int) table.getValueAt(i, 1);
+				int current_sensor  = Integer.parseInt((String)table.getValueAt(i, 1));
 				ArrayList sample_list = new ArrayList();
 
 				if (current_line % 2 == 0)
@@ -362,7 +364,7 @@ public class CorrelationFinder
 				} 
 				else
 				{
-					for(j = 5 - current_sensor; j < line_list.size(); j += 5)
+					for(j = 4 - current_sensor; j < line_list.size(); j += 5)
                     {
                     	Sample sample = (Sample) line_list.get(j);  
                     	sample_list.add(sample);
@@ -387,7 +389,11 @@ public class CorrelationFinder
 				boolean first_sample = true;
 				for(j = 0; j <sensor_list.size(); j++)
 				{
-				    Sample sample = (Sample)sensor_list.get(j);
+				    Sample original_sample = (Sample)sensor_list.get(j);
+				    Sample sample = new Sample();
+				    sample.intensity = original_sample.intensity;
+				    sample.x         = original_sample.x;
+				    sample.y         = original_sample.y;
 				    sample.y += current_yshift;
 				    sample.x += current_xshift;
 				    // Add previous sample as well unless location is the same as the offset.
@@ -396,9 +402,13 @@ public class CorrelationFinder
 				    	if(first_sample && sample.y > current_offset)
 				    	{
 				    		Sample previous_sample = (Sample)sensor_list.get(j - 1);
-				    		previous_sample.y += current_yshift;
-				    		previous_sample.x += current_yshift; 
-				    		sample_list.add(previous_sample);
+				    		Sample sample2         = new Sample();
+				    		sample2.intensity = original_sample.intensity;
+						    sample2.x         = original_sample.x;
+						    sample2.y         = original_sample.y;
+						    sample2.y         += current_yshift;
+						    sample2.x         += current_xshift;
+				    		sample_list.add(sample2);
 				    		first_sample = false;
 				    	}
 				    	sample_list.add(sample);
@@ -419,9 +429,12 @@ public class CorrelationFinder
 				//System.out.println("Got here.");
 				int size = data_list.size();
 				//System.out.println("Length of list is " + size);
+				boolean [] used_sample = new boolean[size];
+				for(j = 0; j < size; j++)
+					used_sample[j] = false;
 				double current_offset  = Double.valueOf((String) table.getValueAt(i, 2));
 				double current_range   = Double.valueOf((String) table.getValueAt(i, 3));
-				int current_resolution = Integer.getInteger((String) table.getValueAt(i, 6));
+				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 6));
 				ArrayList sample_list = new ArrayList();
 				double increment = current_range / current_resolution;
 				double current_y = current_offset;
@@ -445,12 +458,19 @@ public class CorrelationFinder
 					 sample_list.add(sample);
 					 number_of_samples = 2;
 					 index             = 2;
+					 used_sample[0] = true;
+					 used_sample[1] = true;
 				}
 				else  // init sample y exactly equals offset
 				{
-				     sample_list.add(init_sample);	
+					 Sample sample = new Sample();
+					 sample.x = init_sample.x;
+					 sample.y = init_sample.y;
+					 sample.intensity = init_sample.intensity;
+				     sample_list.add(sample);	
 				     number_of_samples = 1;
 				     index             = 1;
+				     used_sample[0]    = true;
 				}
 				current_y    += increment;
 				Sample sample = (Sample) data_list.get(index);
@@ -459,15 +479,13 @@ public class CorrelationFinder
 				
 				for(j = 1; j < current_resolution; j++)
 				{
-					int previous_index = index;
+
 					while(sample.y < current_y)
 				        sample = (Sample) data_list.get(index++);
-					if(previous_index != index)
-						number_of_samples++;
 				    if(sample.y > current_y)
 				    {
-				    	 if(previous_index != index - 2)
-				    		 number_of_samples++;	 
+				    	 used_sample[index - 1] = true;
+				    	 used_sample[index - 2] = true;
 				         Sample previous_sample = (Sample) data_list.get(index  - 2);
 				         double distance1 = Math.abs(current_y - previous_sample.y);
 					     double distance2 = Math.abs(current_y - sample.y);
@@ -483,9 +501,20 @@ public class CorrelationFinder
 				    }
 				    else //sample.y == current_y
 				    {
-				    	sample_list.add(sample);   	
+				    	Sample new_sample = new Sample();
+				    	new_sample.intensity = sample.intensity;
+				        new_sample.y = sample.y;	
+				        new_sample.x = sample.x;
+				    	sample_list.add(new_sample); 
+				    	used_sample[index - 1] = true;
 				    }
 				    current_y += increment;
+				}
+				number_of_samples = 0;
+				for(j = 0; j < size; j++)
+				{
+					if(used_sample[j] == true)
+						number_of_samples++;
 				}
 				System.out.println("Interpolated list is length " + sample_list.size());
 				System.out.println("Number of samples used was " + number_of_samples);
@@ -493,10 +522,11 @@ public class CorrelationFinder
 			}	
 			
 			reduced_data.clear();
+			plot_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
-				int current_resolution = Integer.getInteger((String) table.getValueAt(i, 6));
-				int current_reduction  = Integer.getInteger((String) table.getValueAt(i, 7));
+				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 6));
+				int current_reduction  = Integer.parseInt((String) table.getValueAt(i, 7));
 				int j = i - 1;
 				ArrayList sample_list = (ArrayList)interpolated_data.get(j);
 				ArrayList plot_list = new ArrayList();
@@ -535,8 +565,8 @@ public class CorrelationFinder
 					for(j = 0; j < size; j++)
 				    { 
 						Point2D.Double point   = new Point2D.Double();
-				    	point.x = y[j];
-				    	point.y = intensity[j];
+				    	point.x = reduced_y[j];
+				    	point.y = reduced_intensity[j];
 				    	plot_list.add(point);
 				    }
 					plot_data.add(plot_list);
