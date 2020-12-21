@@ -145,7 +145,7 @@ public class CorrelationFinder
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		canvas = new LineCanvas();
-		canvas.setSize(400, 350);
+		canvas.setSize(800, 600);
 		frame.getContentPane().add(canvas, BorderLayout.CENTER);
 
 		table = new JTable(3, 11);
@@ -172,7 +172,7 @@ public class CorrelationFinder
 		table.setValueAt(header, 0, 6);
 		header = new String("Reduction");
 		table.setValueAt(header, 0, 7);
-		header = new String("Sample Ratio");
+		header = new String("Ratio");
 		table.setValueAt(header, 0, 8);
 		header = new String("Delta(i)");
 		table.setValueAt(header, 0, 9);
@@ -213,7 +213,7 @@ public class CorrelationFinder
 			int clipped_xdim = (int) visible_area.getWidth();
 			int clipped_ydim = (int) visible_area.getHeight();
 			Graphics2D g2 = (Graphics2D) g;
-			g2.setStroke(new BasicStroke(1));
+			g2.setStroke(new BasicStroke(2));
 			g2.setColor(java.awt.Color.BLACK);
 			
 			/*
@@ -235,7 +235,6 @@ public class CorrelationFinder
 				return;
 			for(int i = 0; i < size; i++)
 	    	{
-				
 				ArrayList current_line  = (ArrayList)plot_data.get(i);
 				Point2D.Double point    = (Point2D.Double)current_line.get(0);
 				maximum_x = minimum_x = point.x;
@@ -372,14 +371,15 @@ public class CorrelationFinder
 				}
 				sensor_data.add(sample_list);
 			}
-
+            
+			
 			System.out.println("Modifying data.");
 			modified_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
 				int j = i - 1;
 				ArrayList sensor_list = (ArrayList) sensor_data.get(j);
-				System.out.println("The length of the entire sensor list is " + sensor_list.size());
+				//System.out.println("The length of the entire sensor list is " + sensor_list.size());
 				double current_offset = Double.valueOf((String) table.getValueAt(i, 2));
 				double current_range  = Double.valueOf((String) table.getValueAt(i, 3));
 				double current_xshift = Double.valueOf((String)table.getValueAt(i, 4));
@@ -418,19 +418,16 @@ public class CorrelationFinder
 				System.out.println("The number of samples in the region of interest is " + sample_list.size());
 			}
 			
-			System.out.println("Interpolating data.");
-			
 			interpolated_data.clear();
+			int number_of_samples, number_of_samples_used;
 			for (int i = 1; i < number_of_rows; i++)
 			{
 				int j = i - 1;
 				
 				ArrayList data_list = (ArrayList) modified_data.get(j);
-				//System.out.println("Got here.");
-				int size = data_list.size();
-				//System.out.println("Length of list is " + size);
-				boolean [] used_sample = new boolean[size];
-				for(j = 0; j < size; j++)
+				number_of_samples = data_list.size();
+				boolean [] used_sample = new boolean[number_of_samples];
+				for(j = 0; j < number_of_samples; j++)
 					used_sample[j] = false;
 				double current_offset  = Double.valueOf((String) table.getValueAt(i, 2));
 				double current_range   = Double.valueOf((String) table.getValueAt(i, 3));
@@ -439,7 +436,6 @@ public class CorrelationFinder
 				double increment = current_range / current_resolution;
 				double current_y = current_offset;
 				Sample init_sample = (Sample)data_list.get(0);
-				int number_of_samples = 0;
 				int index             = 0;
 				if(init_sample.y < current_y)
 				{
@@ -456,7 +452,6 @@ public class CorrelationFinder
 					 sample.y          = init_sample.y * (distance2 / total_distance);
 					 sample.y         += next_sample.y * (distance1 / total_distance);
 					 sample_list.add(sample);
-					 number_of_samples = 2;
 					 index             = 2;
 					 used_sample[0] = true;
 					 used_sample[1] = true;
@@ -468,15 +463,13 @@ public class CorrelationFinder
 					 sample.y = init_sample.y;
 					 sample.intensity = init_sample.intensity;
 				     sample_list.add(sample);	
-				     number_of_samples = 1;
 				     index             = 1;
 				     used_sample[0]    = true;
 				}
 				current_y    += increment;
 				Sample sample = (Sample) data_list.get(index);
 				index++;
-				
-				
+			
 				for(j = 1; j < current_resolution; j++)
 				{
 
@@ -510,18 +503,19 @@ public class CorrelationFinder
 				    }
 				    current_y += increment;
 				}
-				number_of_samples = 0;
-				for(j = 0; j < size; j++)
+				
+				number_of_samples_used = 0;
+				for(j = 0; j < number_of_samples; j++)
 				{
 					if(used_sample[j] == true)
-						number_of_samples++;
+						number_of_samples_used++;
 				}
-				int number_of_interpolated_values = sample_list.size();
-				System.out.println("Number of interpolated values was " + number_of_interpolated_values);
-				System.out.println("Number of samples used was " + number_of_samples);
-				double sample_ratio = number_of_samples;
-				sample_ratio /= number_of_interpolated_values;
-				table.setValueAt(sample_ratio, i, 8);
+				
+				System.out.println("Number of samples used was " + number_of_samples_used);
+				double sample_ratio = number_of_samples_used;
+				sample_ratio /= number_of_samples;
+				String ratio_string = String.format("%,.2f", sample_ratio);
+				table.setValueAt(ratio_string, i, 8);
 				interpolated_data.add(sample_list);
 			}	
 			
