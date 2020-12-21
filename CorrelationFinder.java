@@ -21,6 +21,7 @@ public class CorrelationFinder
 	ArrayList interpolated_data = new ArrayList();
 	ArrayList reduced_data      = new ArrayList();
 	ArrayList plot_data         = new ArrayList();
+	ArrayList baseline_data     = new ArrayList();
 	
 	// Output
 	ArrayList sample_ratio  = new ArrayList();
@@ -28,8 +29,8 @@ public class CorrelationFinder
 	ArrayList delta_delta   = new ArrayList();
 
 	private JFrame frame;
-	public JTable table;
-	public LineCanvas canvas;
+	public  JTable table;
+	public  LineCanvas canvas;
 
 	public static void main(String[] args)
 	{
@@ -539,8 +540,60 @@ public class CorrelationFinder
 				    	plot_list.add(point);
 				    }
 				    plot_data.add(plot_list);
+				    if(i == 1)
+				    {
+				    	baseline_data.clear();
+				    	baseline_data.add(sample_list);
+				    	table.setValueAt(0, 1, 9);
+						table.setValueAt(0, 1, 10);
+				    }	
+				    else
+				    {
+				    	ArrayList baseline_list = (ArrayList)baseline_data.get(0);
+				    	if(baseline_list.size() == sample_list.size())
+				    	{
+				    		int size = baseline_list.size();
+				    		System.out.println("Sample lists are the same size.");
+				    		double total_difference = 0;
+				    		for(j = 0; j < size; j++)
+				    		{
+				    		    Sample sample   = (Sample)sample_list.get(j);
+				    		    Sample baseline = (Sample)baseline_list.get(j);
+				    		    double xdelta   = Math.abs(sample.x - baseline.x);
+				    		    if(xdelta < .5)  // Sensor ranges overlap, if x position is accurate
+				    		    {
+				    		    	double difference = Math.abs(sample.intensity - baseline.intensity);
+				    		    	// Weight the value according to how close the positions are.
+				    		    	total_difference += difference * ((.5 - xdelta) / .5);
+				    		    }
+				    		    String difference_string = String.format("%,.2f", total_difference);
+								table.setValueAt(difference_string, i, 9);
+				    		} 
+				    		total_difference = 0;
+				    		Sample previous_sample = (Sample)sample_list.get(0);
+				    		Sample previous_base   = (Sample) baseline_list.get(0);
+				    		for(j = 1; j < size; j++)
+				    		{
+				    		    Sample sample   = (Sample)sample_list.get(j);
+				    		    Sample base     = (Sample)baseline_list.get(j);
+				    		    double xdelta   = Math.abs(sample.x - base.x);
+				    		    if(xdelta < .5)  // Sensor ranges overlap, if x position is accurate
+				    		    {
+				    		    	double delta      = previous_sample.intensity - sample.intensity;
+				    		    	double base_delta = previous_base.intensity - base.intensity;
+				    		    	double difference = Math.abs(delta - base_delta);
+				    		    	// Weight the value according to how close the positions are.
+				    		    	total_difference += difference * ((.5 - xdelta) / .5);
+				    		    	previous_sample = sample;
+				    		    	previous_base   = base;
+				    		    }
+				    		    String difference_string = String.format("%,.2f", total_difference);
+								table.setValueAt(difference_string, i, 10);
+				    		}
+				    	}
+				    }
 				}
-				else
+				else // Reducing data.
 				{
 					int size = sample_list.size();
 					double [] x = new double[size];
@@ -559,6 +612,63 @@ public class CorrelationFinder
 					double [] reduced_intensity = reduce(intensity, current_reduction);
 					
 					size = current_resolution - current_reduction;
+					ArrayList reduced_list = new ArrayList();
+			    	for(j = 0; j < size; j++)
+			    	{
+			    		Sample sample = new Sample();
+			    		sample.x      = reduced_x[j];
+			    		sample.y      = reduced_x[j];
+			    		sample.intensity = reduced_intensity[j];
+			    		reduced_list.add(sample);
+			    	}
+					
+					if(i == 1)
+				    {
+				    	baseline_data.clear();
+				    	baseline_data.add(reduced_list);
+				    	table.setValueAt(0, 1, 9);
+						table.setValueAt(0, 1, 10);
+				    }	
+				    else
+				    {
+	                    ArrayList baseline_list = (ArrayList)baseline_data.get(0);
+				    	double total_difference = 0;
+			    		for(j = 0; j < size; j++)
+			    		{
+			    		    Sample sample   = (Sample)reduced_list.get(j);
+			    		    Sample baseline = (Sample)baseline_list.get(j);
+			    		    double xdelta   = Math.abs(sample.x - baseline.x);
+			    		    if(xdelta < .5)  // Sensor ranges overlap, if x position is accurate
+			    		    {
+			    		    	double difference = Math.abs(sample.intensity - baseline.intensity);
+			    		    	// Weight the value according to how close the positions are.
+			    		    	total_difference += difference * ((.5 - xdelta) / .5);
+			    		    }
+			    		    String difference_string = String.format("%,.2f", total_difference);
+							table.setValueAt(difference_string, i, 9);
+			    		} 
+			    		total_difference = 0;
+			    		Sample previous_sample = (Sample)reduced_list.get(0);
+			    		Sample previous_base   = (Sample) baseline_list.get(0);
+			    		for(j = 1; j < size; j++)
+			    		{
+			    		    Sample sample   = (Sample)sample_list.get(j);
+			    		    Sample base     = (Sample)baseline_list.get(j);
+			    		    double xdelta   = Math.abs(sample.x - base.x);
+			    		    if(xdelta < .5)  // Sensor ranges overlap, if x position is accurate
+			    		    {
+			    		    	double delta      = previous_sample.intensity - sample.intensity;
+			    		    	double base_delta = previous_base.intensity - base.intensity;
+			    		    	double difference = Math.abs(delta - base_delta);
+			    		    	// Weight the value according to how close the positions are.
+			    		    	total_difference += difference * ((.5 - xdelta) / .5);
+			    		    	previous_sample = sample;
+			    		    	previous_base   = base;
+			    		    }
+			    		    String difference_string = String.format("%,.2f", total_difference);
+							table.setValueAt(difference_string, i, 10);  
+			    		}
+				    }
 					
 					for(j = 0; j < size; j++)
 				    { 
@@ -568,14 +678,8 @@ public class CorrelationFinder
 				    	plot_list.add(point);
 				    }
 					plot_data.add(plot_list);
-					
 				}
 			}
-			
-			// table.setValueAt(0, 1, 8);
-			table.setValueAt(0, 1, 9);
-			table.setValueAt(0, 1, 10);
-
 			canvas.repaint();
 		}
 	}
