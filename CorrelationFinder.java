@@ -516,8 +516,12 @@ public class CorrelationFinder
 					if(used_sample[j] == true)
 						number_of_samples++;
 				}
-				System.out.println("Interpolated list is length " + sample_list.size());
+				int number_of_interpolated_values = sample_list.size();
+				System.out.println("Number of interpolated values was " + number_of_interpolated_values);
 				System.out.println("Number of samples used was " + number_of_samples);
+				double sample_ratio = number_of_samples;
+				sample_ratio /= number_of_interpolated_values;
+				table.setValueAt(sample_ratio, i, 8);
 				interpolated_data.add(sample_list);
 			}	
 			
@@ -570,6 +574,7 @@ public class CorrelationFinder
 				    	plot_list.add(point);
 				    }
 					plot_data.add(plot_list);
+					
 				}
 			}
 			
