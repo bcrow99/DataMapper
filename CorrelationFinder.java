@@ -22,12 +22,9 @@ public class CorrelationFinder
 	ArrayList reduced_data      = new ArrayList();
 	ArrayList plot_data         = new ArrayList();
 	ArrayList baseline_data     = new ArrayList();
+	double    max_delta;
+	double    range;
 	
-	// Output
-	ArrayList sample_ratio  = new ArrayList();
-	ArrayList delta_impulse = new ArrayList();
-	ArrayList delta_delta   = new ArrayList();
-
 	private JFrame frame;
 	public  JTable table;
 	public  LineCanvas canvas;
@@ -63,9 +60,6 @@ public class CorrelationFinder
 
 	public CorrelationFinder(String filename)
 	{
-		int _line, _sensor, _resolution, _reduction;
-		double _offset, _range, _xshift, _yshift, _samples, _delta_impulse, _delta_delta;
-
 		File file = new File(filename);
 		if (file.exists())
 		{
@@ -202,7 +196,6 @@ public class CorrelationFinder
 		bottom_panel.add(apply_button, BorderLayout.EAST);
 
 		frame.getContentPane().add(bottom_panel, BorderLayout.SOUTH);
-
 		frame.pack();
 	}
 
@@ -542,10 +535,27 @@ public class CorrelationFinder
 				    plot_data.add(plot_list);
 				    if(i == 1)
 				    {
+				    	max_delta = 0;
+				    	Sample previous_sample = (Sample)sample_list.get(0);
+				    	double min_intensity = previous_sample.intensity;
+				    	double max_intensity = previous_sample.intensity;
+				    	for(j = 1; j < sample_list.size(); j++)
+				    	{
+				    	    Sample sample = (Sample)sample_list.get(j);
+				    	    if(sample.intensity < min_intensity)
+				    	    	min_intensity = sample.intensity;
+				    	    else if(sample.intensity < max_intensity)
+				    	    	max_intensity = sample.intensity;
+				    	    double current_delta = Math.abs(previous_sample.intensity - sample.intensity);
+				    	    if(current_delta > max_delta)
+				    	    	max_delta = current_delta;
+				    	    previous_sample = sample;
+				    	}
+				    	range = max_intensity - min_intensity;
 				    	baseline_data.clear();
 				    	baseline_data.add(sample_list);
-				    	table.setValueAt(0, 1, 9);
-						table.setValueAt(0, 1, 10);
+				    	table.setValueAt("1.00", 1, 9);
+						table.setValueAt("1.00", 1, 10);
 				    }	
 				    else
 				    {
@@ -554,42 +564,51 @@ public class CorrelationFinder
 				    	{
 				    		int size = baseline_list.size();
 				    		System.out.println("Sample lists are the same size.");
-				    		double total_difference = 0;
+				    		double total_weight = 0;
 				    		for(j = 0; j < size; j++)
 				    		{
 				    		    Sample sample   = (Sample)sample_list.get(j);
 				    		    Sample baseline = (Sample)baseline_list.get(j);
-				    		    double xdelta   = Math.abs(sample.x - baseline.x);
-				    		    if(xdelta < .5)  // Sensor ranges overlap, if x position is accurate
+				    		    double difference = Math.abs(sample.intensity - baseline.intensity);
+				    		    /*
+				    		    if(difference < max_delta)
 				    		    {
-				    		    	double difference = Math.abs(sample.intensity - baseline.intensity);
-				    		    	// Weight the value according to how close the positions are.
-				    		    	total_difference += difference * ((.5 - xdelta) / .5);
+				    		        double weight = (max_delta - difference)/max_delta;	
+				    		        total_weight  += weight;
 				    		    }
-				    		    String difference_string = String.format("%,.2f", total_difference);
-								table.setValueAt(difference_string, i, 9);
+				    		    */
+				    		    if(difference < range)
+				    		    {
+				    		        double weight = (range - difference)/range;	
+				    		        total_weight  += weight;
+				    		    }
 				    		} 
-				    		total_difference = 0;
+				    		total_weight /= size;
+				    		String weight_string = String.format("%,.2f", total_weight);
+							table.setValueAt(weight_string, i, 9);
+							
+				    		total_weight = 0;
 				    		Sample previous_sample = (Sample)sample_list.get(0);
 				    		Sample previous_base   = (Sample) baseline_list.get(0);
 				    		for(j = 1; j < size; j++)
 				    		{
 				    		    Sample sample   = (Sample)sample_list.get(j);
 				    		    Sample base     = (Sample)baseline_list.get(j);
-				    		    double xdelta   = Math.abs(sample.x - base.x);
-				    		    if(xdelta < .5)  // Sensor ranges overlap, if x position is accurate
-				    		    {
-				    		    	double delta      = previous_sample.intensity - sample.intensity;
-				    		    	double base_delta = previous_base.intensity - base.intensity;
-				    		    	double difference = Math.abs(delta - base_delta);
-				    		    	// Weight the value according to how close the positions are.
-				    		    	total_difference += difference * ((.5 - xdelta) / .5);
-				    		    	previous_sample = sample;
-				    		    	previous_base   = base;
-				    		    }
-				    		    String difference_string = String.format("%,.2f", total_difference);
-								table.setValueAt(difference_string, i, 10);
+				    		    double delta      = previous_sample.intensity - sample.intensity;
+			    		    	double base_delta = previous_base.intensity - base.intensity;
+			    		    	double difference = Math.abs(delta - base_delta);
+			    		    	if(difference < max_delta)
+			    		    	{
+			    		    		double weight = (max_delta - difference)/max_delta;	
+			    		    		total_weight  += weight;
+			    		    		
+			    		    	}
+			    		    	previous_sample = sample;
+			    		    	previous_base   = base;
 				    		}
+				    		total_weight /= size - 1;
+				    		weight_string = String.format("%,.2f", total_weight);
+							table.setValueAt(weight_string, i, 10);
 				    	}
 				    }
 				}
@@ -624,50 +643,70 @@ public class CorrelationFinder
 					
 					if(i == 1)
 				    {
+						max_delta = 0;
+				    	Sample previous_sample = (Sample)reduced_list.get(0);
+				    	for(j = 1; j < reduced_list.size(); j++)
+				    	{
+				    	    Sample sample = (Sample)reduced_list.get(j);
+				    	    double current_delta = Math.abs(previous_sample.intensity - sample.intensity);
+				    	    if(current_delta > max_delta)
+				    	    	max_delta = current_delta;
+				    	    previous_sample = sample;
+				    	}
 				    	baseline_data.clear();
 				    	baseline_data.add(reduced_list);
-				    	table.setValueAt(0, 1, 9);
-						table.setValueAt(0, 1, 10);
+				    	table.setValueAt("1.00", 1, 9);
+						table.setValueAt("1.00", 1, 10);
 				    }	
 				    else
 				    {
 	                    ArrayList baseline_list = (ArrayList)baseline_data.get(0);
-				    	double total_difference = 0;
+				    	double total_weight = 0;
 			    		for(j = 0; j < size; j++)
 			    		{
 			    		    Sample sample   = (Sample)reduced_list.get(j);
 			    		    Sample baseline = (Sample)baseline_list.get(j);
-			    		    double xdelta   = Math.abs(sample.x - baseline.x);
-			    		    if(xdelta < .5)  // Sensor ranges overlap, if x position is accurate
+			    		    double difference = Math.abs(sample.intensity - baseline.intensity);
+			    		    /*
+			    		    if(difference < max_delta)
 			    		    {
-			    		    	double difference = Math.abs(sample.intensity - baseline.intensity);
-			    		    	// Weight the value according to how close the positions are.
-			    		    	total_difference += difference * ((.5 - xdelta) / .5);
+			    		        double weight = (max_delta - difference)/max_delta;	
+			    		        total_weight  += weight;
 			    		    }
-			    		    String difference_string = String.format("%,.2f", total_difference);
-							table.setValueAt(difference_string, i, 9);
+			    		    */
+			    		    if(difference < range)
+			    		    {
+			    		        double weight = (range - difference)/range;	
+			    		        total_weight  += weight;
+			    		    }
 			    		} 
-			    		total_difference = 0;
+			    		total_weight /= size;
+			    		String weight_string = String.format("%,.2f", total_weight);
+						table.setValueAt(weight_string, i, 9);
+			    		
+						
+						
+						total_weight = 0;
 			    		Sample previous_sample = (Sample)reduced_list.get(0);
 			    		Sample previous_base   = (Sample) baseline_list.get(0);
 			    		for(j = 1; j < size; j++)
 			    		{
-			    		    Sample sample   = (Sample)sample_list.get(j);
+			    		    Sample sample   = (Sample)reduced_list.get(j);
 			    		    Sample base     = (Sample)baseline_list.get(j);
-			    		    double xdelta   = Math.abs(sample.x - base.x);
-			    		    if(xdelta < .5)  // Sensor ranges overlap, if x position is accurate
+			    		    double delta      = previous_sample.intensity - sample.intensity;
+		    		    	double base_delta = previous_base.intensity - base.intensity;
+		    		    	double difference = Math.abs(delta - base_delta);
+		    		    	if(difference < max_delta)
 			    		    {
-			    		    	double delta      = previous_sample.intensity - sample.intensity;
-			    		    	double base_delta = previous_base.intensity - base.intensity;
-			    		    	double difference = Math.abs(delta - base_delta);
-			    		    	// Weight the value according to how close the positions are.
-			    		    	total_difference += difference * ((.5 - xdelta) / .5);
-			    		    	previous_sample = sample;
-			    		    	previous_base   = base;
+			    		        double weight = (max_delta - difference)/max_delta;	
+			    		        total_weight  += weight;
 			    		    }
-			    		    String difference_string = String.format("%,.2f", total_difference);
-							table.setValueAt(difference_string, i, 10);  
+		    		    	previous_sample = sample;
+		    		    	previous_base   = base; 
 			    		}
+			    		total_weight /= size - 1;
+			    		weight_string = String.format("%,.2f", total_weight);
+					    table.setValueAt(weight_string, i, 10);
 				    }
 					
 					for(j = 0; j < size; j++)
