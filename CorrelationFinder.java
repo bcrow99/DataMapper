@@ -366,8 +366,7 @@ public class CorrelationFinder
 				sensor_data.add(sample_list);
 			}
             
-			
-			System.out.println("Modifying data.");
+			System.out.println();
 			modified_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
@@ -576,12 +575,16 @@ public class CorrelationFinder
 				    		        double weight = (max_delta - difference)/max_delta;	
 				    		        total_weight  += weight;
 				    		    }
-				    		    */
+				    		    
 				    		    if(difference < range)
 				    		    {
 				    		        double weight = (range - difference)/range;	
 				    		        total_weight  += weight;
 				    		    }
+				    		    */
+				    		    double weight = (max_delta - difference)/max_delta;	
+			    		        total_weight  += weight;
+				    		    
 				    		} 
 				    		total_weight /= size;
 				    		String weight_string = String.format("%,.2f", total_weight);
@@ -597,12 +600,17 @@ public class CorrelationFinder
 				    		    double delta      = previous_sample.intensity - sample.intensity;
 			    		    	double base_delta = previous_base.intensity - base.intensity;
 			    		    	double difference = Math.abs(delta - base_delta);
+			    		    	// Adding all the differences might help.  Also using +/- differently.
+			    		        /*
 			    		    	if(difference < max_delta)
 			    		    	{
 			    		    		double weight = (max_delta - difference)/max_delta;	
 			    		    		total_weight  += weight;
 			    		    		
 			    		    	}
+			    		    	*/
+			    		    	double weight = (max_delta - difference)/max_delta;	
+			    		    	total_weight  += weight;
 			    		    	previous_sample = sample;
 			    		    	previous_base   = base;
 				    		}
@@ -673,12 +681,15 @@ public class CorrelationFinder
 			    		        double weight = (max_delta - difference)/max_delta;	
 			    		        total_weight  += weight;
 			    		    }
-			    		    */
+			    		    
 			    		    if(difference < range)
 			    		    {
 			    		        double weight = (range - difference)/range;	
 			    		        total_weight  += weight;
 			    		    }
+			    		    */
+			    		    double weight = (max_delta - difference)/max_delta;	
+		    		        total_weight  += weight;
 			    		} 
 			    		total_weight /= size;
 			    		String weight_string = String.format("%,.2f", total_weight);
@@ -696,6 +707,7 @@ public class CorrelationFinder
 			    		    double delta      = previous_sample.intensity - sample.intensity;
 		    		    	double base_delta = previous_base.intensity - base.intensity;
 		    		    	double difference = Math.abs(delta - base_delta);
+		    		    	/*
 		    		    	if(difference < max_delta)
 			    		    {
 			    		        double weight = (max_delta - difference)/max_delta;	
@@ -703,6 +715,9 @@ public class CorrelationFinder
 			    		    }
 		    		    	previous_sample = sample;
 		    		    	previous_base   = base; 
+		    		        */
+		    		    	double weight = (max_delta - difference)/max_delta;	
+		    		        total_weight  += weight;
 			    		}
 			    		total_weight /= size - 1;
 			    		weight_string = String.format("%,.2f", total_weight);
