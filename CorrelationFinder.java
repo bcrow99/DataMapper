@@ -210,12 +210,17 @@ public class CorrelationFinder
 			g2.setStroke(new BasicStroke(2));
 			g2.setColor(java.awt.Color.BLACK);
 			
-			/*
-			g2.drawLine(1, 1, 1, clipped_ydim - 2);
-			g2.drawLine(1, 1, clipped_xdim - 2, 1);
-			g2.drawLine(1, clipped_ydim - 2, clipped_xdim - 2, clipped_ydim - 2);
-			g2.drawLine(clipped_xdim - 2, clipped_ydim - 2, clipped_xdim - 2, 1);
-			*/
+			int top_margin    = 1;
+			int bottom_margin = 6;
+			int left_margin   = 6;
+			int right_margin  = 1;
+			
+			
+			g2.drawLine(left_margin, top_margin, left_margin, clipped_ydim - bottom_margin);
+			g2.drawLine(left_margin, top_margin, clipped_xdim - right_margin, top_margin);
+			g2.drawLine(left_margin, clipped_ydim - bottom_margin, clipped_xdim - right_margin, clipped_ydim - bottom_margin);
+			g2.drawLine(clipped_xdim - right_margin, clipped_ydim - bottom_margin, clipped_xdim - right_margin, top_margin);
+
 			int size = plot_data.size();
 			//System.out.println("The plot data is size " + size);
 			double minimum_x = 0;
@@ -269,24 +274,28 @@ public class CorrelationFinder
 	            	double x1 = previous.getX();
 	        	    x1 -= minimum_x;
 	        	    x1 /= xrange;
-	        	    x1 *= clipped_xdim - 1;
+	        	    x1 *= clipped_xdim - (left_margin + right_margin);
+	        	    x1 += left_margin;
 	        	    
 	        	    double y1 = previous.getY();
 	        	    y1 -= minimum_y;  
 	        	    y1 /= yrange;
-	        	    y1 *= clipped_ydim - 1;
+	        	    y1 *= clipped_ydim - (top_margin + bottom_margin);
+	        	    y1 += top_margin;
 	            	
 	        	    Point2D.Double current = (Point2D.Double)current_line.get(j);
 	            	
 	        	    double x2 = current.getX();
 	        	    x2 -= minimum_x;
 	        	    x2 /= xrange;
-	        	    x2 *= clipped_xdim - 1;
+	        	    x2 *= clipped_xdim - (left_margin + right_margin);
+	        	    x2 += left_margin;
 	        	    
 	        	    double y2 = current.getY();
 	        	    y2 -= minimum_y;
 	        	    y2 /= yrange;
-	        	    y2 *= clipped_ydim - 1;
+	        	    y2 *= clipped_ydim - (top_margin + bottom_margin);
+	        	    y2 += top_margin;
 	        	    
 	        	    g2.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
 	        	    
@@ -303,6 +312,10 @@ public class CorrelationFinder
 		ApplyHandler()
 		{
 			line_array = ObjectMapper.getLineArray();
+			//table.setRowSelectionInterval(2, 2);
+			//table.setBackground(java.awt.Color.RED);
+			////table.setRowSelectionInterval(2, 2);
+			//table.setForeground(java.awt.Color.BLACK);
 		}
 
 		public void actionPerformed(ActionEvent e)
@@ -368,6 +381,7 @@ public class CorrelationFinder
             
 			System.out.println();
 			modified_data.clear();
+			//table.setForeground(java.awt.Color.BLACK);
 			for (int i = 1; i < number_of_rows; i++)
 			{
 				int j = i - 1;
@@ -562,7 +576,7 @@ public class CorrelationFinder
 				    	if(baseline_list.size() == sample_list.size())
 				    	{
 				    		int size = baseline_list.size();
-				    		System.out.println("Sample lists are the same size.");
+				    		//System.out.println("Sample lists are the same size.");
 				    		double total_weight = 0;
 				    		for(j = 0; j < size; j++)
 				    		{
@@ -651,6 +665,7 @@ public class CorrelationFinder
 					
 					if(i == 1)
 				    {
+						
 						max_delta = 0;
 				    	Sample previous_sample = (Sample)reduced_list.get(0);
 				    	for(j = 1; j < reduced_list.size(); j++)
@@ -668,6 +683,9 @@ public class CorrelationFinder
 				    }	
 				    else
 				    {
+				    	
+				    	//table.setRowSelectionInterval(2, 2);
+				    	//table.setForeground(java.awt.Color.RED);
 	                    ArrayList baseline_list = (ArrayList)baseline_data.get(0);
 				    	double total_weight = 0;
 			    		for(j = 0; j < size; j++)
