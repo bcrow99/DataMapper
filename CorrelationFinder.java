@@ -143,13 +143,27 @@ public class CorrelationFinder
 		canvas.setSize(800, 600);
 		frame.getContentPane().add(canvas, BorderLayout.CENTER);
 
-		table = new JTable(3, 11);
+		table = new JTable(3, 11)
+		{
+			public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
+			{
+			    Component c = super.prepareRenderer(renderer, row, column);
+			    if(row == 2)
+			    	c.setForeground(java.awt.Color.RED);
+			    else
+			    	c.setForeground(java.awt.Color.BLACK);
+			    return c;
+			}	
+		};
+		
 		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 		centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+
 		for (int column = 0; column < 11; column++)
 		{
 			table.getColumnModel().getColumn(column).setCellRenderer(centerRenderer);
 		}
+		
 		String header;
 		header = new String("Line");
 		table.setValueAt(header, 0, 0);
@@ -210,10 +224,10 @@ public class CorrelationFinder
 			g2.setStroke(new BasicStroke(2));
 			g2.setColor(java.awt.Color.BLACK);
 			
-			int top_margin    = 1;
-			int bottom_margin = 6;
-			int left_margin   = 6;
-			int right_margin  = 1;
+			int top_margin    = 10;
+			int bottom_margin = 60;
+			int left_margin   = 60;
+			int right_margin  = 10;
 			
 			
 			g2.drawLine(left_margin, top_margin, left_margin, clipped_ydim - bottom_margin);
@@ -260,9 +274,43 @@ public class CorrelationFinder
 	            }
 	    	}
 			
-			xrange = maximum_x - minimum_x;
-			yrange = maximum_y - minimum_y;
 			g2.setColor(java.awt.Color.BLACK);
+			
+			xrange = maximum_x - minimum_x;
+			
+			
+			double start         = Double.valueOf((String) table.getValueAt(1, 2));
+			double current_range = Double.valueOf((String) table.getValueAt(1, 3));
+			double stop          = start + current_range;
+			String position_string = String.format("%,.2f", start);
+			g2.drawString(position_string, left_margin, clipped_ydim - bottom_margin / 2);
+		    position_string = String.format("%,.2f", stop);
+		    Font current_font = g2.getFont();
+		    FontMetrics font_metrics = g2.getFontMetrics(current_font);
+		    int string_width = font_metrics.stringWidth(position_string);
+			g2.drawString(position_string, clipped_xdim - (right_margin + string_width), clipped_ydim - bottom_margin / 2);
+			
+			position_string = new String("meters");
+			string_width = font_metrics.stringWidth(position_string);
+			g2.drawString(position_string, left_margin + (clipped_xdim - (left_margin + right_margin))/2 - string_width / 2, clipped_ydim - bottom_margin / 3);
+			
+			yrange = maximum_y - minimum_y;
+			
+			String intensity_string = String.format("%,.2f", minimum_y);
+			string_width = font_metrics.stringWidth(intensity_string);
+			g2.drawString(intensity_string, left_margin / 2 - string_width / 2, clipped_ydim - bottom_margin);
+			intensity_string = String.format("%,.2f", maximum_y);
+			string_width = font_metrics.stringWidth(intensity_string);
+			//int string_height = font_metrics.getHeight();
+			int string_height = font_metrics.getAscent();
+			g2.drawString(intensity_string, left_margin / 2 - string_width / 2, top_margin + string_height);
+			intensity_string = new String("nT");
+			string_width = font_metrics.stringWidth(intensity_string);
+			g2.drawString(intensity_string, string_width / 2, (clipped_ydim - (top_margin + bottom_margin)) / 2 - top_margin);
+			
+			
+			
+			
 			for(int i = 0; i < size; i++)
 	    	{
 				if(i > 0)
@@ -281,8 +329,9 @@ public class CorrelationFinder
 	        	    y1 -= minimum_y;  
 	        	    y1 /= yrange;
 	        	    y1 *= clipped_ydim - (top_margin + bottom_margin);
+	        	    y1 =  clipped_ydim - (top_margin + bottom_margin) - y1;
 	        	    y1 += top_margin;
-	            	
+	        	    
 	        	    Point2D.Double current = (Point2D.Double)current_line.get(j);
 	            	
 	        	    double x2 = current.getX();
@@ -295,6 +344,7 @@ public class CorrelationFinder
 	        	    y2 -= minimum_y;
 	        	    y2 /= yrange;
 	        	    y2 *= clipped_ydim - (top_margin + bottom_margin);
+            	    y2 =  clipped_ydim - (top_margin + bottom_margin) - y2;
 	        	    y2 += top_margin;
 	        	    
 	        	    g2.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
@@ -312,10 +362,6 @@ public class CorrelationFinder
 		ApplyHandler()
 		{
 			line_array = ObjectMapper.getLineArray();
-			//table.setRowSelectionInterval(2, 2);
-			//table.setBackground(java.awt.Color.RED);
-			////table.setRowSelectionInterval(2, 2);
-			//table.setForeground(java.awt.Color.BLACK);
 		}
 
 		public void actionPerformed(ActionEvent e)
