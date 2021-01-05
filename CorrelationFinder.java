@@ -1,6 +1,8 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
 import java.awt.geom.Point2D;
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,6 +30,7 @@ public class CorrelationFinder
 	private JFrame frame;
 	public  JTable table;
 	public  LineCanvas canvas;
+	public  JButton apply_button;
 
 	public static void main(String[] args)
 	{
@@ -143,7 +146,7 @@ public class CorrelationFinder
 		canvas.setSize(800, 600);
 		frame.getContentPane().add(canvas, BorderLayout.CENTER);
 
-		table = new JTable(3, 11)
+		table = new JTable(3, 10)
 		{
 			public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
 			{
@@ -159,7 +162,7 @@ public class CorrelationFinder
 		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 		centerRenderer.setHorizontalAlignment(JLabel.CENTER);
 
-		for (int column = 0; column < 11; column++)
+		for (int column = 0; column < 10; column++)
 		{
 			table.getColumnModel().getColumn(column).setCellRenderer(centerRenderer);
 		}
@@ -169,24 +172,22 @@ public class CorrelationFinder
 		table.setValueAt(header, 0, 0);
 		header = new String("Sensor");
 		table.setValueAt(header, 0, 1);
-		header = new String("Offset");
+		header = new String("Start");
 		table.setValueAt(header, 0, 2);
 		header = new String("Range");
 		table.setValueAt(header, 0, 3);
-		header = new String("Xshift");
+		header = new String("Shift");
 		table.setValueAt(header, 0, 4);
-		header = new String("Yshift");
-		table.setValueAt(header, 0, 5);
 		header = new String("Resolution");
-		table.setValueAt(header, 0, 6);
+		table.setValueAt(header, 0, 5);
 		header = new String("Reduction");
+		table.setValueAt(header, 0, 6);
+		header = new String("Data Ratio");
 		table.setValueAt(header, 0, 7);
-		header = new String("Ratio");
-		table.setValueAt(header, 0, 8);
 		header = new String("Delta(i)");
-		table.setValueAt(header, 0, 9);
+		table.setValueAt(header, 0, 8);
 		header = new String("Delta(d)");
-		table.setValueAt(header, 0, 10);
+		table.setValueAt(header, 0, 9);
 
 		int rows = 2;
         int line = 26;
@@ -197,14 +198,18 @@ public class CorrelationFinder
 			table.setValueAt((String) "30", i + 1, 2);
 			table.setValueAt((String) "20", i + 1, 3);
 			table.setValueAt((String) "0", i + 1, 4);
-			table.setValueAt((String) "0", i + 1, 5);
-			table.setValueAt((String) "100", i + 1, 6);
-			table.setValueAt((String) "0", i + 1, 7);
+			table.setValueAt((String) "100", i + 1, 5);
+			table.setValueAt((String) "0", i + 1, 6);
 		}
 
 		JPanel bottom_panel = new JPanel(new BorderLayout());
+		JScrollBar scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 3, -300, 303);
+		ShiftHandler shift_handler = new ShiftHandler();
+		scrollbar.addAdjustmentListener(shift_handler);
+		bottom_panel.add(scrollbar, BorderLayout.NORTH);
+		
 		bottom_panel.add(table, BorderLayout.CENTER);
-		JButton apply_button = new JButton("Apply params.");
+		apply_button = new JButton("Apply params.");
 		ApplyHandler handler = new ApplyHandler();
 		apply_button.addActionListener(handler);
 		bottom_panel.add(apply_button, BorderLayout.EAST);
@@ -355,6 +360,21 @@ public class CorrelationFinder
 		}
 	}
 
+	
+	class ShiftHandler implements AdjustmentListener
+	{
+		 public void adjustmentValueChanged(AdjustmentEvent event)
+	     {
+	         int value  = event.getValue();
+	         System.out.println("Current shift value is " + value);
+	         double shift_value = value;
+	         shift_value /= 100;
+	         String shift_string = String.format("%,.2f", shift_value);
+	         table.setValueAt(shift_string, 2, 4);
+	         apply_button.doClick(0);
+	     }
+	}
+	
 	class ApplyHandler implements ActionListener
 	{
 		int[][] line_array;
@@ -395,8 +415,6 @@ public class CorrelationFinder
 				line_data.add(sample_list);
 			}
 
-			//System.out.println("Extracting specific sensor data.");
-			
 			sensor_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
@@ -435,8 +453,7 @@ public class CorrelationFinder
 				//System.out.println("The length of the entire sensor list is " + sensor_list.size());
 				double current_offset = Double.valueOf((String) table.getValueAt(i, 2));
 				double current_range  = Double.valueOf((String) table.getValueAt(i, 3));
-				double current_xshift = Double.valueOf((String)table.getValueAt(i, 4));
-				double current_yshift = Double.valueOf((String)table.getValueAt(i, 5));
+				double current_yshift = Double.valueOf((String)table.getValueAt(i, 4));
 				
 				ArrayList sample_list = new ArrayList();
 				boolean first_sample = true;
@@ -448,7 +465,7 @@ public class CorrelationFinder
 				    sample.x         = original_sample.x;
 				    sample.y         = original_sample.y;
 				    sample.y += current_yshift;
-				    sample.x += current_xshift;
+				    //sample.x += current_xshift;
 				    // Add previous sample as well unless location is the same as the offset.
 				    if(sample.y >=  current_offset && sample.y < (current_offset + current_range))
 				    {	
@@ -460,7 +477,7 @@ public class CorrelationFinder
 						    sample2.x         = original_sample.x;
 						    sample2.y         = original_sample.y;
 						    sample2.y         += current_yshift;
-						    sample2.x         += current_xshift;
+						    //sample2.x         += current_xshift;
 				    		sample_list.add(sample2);
 				    		first_sample = false;
 				    	}
@@ -484,7 +501,7 @@ public class CorrelationFinder
 					used_sample[j] = false;
 				double current_offset  = Double.valueOf((String) table.getValueAt(i, 2));
 				double current_range   = Double.valueOf((String) table.getValueAt(i, 3));
-				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 6));
+				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 5));
 				ArrayList sample_list = new ArrayList();
 				double increment = current_range / current_resolution;
 				double current_y = current_offset;
@@ -568,7 +585,7 @@ public class CorrelationFinder
 				double sample_ratio = number_of_samples_used;
 				sample_ratio /= number_of_samples;
 				String ratio_string = String.format("%,.2f", sample_ratio);
-				table.setValueAt(ratio_string, i, 8);
+				table.setValueAt(ratio_string, i, 7);
 				interpolated_data.add(sample_list);
 			}	
 			
@@ -576,8 +593,8 @@ public class CorrelationFinder
 			plot_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
-				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 6));
-				int current_reduction  = Integer.parseInt((String) table.getValueAt(i, 7));
+				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 5));
+				int current_reduction  = Integer.parseInt((String) table.getValueAt(i, 6));
 				int j = i - 1;
 				ArrayList sample_list = (ArrayList)interpolated_data.get(j);
 				ArrayList plot_list = new ArrayList();
@@ -613,42 +630,29 @@ public class CorrelationFinder
 				    	range = max_intensity - min_intensity;
 				    	baseline_data.clear();
 				    	baseline_data.add(sample_list);
-				    	table.setValueAt("1.00", 1, 9);
-						table.setValueAt("1.00", 1, 10);
+				    	table.setValueAt("1.00", 1, 8);
+						table.setValueAt("1.00", 1, 9);
 				    }	
 				    else
 				    {
 				    	ArrayList baseline_list = (ArrayList)baseline_data.get(0);
-				    	if(baseline_list.size() == sample_list.size())
+				    	if(baseline_list.size() == sample_list.size())  // else make them the same size
 				    	{
 				    		int size = baseline_list.size();
 				    		//System.out.println("Sample lists are the same size.");
 				    		double total_weight = 0;
 				    		for(j = 0; j < size; j++)
 				    		{
-				    		    Sample sample   = (Sample)sample_list.get(j);
-				    		    Sample baseline = (Sample)baseline_list.get(j);
+				    		    Sample sample     = (Sample)sample_list.get(j);
+				    		    Sample baseline   = (Sample)baseline_list.get(j);
 				    		    double difference = Math.abs(sample.intensity - baseline.intensity);
-				    		    /*
-				    		    if(difference < max_delta)
-				    		    {
-				    		        double weight = (max_delta - difference)/max_delta;	
-				    		        total_weight  += weight;
-				    		    }
-				    		    
-				    		    if(difference < range)
-				    		    {
-				    		        double weight = (range - difference)/range;	
-				    		        total_weight  += weight;
-				    		    }
-				    		    */
-				    		    double weight = (max_delta - difference)/max_delta;	
-			    		        total_weight  += weight;
+				    		    double weight     = (max_delta - difference)/max_delta;	
+			    		        total_weight      += weight;
 				    		    
 				    		} 
 				    		total_weight /= size;
 				    		String weight_string = String.format("%,.2f", total_weight);
-							table.setValueAt(weight_string, i, 9);
+							table.setValueAt(weight_string, i, 8);
 							
 				    		total_weight = 0;
 				    		Sample previous_sample = (Sample)sample_list.get(0);
@@ -660,15 +664,6 @@ public class CorrelationFinder
 				    		    double delta      = previous_sample.intensity - sample.intensity;
 			    		    	double base_delta = previous_base.intensity - base.intensity;
 			    		    	double difference = Math.abs(delta - base_delta);
-			    		    	// Adding all the differences might help.  Also using +/- differently.
-			    		        /*
-			    		    	if(difference < max_delta)
-			    		    	{
-			    		    		double weight = (max_delta - difference)/max_delta;	
-			    		    		total_weight  += weight;
-			    		    		
-			    		    	}
-			    		    	*/
 			    		    	double weight = (max_delta - difference)/max_delta;	
 			    		    	total_weight  += weight;
 			    		    	previous_sample = sample;
@@ -676,7 +671,7 @@ public class CorrelationFinder
 				    		}
 				    		total_weight /= size - 1;
 				    		weight_string = String.format("%,.2f", total_weight);
-							table.setValueAt(weight_string, i, 10);
+							table.setValueAt(weight_string, i, 9);
 				    	}
 				    }
 				}
@@ -724,14 +719,11 @@ public class CorrelationFinder
 				    	}
 				    	baseline_data.clear();
 				    	baseline_data.add(reduced_list);
-				    	table.setValueAt("1.00", 1, 9);
-						table.setValueAt("1.00", 1, 10);
+				    	table.setValueAt("1.00", 1, 8);
+						table.setValueAt("1.00", 1, 9);
 				    }	
 				    else
 				    {
-				    	
-				    	//table.setRowSelectionInterval(2, 2);
-				    	//table.setForeground(java.awt.Color.RED);
 	                    ArrayList baseline_list = (ArrayList)baseline_data.get(0);
 				    	double total_weight = 0;
 			    		for(j = 0; j < size; j++)
@@ -739,25 +731,12 @@ public class CorrelationFinder
 			    		    Sample sample   = (Sample)reduced_list.get(j);
 			    		    Sample baseline = (Sample)baseline_list.get(j);
 			    		    double difference = Math.abs(sample.intensity - baseline.intensity);
-			    		    /*
-			    		    if(difference < max_delta)
-			    		    {
-			    		        double weight = (max_delta - difference)/max_delta;	
-			    		        total_weight  += weight;
-			    		    }
-			    		    
-			    		    if(difference < range)
-			    		    {
-			    		        double weight = (range - difference)/range;	
-			    		        total_weight  += weight;
-			    		    }
-			    		    */
 			    		    double weight = (max_delta - difference)/max_delta;	
 		    		        total_weight  += weight;
 			    		} 
 			    		total_weight /= size;
 			    		String weight_string = String.format("%,.2f", total_weight);
-						table.setValueAt(weight_string, i, 9);
+						table.setValueAt(weight_string, i, 8);
 			    		
 						
 						
@@ -771,21 +750,12 @@ public class CorrelationFinder
 			    		    double delta      = previous_sample.intensity - sample.intensity;
 		    		    	double base_delta = previous_base.intensity - base.intensity;
 		    		    	double difference = Math.abs(delta - base_delta);
-		    		    	/*
-		    		    	if(difference < max_delta)
-			    		    {
-			    		        double weight = (max_delta - difference)/max_delta;	
-			    		        total_weight  += weight;
-			    		    }
-		    		    	previous_sample = sample;
-		    		    	previous_base   = base; 
-		    		        */
 		    		    	double weight = (max_delta - difference)/max_delta;	
 		    		        total_weight  += weight;
 			    		}
 			    		total_weight /= size - 1;
 			    		weight_string = String.format("%,.2f", total_weight);
-					    table.setValueAt(weight_string, i, 10);
+					    table.setValueAt(weight_string, i, 9);
 				    }
 					
 					for(j = 0; j < size; j++)
