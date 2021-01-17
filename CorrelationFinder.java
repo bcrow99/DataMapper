@@ -366,12 +366,13 @@ public class CorrelationFinder
 		 public void adjustmentValueChanged(AdjustmentEvent event)
 	     {
 	         int value  = event.getValue();
-	         System.out.println("Current shift value is " + value);
+	         //System.out.println("Current shift value is " + value);
 	         double shift_value = value;
 	         shift_value /= 100;
 	         String shift_string = String.format("%,.2f", shift_value);
 	         table.setValueAt(shift_string, 2, 4);
-	         apply_button.doClick(0);
+	         if(event.getValueIsAdjusting() == false)
+	             apply_button.doClick(0);
 	     }
 	}
 	
@@ -445,14 +446,28 @@ public class CorrelationFinder
             
 			System.out.println();
 			modified_data.clear();
-			//table.setForeground(java.awt.Color.BLACK);
+			
+			double baseline_offset = Double.valueOf((String) table.getValueAt(1, 2));
+			double baseline_range  = Double.valueOf((String) table.getValueAt(1, 3));
+			
 			for (int i = 1; i < number_of_rows; i++)
 			{
 				int j = i - 1;
 				ArrayList sensor_list = (ArrayList) sensor_data.get(j);
-				//System.out.println("The length of the entire sensor list is " + sensor_list.size());
 				double current_offset = Double.valueOf((String) table.getValueAt(i, 2));
+				if(current_offset != baseline_offset)
+				{
+				    String new_offset = (String)table.getValueAt(1, 2);	
+				    table.setValueAt(new_offset, i, 2);
+				    current_offset = baseline_offset;
+				}
 				double current_range  = Double.valueOf((String) table.getValueAt(i, 3));
+				if(current_range != baseline_range)
+				{
+					String new_range = (String)table.getValueAt(1, 3);	
+				    table.setValueAt(new_range, i, 3);
+				    current_range = baseline_range;
+				}
 				double current_yshift = Double.valueOf((String)table.getValueAt(i, 4));
 				
 				ArrayList sample_list = new ArrayList();
@@ -488,6 +503,8 @@ public class CorrelationFinder
 				System.out.println("The number of samples in the region of interest is " + sample_list.size());
 			}
 			
+			int baseline_resolution = Integer.parseInt((String) table.getValueAt(1, 5));
+			int baseline_reduction = Integer.parseInt((String) table.getValueAt(1, 6));
 			interpolated_data.clear();
 			int number_of_samples, number_of_samples_used;
 			for (int i = 1; i < number_of_rows; i++)
@@ -501,7 +518,15 @@ public class CorrelationFinder
 					used_sample[j] = false;
 				double current_offset  = Double.valueOf((String) table.getValueAt(i, 2));
 				double current_range   = Double.valueOf((String) table.getValueAt(i, 3));
+				
+				
 				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 5));
+				if(current_resolution != baseline_resolution)
+				{
+					String new_resolution = (String)table.getValueAt(1, 5);	
+				    table.setValueAt(new_resolution, i, 5);
+				    current_resolution = baseline_resolution;	
+				}
 				ArrayList sample_list = new ArrayList();
 				double increment = current_range / current_resolution;
 				double current_y = current_offset;
@@ -591,10 +616,17 @@ public class CorrelationFinder
 			
 			reduced_data.clear();
 			plot_data.clear();
+			
 			for (int i = 1; i < number_of_rows; i++)
 			{
 				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 5));
 				int current_reduction  = Integer.parseInt((String) table.getValueAt(i, 6));
+				if(current_reduction != baseline_reduction)
+				{
+					String new_reduction = (String)table.getValueAt(1, 6);	
+				    table.setValueAt(new_reduction, i, 6);
+				    current_reduction = baseline_reduction;	
+				}
 				int j = i - 1;
 				ArrayList sample_list = (ArrayList)interpolated_data.get(j);
 				ArrayList plot_list = new ArrayList();
