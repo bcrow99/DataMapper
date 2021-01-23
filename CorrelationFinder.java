@@ -143,7 +143,7 @@ public class CorrelationFinder
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		canvas = new LineCanvas();
-		canvas.setSize(800, 600);
+		canvas.setSize(1200, 700);
 		frame.getContentPane().add(canvas, BorderLayout.CENTER);
 
 		table = new JTable(3, 10)
@@ -180,9 +180,9 @@ public class CorrelationFinder
 		table.setValueAt(header, 0, 4);
 		header = new String("Resolution");
 		table.setValueAt(header, 0, 5);
-		header = new String("Reduction");
+		header = new String("Smoothing");
 		table.setValueAt(header, 0, 6);
-		header = new String("Data Ratio");
+		header = new String("Data Usage");
 		table.setValueAt(header, 0, 7);
 		header = new String("Delta(i)");
 		table.setValueAt(header, 0, 8);
@@ -190,16 +190,16 @@ public class CorrelationFinder
 		table.setValueAt(header, 0, 9);
 
 		int rows = 2;
-        int line = 26;
+        int line = 27;
 		for (int i = 0; i < rows; i++)
 		{
 			table.setValueAt((String)Integer.toString(line++), i + 1, 0);
-			table.setValueAt((String) "0", i + 1, 1);
-			table.setValueAt((String) "30", i + 1, 2);
-			table.setValueAt((String) "20", i + 1, 3);
+			table.setValueAt((String) "4", i + 1, 1);
+			table.setValueAt((String) "20", i + 1, 2);
+			table.setValueAt((String) "55", i + 1, 3);
 			table.setValueAt((String) "0", i + 1, 4);
-			table.setValueAt((String) "100", i + 1, 5);
-			table.setValueAt((String) "0", i + 1, 6);
+			table.setValueAt((String) "800", i + 1, 5);
+			table.setValueAt((String) "10", i + 1, 6);
 		}
 
 		JPanel bottom_panel = new JPanel(new BorderLayout());
@@ -251,13 +251,17 @@ public class CorrelationFinder
 			
 			if(size == 0)
 				return;
+			ArrayList baseline  = (ArrayList)plot_data.get(0);
+			Point2D.Double init_point    = (Point2D.Double)baseline.get(0);
+			maximum_x = minimum_x = init_point.x;
+			maximum_y = minimum_y = init_point.y;
 			for(int i = 0; i < size; i++)
 	    	{
 				ArrayList current_line  = (ArrayList)plot_data.get(i);
 				Point2D.Double point    = (Point2D.Double)current_line.get(0);
-				maximum_x = minimum_x = point.x;
+				//maximum_x = minimum_x = point.x;
 				
-				for(int j = 1; j < current_line.size(); j++)
+				for(int j = 0; j < current_line.size(); j++)
 	            {
 					point = (Point2D.Double)current_line.get(j);	
 					if(point.x < minimum_x)
@@ -472,6 +476,7 @@ public class CorrelationFinder
 				
 				ArrayList sample_list = new ArrayList();
 				boolean first_sample = true;
+				boolean last_sample  = false;
 				for(j = 0; j <sensor_list.size(); j++)
 				{
 				    Sample original_sample = (Sample)sensor_list.get(j);
@@ -497,6 +502,12 @@ public class CorrelationFinder
 				    		first_sample = false;
 				    	}
 				    	sample_list.add(sample);
+				    }
+				    if(!last_sample && sample.y >= (current_offset + current_range))
+				    {
+				    	sample_list.add(sample);
+				    	last_sample = true;
+				    	break;
 				    }
 				}
 				modified_data.add(sample_list);
@@ -567,7 +578,6 @@ public class CorrelationFinder
 			
 				for(j = 1; j < current_resolution; j++)
 				{
-
 					while(sample.y < current_y)
 				        sample = (Sample) data_list.get(index++);
 				    if(sample.y > current_y)
