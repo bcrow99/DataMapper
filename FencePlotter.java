@@ -24,9 +24,25 @@ public class FencePlotter
 	ArrayList baseline_data     = new ArrayList();
 	double    max_delta;
 	double    range;
+	
+	// Plotting parameters
 	int[]     order = new int[5];
 	Color[]   color = new Color[5];
+	int       number_of_sensors = 5;
 	
+	int       bottom_margin = 60;
+	int       left_margin   = 60;
+	int       top_margin    = 10;
+	int       right_margin  = 10;
+	int       xstep = 10;
+	int       ystep = 20;
+	int       xdim  = 0;
+	int       ydim  = 0;
+	int       graph_xdim = 0;
+	int       graph_ydim = 0;
+	
+	
+	//Interface componants.
 	private JFrame frame;
 	public  JTable table;
 	public  LineCanvas canvas;
@@ -122,7 +138,8 @@ public class FencePlotter
 								original_data.add(current_sample);
 							}
 						}
-					} catch (IOException e)
+					} 
+					catch (IOException e)
 					{
 						System.out.println("Unexpected error " + e.toString());
 					}
@@ -135,7 +152,8 @@ public class FencePlotter
 					sample.y -= ymin;
 					data.add(sample);
 				}
-			} catch (Exception e)
+			} 
+			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
@@ -159,12 +177,12 @@ public class FencePlotter
 		color[3] = new Color(136, 136, 136);
 		color[4] = new Color(196, 196, 196);
 
-		table = new JTable(6, 9)
+		table = new JTable(6, 10)
 		{
 			public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
 			{
 			    Component c = super.prepareRenderer(renderer, row, column);
-			    if(column == 8 && row > 0)
+			    if(column == 9 && row > 0)
 			    	c.setBackground(color[row - 1]);	
 			    else
 			    	c.setBackground(java.awt.Color.WHITE);
@@ -211,8 +229,10 @@ public class FencePlotter
 		table.setValueAt(header, 0, 6);
 		header = new String("Data Usage");
 		table.setValueAt(header, 0, 7);
-		header = new String("Key");
+		header = new String("Visible");
 		table.setValueAt(header, 0, 8);
+		header = new String("Key");
+		table.setValueAt(header, 0, 9);
 		
 		int rows = 5;
         int line = 26;
@@ -226,6 +246,7 @@ public class FencePlotter
 			table.setValueAt((String) "0", i + 1, 4);
 			table.setValueAt((String) "100", i + 1, 5);
 			table.setValueAt((String) "0", i + 1, 6);
+			table.setValueAt((String) "yes", i + 1, 8);
 		}
 
 		JPanel bottom_panel = new JPanel(new BorderLayout());
@@ -250,22 +271,12 @@ public class FencePlotter
 		{
 			Rectangle visible_area = g.getClipBounds();
 			
-			int xdim = (int) visible_area.getWidth();
-			int ydim = (int) visible_area.getHeight();
-			
-			int top_margin    = 10;
-			int bottom_margin = 60;
-			int left_margin   = 60;
-			int right_margin  = 10;
+			xdim = (int) visible_area.getWidth();
+			ydim = (int) visible_area.getHeight();
 			
 			
-			int xstep = 10;
-			int ystep = 20;
-			
-			int number_of_sensors = 5;
-			
-			int graph_xdim = xdim - (left_margin + right_margin) - (number_of_sensors - 1) * xstep;
-			int graph_ydim = ydim - (left_margin + right_margin) - (number_of_sensors - 1) * ystep;
+			graph_xdim = xdim - (left_margin + right_margin) - (number_of_sensors - 1) * xstep;
+			graph_ydim = ydim - (left_margin + right_margin) - (number_of_sensors - 1) * ystep;
 			
 			
 			Graphics2D g2 = (Graphics2D) g;
@@ -427,18 +438,107 @@ public class FencePlotter
     
 	class CanvasMouseHandler extends MouseAdapter
     {
-
-        public void mousePressed(MouseEvent e)
-        {
-            int x = e.getX();
-            int y = e.getY();
-        }
-
         public void mouseClicked(MouseEvent e)
         {
             int x      = e.getX();
             int y      = e.getY();
             System.out.println("Mouse click at x = " + x + " and y = " + y);
+            
+            int x1 = left_margin;
+            int y1 = ydim - (bottom_margin + graph_ydim - ystep);
+            for(int i = 0; i < 5; i++)
+            {
+                int x2 = x1 + xstep;
+                int y2 = y1 - ystep;
+                if((x >= x1 && x < x2) && (y <= y1 && y > y2))
+                {
+                	System.out.println("Plot " + i + " was selected.");
+                	if(i == 0)
+                	{
+                	    order[0] = 4;
+                	    order[1] = 3;
+                	    order[2] = 2;
+                	    order[3] = 1;
+                	    order[4] = 0;
+                	    
+                	    color[0] = new Color(0, 0, 0);
+                	    color[1] = new Color(72, 72, 72);
+                	    color[2] = new Color(114, 114, 114);
+                	    color[3] = new Color(136, 136, 136);
+                	    color[4] = new Color(196, 196, 196);
+                	    apply_button.doClick(0);
+                	    table.repaint();
+                	}
+                	else if(i == 1)
+                	{
+                		order[0] = 3;
+                	    order[1] = 4;
+                	    order[2] = 2;
+                	    order[3] = 1;
+                	    order[4] = 0;
+                	    
+                	    color[0] = new Color(114, 114, 114);
+                	    color[1] = new Color(0, 0, 0);
+                	    color[2] = new Color(114, 114, 114);
+                	    color[3] = new Color(136, 136, 136);
+                	    color[4] = new Color(196, 196, 196);
+                	    apply_button.doClick(0);
+                	    table.repaint();
+                	}
+                	else if(i == 2)
+                	{
+                		order[0] = 1;
+                	    order[1] = 2;
+                	    order[2] = 4;
+                	    order[3] = 3;
+                	    order[4] = 0;
+                	    
+                	    color[3] = new Color(114, 114, 114);
+                	    color[0] = new Color(72, 72, 72);
+                	    color[1] = new Color(0, 0, 0);
+                	    color[2] = new Color(72, 72, 72);
+                	    color[3] = new Color(114, 114, 114);
+                	    apply_button.doClick(0);
+                	    table.repaint();
+                	}
+                	else if(i == 3)
+                	{
+                		order[0] = 0;
+                	    order[1] = 1;
+                	    order[2] = 2;
+                	    order[3] = 4;
+                	    order[4] = 3;
+                	    
+                	    color[4] = new Color(136, 136, 136);
+                	    color[3] = new Color(114, 114, 114);
+                	    color[0] = new Color(72, 72, 72);
+                	    color[1] = new Color(0, 0, 0);
+                	    color[2] = new Color(72, 72, 72);	
+                	    apply_button.doClick(0);
+                	    table.repaint();
+                	}
+                	else if(i == 4)
+                	{
+                		order[0] = 0;
+                	    order[1] = 1;
+                	    order[2] = 2;
+                	    order[3] = 3;
+                	    order[4] = 4;
+                	    
+                	    color[0] = new Color(196, 196, 196);
+                	    color[1] = new Color(136, 136, 136);
+                	    color[2] = new Color(114, 114, 114);
+                	    color[3] = new Color(72, 72, 72);
+                	    color[4] = new Color(0, 0, 0);	
+                	    apply_button.doClick(0);
+                	    table.repaint();
+                	}
+                }
+                x1 = x2;
+                y1 = y2;
+            }
+            
+            
         }
     }    
 
