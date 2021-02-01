@@ -241,12 +241,23 @@ public class FencePlotter
 		ShiftHandler shift_handler = new ShiftHandler();
 		scrollbar.addAdjustmentListener(shift_handler);
 		bottom_panel.add(scrollbar, BorderLayout.NORTH);
-
 		bottom_panel.add(table, BorderLayout.CENTER);
-		apply_button = new JButton("Apply params.");
+		
+		JPanel apply_panel = new JPanel(new BorderLayout());
+		apply_button = new JButton("Apply");
 		ApplyHandler handler = new ApplyHandler();
 		apply_button.addActionListener(handler);
-		bottom_panel.add(apply_button, BorderLayout.EAST);
+		apply_panel.add(apply_button, BorderLayout.SOUTH);
+		
+		JPanel canvas_panel = new JPanel(new BorderLayout());
+		Canvas apply_canvas = new Canvas();
+		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 3, -200, 203);
+		JScrollBar ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 3, -200, 203);
+		canvas_panel.add(apply_canvas, BorderLayout.CENTER);
+		canvas_panel.add(xstep_scrollbar, BorderLayout.SOUTH);
+		canvas_panel.add(ystep_scrollbar, BorderLayout.EAST);
+		apply_panel.add(canvas_panel, BorderLayout.CENTER);
+		bottom_panel.add(apply_panel, BorderLayout.EAST);
 
 		frame.getContentPane().add(bottom_panel, BorderLayout.SOUTH);
 		frame.pack();
