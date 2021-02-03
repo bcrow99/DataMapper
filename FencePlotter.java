@@ -157,7 +157,7 @@ public class FencePlotter
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		canvas = new LineCanvas();
-		canvas.setSize(800, 1000);
+		canvas.setSize(1000, 1000);
 		CanvasMouseHandler mouse_handler = new CanvasMouseHandler();
 		canvas.addMouseListener(mouse_handler);
 		frame.getContentPane().add(canvas, BorderLayout.CENTER);
@@ -166,10 +166,10 @@ public class FencePlotter
 			order[i] = 4 - i;
 		}
 		color[0] = new Color(0, 0, 0);
-		color[1] = new Color(72, 72, 72);
-		color[2] = new Color(114, 114, 114);
-		color[3] = new Color(136, 136, 136);
-		color[4] = new Color(196, 196, 196);
+		color[1] = new Color(0, 0, 150);
+		color[2] = new Color(150, 0, 0);
+		color[3] = new Color(0, 150, 0);
+		color[4] = new Color(150, 0, 150);
 
 		table = new JTable(6, 10)
 		{
@@ -194,7 +194,7 @@ public class FencePlotter
 		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 		centerRenderer.setHorizontalAlignment(JLabel.CENTER);
 
-		for (int column = 0; column < 9; column++)
+		for (int column = 0; column < 10; column++)
 		{
 			table.getColumnModel().getColumn(column).setCellRenderer(centerRenderer);
 		}
@@ -251,8 +251,18 @@ public class FencePlotter
 		
 		JPanel canvas_panel = new JPanel(new BorderLayout());
 		Canvas apply_canvas = new Canvas();
-		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 3, -200, 203);
-		JScrollBar ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 3, -200, 203);
+		apply_canvas.setSize(100, 80);
+		
+		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 190);
+		XStepHandler xstep_handler = new XStepHandler();
+		xstep_scrollbar.addAdjustmentListener(xstep_handler);
+		xstep_scrollbar.setValue(xstep);
+		
+		JScrollBar ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 190);
+		YStepHandler ystep_handler = new YStepHandler();
+		ystep_scrollbar.addAdjustmentListener(ystep_handler);
+		ystep_scrollbar.setValue(ystep);
+		
 		canvas_panel.add(apply_canvas, BorderLayout.CENTER);
 		canvas_panel.add(xstep_scrollbar, BorderLayout.SOUTH);
 		canvas_panel.add(ystep_scrollbar, BorderLayout.EAST);
@@ -277,7 +287,7 @@ public class FencePlotter
 
 			Graphics2D g2 = (Graphics2D) g;
 			g2.setStroke(new BasicStroke(2));
-			g2.setColor(color[0]);
+			g2.setColor(java.awt.Color.BLACK);
 
 			int size = plot_data.size();
 
@@ -352,7 +362,7 @@ public class FencePlotter
 			g2.drawString(intensity_string, left_margin / 2 - string_width / 2, top_margin + 4 * ystep + string_height);
 			intensity_string = new String("nT");
 			string_width = font_metrics.stringWidth(intensity_string);
-			g2.drawString(intensity_string, string_width / 2, top_margin - 4 * ystep);
+			g2.drawString(intensity_string, string_width / 2, top_margin + 4 * ystep + graph_ydim / 2);
 
 			// Plot lines in second pass.
 			for (int i = 0; i < 5; i++)
@@ -453,12 +463,14 @@ public class FencePlotter
 						order[2] = 2;
 						order[3] = 1;
 						order[4] = 0;
-
+                        
+						/*
 						color[0] = new Color(0, 0, 0);
 						color[1] = new Color(72, 72, 72);
 						color[2] = new Color(114, 114, 114);
 						color[3] = new Color(136, 136, 136);
 						color[4] = new Color(196, 196, 196);
+						*/
 						apply_button.doClick(0);
 						table.repaint();
 					} else if (i == 1)
@@ -468,12 +480,13 @@ public class FencePlotter
 						order[2] = 2;
 						order[3] = 1;
 						order[4] = 0;
-
+						/*
 						color[0] = new Color(114, 114, 114);
 						color[1] = new Color(0, 0, 0);
 						color[2] = new Color(114, 114, 114);
 						color[3] = new Color(136, 136, 136);
 						color[4] = new Color(196, 196, 196);
+						*/
 						apply_button.doClick(0);
 						table.repaint();
 					} else if (i == 2)
@@ -483,12 +496,13 @@ public class FencePlotter
 						order[2] = 4;
 						order[3] = 3;
 						order[4] = 0;
-
+						/*
 						color[3] = new Color(114, 114, 114);
 						color[0] = new Color(72, 72, 72);
 						color[1] = new Color(0, 0, 0);
 						color[2] = new Color(72, 72, 72);
 						color[3] = new Color(114, 114, 114);
+						*/
 						apply_button.doClick(0);
 						table.repaint();
 					} else if (i == 3)
@@ -498,12 +512,13 @@ public class FencePlotter
 						order[2] = 2;
 						order[3] = 4;
 						order[4] = 3;
-
+						/*
 						color[4] = new Color(136, 136, 136);
 						color[3] = new Color(114, 114, 114);
 						color[0] = new Color(72, 72, 72);
 						color[1] = new Color(0, 0, 0);
 						color[2] = new Color(72, 72, 72);
+						*/
 						apply_button.doClick(0);
 						table.repaint();
 					} else if (i == 4)
@@ -513,12 +528,13 @@ public class FencePlotter
 						order[2] = 2;
 						order[3] = 3;
 						order[4] = 4;
-
+                        /*
 						color[0] = new Color(196, 196, 196);
 						color[1] = new Color(136, 136, 136);
 						color[2] = new Color(114, 114, 114);
 						color[3] = new Color(72, 72, 72);
 						color[4] = new Color(0, 0, 0);
+						*/
 						apply_button.doClick(0);
 						table.repaint();
 					}
@@ -562,6 +578,27 @@ public class FencePlotter
 			if (event.getValueIsAdjusting() == false)
 				apply_button.doClick(0);
 
+		}
+	}
+    
+	class XStepHandler implements AdjustmentListener
+	{
+		public void adjustmentValueChanged(AdjustmentEvent event)
+		{
+			xstep = event.getValue();
+			System.out.println("Xstep is now " + xstep);
+			if (event.getValueIsAdjusting() == false)
+				apply_button.doClick(0);
+		}
+	}
+	class YStepHandler implements AdjustmentListener
+	{
+		public void adjustmentValueChanged(AdjustmentEvent event)
+		{
+			ystep = event.getValue();
+			System.out.println("Ystep is now " + ystep);
+			if (event.getValueIsAdjusting() == false)
+				apply_button.doClick(0);
 		}
 	}
 
