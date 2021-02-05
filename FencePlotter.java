@@ -181,13 +181,6 @@ public class FencePlotter
 				else
 					c.setBackground(java.awt.Color.WHITE);
 				return c;
-
-				/*
-				 * if(row == 0 || row == 1) c.setForeground(color[0]); else if(row == 2)
-				 * c.setForeground(color[1]); else if(row == 3) c.setForeground(color[2]); else
-				 * if(row == 4) c.setForeground(color[3]); else if(row == 5)
-				 * c.setForeground(color[4]); return c;
-				 */
 			}
 		};
 
@@ -367,11 +360,10 @@ public class FencePlotter
 			// Plot lines in second pass.
 			for (int i = 0; i < 5; i++)
 			{
-				String visibility = (String) table.getValueAt(i + 1, 8);
+				int j = order[i];
+				String visibility = (String) table.getValueAt(j + 1, 8);
 				if (visibility.equals("yes"))
 				{
-
-					int j = order[i];
 					g2.setColor(color[j]);
 
 					int a1 = left_margin;
@@ -445,10 +437,11 @@ public class FencePlotter
 		{
 			int x = e.getX();
 			int y = e.getY();
-			System.out.println("Mouse click at x = " + x + " and y = " + y);
+			//System.out.println("Mouse click at x = " + x + " and y = " + y);
 
 			int x1 = left_margin;
 			int y1 = ydim - (bottom_margin + graph_ydim - ystep);
+			boolean tab_selected = false;
 			for (int i = 0; i < 5; i++)
 			{
 				int x2 = x1 + xstep;
@@ -464,6 +457,11 @@ public class FencePlotter
 						order[3] = 1;
 						order[4] = 0;
                         
+						color[0] = new Color(255, 0, 0);
+						color[1] = new Color(0, 0, 150);
+						color[2] = new Color(150, 0, 0);
+						color[3] = new Color(0, 150, 0);
+						color[4] = new Color(150, 0, 150);
 						/*
 						color[0] = new Color(0, 0, 0);
 						color[1] = new Color(72, 72, 72);
@@ -471,15 +469,23 @@ public class FencePlotter
 						color[3] = new Color(136, 136, 136);
 						color[4] = new Color(196, 196, 196);
 						*/
+						tab_selected = true;
 						apply_button.doClick(0);
 						table.repaint();
-					} else if (i == 1)
+					} 
+					else if (i == 1)
 					{
 						order[0] = 3;
 						order[1] = 4;
 						order[2] = 2;
 						order[3] = 1;
 						order[4] = 0;
+						
+						color[0] = new Color(0, 0, 0);
+						color[1] = new Color(255, 0, 0);
+						color[2] = new Color(150, 0, 0);
+						color[3] = new Color(0, 150, 0);
+						color[4] = new Color(150, 0, 150);
 						/*
 						color[0] = new Color(114, 114, 114);
 						color[1] = new Color(0, 0, 0);
@@ -487,15 +493,23 @@ public class FencePlotter
 						color[3] = new Color(136, 136, 136);
 						color[4] = new Color(196, 196, 196);
 						*/
+						tab_selected = true;
 						apply_button.doClick(0);
 						table.repaint();
-					} else if (i == 2)
+					} 
+					else if (i == 2)
 					{
 						order[0] = 1;
 						order[1] = 2;
 						order[2] = 4;
 						order[3] = 3;
 						order[4] = 0;
+						
+						color[0] = new Color(0, 0, 0);
+						color[1] = new Color(0, 0, 150);
+						color[2] = new Color(255, 0, 0);
+						color[3] = new Color(0, 150, 0);
+						color[4] = new Color(150, 0, 150);
 						/*
 						color[3] = new Color(114, 114, 114);
 						color[0] = new Color(72, 72, 72);
@@ -503,15 +517,23 @@ public class FencePlotter
 						color[2] = new Color(72, 72, 72);
 						color[3] = new Color(114, 114, 114);
 						*/
+						tab_selected = true;
 						apply_button.doClick(0);
 						table.repaint();
-					} else if (i == 3)
+					} 
+					else if (i == 3)
 					{
 						order[0] = 0;
 						order[1] = 1;
 						order[2] = 2;
 						order[3] = 4;
 						order[4] = 3;
+						
+						color[0] = new Color(0, 0, 0);
+						color[1] = new Color(0, 0, 150);
+						color[2] = new Color(150, 0, 0);
+						color[3] = new Color(255, 0, 0);
+						color[4] = new Color(150, 0, 150);
 						/*
 						color[4] = new Color(136, 136, 136);
 						color[3] = new Color(114, 114, 114);
@@ -519,15 +541,23 @@ public class FencePlotter
 						color[1] = new Color(0, 0, 0);
 						color[2] = new Color(72, 72, 72);
 						*/
+						tab_selected = true;
 						apply_button.doClick(0);
 						table.repaint();
-					} else if (i == 4)
+					} 
+					else if (i == 4)
 					{
 						order[0] = 0;
 						order[1] = 1;
 						order[2] = 2;
 						order[3] = 3;
 						order[4] = 4;
+						
+						color[0] = new Color(0, 0, 0);
+						color[1] = new Color(0, 0, 150);
+						color[2] = new Color(150, 0, 0);
+						color[3] = new Color(0, 150, 0);
+						color[4] = new Color(255, 0, 0);
                         /*
 						color[0] = new Color(196, 196, 196);
 						color[1] = new Color(136, 136, 136);
@@ -535,12 +565,23 @@ public class FencePlotter
 						color[3] = new Color(72, 72, 72);
 						color[4] = new Color(0, 0, 0);
 						*/
+						tab_selected = true;
 						apply_button.doClick(0);
 						table.repaint();
 					}
 				}
 				x1 = x2;
 				y1 = y2;
+			}
+			if(tab_selected == false)
+			{
+				color[0] = new Color(0, 0, 0);
+				color[1] = new Color(0, 0, 150);
+				color[2] = new Color(150, 0, 0);
+				color[3] = new Color(0, 150, 0);
+				color[4] = new Color(150, 0, 150);
+				apply_button.doClick(0);
+				table.repaint();
 			}
 
 		}
