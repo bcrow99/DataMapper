@@ -828,4 +828,1553 @@ public class ImageMapper
         avgAreaXTransform(src, xdim, ydim, workspace, new_xdim, start_fraction, end_fraction, number_of_pixels);
         avgAreaYTransform(workspace, new_xdim, ydim, dst, new_ydim, start_fraction, end_fraction, number_of_pixels);
     }
+    
+   
+    
+    
+    /*
+    public int[][] translate(int[][] source, double x, double y)
+    {
+        int ydim = source.length;
+        int xdim = source[0].length;
+        
+        int    xshift = (int)x;
+        double xdiff  = x - xshift; 
+        
+        int    yshift = (int)y;
+        double ydiff  = y - yshift;
+        
+        int[][] dest = new int[ydim][xdim];
+        
+        if(xshift != 0 && yshift != 0)
+    	{
+    		if(x > 0 && y > 0)
+    		{
+    			int i      = 0; 
+    			int j      = xshift + yshift * xdim;
+    			int xend   = xdim - xshift - 1;
+    			int yend   = ydim - yshift - 1;
+    			int addend = xdim - xend;
+    			if(xdiff > 0 && ydiff > 0)
+    			{
+    				int    rowlength     = xdim;
+    				double left_factor   = 1. - xdiff;
+    				double right_factor  = xdiff;
+    				double top_factor    = 1. - ydiff;
+    				double bottom_factor = ydiff;
+    				for(y = 0; y < yend; y++)
+    				{
+    					for(x = 0; x < xend; x++)
+    					{
+    						northwest = src[i];
+    						northeast = src[i + 1];
+    						southwest = src[i + rowlength];
+    						southeast = src[i + rowlength + 1];
+    						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+    									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                            dst[j++]  = value;
+        					i++;
+    					}
+    					dst[j++] = src[i++];
+    					i += addend;
+    					j += addend;
+    				}
+    				for(x = 0; x < xend + 1; x++)
+    					dst[j++] = src[i++];
+    			}
+    			else
+    			{
+    				if(xdiff > 0)
+    				{
+    					left_factor  = 1. - xdiff;
+    					right_factor = xdiff;
+    					for(y = 0; y < yend + 1; y++)
+    					{
+    						for(x = 0; x < xend; x++)
+    						{
+    						    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+    						    dst[j++] = value;
+    							i++;
+    						}
+    						dst[j++] = src[i++];
+    						i += addend;
+    						j += addend;
+    					}
+    				}
+    				else
+    				{
+    					if(ydiff > 0)
+    					{
+    						top_factor    = 1. - ydiff;
+    						bottom_factor = ydiff;
+    						for(y = 0; y < yend; y++)
+    						{
+    							for(x = 0; x < xend + 1; x++)
+    							{
+    								value     = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    						        dst[j++] = value;
+    							    i++;
+    							}
+    							i += addend;
+    							j += addend;
+    						}
+    						for(x = 0; x < xend + 1; x++)
+    							dst[j++] = src[i++];
+    					}
+    					else
+    					{
+    						
+    						//Do a shift with no interpolation. 
+    						
+    						addend--;
+    						for(y = 0; y < yend + 1; y++)
+    						{
+    							for(x = 0; x < xend + 1; x++)
+    								dst[j++] = src[i++];
+    							i += addend;
+    							j += addend;
+    						}
+    					}
+    				}
+    			}
+    		}
+    		else
+    		{
+    		    if(xtrans < 0 && ytrans < 0)
+    			{
+    				xstart = -xshift;
+    				ystart = -yshift;
+    			    i      = xstart - yshift * xdim; 
+    			    j      = 0;
+    			    xend   = xdim + xshift - 1;
+    			    yend   = ydim + yshift - 1;
+    			    addend = xdim - xend;
+    				if(xdiff < 0 && ydiff < 0)
+    				{
+    				    rowlength     = xdim;
+    				    left_factor   = -xdiff;
+    				    right_factor  = 1. + xdiff;
+    				    top_factor    = -ydiff;
+    				    bottom_factor = 1. + ydiff;
+    					for(x = 0; x < xend + 1; x++)
+    						dst[j++] = src[i++];
+    					i += addend - 1;
+    					j += addend - 1;
+    					for(y = 0; y < yend; y++)
+    					{
+    						dst[j++] = src[i++];
+    						for(x = 0; x < xend; x++)
+    						{
+                                northwest = src[i - rowlength - 1];
+                                northeast = src[i - rowlength];
+                                southwest = src[i - 1];
+                                southeast = src[i];
+    							value     = top_factor * (left_factor * northwest + right_factor * northeast) +
+    							bottom_factor * (left_factor * southwest + right_factor * southeast) + .5;
+    							dst[j++]  = value;
+    							i++;
+    						}
+    						i += addend;
+    						j += addend;
+    					}
+    				}
+    				else
+    				{
+    					if(xdiff < 0)
+    					{
+    					    left_factor  = -xdiff;
+    					    right_factor = 1. + xdiff;
+        					for(y = 0; y < yend + 1; y++)
+        					{
+        						dst[j++] = src[i++];
+        						for(x = 0; x < xend; x++)
+        						{
+        						    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        						    dst[j++] = value;
+        							i++;
+        						}
+        						i += addend;
+        						j += addend;
+        					}
+    					}
+    					else
+    					{
+    						if(ydiff < 0)
+    						{
+    							top_factor    = -ydiff;
+    							bottom_factor = 1. + ydiff;
+    						    for(y = 0; y < yend; y++)
+    						    {
+    						    	for(x = 0; x < xend + 1; x++)
+    								{
+    								    value = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    									i++;
+    									dst[j++] = value;
+    								}
+    						    	i += addend;
+    						    	j += addend;
+    						    }
+    						    for(x = 0; x < xend + 1; x++)
+    							    dst[j++] = src[i++];
+    						}
+    						else
+    						{
+    						    
+    						    //Do a shift with no interpolation. 
+    						    
+    							addend--;
+    						    for(y = 0; y < yend + 1; y++)
+    						    {
+    						    	for(x = 0; x < xend + 1; x++)
+    						    		dst[j++] = src[i++];
+    						    	i += addend;
+    						    	j += addend;
+    						    }
+    						}
+    					}
+    				}
+    			}
+    			else
+    			{
+    		        if(xtrans > 0 && ytrans < 0)
+    				{
+    				    xstart = 0;
+    				    ystart = -yshift;
+    			        i      = -yshift * xdim; 
+    			        j      = 0;
+    			        xend   = xdim - xshift - 1;
+    			        yend   = ydim + yshift - 1;
+    			        addend = xdim - xend;
+    			        if(xdiff > 0 && ydiff < 0)
+    					{
+    				        rowlength     = xdim;
+    				        left_factor   = 1. - xdiff;
+    				        right_factor  = xdiff;
+    				        top_factor    = 1. + ydiff;
+    				        bottom_factor = -ydiff;
+    				        for(x = 0; x < xend + 1; x++)
+    					        dst[j++] = src[i++];
+    						i += addend - 1;
+    						j += addend - 1;
+    				        for(y = 0; y < yend; y++)
+    				        {
+    					        for(x = 0; x < xend; x++)
+    					        {
+    						        northwest = src[i];
+    						        northeast = src[i + 1];
+    						        southwest = src[i - rowlength];
+    						        southeast = src[i - rowlength + 1];
+    						        value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+    									        bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                                    dst[j++]    = value;
+        					        i++;
+    					        }
+    					        dst[j++] = src[i++];
+    					        i += addend;
+    					        j += addend;
+    				        }
+    					}
+    					else
+    					{
+    						if(xdiff > 0)
+    						{
+    					        left_factor  = 1. - xdiff;
+    					        right_factor = xdiff;
+        					    for(y = 0; y < yend + 1; y++)
+        					    {
+        					    	for(x = 0; x < xend; x++)
+        					    	{
+        					    	    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        					    	    dst[j++] = value;
+        					    		i++;
+        					    	}
+        					    	dst[j++] = src[i++];
+        					    	i += addend;
+        					    	j += addend;
+        					    }
+    						}
+    						else
+    						{
+    							if(ydiff < 0)
+    							{
+    							    top_factor    = -ydiff;
+    							    bottom_factor = 1. + ydiff;
+    						        for(y = 0; y < yend; y++)
+    						        {
+    						        	for(x = 0; x < xend + 1; x++)
+    							    	{
+    							    	    value = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    							    		i++;
+    							    		dst[j++] = value;
+    							    	}
+    						        	i += addend;
+    						        	j += addend;
+    						        }
+    						        for(x = 0; x < xend + 1; x++)
+    							        dst[j++] = src[i++];
+    							}
+    							else
+    							{
+    							    addend--;
+    						        for(y = 0; y < yend + 1; y++)
+    						        {
+    						    	    for(x = 0; x < xend + 1; x++)
+    						    	    	dst[j++] = src[i++];
+    						    	    i += addend;
+    						    	    j += addend;
+    						        }
+    							}
+    						}
+    					}
+    				}
+    				else
+    				
+    				//xtrans < 0 && ytrans > 0      
+    				
+    				{
+    				    xstart = -xshift;
+    				    ystart = 0;
+    			        i      = xstart + yshift * xdim; 
+    			        j      = 0;
+    			        xend   = xdim + xshift - 1;
+    			        yend   = ydim - yshift - 1;
+    			        addend = xdim - xend;
+    			        if(xdiff < 0 && ydiff > 0)
+    					{
+    				        rowlength     = xdim;
+    				        left_factor   = xdiff;
+    				        right_factor  = 1. + xdiff;
+    				        top_factor    = 1. - ydiff;
+    				        bottom_factor = ydiff;
+    					    for(y = 0; y < yend; y++)
+    					    {
+    					    	dst[j++] = src[i++];
+    					    	for(x = 0; x < xend; x++)
+    					    	{
+                                    northwest = src[i];
+                                    northeast = src[i - 1];
+                                    southwest = src[i + rowlength - 1];
+                                    southeast = src[i + rowlength];
+    							    value     = top_factor * (left_factor * northwest + right_factor * northeast) +
+    							    bottom_factor * (left_factor * southwest + right_factor * southeast) + .5;
+    							    dst[j++]  = value;
+    							    i++;
+    						    }
+    						    i += addend;
+    						    j += addend;
+    					    }
+    					    for(x = 0; x < xend + 1; x++)
+    						    dst[j++] = src[i++];
+    					}
+    					else
+    					{
+    						if(xdiff < 0)
+    						{
+    					        left_factor  = 1. + xdiff;
+    					        right_factor = -xdiff;
+        					    for(y = 0; y < yend + 1; y++)
+        					    {
+        					    	dst[j++] = src[i++];
+        					    	for(x = 0; x < xend; x++)
+        					    	{
+        					    	    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        					    	    dst[j++] = value;
+        					    		i++;
+        					    	}
+        					    	i += addend;
+        					    	j += addend;
+        					    }
+    						}
+    						else
+    						{
+    							if(ydiff > 0)
+    							{
+    						        top_factor    = 1. - ydiff;
+    						        bottom_factor = ydiff;
+    						        for(y = 0; y < yend; y++)
+    						        {
+    							        for(x = 0; x < xend + 1; x++)
+    							        {
+    								        value     = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    						                dst[j++] = value;
+    							            i++;
+    							        }
+    							        i += addend - 1;
+    							        j += addend - 1;
+    						        }
+    						        for(x = 0; x < xend + 1; x++)
+    							        dst[j++] = src[i++];
+    							}
+    							else
+    							{
+    							    addend--;
+    						        for(y = 0; y < yend + 1; y++)
+    						        {
+    						    	    for(x = 0; x < xend + 1; x++)
+    						    	    	dst[j++] = src[i++];
+    						    	    i += addend;
+    						    	    j += addend;
+    						        }
+    							}
+    						}
+    					}
+    				}
+    			}
+    		}
+    	}
+    	else
+    	{
+    		i         = 0;
+    		xend      = xdim - 1;
+    		yend      = ydim - 1;
+    		rowlength = xdim;
+    		if(xdiff != 0 && ydiff !=0)
+    		{
+    			if(xdiff > 0 && ydiff > 0)
+    			{
+    				left_factor   = 1. - xdiff;
+    				right_factor  = xdiff;
+    				top_factor    = 1. - ydiff;
+    				bottom_factor = ydiff;
+    				for(y = 0; y < yend; y++)
+    				{
+    					for(x = 0; x < xend; x++)
+    					{
+    						northwest = src[i];
+    						northeast = src[i + 1];
+    						southwest = src[i + rowlength];
+    						southeast = src[i + rowlength + 1];
+    						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+    									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                            dst[i++]    = value;
+    					}
+    					dst[i] = src[i];
+    					i++;
+    				}
+    				for(x = 0; x < xend + 1; x++)
+    				{
+    					dst[i] = src[i];
+    				    i++;
+    				}
+    			}
+    			else
+    			{
+    				if(xdiff > 0 || ydiff > 0)
+    				{
+    					if(xdiff > 0)
+    					{
+    				        left_factor   = 1. - xdiff;
+    				        right_factor  = xdiff;
+    				        top_factor    = -ydiff;
+    				        bottom_factor = 1. + ydiff;
+            				for(x = 0; x < xend + 1; x++)
+            				{
+            					dst[i] = src[i];
+            				    i++;
+            				}
+            				for(y = 0; y < yend; y++)
+            				{
+            					for(x = 0; x < xend; x++)
+            					{
+            						northwest = src[i];
+            						northeast = src[i + 1];
+            						southwest = src[i + rowlength];
+            						southeast = src[i + rowlength + 1];
+            						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+            									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                                    dst[i++]    = value;
+            					}
+            					dst[i] = src[i];
+            					i++;
+            				}
+    					}
+    					else
+    					{
+    				        left_factor   = -xdiff;
+    				        right_factor  = 1. + xdiff;
+    				        top_factor    = 1. - ydiff;
+    				        bottom_factor = ydiff;
+            				for(y = 0; y < yend; y++)
+            				{
+            					dst[i] = src[i];
+            					i++;
+            					for(x = 0; x < xend; x++)
+            					{
+            						northwest = src[i];
+            						northeast = src[i + 1];
+            						southwest = src[i + rowlength];
+            						southeast = src[i + rowlength + 1];
+            						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+            									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                                    dst[i++]    = value;
+            					}
+            				}
+            				for(x = 0; x < xend + 1; x++)
+            				{
+            					dst[i] = src[i];
+            				    i++;
+            				}
+    					}
+    				}
+    				else
+    				{
+    				    left_factor   = -xdiff;
+    				    right_factor  = 1. + xdiff;
+    				    top_factor    = -ydiff;
+    				    bottom_factor = 1. + ydiff;
+        				for(x = 0; x < xend + 1; x++)
+        				{
+        					dst[i] = src[i];
+        				    i++;
+        				}
+        				for(y = 0; y < yend; y++)
+        				{
+        					dst[i] = src[i];
+        					i++;
+        					for(x = 0; x < xend; x++)
+        					{
+        						northwest = src[i];
+        						northeast = src[i + 1];
+        						southwest = src[i + rowlength];
+        						southeast = src[i + rowlength + 1];
+        						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+        									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                                dst[i++]    = value;
+        					}
+        				}
+    				}
+    			}
+    		}
+    		else
+    		{
+    			if(xdiff != 0 || ydiff != 0)
+    			{
+    				if(xdiff != 0)
+    				{
+    					if(xdiff > 0)
+    					{
+    					   left_factor  = 1. - xdiff;
+    					   right_factor = xdiff;
+    					   xend         = xdim - 1;
+    					   yend         = ydim;
+    					   i            = 0;
+        				   for(y = 0; y < yend; y++)
+        				   {
+        					   for(x = 0; x < xend; x++)
+        					   {
+        					       value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        					       dst[i++] = value;
+        					   }
+        					   dst[i] = src[i];
+    						   i++;
+        				   }
+    					}
+    					else
+    					{
+    					    left_factor  = -xdiff;
+    					    right_factor = 1. + xdiff;
+    						xend         = xdim - 1;
+    						yend         = ydim;
+    						i            = 0;
+        					for(y = 0; y < yend; y++)
+        					{
+        						dst[i] = src[i];
+        						for(x = 0; x < xend; x++)
+        						{
+        						    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        						    dst[i++] = value;
+        						}
+        					}
+    					}
+    				}
+    				else
+    				{
+    					if(ydiff > 0)
+    					{
+    						top_factor    = 1. - ydiff;
+    						bottom_factor = ydiff;
+    						xend          = xdim;
+    						yend          = ydim - 1;
+    						i             = 0;
+    						for(y = 0; y < yend; y++)
+    						{
+    							for(x = 0; x < xend; x++)
+    							{
+    								value     = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    						        dst[i++] = value;
+    							}
+    						}
+    						for(x = 0; x < xend; x++)
+    						{
+    							dst[i] = src[i];
+    							i++;
+    						}
+    					}
+    					else
+    					{
+    					    top_factor    = -ydiff;
+    					    bottom_factor = 1. + ydiff;
+    					    for(i = 0; i < xdim; i++)
+    							dst[i] = src[i];
+    					    for(y = 0; y < yend; y++)
+    					    {
+    					       	for(x = 0; x < xdim; x++)
+    					    	{
+    					    	    value = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    					    		dst[i++] = value;
+    					    	}
+    					    }
+    					}
+    				}
+    			}
+    			else
+    			{
+    				for(i = 0; i < xdim * ydim; i++)
+    					dest[i] = source[i];
+    			}
+    		}
+    	}
+        
+        
+        
+        return(dest);
+    }
+    */
+    
+    
+    
+    /*
+    void translate(src, dst, xdim, ydim, xtrans, ytrans)
+    unsigned char *src, *dst;
+    int    xdim, ydim; 
+    double xtrans, ytrans; 
+    {
+    	register int    i, j, x, y, rowlength;
+    	register int    xend, yend, addend;
+        register double northwest,northeast,southwest,southeast;
+    	register double left_factor, right_factor, top_factor, bottom_factor;
+        register double value;
+    	int    xshift, yshift;
+    	int    xstart, ystart;
+        double xdiff,  ydiff;
+
+    	xshift = (int)xtrans;
+    	yshift = (int)ytrans;
+    	xdiff  = xtrans - xshift;
+    	ydiff  = ytrans - yshift;
+
+    	if(xshift != 0 && yshift != 0)
+    	{
+    		if(xtrans > 0 && ytrans > 0)
+    		{
+    			i      = 0; 
+    			j      = xshift + yshift * xdim;
+    			xend   = xdim - xshift - 1;
+    			yend   = ydim - yshift - 1;
+    			addend = xdim - xend;
+    			if(xdiff > 0 && ydiff > 0)
+    			{
+    				rowlength     = xdim;
+    				left_factor   = 1. - xdiff;
+    				right_factor  = xdiff;
+    				top_factor    = 1. - ydiff;
+    				bottom_factor = ydiff;
+    				for(y = 0; y < yend; y++)
+    				{
+    					for(x = 0; x < xend; x++)
+    					{
+    						northwest = src[i];
+    						northeast = src[i + 1];
+    						southwest = src[i + rowlength];
+    						southeast = src[i + rowlength + 1];
+    						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+    									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                            dst[j++]  = value;
+        					i++;
+    					}
+    					dst[j++] = src[i++];
+    					i += addend;
+    					j += addend;
+    				}
+    				for(x = 0; x < xend + 1; x++)
+    					dst[j++] = src[i++];
+    			}
+    			else
+    			{
+    				if(xdiff > 0)
+    				{
+    					left_factor  = 1. - xdiff;
+    					right_factor = xdiff;
+    					for(y = 0; y < yend + 1; y++)
+    					{
+    						for(x = 0; x < xend; x++)
+    						{
+    						    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+    						    dst[j++] = value;
+    							i++;
+    						}
+    						dst[j++] = src[i++];
+    						i += addend;
+    						j += addend;
+    					}
+    				}
+    				else
+    				{
+    					if(ydiff > 0)
+    					{
+    						top_factor    = 1. - ydiff;
+    						bottom_factor = ydiff;
+    						for(y = 0; y < yend; y++)
+    						{
+    							for(x = 0; x < xend + 1; x++)
+    							{
+    								value     = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    						        dst[j++] = value;
+    							    i++;
+    							}
+    							i += addend;
+    							j += addend;
+    						}
+    						for(x = 0; x < xend + 1; x++)
+    							dst[j++] = src[i++];
+    					}
+    					else
+    					{
+    						
+    						//Do a shift with no interpolation. 
+    						
+    						addend--;
+    						for(y = 0; y < yend + 1; y++)
+    						{
+    							for(x = 0; x < xend + 1; x++)
+    								dst[j++] = src[i++];
+    							i += addend;
+    							j += addend;
+    						}
+    					}
+    				}
+    			}
+    		}
+    		else
+    		{
+    		    if(xtrans < 0 && ytrans < 0)
+    			{
+    				xstart = -xshift;
+    				ystart = -yshift;
+    			    i      = xstart - yshift * xdim; 
+    			    j      = 0;
+    			    xend   = xdim + xshift - 1;
+    			    yend   = ydim + yshift - 1;
+    			    addend = xdim - xend;
+    				if(xdiff < 0 && ydiff < 0)
+    				{
+    				    rowlength     = xdim;
+    				    left_factor   = -xdiff;
+    				    right_factor  = 1. + xdiff;
+    				    top_factor    = -ydiff;
+    				    bottom_factor = 1. + ydiff;
+    					for(x = 0; x < xend + 1; x++)
+    						dst[j++] = src[i++];
+    					i += addend - 1;
+    					j += addend - 1;
+    					for(y = 0; y < yend; y++)
+    					{
+    						dst[j++] = src[i++];
+    						for(x = 0; x < xend; x++)
+    						{
+                                northwest = src[i - rowlength - 1];
+                                northeast = src[i - rowlength];
+                                southwest = src[i - 1];
+                                southeast = src[i];
+    							value     = top_factor * (left_factor * northwest + right_factor * northeast) +
+    							bottom_factor * (left_factor * southwest + right_factor * southeast) + .5;
+    							dst[j++]  = value;
+    							i++;
+    						}
+    						i += addend;
+    						j += addend;
+    					}
+    				}
+    				else
+    				{
+    					if(xdiff < 0)
+    					{
+    					    left_factor  = -xdiff;
+    					    right_factor = 1. + xdiff;
+        					for(y = 0; y < yend + 1; y++)
+        					{
+        						dst[j++] = src[i++];
+        						for(x = 0; x < xend; x++)
+        						{
+        						    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        						    dst[j++] = value;
+        							i++;
+        						}
+        						i += addend;
+        						j += addend;
+        					}
+    					}
+    					else
+    					{
+    						if(ydiff < 0)
+    						{
+    							top_factor    = -ydiff;
+    							bottom_factor = 1. + ydiff;
+    						    for(y = 0; y < yend; y++)
+    						    {
+    						    	for(x = 0; x < xend + 1; x++)
+    								{
+    								    value = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    									i++;
+    									dst[j++] = value;
+    								}
+    						    	i += addend;
+    						    	j += addend;
+    						    }
+    						    for(x = 0; x < xend + 1; x++)
+    							    dst[j++] = src[i++];
+    						}
+    						else
+    						{
+    						    
+    						    //Do a shift with no interpolation. 
+    						    
+    							addend--;
+    						    for(y = 0; y < yend + 1; y++)
+    						    {
+    						    	for(x = 0; x < xend + 1; x++)
+    						    		dst[j++] = src[i++];
+    						    	i += addend;
+    						    	j += addend;
+    						    }
+    						}
+    					}
+    				}
+    			}
+    			else
+    			{
+    		        if(xtrans > 0 && ytrans < 0)
+    				{
+    				    xstart = 0;
+    				    ystart = -yshift;
+    			        i      = -yshift * xdim; 
+    			        j      = 0;
+    			        xend   = xdim - xshift - 1;
+    			        yend   = ydim + yshift - 1;
+    			        addend = xdim - xend;
+    			        if(xdiff > 0 && ydiff < 0)
+    					{
+    				        rowlength     = xdim;
+    				        left_factor   = 1. - xdiff;
+    				        right_factor  = xdiff;
+    				        top_factor    = 1. + ydiff;
+    				        bottom_factor = -ydiff;
+    				        for(x = 0; x < xend + 1; x++)
+    					        dst[j++] = src[i++];
+    						i += addend - 1;
+    						j += addend - 1;
+    				        for(y = 0; y < yend; y++)
+    				        {
+    					        for(x = 0; x < xend; x++)
+    					        {
+    						        northwest = src[i];
+    						        northeast = src[i + 1];
+    						        southwest = src[i - rowlength];
+    						        southeast = src[i - rowlength + 1];
+    						        value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+    									        bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                                    dst[j++]    = value;
+        					        i++;
+    					        }
+    					        dst[j++] = src[i++];
+    					        i += addend;
+    					        j += addend;
+    				        }
+    					}
+    					else
+    					{
+    						if(xdiff > 0)
+    						{
+    					        left_factor  = 1. - xdiff;
+    					        right_factor = xdiff;
+        					    for(y = 0; y < yend + 1; y++)
+        					    {
+        					    	for(x = 0; x < xend; x++)
+        					    	{
+        					    	    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        					    	    dst[j++] = value;
+        					    		i++;
+        					    	}
+        					    	dst[j++] = src[i++];
+        					    	i += addend;
+        					    	j += addend;
+        					    }
+    						}
+    						else
+    						{
+    							if(ydiff < 0)
+    							{
+    							    top_factor    = -ydiff;
+    							    bottom_factor = 1. + ydiff;
+    						        for(y = 0; y < yend; y++)
+    						        {
+    						        	for(x = 0; x < xend + 1; x++)
+    							    	{
+    							    	    value = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    							    		i++;
+    							    		dst[j++] = value;
+    							    	}
+    						        	i += addend;
+    						        	j += addend;
+    						        }
+    						        for(x = 0; x < xend + 1; x++)
+    							        dst[j++] = src[i++];
+    							}
+    							else
+    							{
+    							    addend--;
+    						        for(y = 0; y < yend + 1; y++)
+    						        {
+    						    	    for(x = 0; x < xend + 1; x++)
+    						    	    	dst[j++] = src[i++];
+    						    	    i += addend;
+    						    	    j += addend;
+    						        }
+    							}
+    						}
+    					}
+    				}
+    				else
+    				
+    				//xtrans < 0 && ytrans > 0      
+    				
+    				{
+    				    xstart = -xshift;
+    				    ystart = 0;
+    			        i      = xstart + yshift * xdim; 
+    			        j      = 0;
+    			        xend   = xdim + xshift - 1;
+    			        yend   = ydim - yshift - 1;
+    			        addend = xdim - xend;
+    			        if(xdiff < 0 && ydiff > 0)
+    					{
+    				        rowlength     = xdim;
+    				        left_factor   = xdiff;
+    				        right_factor  = 1. + xdiff;
+    				        top_factor    = 1. - ydiff;
+    				        bottom_factor = ydiff;
+    					    for(y = 0; y < yend; y++)
+    					    {
+    					    	dst[j++] = src[i++];
+    					    	for(x = 0; x < xend; x++)
+    					    	{
+                                    northwest = src[i];
+                                    northeast = src[i - 1];
+                                    southwest = src[i + rowlength - 1];
+                                    southeast = src[i + rowlength];
+    							    value     = top_factor * (left_factor * northwest + right_factor * northeast) +
+    							    bottom_factor * (left_factor * southwest + right_factor * southeast) + .5;
+    							    dst[j++]  = value;
+    							    i++;
+    						    }
+    						    i += addend;
+    						    j += addend;
+    					    }
+    					    for(x = 0; x < xend + 1; x++)
+    						    dst[j++] = src[i++];
+    					}
+    					else
+    					{
+    						if(xdiff < 0)
+    						{
+    					        left_factor  = 1. + xdiff;
+    					        right_factor = -xdiff;
+        					    for(y = 0; y < yend + 1; y++)
+        					    {
+        					    	dst[j++] = src[i++];
+        					    	for(x = 0; x < xend; x++)
+        					    	{
+        					    	    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        					    	    dst[j++] = value;
+        					    		i++;
+        					    	}
+        					    	i += addend;
+        					    	j += addend;
+        					    }
+    						}
+    						else
+    						{
+    							if(ydiff > 0)
+    							{
+    						        top_factor    = 1. - ydiff;
+    						        bottom_factor = ydiff;
+    						        for(y = 0; y < yend; y++)
+    						        {
+    							        for(x = 0; x < xend + 1; x++)
+    							        {
+    								        value     = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    						                dst[j++] = value;
+    							            i++;
+    							        }
+    							        i += addend - 1;
+    							        j += addend - 1;
+    						        }
+    						        for(x = 0; x < xend + 1; x++)
+    							        dst[j++] = src[i++];
+    							}
+    							else
+    							{
+    							    addend--;
+    						        for(y = 0; y < yend + 1; y++)
+    						        {
+    						    	    for(x = 0; x < xend + 1; x++)
+    						    	    	dst[j++] = src[i++];
+    						    	    i += addend;
+    						    	    j += addend;
+    						        }
+    							}
+    						}
+    					}
+    				}
+    			}
+    		}
+    	}
+    	else
+    	{
+    		i         = 0;
+    		xend      = xdim - 1;
+    		yend      = ydim - 1;
+    		rowlength = xdim;
+    		if(xdiff != 0 && ydiff !=0)
+    		{
+    			if(xdiff > 0 && ydiff > 0)
+    			{
+    				left_factor   = 1. - xdiff;
+    				right_factor  = xdiff;
+    				top_factor    = 1. - ydiff;
+    				bottom_factor = ydiff;
+    				for(y = 0; y < yend; y++)
+    				{
+    					for(x = 0; x < xend; x++)
+    					{
+    						northwest = src[i];
+    						northeast = src[i + 1];
+    						southwest = src[i + rowlength];
+    						southeast = src[i + rowlength + 1];
+    						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+    									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                            dst[i++]    = value;
+    					}
+    					dst[i] = src[i];
+    					i++;
+    				}
+    				for(x = 0; x < xend + 1; x++)
+    				{
+    					dst[i] = src[i];
+    				    i++;
+    				}
+    			}
+    			else
+    			{
+    				if(xdiff > 0 || ydiff > 0)
+    				{
+    					if(xdiff > 0)
+    					{
+    				        left_factor   = 1. - xdiff;
+    				        right_factor  = xdiff;
+    				        top_factor    = -ydiff;
+    				        bottom_factor = 1. + ydiff;
+            				for(x = 0; x < xend + 1; x++)
+            				{
+            					dst[i] = src[i];
+            				    i++;
+            				}
+            				for(y = 0; y < yend; y++)
+            				{
+            					for(x = 0; x < xend; x++)
+            					{
+            						northwest = src[i];
+            						northeast = src[i + 1];
+            						southwest = src[i + rowlength];
+            						southeast = src[i + rowlength + 1];
+            						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+            									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                                    dst[i++]    = value;
+            					}
+            					dst[i] = src[i];
+            					i++;
+            				}
+    					}
+    					else
+    					{
+    				        left_factor   = -xdiff;
+    				        right_factor  = 1. + xdiff;
+    				        top_factor    = 1. - ydiff;
+    				        bottom_factor = ydiff;
+            				for(y = 0; y < yend; y++)
+            				{
+            					dst[i] = src[i];
+            					i++;
+            					for(x = 0; x < xend; x++)
+            					{
+            						northwest = src[i];
+            						northeast = src[i + 1];
+            						southwest = src[i + rowlength];
+            						southeast = src[i + rowlength + 1];
+            						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+            									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                                    dst[i++]    = value;
+            					}
+            				}
+            				for(x = 0; x < xend + 1; x++)
+            				{
+            					dst[i] = src[i];
+            				    i++;
+            				}
+    					}
+    				}
+    				else
+    				{
+    				    left_factor   = -xdiff;
+    				    right_factor  = 1. + xdiff;
+    				    top_factor    = -ydiff;
+    				    bottom_factor = 1. + ydiff;
+        				for(x = 0; x < xend + 1; x++)
+        				{
+        					dst[i] = src[i];
+        				    i++;
+        				}
+        				for(y = 0; y < yend; y++)
+        				{
+        					dst[i] = src[i];
+        					i++;
+        					for(x = 0; x < xend; x++)
+        					{
+        						northwest = src[i];
+        						northeast = src[i + 1];
+        						southwest = src[i + rowlength];
+        						southeast = src[i + rowlength + 1];
+        						value     = top_factor * (left_factor * northwest +  right_factor * northeast) +
+        									bottom_factor * (left_factor * southwest +  right_factor * southeast) + .5;
+                                dst[i++]    = value;
+        					}
+        				}
+    				}
+    			}
+    		}
+    		else
+    		{
+    			if(xdiff != 0 || ydiff != 0)
+    			{
+    				if(xdiff != 0)
+    				{
+    					if(xdiff > 0)
+    					{
+    					   left_factor  = 1. - xdiff;
+    					   right_factor = xdiff;
+    					   xend         = xdim - 1;
+    					   yend         = ydim;
+    					   i            = 0;
+        				   for(y = 0; y < yend; y++)
+        				   {
+        					   for(x = 0; x < xend; x++)
+        					   {
+        					       value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        					       dst[i++] = value;
+        					   }
+        					   dst[i] = src[i];
+    						   i++;
+        				   }
+    					}
+    					else
+    					{
+    					    left_factor  = -xdiff;
+    					    right_factor = 1. + xdiff;
+    						xend         = xdim - 1;
+    						yend         = ydim;
+    						i            = 0;
+        					for(y = 0; y < yend; y++)
+        					{
+        						dst[i] = src[i];
+        						for(x = 0; x < xend; x++)
+        						{
+        						    value  = (left_factor * src[i]) + (right_factor * src[i + 1]) + .5;
+        						    dst[i++] = value;
+        						}
+        					}
+    					}
+    				}
+    				else
+    				{
+    					if(ydiff > 0)
+    					{
+    						top_factor    = 1. - ydiff;
+    						bottom_factor = ydiff;
+    						xend          = xdim;
+    						yend          = ydim - 1;
+    						i             = 0;
+    						for(y = 0; y < yend; y++)
+    						{
+    							for(x = 0; x < xend; x++)
+    							{
+    								value     = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    						        dst[i++] = value;
+    							}
+    						}
+    						for(x = 0; x < xend; x++)
+    						{
+    							dst[i] = src[i];
+    							i++;
+    						}
+    					}
+    					else
+    					{
+    					    top_factor    = -ydiff;
+    					    bottom_factor = 1. + ydiff;
+    					    for(i = 0; i < xdim; i++)
+    							dst[i] = src[i];
+    					    for(y = 0; y < yend; y++)
+    					    {
+    					       	for(x = 0; x < xdim; x++)
+    					    	{
+    					    	    value = (top_factor * src[i]) + (bottom_factor  * src[i + rowlength]) + .5;
+    					    		dst[i++] = value;
+    					    	}
+    					    }
+    					}
+    				}
+    			}
+    			else
+    			{
+    				for(i = 0; i < xdim * ydim; i++)
+    					dst[i] = src[i];
+    			}
+    		}
+    	}
+    }
+
+    
+    //The workspace should be equal to twice the size of one of the image files. 
+    //Note: if the mallocing is done from within the function there is a bug     
+    //even if it is properly freed at the end of the function (besides being     
+    //slower as well).  This may have something to do with how fast and how many 
+    //times the function gets called over again. The function returns three      
+    //result codes: 0 - the optimal result, the estimate converged to a local    
+    //minimum after the typical number of iterations; 1 - possibly a somewhat    
+    //accurate result but the estimate did not converge within a typical number  
+    //of iterations; 2 - the estimate may be accurate but it has reached the     
+    //limit of precision, 3 pixels or the width of the gradient filter. In the   
+    //third case, it may be possible to extend the precision by resampling and   
+    //correlating them from different offsets(possibly with                      
+    //get_translation_with_resample()) or comparing them at a smaller scale      
+    //(possibly with subsample() or shrinkavg() in conjunction with this         
+    //function).                                                                 
+    
+    int get_translation(first, second, xdim, ydim, xtrans, ytrans, number_of_iterations, workspace)
+    unsigned char *first, *second, *workspace;
+    int            xdim, ydim; 
+    double        *xtrans, *ytrans; 
+    int           *number_of_iterations; 
+    {
+        register double a1,a2;
+
+        double        increment;
+        double        first_xincrement, first_yincrement;    
+        double        xincrement_max, yincrement_max;
+        double        xdiff, ydiff;
+        double        xsize_cutoff, ysize_cutoff;
+
+        int           xshift, yshift, maximum_shift;
+        int           result;
+        int           maximum_iterations;
+        int           current_iteration;
+
+        register int           delta, xpos, ypos, addend;
+        register int           xgradient_sum, ygradient_sum;
+    	register int           rowlength;
+        register int           least_x, greatest_x, least_y, greatest_y;
+
+        register int           i;
+        register double        w,x,z;
+        register double        b1,b2;
+        register double        xx, xy, yy, xdelta, ydelta;
+        register double        xgradient, ygradient;
+        register double        xincrement, yincrement;    
+
+    	unsigned char *shift, *intermediate;
+
+        maximum_shift      = 3;
+        maximum_iterations = 4; 
+    	rowlength          = xdim;
+    	intermediate       = workspace + xdim * ydim;
+
+        xsize_cutoff = ysize_cutoff = 0.;
+        least_x      = least_y      = 0;
+        a1 = 0.;
+        a2 = 0.;
+        current_iteration = 0;
+        greatest_x = xdim -1;
+        greatest_y = ydim -1;
+    	shift = second;
+
+        while(1)
+        {
+            current_iteration++;
+            if(current_iteration  > maximum_iterations)
+            {
+                result = 1;
+                *xtrans = a1;
+                *ytrans = a2;
+                *number_of_iterations = current_iteration;
+                break;
+            }
+            w = x = z = b1 = b2 = 0.;
+    		i = least_x + 1 + (least_y + 1) * xdim;
+    		addend = least_x + 1;
+    		addend += (xdim - 1) - greatest_x + 1;
+            for(ypos = least_y + 1; ypos < greatest_y; ypos++)
+    		{
+    		    for(xpos = least_x + 1; xpos < greatest_x; xpos++)
+                {
+    				xgradient_sum = (shift[i+1] - shift[i-1]) + (shift[i-rowlength+1] - shift[i-rowlength-1]) + (shift[i+rowlength+1] - shift[i+rowlength-1]);  
+    				ygradient_sum = (shift[i+rowlength] - shift[i-rowlength]) + (shift[i+rowlength-1] - shift[i-rowlength-1]) + (shift[i+rowlength+1] - shift[i-rowlength+1]); 
+                    xgradient =  xgradient_sum;
+                    ygradient =  ygradient_sum;
+                    xgradient /= 3.;
+                    ygradient /= 3.;
+                    xx        =  xgradient * xgradient;
+                    xy        =  xgradient * ygradient;
+                    yy        =  ygradient * ygradient;
+                    delta     =  first[i] - shift[i];
+                    xdelta    =  xgradient * delta;
+                    ydelta    =  ygradient * delta;
+                    w         += xx;
+                    x         += xy;
+                    z         += yy;
+                    b1        += xdelta; 
+                    b2        += ydelta;
+    				i++;
+                }
+    			i += addend;
+            }
+        
+            yincrement = (b2 - x * b1/ w)/(z - x * x / w);
+            xincrement = (b1 - x * b2/ z)/(w - x * x / z);
+        
+            if((xincrement <= xsize_cutoff && xincrement >= -xsize_cutoff) && (yincrement <= ysize_cutoff && yincrement >= -ysize_cutoff))
+            {
+                *xtrans = a1;
+                *ytrans = a2;
+                *number_of_iterations = current_iteration;
+                result = 0;
+                break;
+            }
+
+            if(current_iteration == 1)
+            {
+                if(xincrement == 0. && yincrement == 0.)
+                {
+                    result = 0;
+                    *xtrans = 0.;
+                    *ytrans = 0.;
+                    *number_of_iterations = current_iteration;
+                    break;
+                }
+    	        shift    = workspace;
+
+                xincrement_max = fabs(xincrement);
+                xsize_cutoff   = xincrement_max / 100.;
+        
+                yincrement_max = fabs(yincrement);
+                ysize_cutoff   = yincrement_max / 100.;
+                 
+
+                first_xincrement = xincrement;
+                if(xincrement < 0.)
+                    a1 = -1. - xincrement;
+                else
+                {
+                    if(xincrement != 0.)
+                        a1 = 1. - xincrement;
+                    else
+                        a1 = 0.;
+                }
+
+                first_yincrement = yincrement;
+                if(yincrement < 0.)
+                    a2 = -1. - yincrement;
+                else
+                {
+                    if(yincrement != 0.)
+                        a2 = 1. - yincrement;
+                    else
+                        a2 = 0.;
+                }
+            }
+            else
+            {
+                increment = fabs(xincrement);
+                if(xincrement_max < increment)
+                {
+                    xincrement_max    = increment;
+                    xsize_cutoff      = increment / 100.; 
+                }
+
+                increment = fabs(yincrement);
+                if(yincrement_max < increment)
+                {
+                    yincrement_max = increment;
+                    ysize_cutoff   = increment / 100.;
+                }
+
+                if(current_iteration == 2)
+                {
+                    if(((xincrement <= 0 && first_xincrement <= 0) || 
+                        (xincrement >= 0 && first_xincrement >= 0)))
+                    {
+                        if(a1 < 0.)
+                            a1 = -2.0 - xincrement;
+                        else
+                            a1 =  2.0 - xincrement;
+                        
+                        first_xincrement = xincrement;
+                    }
+                    else
+                    {
+                        if(fabs(first_xincrement) < fabs(xincrement))
+                        {
+                            a1 = 0.;
+                            xincrement = first_xincrement;    
+                        }
+                    }
+
+                    if(((yincrement <= 0 && first_yincrement <= 0) ||
+                        (yincrement >= 0 && first_yincrement >= 0)))
+                    {
+                        if(a2 < 0.)
+                            a2 = -2.0 - yincrement;
+                        else
+                            a2 =  2.0 - yincrement;
+                        
+                        first_yincrement = yincrement;
+                    }
+                    else
+                    {
+                        if(fabs(first_yincrement) < fabs(yincrement))
+                        {
+                            a2 = 0.;
+                            yincrement = first_yincrement;
+                        }
+                    }
+                }
+
+                if(current_iteration == 3)
+                {
+                    if(fabs(a1) == 2.)
+                    {
+                        if(((xincrement <= 0 && first_xincrement <= 0) || 
+                            (xincrement >= 0 && first_xincrement >= 0)))
+                        {
+                            if(a1 < 0.)
+                                a1 = -3.0 - xincrement;
+                            else
+                                a1 =  3.0 - xincrement;
+                        }
+                        else
+                        {
+                            if(fabs(first_xincrement) < fabs(xincrement))
+                            {
+                                if(a1 > 0.)
+                                    a1 = 1.;
+                                else
+                                    a1 = -1.;
+                                xincrement = first_xincrement;    
+                            }
+                        }
+                    }
+
+                    if(fabs(a2) == 2.)
+                    {
+                        if(((yincrement <= 0 && first_yincrement <= 0) ||
+                            (yincrement >= 0 && first_yincrement >= 0)))
+                        {
+                            if(a2 < 0.)
+                                a2 = -3.0 - yincrement;
+                            else
+                                a2 =  3.0 - yincrement;
+                        }
+                        else
+                        {
+                            if(fabs(first_yincrement) < fabs(yincrement))
+                            {
+                                if(a2 > 0.)
+                                    a2 = 1.;
+                                else
+                                    a2 = -1.;
+                                yincrement = first_yincrement;
+                            }
+                        }
+                    }
+                }
+            }
+        
+            a1 += xincrement;
+            xshift = -a1;
+
+            a2 += yincrement;
+            yshift = -a2;
+
+            if((abs(yshift) >= maximum_shift) || (abs(xshift) >= maximum_shift))
+            {
+                result  = 2;
+                *xtrans = a1;
+                *ytrans = a2;
+                *number_of_iterations = current_iteration;
+                break;
+            }
+        
+            if(xshift != 0)
+            {
+                if(xshift < 0)
+                {
+                    least_x    = 0;
+                    greatest_x = xdim -1 + xshift;
+                }
+                else
+                {
+                    least_x    = xshift;
+                    greatest_x = xdim -1;
+                }
+            }
+            else
+            {
+                least_x    = 0;
+                greatest_x = xdim -1;
+            }
+        
+            if(yshift != 0)
+            {
+                if(yshift < 0)
+                {
+                    least_y    = 0;
+                    greatest_y = ydim -1 + yshift;
+                }
+                else
+                {
+                    least_y    = yshift;
+                    greatest_y = ydim -1;
+                }
+            }
+            else
+            {
+                least_y    = 0;
+                greatest_y = ydim -1;
+            }
+            translate(second, shift, xdim, ydim, -a1, -a2);
+
+        }
+        return(result);
+    }
+    */
+
 }
