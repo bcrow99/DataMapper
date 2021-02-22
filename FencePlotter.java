@@ -215,7 +215,7 @@ public class FencePlotter
 		table.setValueAt(header, 0, 9);
 
 		int rows = 5;
-		int line = 26;
+		int line = 27;
 
 		for (int i = 0; i < rows; i++)
 		{
@@ -341,8 +341,8 @@ public class FencePlotter
 			position_string = new String("meters");
 			string_width = font_metrics.stringWidth(position_string);
 			g2.drawString(position_string,
-					left_margin + (graph_xdim + left_margin - string_width) / 2 - string_width / 2,
-					ydim - bottom_margin / 3);
+			left_margin + (graph_xdim + left_margin - string_width) / 2 - string_width / 2,
+			ydim - bottom_margin / 3);
 
 			yrange = maximum_y - minimum_y;
 
@@ -357,75 +357,124 @@ public class FencePlotter
 			string_width = font_metrics.stringWidth(intensity_string);
 			g2.drawString(intensity_string, string_width / 2, top_margin + 4 * ystep + graph_ydim / 2);
 
-			// Plot lines in second pass.
+			// Construct polygons in second pass.
+			Polygon [] polygon = new Polygon[5];
 			for (int i = 0; i < 5; i++)
 			{
-				int j = order[i];
-				String visibility = (String) table.getValueAt(j + 1, 8);
+				//int j = order[i];
+				
+				int a1 = left_margin;
+				int b1 = ydim - bottom_margin;
+
+				int a2 = a1 + graph_xdim;
+				int b2 = b1 - graph_ydim;
+
+				//int xaddend = j * xstep;
+				int xaddend = i * xstep;
+				//int yaddend = j * ystep;
+				int yaddend = i * ystep;
+				a1 += xaddend;
+				b1 -= yaddend;
+
+				a2 += xaddend;
+				b2 -= yaddend;
+
+				//ArrayList current_line = (ArrayList) plot_data.get(j);
+				ArrayList current_line = (ArrayList) plot_data.get(i);
+					
+				int n   = current_line.size() + 3;
+				int[] x = new int[n];
+				int[] y = new int[n];
+				x[0]    = a1;
+				y[0]    = b1;
+					
+				Point2D.Double previous = (Point2D.Double) current_line.get(0);
+				double x1 = previous.getX();
+				x1 -= minimum_x;
+				x1 /= xrange;
+				x1 *= graph_xdim;
+				x1 += left_margin;	
+				x1 += xaddend;
+				
+				double y1 = previous.getY();
+				y1 -= minimum_y;
+				y1 /= yrange;
+				y1 *= graph_ydim;
+				y1 = graph_ydim - y1;
+				y1 += top_margin + 4 * ystep;
+				y1 -= yaddend;
+					
+				x[1] = (int)x1;
+				y[1] = (int)y1;
+					
+				double x2 = 0;
+				double y2 = 0;
+				int    m  = 2;
+				for (int k = 1; k < current_line.size(); k++)
+				{
+					x1 = previous.getX();
+					x1 -= minimum_x;
+					x1 /= xrange;
+					x1 *= graph_xdim;
+					x1 += left_margin;
+					x1 += xaddend;
+
+					y1 = previous.getY();
+					y1 -= minimum_y;
+					y1 /= yrange;
+					y1 *= graph_ydim;
+					y1 = graph_ydim - y1;
+					y1 += top_margin + 4 * ystep;
+					y1 -= yaddend;
+
+					Point2D.Double current = (Point2D.Double) current_line.get(k);
+
+					x2 = current.getX();
+					x2 -= minimum_x;
+					x2 /= xrange;
+					x2 *= graph_xdim;
+					x2 += left_margin;
+					x2 += xaddend;
+
+					y2 = current.getY();
+					y2 -= minimum_y;
+					y2 /= yrange;
+					y2 *= graph_ydim;
+					y2 = graph_ydim - y2;
+					y2 += top_margin + 4 * ystep;
+					y2 -= yaddend;
+                    x[m] = (int)x2;
+                    y[m] = (int)y2;
+                    m++;
+					
+                    previous = current;
+				}
+					
+				x[m] = a2;
+                y[m] = b1;
+                m++;
+					
+				x[m] = a1;
+                y[m] = b1;
+                    
+                java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
+                polygon[i] = sensor_polygon;
+                //g2.drawPolygon(sensor_polygon);
+			}
+			
+		
+			for (int i = 4; i >= 0; i--)
+			{
+				//int j = order[i];
+				//String visibility = (String) table.getValueAt(j + 1, 8);
+				String visibility = (String) table.getValueAt(i + 1, 8);
 				if (visibility.equals("yes"))
 				{
-					g2.setColor(color[j]);
-
-					int a1 = left_margin;
-					int b1 = ydim - bottom_margin;
-
-					int a2 = a1 + graph_xdim;
-					int b2 = b1 - graph_ydim;
-
-					int xaddend = j * xstep;
-					int yaddend = j * ystep;
-
-					a1 += xaddend;
-					b1 -= yaddend;
-
-					a2 += xaddend;
-					b2 -= yaddend;
-
-					g2.drawLine(a1, b1, a1, b2);
-					g2.drawLine(a1, b1, a2, b1);
-					g2.drawLine(a1, b2, a2, b2);
-					g2.drawLine(a2, b2, a2, b1);
-
-					ArrayList current_line = (ArrayList) plot_data.get(j);
-					Point2D.Double previous = (Point2D.Double) current_line.get(0);
-					for (int k = 1; k < current_line.size(); k++)
-					{
-						double x1 = previous.getX();
-						x1 -= minimum_x;
-						x1 /= xrange;
-						x1 *= graph_xdim;
-						x1 += left_margin;
-						x1 += xaddend;
-
-						double y1 = previous.getY();
-						y1 -= minimum_y;
-						y1 /= yrange;
-						y1 *= graph_ydim;
-						y1 = graph_ydim - y1;
-						y1 += top_margin + 4 * ystep;
-						y1 -= yaddend;
-
-						Point2D.Double current = (Point2D.Double) current_line.get(k);
-
-						double x2 = current.getX();
-						x2 -= minimum_x;
-						x2 /= xrange;
-						x2 *= graph_xdim;
-						x2 += left_margin;
-						x2 += xaddend;
-
-						double y2 = current.getY();
-						y2 -= minimum_y;
-						y2 /= yrange;
-						y2 *= graph_ydim;
-						y2 = graph_ydim - y2;
-						y2 += top_margin + 4 * ystep;
-						y2 -= yaddend;
-
-						g2.drawLine((int) x1, (int) y1, (int) x2, (int) y2);
-
-						previous = current;
-					}
+					g2.setColor(java.awt.Color.WHITE);
+					g2.fillPolygon(polygon[i]);
+					g2.setColor(color[i]);	
+					g2.drawPolygon(polygon[i]);
+					
 				}
 			}
 		}
