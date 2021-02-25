@@ -2,6 +2,7 @@ import java.util.Hashtable;
 
 public class ObjectMapper
 {
+	// Maps objects to iso quadrants.
 	public static int[][] getIsoArray()
 	{
 		int[][] iso_array = new int[54][2];
@@ -134,6 +135,42 @@ public class ObjectMapper
 		return iso_array;
 	}
 	
+	public static double[] getOffsetArray()
+	{
+		double[] offset_array = new double[30];
+		offset_array[0]       = .4;
+		offset_array[1]       = -.4;
+		offset_array[2]       = .4;
+		offset_array[3]       = -1.;
+		offset_array[4]       = .3;
+		offset_array[5]       = -.3;
+		offset_array[6]       = .4;
+		offset_array[7]       = -.6;
+		offset_array[8]       = .6;
+		offset_array[9]       = -.6;
+		offset_array[10]      = .6;
+		offset_array[11]      = -.6;
+		offset_array[12]      = .4;
+		offset_array[13]      = -.4;
+		offset_array[14]      = .4;
+		offset_array[15]      = -.5;
+		offset_array[16]      = .5;
+		offset_array[17]      = -.5;
+		offset_array[18]      = .5;
+		offset_array[19]      = -.5;
+		offset_array[20]      = .7;
+		offset_array[21]      = -.4;
+		offset_array[22]      = .4;
+		offset_array[23]      = -.4;
+		offset_array[24]       = .5;
+		offset_array[25]       = -.5;
+		offset_array[26]       = .5;
+		offset_array[27]       = -.4;
+		offset_array[28]       = .4;
+		offset_array[29]       = -.6;
+		return(offset_array);
+	}
+	
 	public static int[][] getLineArray()
 	{
 		int[][] line_array = new int[30][2];
@@ -226,7 +263,104 @@ public class ObjectMapper
 		line_array[28][1] = 394500;
 		
 		line_array[29][0] = 399000;
-		line_array[29][1] = 409654;
+		line_array[29][1] = 409650;
+		
+		return(line_array);
+	}
+	
+	public static int[][] getUnclippedLineArray()
+	{
+		int[][] line_array = new int[30][2];
+		
+		line_array[0][0] = 0;
+		line_array[0][1] = 10400;
+		
+		line_array[1][0] = 10400;
+		line_array[1][1] = 23850;
+		
+		line_array[2][0] = 23850;
+		line_array[2][1] = 37150;
+		
+		line_array[3][0] = 37150;
+		line_array[3][1] = 51500;
+		
+		line_array[4][0] = 51500;
+		line_array[4][1] = 65000;
+		
+		line_array[5][0] = 65000;
+		line_array[5][1] = 79500;
+		
+		line_array[6][0] = 79500;
+		line_array[6][1] = 93000;
+		
+		line_array[7][0] = 93000;
+		line_array[7][1] = 107500;
+		
+		line_array[8][0] = 107500;
+		line_array[8][1] = 120500;
+		
+		line_array[9][0] = 120500;
+		line_array[9][1] = 134750;
+		
+		line_array[10][0] = 134750;
+		line_array[10][1] = 148500;
+		
+		line_array[11][0] = 148500;
+		line_array[11][1] = 162500;
+		
+		line_array[12][0] = 162500;
+		line_array[12][1] = 176000;
+		
+		line_array[13][0] = 176000;
+		line_array[13][1] = 190500;
+		
+		line_array[14][0] = 190500;
+		line_array[14][1] = 203500;
+		
+		line_array[15][0] = 203500;
+		line_array[15][1] = 218000;
+		
+		line_array[16][0] = 218000;
+		line_array[16][1] = 231000;
+		
+		line_array[17][0] = 231000;
+		line_array[17][1] = 245000;
+		
+		line_array[18][0] = 245000;
+		line_array[18][1] = 258500;
+		
+		line_array[19][0] = 258500;
+		line_array[19][1] = 272500;
+		
+		line_array[20][0] = 272500;
+		line_array[20][1] = 286500;
+		
+		line_array[21][0] = 286500;
+		line_array[21][1] = 300000;
+		
+		line_array[22][0] = 300000;
+		line_array[22][1] = 313500;
+		
+		line_array[23][0] = 313500;
+		line_array[23][1] = 327000;
+		
+		line_array[24][0] = 327000;
+		line_array[24][1] = 341000;
+		
+		line_array[25][0] = 341000;
+		line_array[25][1] = 355000;
+		
+		line_array[26][0] = 355000;
+		line_array[26][1] = 368500;
+		
+		line_array[27][0] = 368500;
+		line_array[27][1] = 382000;
+		
+		line_array[28][0] = 382000;
+		line_array[28][1] = 395000;
+		
+		line_array[29][0] = 395000;
+		line_array[29][1] = 409650;
 		
 		return(line_array);
 	}
@@ -308,30 +442,32 @@ public class ObjectMapper
 		
 		//Possible.  
 	    key          = 2;
-	    object       = new int[3][2];
+	    object       = new int[5][2];
 	    
 		// This is no where near our known objects.
 		// A lucky accident that I found an interesting 
 		// signal in the blind data space worth exploring.
 		// Extremely smooth background helps pick out
 		// low intensity signal.
-		//object[0][0] = 47850;
-		//object[0][1] = 49370;
-		//object[1][0] = 57400;
-		//object[1][1] = 59050;
-		//object[2][0] = 75355;
-		//object[2][1] = 76800;
-		//object[3][0] = 85055;
-		//object[3][1] = 86630;
-		//object[4][0] = 103040;
-		//object[4][1] = 104440;
+		object[0][0] = 47850;
+		object[0][1] = 49370;
+		object[1][0] = 57400;
+		object[1][1] = 59050;
+		object[2][0] = 75355;
+		object[2][1] = 76800;
+		object[3][0] = 85055;
+		object[3][1] = 86630;
+		object[4][0] = 103040;
+		object[4][1] = 104440;
 		
+	    /*
 		object[0][0] = 17550;
 		object[0][1] = 18365;
 		object[1][0] = 33475;
 		object[1][1] = 34300;
 		object[2][0] = 44925;
 		object[2][1] = 45800;
+		*/
 		//object[3][0] = 61435;
 		//object[3][1] = 61690;
 		
