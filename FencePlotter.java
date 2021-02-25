@@ -9,7 +9,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.*;
+
 
 public class FencePlotter
 {
@@ -229,12 +232,33 @@ public class FencePlotter
 			table.setValueAt((String) "yes", i + 1, 8);
 		}
 
-		JPanel bottom_panel = new JPanel(new BorderLayout());
+		JPanel segment_panel = new JPanel(new BorderLayout());
 		scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 3, -200, 203);
 		ShiftHandler shift_handler = new ShiftHandler();
 		scrollbar.addAdjustmentListener(shift_handler);
-		bottom_panel.add(scrollbar, BorderLayout.NORTH);
+		segment_panel.add(scrollbar, BorderLayout.NORTH);
+		
+		RangeSlider range_slider = new RangeSlider();
+		range_slider.setMinimum(0);
+	    range_slider.setMaximum(90);
+	    range_slider.setValue(35);
+	    range_slider.setUpperValue(55);
+	    // Add listener to update display.
+        range_slider.addChangeListener(new ChangeListener() 
+        {
+            public void stateChanged(ChangeEvent e) 
+            {
+                RangeSlider slider = (RangeSlider) e.getSource();
+                System.out.println("Low end of range is " + slider.getValue());
+                System.out.println("High end of range is " + slider.getUpperValue());
+            }
+        });
+	    segment_panel.add(range_slider, BorderLayout.SOUTH);
+		
+		JPanel bottom_panel = new JPanel(new BorderLayout());
+		bottom_panel.add(segment_panel, BorderLayout.NORTH);
 		bottom_panel.add(table, BorderLayout.CENTER);
+		
 		
 		JPanel apply_panel = new JPanel(new BorderLayout());
 		apply_button = new JButton("Apply");
@@ -511,13 +535,7 @@ public class FencePlotter
 						color[2] = new Color(150, 0, 0);
 						color[3] = new Color(0, 150, 0);
 						color[4] = new Color(150, 0, 150);
-						/*
-						color[0] = new Color(0, 0, 0);
-						color[1] = new Color(72, 72, 72);
-						color[2] = new Color(114, 114, 114);
-						color[3] = new Color(136, 136, 136);
-						color[4] = new Color(196, 196, 196);
-						*/
+					
 						tab_selected = true;
 						apply_button.doClick(0);
 						table.repaint();
@@ -559,13 +577,7 @@ public class FencePlotter
 						color[2] = new Color(255, 0, 0);
 						color[3] = new Color(0, 150, 0);
 						color[4] = new Color(150, 0, 150);
-						/*
-						color[3] = new Color(114, 114, 114);
-						color[0] = new Color(72, 72, 72);
-						color[1] = new Color(0, 0, 0);
-						color[2] = new Color(72, 72, 72);
-						color[3] = new Color(114, 114, 114);
-						*/
+						
 						tab_selected = true;
 						apply_button.doClick(0);
 						table.repaint();
@@ -583,13 +595,7 @@ public class FencePlotter
 						color[2] = new Color(150, 0, 0);
 						color[3] = new Color(255, 0, 0);
 						color[4] = new Color(150, 0, 150);
-						/*
-						color[4] = new Color(136, 136, 136);
-						color[3] = new Color(114, 114, 114);
-						color[0] = new Color(72, 72, 72);
-						color[1] = new Color(0, 0, 0);
-						color[2] = new Color(72, 72, 72);
-						*/
+						
 						tab_selected = true;
 						apply_button.doClick(0);
 						table.repaint();
@@ -607,13 +613,7 @@ public class FencePlotter
 						color[2] = new Color(150, 0, 0);
 						color[3] = new Color(0, 150, 0);
 						color[4] = new Color(255, 0, 0);
-                        /*
-						color[0] = new Color(196, 196, 196);
-						color[1] = new Color(136, 136, 136);
-						color[2] = new Color(114, 114, 114);
-						color[3] = new Color(72, 72, 72);
-						color[4] = new Color(0, 0, 0);
-						*/
+             
 						tab_selected = true;
 						apply_button.doClick(0);
 						table.repaint();
@@ -698,7 +698,7 @@ public class FencePlotter
 
 		ApplyHandler()
 		{
-			line_array = ObjectMapper.getLineArray();
+			line_array = ObjectMapper.getUnclippedLineArray();
 		}
 
 		public void actionPerformed(ActionEvent e)
