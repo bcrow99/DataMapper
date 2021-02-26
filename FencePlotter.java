@@ -17,39 +17,42 @@ import javax.swing.table.*;
 public class FencePlotter
 {
 	// Input
-	ArrayList data = new ArrayList();
-	ArrayList line_data = new ArrayList();
-	ArrayList sensor_data = new ArrayList();
-	ArrayList modified_data = new ArrayList();
+	ArrayList data              = new ArrayList();
+	ArrayList line_data         = new ArrayList();
+	ArrayList sensor_data       = new ArrayList();
+	ArrayList modified_data     = new ArrayList();
 	ArrayList interpolated_data = new ArrayList();
-	ArrayList reduced_data = new ArrayList();
-	ArrayList plot_data = new ArrayList();
-	ArrayList baseline_data = new ArrayList();
-	double max_delta;
-	double range;
+	ArrayList reduced_data      = new ArrayList();
+	ArrayList plot_data         = new ArrayList();
+	ArrayList baseline_data     = new ArrayList();
+	double    max_delta;
+	double    shift, start, range;
+	
+	boolean   slider_changed    = false;
+	boolean   scrollbar_changed = false;
 
 	// Plotting parameters
-	int[] order = new int[5];
 	Color[] color = new Color[5];
 	int number_of_sensors = 5;
 
 	int bottom_margin = 60;
-	int left_margin = 60;
-	int top_margin = 10;
-	int right_margin = 10;
-	int xstep = 10;
-	int ystep = 20;
-	int xdim = 0;
-	int ydim = 0;
-	int graph_xdim = 0;
-	int graph_ydim = 0;
+	int left_margin   = 60;
+	int top_margin    = 10;
+	int right_margin  = 10;
+	int xstep         = 10;
+	int ystep         = 20;
+	int xdim          = 0;
+	int ydim          = 0;
+	int graph_xdim    = 0;
+	int graph_ydim    = 0;
 
 	// Interface componants.
-	private JFrame frame;
-	public JTable table;
-	public LineCanvas canvas;
-	public JScrollBar scrollbar;
-	public JButton apply_button;
+	private JFrame     frame;
+	public JTable      table;
+	public LineCanvas  canvas;
+	public JScrollBar  scrollbar;
+	public JButton     apply_button;
+	public RangeSlider range_slider;
 
 	public static void main(String[] args)
 	{
@@ -58,7 +61,8 @@ public class FencePlotter
 		{
 			System.out.println("Usage: FencePlotter <data file>");
 			System.exit(0);
-		} else
+		} 
+		else
 		{
 			try
 			{
@@ -67,11 +71,13 @@ public class FencePlotter
 				{
 					FencePlotter window = new FencePlotter(filename);
 					window.frame.setVisible(true);
-				} catch (Exception e)
+				} 
+				catch (Exception e)
 				{
 					e.printStackTrace();
 				}
-			} catch (Exception e)
+			} 
+			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
@@ -137,7 +143,8 @@ public class FencePlotter
 								original_data.add(current_sample);
 							}
 						}
-					} catch (IOException e)
+					} 
+					catch (IOException e)
 					{
 						System.out.println("Unexpected error " + e.toString());
 					}
@@ -150,7 +157,8 @@ public class FencePlotter
 					sample.y -= ymin;
 					data.add(sample);
 				}
-			} catch (Exception e)
+			} 
+			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
@@ -161,25 +169,21 @@ public class FencePlotter
 
 		canvas = new LineCanvas();
 		canvas.setSize(1000, 1000);
-		CanvasMouseHandler mouse_handler = new CanvasMouseHandler();
-		canvas.addMouseListener(mouse_handler);
+		
 		frame.getContentPane().add(canvas, BorderLayout.CENTER);
-		for (int i = 0; i < 5; i++)
-		{
-			order[i] = 4 - i;
-		}
+		
 		color[0] = new Color(0, 0, 0);
 		color[1] = new Color(0, 0, 150);
 		color[2] = new Color(150, 0, 0);
 		color[3] = new Color(0, 150, 0);
 		color[4] = new Color(150, 0, 150);
 
-		table = new JTable(6, 10)
+		table = new JTable(6, 11)
 		{
 			public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
 			{
 				Component c = super.prepareRenderer(renderer, row, column);
-				if (column == 9 && row > 0)
+				if (column == 10 && row > 0)
 					c.setBackground(color[row - 1]);
 				else
 					c.setBackground(java.awt.Color.WHITE);
@@ -190,7 +194,7 @@ public class FencePlotter
 		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 		centerRenderer.setHorizontalAlignment(JLabel.CENTER);
 
-		for (int column = 0; column < 10; column++)
+		for (int column = 0; column < 11; column++)
 		{
 			table.getColumnModel().getColumn(column).setCellRenderer(centerRenderer);
 		}
@@ -214,8 +218,10 @@ public class FencePlotter
 		table.setValueAt(header, 0, 7);
 		header = new String("Visible");
 		table.setValueAt(header, 0, 8);
-		header = new String("Key");
+		header = new String("Transparent");
 		table.setValueAt(header, 0, 9);
+		header = new String("Key");
+		table.setValueAt(header, 0, 10);
 
 		int rows = 5;
 		int line = 27;
@@ -229,28 +235,51 @@ public class FencePlotter
 			table.setValueAt((String) "0", i + 1, 4);
 			table.setValueAt((String) "100", i + 1, 5);
 			table.setValueAt((String) "0", i + 1, 6);
+			table.setValueAt((String) "0", i + 1, 7);
 			table.setValueAt((String) "yes", i + 1, 8);
+			table.setValueAt((String) "no", i + 1, 9);
 		}
 
 		JPanel segment_panel = new JPanel(new BorderLayout());
-		scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 3, -200, 203);
+		scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 3, -100, 103);
 		ShiftHandler shift_handler = new ShiftHandler();
 		scrollbar.addAdjustmentListener(shift_handler);
 		segment_panel.add(scrollbar, BorderLayout.NORTH);
 		
-		RangeSlider range_slider = new RangeSlider();
-		range_slider.setMinimum(0);
-	    range_slider.setMaximum(90);
+		range_slider = new RangeSlider();
+		range_slider.setMinimum(15);
+	    range_slider.setMaximum(75);
 	    range_slider.setValue(35);
 	    range_slider.setUpperValue(55);
-	    // Add listener to update display.
         range_slider.addChangeListener(new ChangeListener() 
         {
             public void stateChanged(ChangeEvent e) 
             {
+            	if(scrollbar_changed == false)
+            	{
+            	slider_changed = true;
                 RangeSlider slider = (RangeSlider) e.getSource();
-                System.out.println("Low end of range is " + slider.getValue());
-                System.out.println("High end of range is " + slider.getUpperValue());
+            
+                start       = (double)slider.getValue();
+                double stop = (double)slider.getUpperValue();
+                range       = stop - start;
+                if(range == 0)
+                	range = 1;
+                shift = start - (45. - (range / 2));
+                String start_string = String.format("%,.2f", start);
+    			String range_string = String.format("%,.2f", range);
+    			String shift_string = String.format("%,.2f", shift);
+    			for (int i = 1; i < 6; i++)
+    			{
+    				table.setValueAt(start_string, i, 2);
+    				table.setValueAt(range_string, i, 3);
+    				table.setValueAt(shift_string, i, 4);
+    			}
+    			
+    			
+    			if (slider.getValueIsAdjusting() == false)
+    				apply_button.doClick(0);
+            	}
             }
         });
 	    segment_panel.add(range_slider, BorderLayout.SOUTH);
@@ -483,19 +512,20 @@ public class FencePlotter
                     
                 java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
                 polygon[i] = sensor_polygon;
-                //g2.drawPolygon(sensor_polygon);
 			}
 			
 		
 			for (int i = 4; i >= 0; i--)
 			{
-				//int j = order[i];
-				//String visibility = (String) table.getValueAt(j + 1, 8);
 				String visibility = (String) table.getValueAt(i + 1, 8);
+				String transparency = (String) table.getValueAt(i + 1, 9); 
 				if (visibility.equals("yes"))
 				{
-					g2.setColor(java.awt.Color.WHITE);
-					g2.fillPolygon(polygon[i]);
+					if(transparency.equals("no"))
+					{
+					    g2.setColor(java.awt.Color.WHITE);
+					    g2.fillPolygon(polygon[i]);
+					}
 					g2.setColor(color[i]);	
 					g2.drawPolygon(polygon[i]);
 					
@@ -504,170 +534,39 @@ public class FencePlotter
 		}
 	}
 
-	class CanvasMouseHandler extends MouseAdapter
-	{
-		public void mouseClicked(MouseEvent e)
-		{
-			int x = e.getX();
-			int y = e.getY();
-			//System.out.println("Mouse click at x = " + x + " and y = " + y);
-
-			int x1 = left_margin;
-			int y1 = ydim - (bottom_margin + graph_ydim - ystep);
-			boolean tab_selected = false;
-			for (int i = 0; i < 5; i++)
-			{
-				int x2 = x1 + xstep;
-				int y2 = y1 - ystep;
-				if ((x >= x1 && x < x2) && (y <= y1 && y > y2))
-				{
-					System.out.println("Plot " + i + " was selected.");
-					if (i == 0)
-					{
-						order[0] = 4;
-						order[1] = 3;
-						order[2] = 2;
-						order[3] = 1;
-						order[4] = 0;
-                        
-						color[0] = new Color(255, 0, 0);
-						color[1] = new Color(0, 0, 150);
-						color[2] = new Color(150, 0, 0);
-						color[3] = new Color(0, 150, 0);
-						color[4] = new Color(150, 0, 150);
-					
-						tab_selected = true;
-						apply_button.doClick(0);
-						table.repaint();
-					} 
-					else if (i == 1)
-					{
-						order[0] = 3;
-						order[1] = 4;
-						order[2] = 2;
-						order[3] = 1;
-						order[4] = 0;
-						
-						color[0] = new Color(0, 0, 0);
-						color[1] = new Color(255, 0, 0);
-						color[2] = new Color(150, 0, 0);
-						color[3] = new Color(0, 150, 0);
-						color[4] = new Color(150, 0, 150);
-						/*
-						color[0] = new Color(114, 114, 114);
-						color[1] = new Color(0, 0, 0);
-						color[2] = new Color(114, 114, 114);
-						color[3] = new Color(136, 136, 136);
-						color[4] = new Color(196, 196, 196);
-						*/
-						tab_selected = true;
-						apply_button.doClick(0);
-						table.repaint();
-					} 
-					else if (i == 2)
-					{
-						order[0] = 1;
-						order[1] = 2;
-						order[2] = 4;
-						order[3] = 3;
-						order[4] = 0;
-						
-						color[0] = new Color(0, 0, 0);
-						color[1] = new Color(0, 0, 150);
-						color[2] = new Color(255, 0, 0);
-						color[3] = new Color(0, 150, 0);
-						color[4] = new Color(150, 0, 150);
-						
-						tab_selected = true;
-						apply_button.doClick(0);
-						table.repaint();
-					} 
-					else if (i == 3)
-					{
-						order[0] = 0;
-						order[1] = 1;
-						order[2] = 2;
-						order[3] = 4;
-						order[4] = 3;
-						
-						color[0] = new Color(0, 0, 0);
-						color[1] = new Color(0, 0, 150);
-						color[2] = new Color(150, 0, 0);
-						color[3] = new Color(255, 0, 0);
-						color[4] = new Color(150, 0, 150);
-						
-						tab_selected = true;
-						apply_button.doClick(0);
-						table.repaint();
-					} 
-					else if (i == 4)
-					{
-						order[0] = 0;
-						order[1] = 1;
-						order[2] = 2;
-						order[3] = 3;
-						order[4] = 4;
-						
-						color[0] = new Color(0, 0, 0);
-						color[1] = new Color(0, 0, 150);
-						color[2] = new Color(150, 0, 0);
-						color[3] = new Color(0, 150, 0);
-						color[4] = new Color(255, 0, 0);
-             
-						tab_selected = true;
-						apply_button.doClick(0);
-						table.repaint();
-					}
-				}
-				x1 = x2;
-				y1 = y2;
-			}
-			if(tab_selected == false)
-			{
-				color[0] = new Color(0, 0, 0);
-				color[1] = new Color(0, 0, 150);
-				color[2] = new Color(150, 0, 0);
-				color[3] = new Color(0, 150, 0);
-				color[4] = new Color(150, 0, 150);
-				apply_button.doClick(0);
-				table.repaint();
-			}
-
-		}
-	}
-
 	class ShiftHandler implements AdjustmentListener
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
 		{
+			if(slider_changed == false)
+			{
+			scrollbar_changed = true;
 			double current_data_range = Double.valueOf((String) table.getValueAt(1, 3));
-			double difference = 60 - current_data_range;
-			int current_scroll_min = scrollbar.getMinimum();
-			int current_scroll_max = scrollbar.getMaximum();
-			double scrollbar_range = current_scroll_min - current_scroll_max;
-			int thumb_size = scrollbar.getVisibleAmount();
-
-			scrollbar_range -= thumb_size;
+			double difference         = 60 - current_data_range;
+			
 			int current_value = event.getValue();
-			double shift_value = current_value;
-			shift_value /= 10;
-			String shift_string = String.format("%,.2f", shift_value);
+			double shift = current_value;
+			shift /= 200;
+			shift *= difference;
+			start = 45. - (current_data_range / 2);
+			start += shift;
+			String start_string = String.format("%,.2f", start);
+			String shift_string = String.format("%,.2f", shift);
 			for (int i = 1; i < 6; i++)
 			{
+				table.setValueAt(start_string, i, 2);
 				table.setValueAt(shift_string, i, 4);
 			}
 
-			double start = 45. - (current_data_range / 2);
-			start += shift_value;
-			String position_string = String.format("%,.2f", start);
-			for (int i = 1; i < 6; i++)
-			{
-				table.setValueAt(position_string, i, 2);
-			}
-
 			if (event.getValueIsAdjusting() == false)
+			{
+				//int value = (int)start;
+				//int upper_value = (int)(start + current_data_range);
+				//range_slider.setValue(value);
+				//range_slider.setUpperValue(upper_value);
 				apply_button.doClick(0);
-
+			}
+			}
 		}
 	}
     
@@ -703,11 +602,37 @@ public class FencePlotter
 
 		public void actionPerformed(ActionEvent e)
 		{
+			
+			double current_start = Double.valueOf((String) table.getValueAt(1, 2));
+			double current_range = Double.valueOf((String) table.getValueAt(1, 3));
+			double current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+			
+			if(slider_changed)
+			{
+				//Adjust scrollbar.
+				double normalized_start = current_start - 15;
+				normalized_start        /= 60.;
+				double normalized_stop  = (current_start + current_range) - 15;
+				normalized_stop         /= 60.;
+				double normalized_center       = (normalized_start + normalized_stop) / 2.;
+				normalized_center -= .5;
+				normalized_center *= 200;
+				
+				int value = (int)normalized_center;
+				scrollbar.setValue(value);
+				slider_changed = false;
+			}
+			else if(scrollbar_changed)
+			{
+				//Adjust slider;
+				int value = (int)start;
+				int upper_value = (int)(current_start + current_range);
+				range_slider.setValue(value);
+				range_slider.setUpperValue(upper_value);
+				scrollbar_changed = false;
+			}
+			
 			int number_of_rows = table.getRowCount();
-
-			int current_max = scrollbar.getMaximum();
-			int current_min = scrollbar.getMinimum();
-
 			line_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
@@ -722,7 +647,8 @@ public class FencePlotter
 						Sample sample = (Sample) data.get(j);
 						sample_list.add(sample);
 					}
-				} else
+				} 
+				else
 				{
 					for (int j = stop - 1; j >= start; j--)
 					{
@@ -749,7 +675,8 @@ public class FencePlotter
 						Sample sample = (Sample) line_list.get(j);
 						sample_list.add(sample);
 					}
-				} else
+				} 
+				else
 				{
 					for (j = 4 - current_sensor; j < line_list.size(); j += 5)
 					{
@@ -777,7 +704,7 @@ public class FencePlotter
 					table.setValueAt(new_offset, i, 2);
 					current_offset = baseline_offset;
 				}
-				double current_range = Double.valueOf((String) table.getValueAt(i, 3));
+				current_range = Double.valueOf((String) table.getValueAt(i, 3));
 				if (current_range != baseline_range)
 				{
 					String new_range = (String) table.getValueAt(1, 3);
@@ -835,7 +762,7 @@ public class FencePlotter
 				for (j = 0; j < number_of_samples; j++)
 					used_sample[j] = false;
 				double current_offset = Double.valueOf((String) table.getValueAt(i, 2));
-				double current_range = Double.valueOf((String) table.getValueAt(i, 3));
+				current_range = Double.valueOf((String) table.getValueAt(i, 3));
 
 				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 5));
 				if (current_resolution != baseline_resolution)
