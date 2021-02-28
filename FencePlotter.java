@@ -13,45 +13,44 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.table.*;
 
-
 public class FencePlotter
 {
 	// Input
-	ArrayList data              = new ArrayList();
-	ArrayList line_data         = new ArrayList();
-	ArrayList sensor_data       = new ArrayList();
-	ArrayList modified_data     = new ArrayList();
+	ArrayList data = new ArrayList();
+	ArrayList line_data = new ArrayList();
+	ArrayList sensor_data = new ArrayList();
+	ArrayList modified_data = new ArrayList();
 	ArrayList interpolated_data = new ArrayList();
-	ArrayList reduced_data      = new ArrayList();
-	ArrayList plot_data         = new ArrayList();
-	ArrayList baseline_data     = new ArrayList();
-	double    max_delta;
-	double    shift, start, range;
-	
-	boolean   slider_changed    = false;
-	boolean   scrollbar_changed = false;
+	ArrayList reduced_data = new ArrayList();
+	ArrayList plot_data = new ArrayList();
+	ArrayList baseline_data = new ArrayList();
+	double max_delta;
+	//double shift, start, range;
+
+	boolean slider_changed = false;
+	boolean scrollbar_changed = false;
 
 	// Plotting parameters
 	Color[] color = new Color[5];
 	int number_of_sensors = 5;
 
 	int bottom_margin = 60;
-	int left_margin   = 60;
-	int top_margin    = 10;
-	int right_margin  = 10;
-	int xstep         = 10;
-	int ystep         = 20;
-	int xdim          = 0;
-	int ydim          = 0;
-	int graph_xdim    = 0;
-	int graph_ydim    = 0;
+	int left_margin = 60;
+	int top_margin = 10;
+	int right_margin = 10;
+	int xstep = 10;
+	int ystep = 20;
+	int xdim = 0;
+	int ydim = 0;
+	int graph_xdim = 0;
+	int graph_ydim = 0;
 
 	// Interface componants.
-	private JFrame     frame;
-	public JTable      table;
-	public LineCanvas  canvas;
-	public JScrollBar  scrollbar;
-	public JButton     apply_button;
+	private JFrame frame;
+	public JTable table;
+	public LineCanvas canvas;
+	public JScrollBar scrollbar;
+	public JButton apply_button;
 	public RangeSlider range_slider;
 
 	public static void main(String[] args)
@@ -61,8 +60,7 @@ public class FencePlotter
 		{
 			System.out.println("Usage: FencePlotter <data file>");
 			System.exit(0);
-		} 
-		else
+		} else
 		{
 			try
 			{
@@ -71,13 +69,11 @@ public class FencePlotter
 				{
 					FencePlotter window = new FencePlotter(filename);
 					window.frame.setVisible(true);
-				} 
-				catch (Exception e)
+				} catch (Exception e)
 				{
 					e.printStackTrace();
 				}
-			} 
-			catch (Exception e)
+			} catch (Exception e)
 			{
 				e.printStackTrace();
 			}
@@ -143,8 +139,7 @@ public class FencePlotter
 								original_data.add(current_sample);
 							}
 						}
-					} 
-					catch (IOException e)
+					} catch (IOException e)
 					{
 						System.out.println("Unexpected error " + e.toString());
 					}
@@ -157,8 +152,7 @@ public class FencePlotter
 					sample.y -= ymin;
 					data.add(sample);
 				}
-			} 
-			catch (Exception e)
+			} catch (Exception e)
 			{
 				e.printStackTrace();
 			}
@@ -169,9 +163,9 @@ public class FencePlotter
 
 		canvas = new LineCanvas();
 		canvas.setSize(1000, 1000);
-		
+
 		frame.getContentPane().add(canvas, BorderLayout.CENTER);
-		
+
 		color[0] = new Color(0, 0, 0);
 		color[1] = new Color(0, 0, 150);
 		color[2] = new Color(150, 0, 0);
@@ -245,70 +239,68 @@ public class FencePlotter
 		ShiftHandler shift_handler = new ShiftHandler();
 		scrollbar.addAdjustmentListener(shift_handler);
 		segment_panel.add(scrollbar, BorderLayout.NORTH);
-		
+
 		range_slider = new RangeSlider();
 		range_slider.setMinimum(15);
-	    range_slider.setMaximum(75);
-	    range_slider.setValue(35);
-	    range_slider.setUpperValue(55);
-        range_slider.addChangeListener(new ChangeListener() 
-        {
-            public void stateChanged(ChangeEvent e) 
-            {
-            	if(scrollbar_changed == false)
-            	{
-            	slider_changed = true;
-                RangeSlider slider = (RangeSlider) e.getSource();
-            
-                start       = (double)slider.getValue();
-                double stop = (double)slider.getUpperValue();
-                range       = stop - start;
-                if(range == 0)
-                	range = 1;
-                shift = start - (45. - (range / 2));
-                String start_string = String.format("%,.2f", start);
-    			String range_string = String.format("%,.2f", range);
-    			String shift_string = String.format("%,.2f", shift);
-    			for (int i = 1; i < 6; i++)
-    			{
-    				table.setValueAt(start_string, i, 2);
-    				table.setValueAt(range_string, i, 3);
-    				table.setValueAt(shift_string, i, 4);
-    			}
-    			
-    			
-    			if (slider.getValueIsAdjusting() == false)
-    				apply_button.doClick(0);
-            	}
-            }
-        });
-	    segment_panel.add(range_slider, BorderLayout.SOUTH);
-		
+		range_slider.setMaximum(75);
+		range_slider.setValue(35);
+		range_slider.setUpperValue(55);
+		range_slider.addChangeListener(new ChangeListener()
+		{
+			public void stateChanged(ChangeEvent e)
+			{
+				if (scrollbar_changed == false)
+				{
+					slider_changed = true;
+					RangeSlider slider = (RangeSlider) e.getSource();
+					if (slider.getValueIsAdjusting() == false)
+					{
+						double start = (double) slider.getValue();
+						double stop = (double) slider.getUpperValue();
+						double range = stop - start;
+						if (range == 0)
+							range = 1;
+						double shift = start - (45. - (range / 2));
+						String start_string = String.format("%,.2f", start);
+						String range_string = String.format("%,.2f", range);
+						String shift_string = String.format("%,.2f", shift);
+						for (int i = 1; i < 6; i++)
+						{
+							table.setValueAt(start_string, i, 2);
+							table.setValueAt(range_string, i, 3);
+							table.setValueAt(shift_string, i, 4);
+						}
+						apply_button.doClick(0);
+					}
+				}
+			}
+		});
+		segment_panel.add(range_slider, BorderLayout.SOUTH);
+
 		JPanel bottom_panel = new JPanel(new BorderLayout());
 		bottom_panel.add(segment_panel, BorderLayout.NORTH);
 		bottom_panel.add(table, BorderLayout.CENTER);
-		
-		
+
 		JPanel apply_panel = new JPanel(new BorderLayout());
 		apply_button = new JButton("Apply");
 		ApplyHandler handler = new ApplyHandler();
 		apply_button.addActionListener(handler);
 		apply_panel.add(apply_button, BorderLayout.SOUTH);
-		
+
 		JPanel canvas_panel = new JPanel(new BorderLayout());
 		Canvas apply_canvas = new Canvas();
 		apply_canvas.setSize(100, 80);
-		
+
 		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 190);
 		XStepHandler xstep_handler = new XStepHandler();
 		xstep_scrollbar.addAdjustmentListener(xstep_handler);
 		xstep_scrollbar.setValue(xstep);
-		
+
 		JScrollBar ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 190);
 		YStepHandler ystep_handler = new YStepHandler();
 		ystep_scrollbar.addAdjustmentListener(ystep_handler);
 		ystep_scrollbar.setValue(ystep);
-		
+
 		canvas_panel.add(apply_canvas, BorderLayout.CENTER);
 		canvas_panel.add(xstep_scrollbar, BorderLayout.SOUTH);
 		canvas_panel.add(ystep_scrollbar, BorderLayout.EAST);
@@ -394,8 +386,8 @@ public class FencePlotter
 			position_string = new String("meters");
 			string_width = font_metrics.stringWidth(position_string);
 			g2.drawString(position_string,
-			left_margin + (graph_xdim + left_margin - string_width) / 2 - string_width / 2,
-			ydim - bottom_margin / 3);
+					left_margin + (graph_xdim + left_margin - string_width) / 2 - string_width / 2,
+					ydim - bottom_margin / 3);
 
 			yrange = maximum_y - minimum_y;
 
@@ -411,20 +403,20 @@ public class FencePlotter
 			g2.drawString(intensity_string, string_width / 2, top_margin + 4 * ystep + graph_ydim / 2);
 
 			// Construct polygons in second pass.
-			Polygon [] polygon = new Polygon[5];
+			Polygon[] polygon = new Polygon[5];
 			for (int i = 0; i < 5; i++)
 			{
-				//int j = order[i];
-				
+				// int j = order[i];
+
 				int a1 = left_margin;
 				int b1 = ydim - bottom_margin;
 
 				int a2 = a1 + graph_xdim;
 				int b2 = b1 - graph_ydim;
 
-				//int xaddend = j * xstep;
+				// int xaddend = j * xstep;
 				int xaddend = i * xstep;
-				//int yaddend = j * ystep;
+				// int yaddend = j * ystep;
 				int yaddend = i * ystep;
 				a1 += xaddend;
 				b1 -= yaddend;
@@ -432,23 +424,23 @@ public class FencePlotter
 				a2 += xaddend;
 				b2 -= yaddend;
 
-				//ArrayList current_line = (ArrayList) plot_data.get(j);
+				// ArrayList current_line = (ArrayList) plot_data.get(j);
 				ArrayList current_line = (ArrayList) plot_data.get(i);
-					
-				int n   = current_line.size() + 3;
+
+				int n = current_line.size() + 3;
 				int[] x = new int[n];
 				int[] y = new int[n];
-				x[0]    = a1;
-				y[0]    = b1;
-					
+				x[0] = a1;
+				y[0] = b1;
+
 				Point2D.Double previous = (Point2D.Double) current_line.get(0);
 				double x1 = previous.getX();
 				x1 -= minimum_x;
 				x1 /= xrange;
 				x1 *= graph_xdim;
-				x1 += left_margin;	
+				x1 += left_margin;
 				x1 += xaddend;
-				
+
 				double y1 = previous.getY();
 				y1 -= minimum_y;
 				y1 /= yrange;
@@ -456,13 +448,13 @@ public class FencePlotter
 				y1 = graph_ydim - y1;
 				y1 += top_margin + 4 * ystep;
 				y1 -= yaddend;
-					
-				x[1] = (int)x1;
-				y[1] = (int)y1;
-					
+
+				x[1] = (int) x1;
+				y[1] = (int) y1;
+
 				double x2 = 0;
 				double y2 = 0;
-				int    m  = 2;
+				int m = 2;
 				for (int k = 1; k < current_line.size(); k++)
 				{
 					x1 = previous.getX();
@@ -496,39 +488,38 @@ public class FencePlotter
 					y2 = graph_ydim - y2;
 					y2 += top_margin + 4 * ystep;
 					y2 -= yaddend;
-                    x[m] = (int)x2;
-                    y[m] = (int)y2;
-                    m++;
-					
-                    previous = current;
+					x[m] = (int) x2;
+					y[m] = (int) y2;
+					m++;
+
+					previous = current;
 				}
-					
+
 				x[m] = a2;
-                y[m] = b1;
-                m++;
-					
+				y[m] = b1;
+				m++;
+
 				x[m] = a1;
-                y[m] = b1;
-                    
-                java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
-                polygon[i] = sensor_polygon;
+				y[m] = b1;
+
+				java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
+				polygon[i] = sensor_polygon;
 			}
-			
-		
+
 			for (int i = 4; i >= 0; i--)
 			{
 				String visibility = (String) table.getValueAt(i + 1, 8);
-				String transparency = (String) table.getValueAt(i + 1, 9); 
+				String transparency = (String) table.getValueAt(i + 1, 9);
 				if (visibility.equals("yes"))
 				{
-					if(transparency.equals("no"))
+					if (transparency.equals("no"))
 					{
-					    g2.setColor(java.awt.Color.WHITE);
-					    g2.fillPolygon(polygon[i]);
+						g2.setColor(java.awt.Color.WHITE);
+						g2.fillPolygon(polygon[i]);
 					}
-					g2.setColor(color[i]);	
+					g2.setColor(color[i]);
 					g2.drawPolygon(polygon[i]);
-					
+
 				}
 			}
 		}
@@ -538,38 +529,55 @@ public class FencePlotter
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
 		{
-			if(slider_changed == false)
+			if (slider_changed == false)
 			{
-			scrollbar_changed = true;
-			double current_data_range = Double.valueOf((String) table.getValueAt(1, 3));
-			double difference         = 60 - current_data_range;
-			
-			int current_value = event.getValue();
-			double shift = current_value;
-			shift /= 200;
-			shift *= difference;
-			start = 45. - (current_data_range / 2);
-			start += shift;
-			String start_string = String.format("%,.2f", start);
-			String shift_string = String.format("%,.2f", shift);
-			for (int i = 1; i < 6; i++)
-			{
-				table.setValueAt(start_string, i, 2);
-				table.setValueAt(shift_string, i, 4);
-			}
+				scrollbar_changed = true;
+				double range = Double.valueOf((String) table.getValueAt(1, 3));
+				double difference = 60 - range;
 
-			if (event.getValueIsAdjusting() == false)
-			{
-				//int value = (int)start;
-				//int upper_value = (int)(start + current_data_range);
-				//range_slider.setValue(value);
-				//range_slider.setUpperValue(upper_value);
-				apply_button.doClick(0);
-			}
+				int current_value = event.getValue();
+				double shift = current_value;
+				shift /= 200;
+				shift *= difference;
+				double start = 45. - (range / 2);
+				/*
+				if(range % 2 == 1)
+					start -= .5;
+				*/
+				start += shift;
+				String start_string = String.format("%,.2f", start);
+				String shift_string = String.format("%,.2f", shift);
+				for (int i = 1; i < 6; i++)
+				{
+					table.setValueAt(start_string, i, 2);
+					table.setValueAt(shift_string, i, 4);
+				}
+
+				if (event.getValueIsAdjusting() == false)
+				{
+					current_value = event.getValue();
+					shift = current_value;
+					shift /= 200;
+					shift *= difference;
+					start = 45. - (range / 2);
+					/*
+					if(range % 2 == 1)
+						start -= .5;
+					*/
+					start += shift;
+					start_string = String.format("%,.2f", start);
+					shift_string = String.format("%,.2f", shift);
+					for (int i = 1; i < 6; i++)
+					{
+						table.setValueAt(start_string, i, 2);
+						table.setValueAt(shift_string, i, 4);
+					}
+					apply_button.doClick(0);
+				}
 			}
 		}
 	}
-    
+
 	class XStepHandler implements AdjustmentListener
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
@@ -580,6 +588,7 @@ public class FencePlotter
 				apply_button.doClick(0);
 		}
 	}
+
 	class YStepHandler implements AdjustmentListener
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
@@ -602,35 +611,65 @@ public class FencePlotter
 
 		public void actionPerformed(ActionEvent e)
 		{
+			double current_start, current_range, current_shift;
+			int    value, upper_value, difference;
 			
-			double current_start = Double.valueOf((String) table.getValueAt(1, 2));
-			double current_range = Double.valueOf((String) table.getValueAt(1, 3));
-			double current_shift = Double.valueOf((String) table.getValueAt(1, 4));
-			
-			if(slider_changed)
+			if (slider_changed)
 			{
-				//Adjust scrollbar.
+				// Adjust scrollbar.
+			
+				current_start = Double.valueOf((String) table.getValueAt(1, 2));
+				current_range = Double.valueOf((String) table.getValueAt(1, 3));
+				current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+				
 				double normalized_start = current_start - 15;
-				normalized_start        /= 60.;
-				double normalized_stop  = (current_start + current_range) - 15;
-				normalized_stop         /= 60.;
-				double normalized_center       = (normalized_start + normalized_stop) / 2.;
+				normalized_start /= 60.;
+				double normalized_stop = (current_start + current_range) - 15;
+				normalized_stop /= 60.;
+				double normalized_center = (normalized_start + normalized_stop) / 2.;
 				normalized_center -= .5;
 				normalized_center *= 200;
-				
-				int value = (int)normalized_center;
+
+				value = (int) normalized_center;
 				scrollbar.setValue(value);
+				
 				slider_changed = false;
-			}
-			else if(scrollbar_changed)
+			} 
+			else if (scrollbar_changed)
 			{
 				//Adjust slider;
-				int value = (int)start;
-				int upper_value = (int)(current_start + current_range);
+				current_start = Double.valueOf((String) table.getValueAt(1, 2));
+				current_range = Double.valueOf((String) table.getValueAt(1, 3));
+				current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+				
+				value = (int) current_start;
+				upper_value = (int) (current_start + current_range);
+				
+				difference = upper_value - value;
 				range_slider.setValue(value);
 				range_slider.setUpperValue(upper_value);
+				
+				System.out.println("Range is " + current_range);
+				System.out.println("Slider is " + difference);
+			    
 				scrollbar_changed = false;
+				
 			}
+			
+			// We're checking the slider everytime to
+			// make it consistent with the table.   Sometimes we end up with
+			// an incorrect result when only do it in the critical section.
+			// This seems kludgy.
+			current_start = Double.valueOf((String) table.getValueAt(1, 2));
+			current_range = Double.valueOf((String) table.getValueAt(1, 3));
+			current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+			
+			value = (int) current_start;
+			upper_value = (int) (current_start + current_range);
+			
+			difference = upper_value - value;
+			range_slider.setValue(value);
+			range_slider.setUpperValue(upper_value);
 			
 			int number_of_rows = table.getRowCount();
 			line_data.clear();
@@ -647,8 +686,7 @@ public class FencePlotter
 						Sample sample = (Sample) data.get(j);
 						sample_list.add(sample);
 					}
-				} 
-				else
+				} else
 				{
 					for (int j = stop - 1; j >= start; j--)
 					{
@@ -675,8 +713,7 @@ public class FencePlotter
 						Sample sample = (Sample) line_list.get(j);
 						sample_list.add(sample);
 					}
-				} 
-				else
+				} else
 				{
 					for (j = 4 - current_sensor; j < line_list.size(); j += 5)
 					{
