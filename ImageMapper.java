@@ -123,118 +123,6 @@ public class ImageMapper
 		return (location_type);
 	}
 
-	// Seems like this should be based on a generic get neighbors function
-	// but this offers a handle to customizing the way we collect variances.
-	public static void getPixelVariance(int src[], int xdim, int ydim, int dst[])
-	{
-		for (int i = 0; i < ydim; i++)
-		{
-			for (int j = 0; j < xdim; j++)
-			{
-				int location_type = getLocationType(j, i, xdim, ydim);
-				int variance;
-				int k;
-
-				switch (location_type)
-				{
-				case 1:
-					variance = 0;
-					variance += Math.abs(src[0] - src[1]);
-					variance += Math.abs(src[0] - src[xdim]);
-					variance += Math.abs(src[0] - src[xdim + 1]);
-					dst[0] = variance;
-					break;
-
-				case 2:
-					variance = 0;
-					variance += Math.abs(src[j] - src[j - 1]);
-					variance += Math.abs(src[j] - src[j + 1]);
-					variance += Math.abs(src[j] - src[j + xdim - 1]);
-					variance += Math.abs(src[j] - src[j + xdim]);
-					variance += Math.abs(src[j] - src[j + xdim + 1]);
-					dst[j] = variance;
-					break;
-
-				case 3:
-					variance = 0;
-					variance += Math.abs(src[j] - src[j - 1]);
-					variance += Math.abs(src[j] - src[j + xdim - 1]);
-					variance += Math.abs(src[j] - src[j + xdim]);
-					dst[j] = variance;
-					break;
-
-				case 4:
-					k = i * xdim + j;
-					variance = 0;
-					variance += Math.abs(src[k] - src[k - xdim]);
-					variance += Math.abs(src[k] - src[k - xdim + 1]);
-					variance += Math.abs(src[k] - src[k + 1]);
-					variance += Math.abs(src[k] - src[k + xdim]);
-					variance += Math.abs(src[k] - src[k + xdim + 1]);
-					dst[k] = variance;
-					break;
-
-				case 5:
-					k = i * xdim + j;
-					variance = 0;
-					variance += Math.abs(src[k] - src[k - xdim - 1]);
-					variance += Math.abs(src[k] - src[k - xdim]);
-					variance += Math.abs(src[k] - src[k - xdim + 1]);
-					variance += Math.abs(src[k] - src[k - 1]);
-					variance += Math.abs(src[k] - src[k + 1]);
-					variance += Math.abs(src[k] - src[k + xdim - 1]);
-					variance += Math.abs(src[k] - src[k + xdim]);
-					variance += Math.abs(src[k] - src[k + xdim + 1]);
-					dst[k] = variance;
-					break;
-
-				case 6:
-					k = i * xdim + j;
-					variance = 0;
-					variance += Math.abs(src[k] - src[k - xdim]);
-					variance += Math.abs(src[k] - src[k - xdim - 1]);
-					variance += Math.abs(src[k] - src[k - 1]);
-					variance += Math.abs(src[k] - src[k + xdim]);
-					variance += Math.abs(src[k] - src[k + xdim - 1]);
-					dst[k] = variance;
-					break;
-
-				case 7:
-					k = i * xdim + j;
-					variance = 0;
-					variance += Math.abs(src[k] - src[k - xdim]);
-					variance += Math.abs(src[k] - src[k - xdim + 1]);
-					variance += Math.abs(src[k] - src[k + 1]);
-					dst[k] = variance;
-					break;
-
-				case 8:
-					k = i * xdim + j;
-					variance = 0;
-					variance += Math.abs(src[k] - src[k - xdim - 1]);
-					variance += Math.abs(src[k] - src[k - xdim]);
-					variance += Math.abs(src[k] - src[k - xdim + 1]);
-					variance += Math.abs(src[k] - src[k - 1]);
-					variance += Math.abs(src[k] - src[k + 1]);
-					dst[k] = variance;
-					break;
-
-				case 9:
-					k = i * xdim + j;
-					variance = 0;
-					variance += Math.abs(src[k] - src[k - xdim]);
-					variance += Math.abs(src[k] - src[k - xdim - 1]);
-					variance += Math.abs(src[k] - src[k - 1]);
-					dst[k] = variance;
-					break;
-
-				default:
-					System.out.println("Location type is " + location_type);
-				}
-			}
-		}
-	}
-
 	public static void getImageDilation(double src[][], boolean isInterpolated[][], double dst[][])
 	{
 		int ydim = src.length;
@@ -817,151 +705,463 @@ public class ImageMapper
 		avgAreaYTransform(workspace, new_xdim, ydim, dst, new_ydim, start_fraction, end_fraction, number_of_pixels);
 	}
 
-	public int[][] shift(int[][] source, int x, int y)
-    {
-    	int ydim = source.length;
-        int xdim = source[0].length;
-        
-        if(x > 0)
-        {
-        	if(y > 0)
-            {
-        		int[][] dest = new int[ydim - y][xdim - x];
-        		for(int i = y; i < ydim; i++)
-        		{
-        			for(int j = x; j < xdim; j++) 
-        			{
-        				dest[i - y][j - x] = source[i][j];
-        			}
-        		}
-        		return(dest);
-        		
-            }
-            else if(y < 0)
-            {
-            	int[][] dest = new int[ydim + y][xdim - x];  
-            	for(int i = 0; i < ydim + y; i++)
-        		{
-        			for(int j = x; j < xdim; j++) 
-        			{
-        				dest[i][j - x] = source[i - y][j];
-        			}
-        		}
-            	return(dest);
-            }
-            else
-            {
-            	int[][] dest = new int[ydim][xdim - x];  
-            	for(int i = 0; i < ydim; i++)
-        		{
-        			for(int j = x; j < xdim; j++) 
-        			{
-        				dest[i][j - x] = source[i][j];
-        			}
-        		}
-            	
-            	return(dest);
-            }	
-        }
-        else if(x < 0)
-        {
-        	if(y > 0)
-            {
-        		int[][] dest = new int[ydim - y][xdim + x];
-        		for(int i = y; i < ydim; i++)
-        		{
-        			for(int j = 0; j < xdim + x; j++) 
-        			{
-        				dest[i - y][j] = source[i][j - x];
-        			}
-        		}
-        		return(dest);
-        		
-            }
-            else if(y < 0)
-            {
-            	int[][] dest = new int[ydim + y][xdim + x];  
-            	for(int i = 0; i < ydim + y; i++)
-        		{
-        			for(int j = 0; j < xdim + x; j++) 
-        			{
-        				dest[i][j] = source[i - y][j - x];
-        			}
-        		}
-            	return(dest);
-            }
-            else
-            {
-            	int[][] dest = new int[ydim][xdim - x];  
-            	for(int i = 0; i < ydim; i++)
-        		{
-        			for(int j = 0; j < xdim + x; j++) 
-        			{
-        				dest[i][j] = source[i][j - x];
-        			}
-        		}
-            	
-            	return(dest);
-            }		
-        }
-        else // x == 0
-        {
-        	if(y > 0)
-            {
-        		int[][] dest = new int[ydim - y][xdim];
-                for(int i = y; i < ydim; i++)	
-                {
-                	for(int j = 0; i < xdim; i++)
-                	{
-                		dest[i - y][j] = source[i][j];
-                	}
-                }
-                return(dest);	
-            }
-            else if(y < 0)
-            {
-            	int[][] dest = new int[ydim + y][xdim];
-                for(int i = 0; i < ydim + y; i++)	
-                {
-                	for(int j = 0; i < xdim; i++)
-                	{
-                		dest[i][j] = source[i - y][j];
-                	}
-                }
-                return(dest);	
-            }
-            else
-            {
-            	int[][] dest = new int[ydim][xdim];
-                for(int i = 0; i < ydim; i++)	
-                {
-                	for(int j = 0; i < xdim; i++)
-                	{
-                		dest[i][j] = source[i][j];
-                	}
-                }
-                return(dest);	
-            }	
-        }
-    }
+	public ArrayList getTranslation(int[][] source1, int[][] source2)
+	{
 
-	public int[][] translate(int[][] source, double x, double y)
+		ArrayList result = new ArrayList();
+		return (result);
+	}
+
+	public static ArrayList[][] getGradient(int src[][])
+	{
+		int           ydim = src.length;
+		int           xdim = src[0].length;
+		ArrayList[][] dst  = new ArrayList[ydim][xdim];
+		
+		for (int i = 0; i < ydim; i++)
+		{
+			for (int j = 0; j < xdim; j++)
+			{
+				int    type      = getLocationType(j, i, xdim, ydim);
+				double xgradient = 0;
+				double ygradient = 0;
+				if(type == 1)
+				{
+					xgradient = Double.NaN;
+					ygradient = Double.NaN;
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(xgradient);
+					dst[i][j] = gradient_list;
+				}
+				else if(type == 2)
+				{
+					xgradient = (src[i][j + 1] - src[i][j - 1]) + (src[i + 1][j + 1] - src[i + 1][j - 1]);
+					xgradient /= 2;
+					ygradient = Double.NaN;
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(xgradient);
+					dst[i][j] = gradient_list;
+				}
+				else if(type == 3)
+				{
+					xgradient = Double.NaN;
+					ygradient = Double.NaN;
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(xgradient);
+					dst[i][j] = gradient_list;	
+				}
+				else if(type == 4)
+				{
+					xgradient = Double.NaN;
+					ygradient = (src[i + 1][j] - src[i - 1][j]) + (src[i + 1][j + 1] - src[i - 1][j + 1]);
+					ygradient /= 2;
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(xgradient);
+					dst[i][j] = gradient_list;	
+				}
+				else if(type == 5)
+				{
+					xgradient = src[i - 1][j + 1] - src[i - 1][j - 1] + src[i][j + 1] - src[i][j - 1] + src[i + 1][j + 1] - src[i + 1][j - 1];
+					xgradient /= 3;
+					ygradient = src[i + 1][j - 1] - src[i - 1][j - 1] + src[i + 1][j] - src[i - 1][j] + src[i + 1][j + 1] - src[i - 1][j + 1];
+					ygradient /= 3;
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(xgradient);
+					dst[i][j] = gradient_list;	
+				}
+				else if(type == 6)
+				{
+					xgradient = Double.NaN;
+					ygradient = src[i + 1][j - 1] - src[i - 1][j - 1] + src[i + 1][j] - src[i - 1][j];
+					ygradient /= 2;
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(xgradient);
+					dst[i][j] = gradient_list;
+				}
+				else if(type == 7)
+				{
+					xgradient = Double.NaN;
+					ygradient = Double.NaN;
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(xgradient);
+					dst[i][j] = gradient_list;	
+				}
+				else if(type == 8)
+				{
+					xgradient = (src[i - 1][j + 1] - src[i - 1][j - 1]) + (src[i][j + 1] - src[i][j - 1]);
+					xgradient /= 2;
+					ygradient = Double.NaN;
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(xgradient);
+					dst[i][j] = gradient_list;	
+				}
+				else if(type == 9)
+				{
+					xgradient = Double.NaN;
+					ygradient = Double.NaN;
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(xgradient);
+					dst[i][j] = gradient_list;		
+				}
+				
+			}
+		}
+		return(dst);
+	}
+
+
+	public static int[][] getVariance(int src[][])
+	{
+		int ydim    = src.length;
+		int xdim    = src[0].length;
+		int[][] dst = new int[ydim][xdim];
+		
+		for (int i = 0; i < ydim; i++)
+		{
+			for (int j = 0; j < xdim; j++)
+			{
+				int type     = getLocationType(j, i, xdim, ydim);
+				int variance = 0;
+				if(type == 1)
+				{
+				    variance += Math.abs(src[i][j] - src[i][j + 1]);
+					variance += Math.abs(src[i][j] - src[i + 1][j]);
+					variance += Math.abs(src[i][j] - src[i + 1][j + 1]);
+					dst[i][j] = variance;
+				}
+				else if(type == 2)
+				{
+					variance += Math.abs(src[i][j] - src[i][j - 1]);
+					variance += Math.abs(src[i][j] - src[i][j + 1]);
+					variance += Math.abs(src[i][j] - src[i + 1][j - 1]);
+					variance += Math.abs(src[i][j] - src[i + 1][j]);
+					variance += Math.abs(src[i][j] - src[i + 1][j + 1]);
+					dst[i][j] = variance;
+				}
+				else if(type == 3)
+				{
+					variance += Math.abs(src[i][j] - src[i][j - 1]);
+					variance += Math.abs(src[i][j] - src[i + 1][j]);
+					variance += Math.abs(src[i][j] - src[i + 1][j - 1]);
+					dst[i][j] = variance;	
+				}
+				else if(type == 4)
+				{
+					variance += Math.abs(src[i][j] - src[i - 1][j]);
+					variance += Math.abs(src[i][j] - src[i - 1][j + 1]);
+					variance += Math.abs(src[i][j] - src[i][j + 1]);
+					variance += Math.abs(src[i][j] - src[i + 1][j]);
+					variance += Math.abs(src[i][j] - src[i + 1][j + 1]);
+					dst[i][j] = variance;	
+				}
+				else if(type == 5)
+				{
+					variance += Math.abs(src[i][j] - src[i - 1][j - 1]);
+					variance += Math.abs(src[i][j] - src[i - 1][j]);
+					variance += Math.abs(src[i][j] - src[i - 1][j + 1]);
+					variance += Math.abs(src[i][j] - src[i][j - 1]);
+					variance += Math.abs(src[i][j] - src[i][j + 1]);
+					variance += Math.abs(src[i][j] - src[i + 1][j - 1]);
+					variance += Math.abs(src[i][j] - src[i + 1][j]);
+					variance += Math.abs(src[i][j] - src[i + 1][j + 1]);
+					dst[i][j] = variance;
+				}
+				else if(type == 6)
+				{
+					variance += Math.abs(src[i][j] - src[i - 1][j]);
+					variance += Math.abs(src[i][j] - src[i - 1][j - 1]);
+					variance += Math.abs(src[i][j] - src[i][j - 1]);
+					variance += Math.abs(src[i][j] - src[i + 1][j]);
+					variance += Math.abs(src[i][j] - src[i + 1][j - 1]);
+					dst[i][j] = variance;
+				}
+				else if(type == 7)
+				{
+					variance += Math.abs(src[i][j] - src[i - 1][j]);
+					variance += Math.abs(src[i][j] - src[i - 1][j + 1]);
+					variance += Math.abs(src[i][j] - src[i][j + 1]);
+					dst[i][j] = variance;
+				}
+				else if(type == 8)
+				{
+					variance += Math.abs(src[i][j] - src[i - 1][j - 1]);
+					variance += Math.abs(src[i][j] - src[i - 1][j]);
+					variance += Math.abs(src[i][j] - src[i - 1][j + 1]);
+					variance += Math.abs(src[i][j] - src[i][j - 1]);
+					variance += Math.abs(src[i][j] - src[i][j + 1]);
+					dst[i][j] = variance;
+				}
+				else if(type == 9)
+				{
+					variance += Math.abs(src[i][j] - src[i - 1][j - 1]);
+					variance += Math.abs(src[i][j] - src[i - 1][j]);
+					variance += Math.abs(src[i][j] - src[i][j - 1]);
+					dst[i][j] = variance;
+				}
+				
+			}
+		}
+		return(dst);
+	}
+
+	public int[][] shift(int[][] source, int x, int y)
 	{
 		int ydim = source.length;
 		int xdim = source[0].length;
 
+		if (x > 0)
+		{
+			if (y > 0)
+			{
+				int[][] dest = new int[ydim - y][xdim - x];
+				for (int i = y; i < ydim; i++)
+				{
+					for (int j = x; j < xdim; j++)
+					{
+						dest[i - y][j - x] = source[i][j];
+					}
+				}
+				return (dest);
+
+			} else if (y < 0)
+			{
+				int[][] dest = new int[ydim + y][xdim - x];
+				for (int i = 0; i < ydim + y; i++)
+				{
+					for (int j = x; j < xdim; j++)
+					{
+						dest[i][j - x] = source[i - y][j];
+					}
+				}
+				return (dest);
+			} else
+			{
+				int[][] dest = new int[ydim][xdim - x];
+				for (int i = 0; i < ydim; i++)
+				{
+					for (int j = x; j < xdim; j++)
+					{
+						dest[i][j - x] = source[i][j];
+					}
+				}
+
+				return (dest);
+			}
+		} else if (x < 0)
+		{
+			if (y > 0)
+			{
+				int[][] dest = new int[ydim - y][xdim + x];
+				for (int i = y; i < ydim; i++)
+				{
+					for (int j = 0; j < xdim + x; j++)
+					{
+						dest[i - y][j] = source[i][j - x];
+					}
+				}
+				return (dest);
+
+			} else if (y < 0)
+			{
+				int[][] dest = new int[ydim + y][xdim + x];
+				for (int i = 0; i < ydim + y; i++)
+				{
+					for (int j = 0; j < xdim + x; j++)
+					{
+						dest[i][j] = source[i - y][j - x];
+					}
+				}
+				return (dest);
+			} else
+			{
+				int[][] dest = new int[ydim][xdim - x];
+				for (int i = 0; i < ydim; i++)
+				{
+					for (int j = 0; j < xdim + x; j++)
+					{
+						dest[i][j] = source[i][j - x];
+					}
+				}
+
+				return (dest);
+			}
+		} else // x == 0
+		{
+			if (y > 0)
+			{
+				int[][] dest = new int[ydim - y][xdim];
+				for (int i = y; i < ydim; i++)
+				{
+					for (int j = 0; i < xdim; i++)
+					{
+						dest[i - y][j] = source[i][j];
+					}
+				}
+				return (dest);
+			} else if (y < 0)
+			{
+				int[][] dest = new int[ydim + y][xdim];
+				for (int i = 0; i < ydim + y; i++)
+				{
+					for (int j = 0; i < xdim; i++)
+					{
+						dest[i][j] = source[i - y][j];
+					}
+				}
+				return (dest);
+			} else
+			{
+				int[][] dest = new int[ydim][xdim];
+				for (int i = 0; i < ydim; i++)
+				{
+					for (int j = 0; i < xdim; i++)
+					{
+						dest[i][j] = source[i][j];
+					}
+				}
+				return (dest);
+			}
+		}
+	}
+	
+	public int[][] translate(int[][] source, double x, double y)
+	{
+		int ydim = source.length;
+		int xdim = source[0].length;
 		int[][] dest = new int[ydim][xdim];
 		
-		if(x > 0)
+		if (x > 0)
 		{
-			
-		}
-		else if(x < 0)
+			if (y > 0)
+			{
+				// Change the dimensions depending on the arguments.
+				dest = new int[ydim - 1][xdim - 1];
+				for (int i = 0; i < ydim - 1; i++)
+				{
+					for (int j = 0; j < xdim - 1; j++)
+					{
+						double a = (double) source[i][j] * (1. - x) + (double) source[i][j + 1] * x;
+						double b = (double) source[i + 1][j] * (1. - x) + (double) source[i + 1][j + 1] * x;
+						dest[i][j] = (int) (a * (1. - y) + b * y * .25);
+					}
+				}
+			} else if (y < 0)
+			{
+				dest = new int[ydim - 1][xdim - 1];
+				for (int i = 0; i < ydim - 1; i++)
+				{
+					for (int j = 0; j < xdim - 1; j++)
+					{
+						double a = (double) source[i][j] * (1. - x) + (double) source[i][j + 1] * x;
+						double b = (double) source[i + 1][j] * (1. - x) + (double) source[i + 1][j + 1] * x;
+						dest[i][j] = (int) (a * -y + b * (1. + y) * .25);
+					}
+				}
+			} else
+			{
+				dest = new int[ydim][xdim - 1];
+				for (int i = 0; i < ydim; i++)
+				{
+					for (int j = 0; j < xdim - 1; j++)
+					{
+						double a = (double) source[i][j] * (1. - x) + (double) source[i][j + 1] * x;
+						dest[i][j] = (int) (a * .5);
+					}
+				}
+			}
+		} else if (x < 0)
 		{
-			
+			if (y > 0)
+			{
+				dest = new int[ydim - 1][xdim - 1];
+				for (int i = 0; i < ydim - 1; i++)
+				{
+					for (int j = 0; j < xdim - 1; j++)
+					{
+						double a = (double) source[i][j] * -x + (double) source[i][j + 1] * (1. - x);
+						double b = (double) source[i + 1][j] * -x + (double) source[i + 1][j] * (1. - x);
+						dest[i][j] = (int) (a * (1. - y) + b * y * .25);
+					}
+				}
+			} else if (y < 0)
+			{
+				dest = new int[ydim - 1][xdim - 1];
+				for (int i = 0; i < ydim - 1; i++)
+				{
+					for (int j = 0; j < xdim - 1; j++)
+					{
+						double a = (double) source[i][j] * -x + (double) source[i][j + 1] * (1. + x);
+						double b = (double) source[i + 1][j] * -x + (double) source[i + 1][j + 1] * (1. + x);
+						dest[i][j] = (int) (a * -y + b * (1. + y) * .25);
+					}
+				}
+			} else
+			{
+				dest = new int[ydim][xdim - 1];
+				for (int i = 0; i < ydim; i++)
+				{
+					for (int j = 0; j < xdim - 1; j++)
+					{
+						double a = (double) source[i][j] * -x + (double) source[i][j + 1] * (1. + x);
+						dest[i][j] = (int) (a * .5);
+					}
+				}
+			}
+		} else
+		{
+			if (y > 0)
+			{
+				dest = new int[ydim - 1][xdim];
+				for (int i = 0; i < ydim - 1; i++)
+				{
+					for (int j = 0; i < xdim; i++)
+					{
+						double a = (double) source[i][j] * (1. - x) + (double) source[i + 1][j] * x;
+						dest[i][j] = (int) (a * .5);
+					}
+				}
+			} else if (y < 0)
+			{
+				dest = new int[ydim + 1][xdim];
+				for (int i = 0; i < ydim + y; i++)
+				{
+					for (int j = 0; i < xdim; i++)
+					{
+						double a = (double) source[i][j] * -x + (double) source[i + 1][j] * (1. + x);
+						dest[i][j] = (int) (a * .5);
+					}
+				}
+			} else
+			{
+				dest = new int[ydim][xdim];
+				for (int i = 0; i < ydim; i++)
+				{
+					for (int j = 0; i < xdim; i++)
+					{
+						dest[i][j] = source[i][j];
+					}
+				}
+			}
 		}
-		
-
 		return (dest);
 	}
+
 }
