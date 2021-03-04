@@ -705,13 +705,6 @@ public class ImageMapper
 		avgAreaYTransform(workspace, new_xdim, ydim, dst, new_ydim, start_fraction, end_fraction, number_of_pixels);
 	}
 
-	public ArrayList getTranslation(int[][] source1, int[][] source2)
-	{
-
-		ArrayList result = new ArrayList();
-		return (result);
-	}
-
 	public static ArrayList[][] getGradient(int src[][])
 	{
 		int           ydim = src.length;
@@ -1161,6 +1154,131 @@ public class ImageMapper
 				}
 			}
 		}
+		return (dest);
+	}
+	
+	public static ArrayList[][] getTranslation(int[][] source1, int[][] source2)
+	{
+		int     maximum_iteration = 5;
+		int     current_iteration = 0;
+		
+		int     ydim              = source2.length;
+		int     xdim              = source2[0].length;
+		int[][] estimate          = new int[xdim][ydim];
+		
+		for(int i = 0; i < ydim; i++)
+		{
+			for(int j = 0; j < xdim; j++)
+			{
+				estimate[i][j] = source2[i][j];
+			}
+		}
+		
+		ArrayList[][] dest = new ArrayList[ydim][xdim];
+		
+		double w[][]  = new double[xdim][ydim];
+		double x[][]  = new double[xdim][ydim];
+		double z[][]  = new double[xdim][ydim];
+		double a1[][] = new double[xdim][ydim];
+		double a2[][] = new double[xdim][ydim];
+		double b1[][] = new double[xdim][ydim];
+		double b2[][] = new double[xdim][ydim];
+		
+		for(int i = 0; i < ydim; i++)
+		{
+			for(int j = 0; j < xdim; j++)
+			{
+				w[i][j]	 = 0.;
+				x[i][j]	 = 0.;
+				z[i][j]	 = 0.;
+				a1[i][j] = 0.;
+				a2[i][j] = 0.;
+				b1[i][j] = 0.;
+				b2[i][j] = 0.;
+			}
+		}
+		
+		ArrayList [][] gradient = getGradient(estimate);
+		for(int i = 1; i < ydim - 1; i++)
+		{
+			for(int j = 1; j < xdim - 1; j++)
+			{
+			     ArrayList current_gradient = gradient[i][j];
+			     double xgradient = (double)current_gradient.get(0);
+			     double ygradient = (double)current_gradient.get(1);
+			     if(!(Double.isNaN(xgradient) || Double.isNaN(ygradient)))
+			     {
+			    	 double xx        =  xgradient * xgradient;
+			    	 double xy        =  xgradient * ygradient;
+			    	 double yy        =  ygradient * ygradient;
+			    	 double delta     =  source1[i][j] - estimate[i][j];
+			    	 double xdelta    =  xgradient * delta;
+			    	 double ydelta    =  ygradient * delta;
+			    	 w[i][j]         += xx;
+			    	 x[i][j]         += xy;
+			    	 z[i][j]         += yy;
+			    	 b1[i][j]        += xdelta; 
+			    	 b2[i][j]        += ydelta;  
+			    	 
+			    	 if(w[i][j] != 0. && z[i][j] != .0)
+			         {
+			    		 double xincrement = (b1[i][j] - x[i][j] * b2[i][j] / z[i][j])/(w[i][j] - x[i][j] * x[i][j] / z[i][j]);
+			             double yincrement = (b2[i][j] - x[i][j] * b1[i][j] / w[i][j])/(z[i][j] - x[i][j] * x[i][j] / w[i][j]);
+			             
+			             ArrayList result = new ArrayList();
+			             int       type   = 1;
+			             result.add(type);
+			             result.add(xincrement);
+			             result.add(yincrement);
+			             dest[i][j] = result;
+			             
+			         }
+			         else
+			         {
+			        	 ArrayList result = new ArrayList();
+			        	 int       type   = 0;
+			             result.add(type);
+			             result.add(a1);
+			             result.add(a2);
+			             dest[i][j] = result;
+			         }
+			    	 
+			     }
+			}
+		}
+		
+		/*
+		while(current_iteration < maximum_iteration)
+		{
+			ArrayList [][] gradient = getGradient(estimate);
+			for(int i = 1; i < ydim - 1; i++)
+			{
+				for(int j = 1; j < xdim - 1; j++)
+				{
+				     ArrayList current_gradient = gradient[i][j];
+				     double xgradient = (double)current_gradient.get(0);
+				     double ygradient = (double)current_gradient.get(1);
+				     if(!(Double.isNaN(xgradient) || Double.isNaN(ygradient)))
+				     {
+				    	 double xx        =  xgradient * xgradient;
+				    	 double xy        =  xgradient * ygradient;
+				    	 double yy        =  ygradient * ygradient;
+				    	 double delta     =  source1[i][j] - estimate[i][j];
+				    	 double xdelta    =  xgradient * delta;
+				    	 double ydelta    =  ygradient * delta;
+				    	 w[i][j]         += xx;
+				    	 x[i][j]         += xy;
+				    	 z[i][j]         += yy;
+				    	 b1[i][j]        += xdelta; 
+				    	 b2[i][j]        += ydelta;   	 
+				     }
+				}
+			}
+			current_iteration++;	
+		}
+        */
+		
+		
 		return (dest);
 	}
 
