@@ -918,7 +918,8 @@ public class ImageMapper
 				}
 				return (dest);
 
-			} else if (y < 0)
+			} 
+			else if (y < 0)
 			{
 				int[][] dest = new int[ydim + y][xdim - x];
 				for (int i = 0; i < ydim + y; i++)
@@ -929,7 +930,8 @@ public class ImageMapper
 					}
 				}
 				return (dest);
-			} else
+			} 
+			else // y == 0
 			{
 				int[][] dest = new int[ydim][xdim - x];
 				for (int i = 0; i < ydim; i++)
@@ -942,7 +944,8 @@ public class ImageMapper
 
 				return (dest);
 			}
-		} else if (x < 0)
+		} 
+		else if (x < 0)
 		{
 			if (y > 0)
 			{
@@ -956,7 +959,8 @@ public class ImageMapper
 				}
 				return (dest);
 
-			} else if (y < 0)
+			} 
+			else if (y < 0)
 			{
 				int[][] dest = new int[ydim + y][xdim + x];
 				for (int i = 0; i < ydim + y; i++)
@@ -967,9 +971,10 @@ public class ImageMapper
 					}
 				}
 				return (dest);
-			} else
+			} 
+			else // y == 0
 			{
-				int[][] dest = new int[ydim][xdim - x];
+				int[][] dest = new int[ydim][xdim + x];
 				for (int i = 0; i < ydim; i++)
 				{
 					for (int j = 0; j < xdim + x; j++)
@@ -980,7 +985,8 @@ public class ImageMapper
 
 				return (dest);
 			}
-		} else // x == 0
+		} 
+		else // x == 0
 		{
 			if (y > 0)
 			{
@@ -993,7 +999,8 @@ public class ImageMapper
 					}
 				}
 				return (dest);
-			} else if (y < 0)
+			} 
+			else if (y < 0)
 			{
 				int[][] dest = new int[ydim + y][xdim];
 				for (int i = 0; i < ydim + y; i++)
@@ -1024,140 +1031,78 @@ public class ImageMapper
 		int ydim = source.length;
 		int xdim = source[0].length;
 		int[][] dest = new int[ydim][xdim];
-
-		if (x > 0)
+		
+		if(x == 0. && y == 0)
 		{
-			if (y > 0)
-			{
-				// Change the dimensions depending on the arguments.
-				dest = new int[ydim - 1][xdim - 1];
-				for (int i = 0; i < ydim - 1; i++)
-				{
-					for (int j = 0; j < xdim - 1; j++)
-					{
-						double a = (double) source[i][j] * (1. - x) + (double) source[i][j + 1] * x;
-						double b = (double) source[i + 1][j] * (1. - x) + (double) source[i + 1][j + 1] * x;
-						dest[i][j] = (int) (a * (1. - y) + b * y * .25);
-					}
-				}
-			} 
-			else if (y < 0)
-			{
-				dest = new int[ydim - 1][xdim - 1];
-				for (int i = 0; i < ydim - 1; i++)
-				{
-					for (int j = 0; j < xdim - 1; j++)
-					{
-						double a = (double) source[i][j] * (1. - x) + (double) source[i][j + 1] * x;
-						double b = (double) source[i + 1][j] * (1. - x) + (double) source[i + 1][j + 1] * x;
-						dest[i][j] = (int) (a * -y + b * (1. + y) * .25);
-					}
-				}
-			} 
-			else
-			{
-				dest = new int[ydim][xdim - 1];
-				for (int i = 0; i < ydim; i++)
-				{
-					for (int j = 0; j < xdim - 1; j++)
-					{
-						double a = (double) source[i][j] * (1. - x) + (double) source[i][j + 1] * x;
-						dest[i][j] = (int) (a * .5);
-					}
-				}
-			}
-		} 
-		else if (x < 0)
+			for(int i = 0; i < ydim; i++)
+				for(int j = 0; j < xdim; j++)
+				    dest[i][j] = source[i][j];	
+			return(dest);
+		}
+		
+		x += 1.;
+		x *= .5;
+		y += 1.;
+		y *= .5;
+		
+		// Change the dimensions of the destination depending on the arguments.
+		if(x == .5)
 		{
-			if (y > 0)
+			dest = new int[ydim - 1][xdim];	
+			for(int i = 0; i < ydim - 1; i++)
 			{
-				dest = new int[ydim - 1][xdim - 1];
-				for (int i = 0; i < ydim - 1; i++)
+				for(int j = 0; j < xdim; j++)
 				{
-					for (int j = 0; j < xdim - 1; j++)
-					{
-						double a = (double) source[i][j] * -x + (double) source[i][j + 1] * (1. - x);
-						double b = (double) source[i + 1][j] * -x + (double) source[i + 1][j] * (1. - x);
-						dest[i][j] = (int) (a * (1. - y) + b * y * .25);
-					}
-				}
-			} 
-			else if (y < 0)
-			{
-				dest = new int[ydim - 1][xdim - 1];
-				for (int i = 0; i < ydim - 1; i++)
-				{
-					for (int j = 0; j < xdim - 1; j++)
-					{
-						double a = (double) source[i][j] * -x + (double) source[i][j + 1] * (1. + x);
-						double b = (double) source[i + 1][j] * -x + (double) source[i + 1][j + 1] * (1. + x);
-						dest[i][j] = (int) (a * -y + b * (1. + y) * .25);
-					}
-				}
-			} 
-			else
-			{
-				dest = new int[ydim][xdim - 1];
-				for (int i = 0; i < ydim; i++)
-				{
-					for (int j = 0; j < xdim - 1; j++)
-					{
-						double a = (double) source[i][j] * -x + (double) source[i][j + 1] * (1. + x);
-						dest[i][j] = (int) (a * .5);
-					}
-				}
-			}
-		} 
-		else
-		{
-			if (y > 0)
-			{
-				dest = new int[ydim - 1][xdim];
-				for (int i = 0; i < ydim - 1; i++)
-				{
-					for (int j = 0; j < xdim; j++)
-					{
-						double a = (double) source[i][j] * (1. - x) + (double) source[i + 1][j] * x;
-						dest[i][j] = (int) (a * .5);
-					}
-				}
-			} 
-			else if (y < 0)
-			{
-				dest = new int[ydim + 1][xdim];
-				for (int i = 0; i < ydim + y; i++)
-				{
-					for (int j = 0; j < xdim; j++)
-					{
-						double a = (double) source[i][j] * -x + (double) source[i + 1][j] * (1. + x);
-						dest[i][j] = (int) (a * .5);
-					}
-				}
-			} 
-			else
-			{
-				dest = new int[ydim][xdim];
-				for (int i = 0; i < ydim; i++)
-				{
-					for (int j = 0; j < xdim; j++)
-					{
-						dest[i][j] = source[i][j];
-					}
+					double a = (double) source[i][j] * (1. - y) + (double) source[i + 1][j] * y;
+					dest[i][j] = (int) (a * .5);   	
 				}
 			}
 		}
-		return (dest);
+		else
+		{
+			if(y == .5)
+			{
+				dest = new int[ydim][xdim - 1];
+				for (int i = 0; i < ydim; i++)
+				{
+					for (int j = 0; j < xdim - 1; j++)
+					{
+						double a = (double) source[i][j] * (1. - x) + (double) source[i][j + 1] * x;
+						dest[i][j] = (int) (a * .5 + .5);
+					}
+				}
+			}
+			else
+			{
+				dest = new int[ydim - 1][xdim - 1];
+				for (int i = 0; i < ydim - 1; i++)
+				{
+					for (int j = 0; j < xdim - 1; j++)
+					{
+						double a = (double) source[i][j] * (1. - x) + (double) source[i][j + 1] * x;
+						double b = (double) source[i + 1][j] * (1. - x) + (double) source[i + 1][j + 1] * x;
+						dest[i][j] = (int) ((a * (1. - y) + b * y) * .25 + .5);
+					}
+				}	
+			}
+		}
+		return(dest);
 	}
-
+	
+	
+	
 	public static double[] getTranslation(int[][] source1, int[][] source2)
 	{
-		int ydim = source2.length;
-		int xdim = source2[0].length;
-		int[][] estimate = new int[xdim][ydim];
+		//Assumes source1 and source2 are same size.
+		int src_ydim = source1.length;
+		int src_xdim = source1[0].length;
+		int[][] estimate = new int[src_ydim][src_xdim];
 
-		for (int i = 0; i < ydim; i++)
+		//System.out.println("Source xdim is " + src_xdim);
+		//System.out.println("Source ydim is " + src_ydim);
+		for (int i = 0; i < src_ydim; i++)
 		{
-			for (int j = 0; j < xdim; j++)
+			for (int j = 0; j < src_xdim; j++)
 			{
 				estimate[i][j] = source2[i][j];
 			}
@@ -1168,15 +1113,15 @@ public class ImageMapper
 		double w = 0;
 		double x = 0;
 		double z = 0;
-		double a1 = 0;
-		double a2 = 0;
+		//double a1 = 0;
+		//double a2 = 0;
 		double b1 = 0;
 		double b2 = 0;
 
 		ArrayList[][] gradient = getGradient(estimate);
-		for (int i = 1; i < ydim - 1; i++)
+		for (int i = 1; i < src_ydim - 1; i++)
 		{
-			for (int j = 1; j < xdim - 1; j++)
+			for (int j = 1; j < src_xdim - 1; j++)
 			{
 				ArrayList current_gradient = gradient[i][j];
 				double xgradient = (double) current_gradient.get(0);
@@ -1195,15 +1140,11 @@ public class ImageMapper
 				b2 += ydelta;
 			}
 		}
+		
 		double xincrement = (b1 - x * b2 / z) / (w - x * x / z);
-		double yincrement = (b2 - x * b1 / w) / (w - x * x / z);
+		double yincrement = (b2 - x * b1 / w) / (z - x * x / w);
 		
-		String string = String.format("%,.4f", xincrement);
-		System.out.println("First x estimate is " + string);
-		string = String.format("%,.4f", yincrement);
-		System.out.println("First y estimate is " + string);
-		System.out.println();
-		
+
 		if (xincrement == 0. && yincrement == 0.)
 		{
 			dest[0] = 0;
@@ -1217,30 +1158,38 @@ public class ImageMapper
 		else
 			increment_min = Math.abs(yincrement) / 100.;
 		
+		
+		String string = String.format("%,.4f", xincrement);
+		System.out.println("First x increment is " + string);
+		string = String.format("%,.4f", xincrement);
+		System.out.println("First x estimate is " + string);
+		int xshift   = (int) (xincrement);
+		System.out.println("X shift is " + xshift);
+		double xdiff = xincrement - xshift;
+		string = String.format("%,.4f", xdiff);
+		System.out.println("X differential is " + string);
+		System.out.println();
+		
+		string = String.format("%,.4f", yincrement);
+		System.out.println("First y increment is " + string);
+		string = String.format("%,.4f", yincrement);
+		System.out.println("First y estimate is " + string);
+		int yshift   = (int) (yincrement);
+		System.out.println("Y shift is " + yshift);
+		double ydiff = yincrement - yshift;
+		string = String.format("%,.4f", ydiff);
+		System.out.println("Y differential is " + string);
+		System.out.println();
+		
+		double xtranslation        = xincrement;
+		double ytranslation        = yincrement;
+		
+		/*
 		double previous_xincrement = xincrement;
 		double previous_yincrement = yincrement;
-
-		if (xincrement < 0)
-			a1 = -1. - xincrement;
-		else if (xincrement > 0)
-			a1 = 1. - xincrement;
-		else
-			a1 = 0.;
-		if (yincrement < 0)
-			a2 = -1. - yincrement;
-		else if (xincrement > 0)
-			a2 = 1. - yincrement;
-		else
-			a2 = 0.;
-
-		int xshift = (int) Math.floor(a1);
-		int yshift = (int) Math.floor(a2);
-		double xdiff = a1 - xshift;
-		double ydiff = a2 - yshift;
-
 		if (xshift != 0 && yshift != 0)
 		{
-			if (xdiff != 0 && ydiff != 0)
+			if(xdiff != 0 && ydiff != 0)
 			{
 				int[][] intermediate = shift(source2, xshift, yshift);
 				estimate = translate(intermediate, xdiff, ydiff);
@@ -1255,16 +1204,34 @@ public class ImageMapper
 			estimate = translate(source2, xdiff, ydiff);
 		}
 
-		double current = 2.;
-		double maximum = 5.;
+		int current = 1;
+		int maximum = 4;
+
 		while (current < maximum)
 		{
-			gradient = getGradient(estimate);
-			ydim = estimate.length;
-			xdim = estimate.length;
-			for (int i = 1; i < ydim - 1; i++)
+			w            = 0;
+			x            = 0;
+			z            = 0;
+			
+			//a1           = previous_xincrement;
+			//a2           = previous_yincrement;
+			b1           = 0;
+            b2           = 0;
+        
+			gradient     = getGradient(estimate);
+			int est_ydim = estimate.length;
+			int est_xdim = estimate[0].length;
+			
+			int delta_x  = 0;
+			if(xtranslation > 0)
+			    delta_x = src_xdim - est_xdim;
+			int delta_y  = 0;
+			if(ytranslation > 0)
+			    delta_y  = src_ydim - est_ydim;
+			
+			for (int i = 1; i < est_ydim - 1; i++)
 			{
-				for (int j = 1; j < xdim - 1; j++)
+				for (int j = 1; j < est_xdim - 1; j++)
 				{
 					ArrayList current_gradient = gradient[i][j];
 					double xgradient = (double) current_gradient.get(0);
@@ -1272,7 +1239,7 @@ public class ImageMapper
 					double xx = xgradient * xgradient;
 					double xy = xgradient * ygradient;
 					double yy = ygradient * ygradient;
-					double delta = source1[i][j] - estimate[i][j];
+					double delta = source1[i + delta_y][j + delta_x] - estimate[i][j];
 					double xdelta = xgradient * delta;
 					double ydelta = ygradient * delta;
 
@@ -1283,107 +1250,68 @@ public class ImageMapper
 					b2 += ydelta;
 				}
 			}
+			
 			xincrement = (b1 - x * b2 / z) / (w - x * x / z);
-			yincrement = (b2 - x * b1 / w) / (w - x * x / z);
-
+			
+			if((xincrement < 0 && previous_xincrement < 0) || (xincrement > 0 && previous_xincrement > 0))
+			{
+			    xtranslation += previous_xincrement;
+			}
+			else
+			{
+				previous_xincrement = xincrement;
+			}
+			
+			yincrement = (b2 - x * b1 / w) / (z - x * x / w);
+			if((yincrement < 0 && previous_yincrement < 0) || (yincrement > 0 && previous_yincrement > 0))
+			{
+			    ytranslation += previous_yincrement;
+			}
+			else
+			{
+				previous_yincrement = yincrement;
+			}
+			
 			string = String.format("%,.4f", xincrement);
-			System.out.println("Current x estimate is " + string);
+			System.out.println("Current x increment is " + string);
 			string = String.format("%,.4f", yincrement);
+			System.out.println("Current y increment is " + string);
+			
+			
+			string = String.format("%,.4f", xtranslation);
+			System.out.println("Current x estimate is " + string);
+			string = String.format("%,.4f", ytranslation);
 			System.out.println("Current y estimate is " + string);
 			System.out.println();
 			
-			
-			// Estimate is still moving in same direction.
-			if ((xincrement <= 0 && previous_xincrement <= 0) || (xincrement >= 0 && previous_xincrement >= 0))
-			{
-				if (a1 < 0.)
-					a1 = -current - xincrement;
-				else
-					a1 = current - xincrement;
+		    // Create a new translated image.
+			xshift = (int) xtranslation;
+			yshift = (int) ytranslation;
+			xdiff = xtranslation - xshift;
+			ydiff = ytranslation - yshift;
 
-				previous_xincrement = xincrement;
-			} 
-			else // New estimate in opposite direction.
+			if (xshift != 0 && yshift != 0)
 			{
-				if (Math.abs(previous_xincrement) < Math.abs(xincrement))
+				if (xdiff != 0 && ydiff != 0)
 				{
-					// If new estimate takes us past our starting point, reset.
-					a1 = 0.;
-					xincrement = previous_xincrement;
+					int[][] intermediate = shift(source2, xshift, yshift);
+					estimate = translate(intermediate, xdiff, ydiff);
 				} 
-				else // Apparently passed a local minimum.
-				{
-					if (a1 < 0.)
-						a1 = -current - xincrement;
-					else
-						a1 = current - xincrement;
-
-					previous_xincrement = xincrement;
-				}
-			}
-
-			// Estimate is still moving in same direction.
-			if ((yincrement <= 0 && previous_yincrement <= 0) || (yincrement >= 0 && previous_yincrement >= 0))
-			{
-				if (a2 < 0.)
-					a2 = -current - yincrement;
 				else
-					a2 = current - yincrement;
-
-				previous_yincrement = yincrement;
-			} 
-			else // New estimate in opposite direction.
-			{
-				if (Math.abs(previous_yincrement) < Math.abs(yincrement))
 				{
-					// If new estimate takes us past our starting point, reset.
-					a2 = 0.;
-					yincrement = previous_yincrement;
-				} 
-				else // Apparently passed a local minimum.
-				{
-					if (a2 < 0.)
-						a2 = -current - yincrement;
-					else
-						a2 = current - yincrement;
-					previous_yincrement = yincrement;
+					estimate = shift(source2, xshift, yshift);
 				}
-			}
-
-			a1 += xincrement;
-			a2 += yincrement;
-
-			// If both of the increments are much smaller than the largest one, stop.
-			if (xincrement < increment_min && yincrement < increment_min)
-				break;
+			} 
 			else
 			{
-				xshift = (int) Math.floor(a1);
-				yshift = (int) Math.floor(a2);
-				xdiff = a1 - xshift;
-				ydiff = a2 - yshift;
-
-				if (xshift != 0 && yshift != 0)
-				{
-					if (xdiff != 0 && ydiff != 0)
-					{
-						int[][] intermediate = shift(source2, xshift, yshift);
-						estimate = translate(intermediate, xdiff, ydiff);
-					} else
-					{
-						estimate = shift(source2, xshift, yshift);
-					}
-				} 
-				else
-				{
-					estimate = translate(source2, xdiff, ydiff);
-				}
-				current += 1.;
+				estimate = translate(source2, xdiff, ydiff);
 			}
+			current += 1;
 		}
-        dest[0] = a1;
-        dest[1] = a2;
+		*/
+		
+        dest[0] = xtranslation;
+        dest[1] = ytranslation;
 		return (dest);
 	}
-
 }
