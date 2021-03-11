@@ -6,8 +6,7 @@ import java.awt.Point;
 
 public class ImageMapper
 {
-	public static void smoothImage(int src[], int xdim, int ydim, double smooth_factor, int number_of_iterations,
-			int dst[])
+	public static void smooth(int src[], int xdim, int ydim, double smooth_factor, int number_of_iterations, int dst[])
 	{
 		double even[] = new double[xdim * ydim];
 		double odd[] = new double[xdim * ydim];
@@ -1187,97 +1186,47 @@ public class ImageMapper
 		System.out.println("Y differential is " + string);
 		System.out.println();
 		
-		estimate = translate(source2, xdiff, ydiff);
-		int [][] current_source = translate(source1, .001, .001);
+		// We only use the original source in the first iteration.
+		// After that we need to extract and contract a region of interest
+		// so that it registers with the estimate for our sub-pixel calculation.
+		int [][] current_source;
 		
-		w = 0;
-		x = 0;
-		z = 0;
-		
-		b1 = 0;
-		b2 = 0;
-
-		gradient = getGradient(estimate);
-		int est_ydim = estimate.length;
-		int est_xdim = estimate[0].length;
-		
-		for (int i = 1; i < est_ydim - 1; i++)
-		{
-			for (int j = 1; j < est_xdim - 1; j++)
-			{
-				ArrayList current_gradient = gradient[i][j];
-				double xgradient = (double) current_gradient.get(0);
-				double ygradient = (double) current_gradient.get(1);
-				double xx = xgradient * xgradient;
-				double xy = xgradient * ygradient;
-				double yy = ygradient * ygradient;
-				double delta = current_source[i][j] - estimate[i][j];
-				double xdelta = xgradient * delta;
-				double ydelta = ygradient * delta;
-
-				w += xx;
-				x += xy;
-				z += yy;
-				b1 += xdelta;
-				b2 += ydelta;
-			}
-		}
-		
-		xincrement = (b1 - x * b2 / z) / (w - x * x / z);
-		yincrement = (b2 - x * b1 / w) / (z - x * x / w);
-		
-		string = String.format("%,.4f", xincrement);
-		System.out.println("Second x increment is " + string);
-		string = String.format("%,.4f", yincrement);
-		System.out.println("Second y increment is " + string);
-		
-		
-		
-		xtranslation        += 2 * xincrement;
-		ytranslation        += 2 * yincrement;
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		/*
 		if (xshift != 0 || yshift != 0)
 		{
 			if(xdiff != 0 || ydiff != 0)
 			{
 				int[][] intermediate = shift(source2, xshift, yshift);
 				estimate = translate(intermediate, xdiff, ydiff);
+				int xoffset = 0;
+				if(xshift > 0)
+					xoffset = xshift;
+				int yoffset = 0;
+				if(yshift > 0)
+					yoffset = yshift;
+				int ylength = estimate.length;
+				int xlength = estimate[0].length;
+				intermediate = extract(source1, xoffset, yoffset, xlength, ylength);
+				current_source = translate(intermediate, 0, 0);
 			} 
 			else
 			{
 				estimate = shift(source2, xshift, yshift);
+				int xoffset = 0;
+				if(xshift > 0)
+					xoffset = xshift;
+				int yoffset = 0;
+				if(yshift > 0)
+					yoffset = yshift;
+				int ylength = estimate.length;
+				int xlength = estimate[0].length;
+				current_source = extract(source1, xoffset, yoffset, xlength, ylength);
 			}
 		} 
 		else
 		{
 			estimate = translate(source2, xdiff, ydiff);
+			current_source = translate(source1, 0, 0);
 		}
-		
-		int [][] current_source = contract(source1);
 
 		int current = 1;
 		int maximum = 4;
@@ -1322,24 +1271,24 @@ public class ImageMapper
 			
 			if((xincrement < 0 && previous_xincrement < 0) || (xincrement > 0 && previous_xincrement > 0))
 			{
-			    xtranslation += xincrement;
+			    xtranslation += 2 * xincrement;
 			    previous_xincrement = xincrement;
 			}
 			else
 			{
-				xtranslation += xincrement;
+				xtranslation += 2 * xincrement;
 				previous_xincrement = xincrement;
 			}
 			
 			yincrement = (b2 - x * b1 / w) / (z - x * x / w);
 			if((yincrement < 0 && previous_yincrement < 0) || (yincrement > 0 && previous_yincrement > 0))
 			{
-			    ytranslation += yincrement;
+			    ytranslation += 2 * yincrement;
 			    previous_yincrement = yincrement;
 			}
 			else
 			{
-				ytranslation += yincrement;
+				ytranslation += 2 * yincrement;
 				previous_yincrement = yincrement;
 			}
 			
@@ -1361,25 +1310,44 @@ public class ImageMapper
 			xdiff = xtranslation - xshift;
 			ydiff = ytranslation - yshift;
 
-			if (xshift != 0 && yshift != 0)
+			if (xshift != 0 || yshift != 0)
 			{
-				if (xdiff != 0 && ydiff != 0)
+				if(xdiff != 0 || ydiff != 0)
 				{
 					int[][] intermediate = shift(source2, xshift, yshift);
 					estimate = translate(intermediate, xdiff, ydiff);
+					int xoffset = 0;
+					if(xshift > 0)
+						xoffset = xshift;
+					int yoffset = 0;
+					if(yshift > 0)
+						yoffset = yshift;
+					int ylength = estimate.length;
+					int xlength = estimate[0].length;
+					intermediate = extract(source1, xoffset, yoffset, xlength, ylength);
+					current_source = translate(intermediate, 0, 0);
 				} 
 				else
 				{
 					estimate = shift(source2, xshift, yshift);
+					int xoffset = 0;
+					if(xshift > 0)
+						xoffset = xshift;
+					int yoffset = 0;
+					if(yshift > 0)
+						yoffset = yshift;
+					int ylength = estimate.length;
+					int xlength = estimate[0].length;
+					current_source = extract(source1, xoffset, yoffset, xlength, ylength);
 				}
 			} 
 			else
 			{
 				estimate = translate(source2, xdiff, ydiff);
+				current_source = translate(source1, 0, 0);
 			}
 			current += 1;
 		}
-		*/
 			
         dest[0] = xtranslation;
         dest[1] = ytranslation;
