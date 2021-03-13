@@ -876,6 +876,7 @@ public class ImageMapper
 							        src[i][j + 1] - src[i][j - 1] +
 							        src[i + 1][j + 1] - src[i + 1][j - 1];
 					    xgradient /= 3;
+					    System.out.println("Got here.");
 					}
 					else
 					{
@@ -1179,8 +1180,6 @@ public class ImageMapper
 		int src_xdim = source1[0].length;
 		int[][] estimate = new int[src_ydim][src_xdim];
 
-		//System.out.println("Source xdim is " + src_xdim);
-		//System.out.println("Source ydim is " + src_ydim);
 		for (int i = 0; i < src_ydim; i++)
 		{
 			for (int j = 0; j < src_xdim; j++)
@@ -1205,6 +1204,9 @@ public class ImageMapper
 				ArrayList current_gradient = gradient[i][j];
 				double xgradient = (double) current_gradient.get(0);
 				double ygradient = (double) current_gradient.get(1);
+				
+				if(!(Double.isNaN(xgradient) && !(Double.isNaN(ygradient))))
+				{
 				double xx = xgradient * xgradient;
 				double xy = xgradient * ygradient;
 				double yy = ygradient * ygradient;
@@ -1217,15 +1219,16 @@ public class ImageMapper
 				z += yy;
 				b1 += xdelta;
 				b2 += ydelta;
+				}
 			}
 		}
 		
 		double xincrement = (b1 - x * b2 / z) / (w - x * x / z);
 		double yincrement = (b2 - x * b1 / w) / (z - x * x / w);
 		
-
 		if (xincrement == 0. && yincrement == 0.)
 		{
+			System.out.println("Produced zero increments.");
 			dest[0] = 0;
 			dest[1] = 0;
 			return (dest);
@@ -1242,26 +1245,21 @@ public class ImageMapper
 		double xtranslation        = xincrement;
 		double ytranslation        = yincrement;
 
+		
+		
+		int xshift   = (int) (xtranslation);
+		double xdiff = xtranslation - xshift;
+		
+		
+		
+		
+		int yshift   = (int) (ytranslation);
+		double ydiff = ytranslation - yshift;
+		
 		String string = String.format("%,.4f", xincrement);
 		System.out.println("First x increment is " + string);
-		string = String.format("%,.4f", xtranslation);
-		System.out.println("First x estimate is " + string);
-		int xshift   = (int) (xtranslation);
-		System.out.println("X shift is " + xshift);
-		double xdiff = xtranslation - xshift;
-		string = String.format("%,.4f", xdiff);
-		System.out.println("X differential is " + string);
-		System.out.println();
-		
 		string = String.format("%,.4f", yincrement);
 		System.out.println("First y increment is " + string);
-		string = String.format("%,.4f", ytranslation);
-		System.out.println("First y estimate is " + string);
-		int yshift   = (int) (ytranslation);
-		System.out.println("Y shift is " + yshift);
-		double ydiff = ytranslation - yshift;
-		string = String.format("%,.4f", ydiff);
-		System.out.println("Y differential is " + string);
 		System.out.println();
 		
 		// We only use the original source in the first iteration.
@@ -1316,14 +1314,14 @@ public class ImageMapper
 		}
 
 		int current = 1;
-		int maximum = 20;
+		int maximum = 5;
 
 		while (current < maximum)
 		{
 			w            = 0;
 			x            = 0;
 			z            = 0;
-		
+
 			b1           = 0;
             b2           = 0;
         
@@ -1339,6 +1337,8 @@ public class ImageMapper
 					ArrayList current_gradient = gradient[i][j];
 					double xgradient = (double) current_gradient.get(0);
 					double ygradient = (double) current_gradient.get(1);
+					if(!(Double.isNaN(xgradient) && !(Double.isNaN(ygradient))))
+					{
 					double xx = xgradient * xgradient;
 					double xy = xgradient * ygradient;
 					double yy = ygradient * ygradient;
@@ -1351,43 +1351,41 @@ public class ImageMapper
 					z += yy;
 					b1 += xdelta;
 					b2 += ydelta;
+					}
 				}
 			}
 			
 			xincrement = (b1 - x * b2 / z) / (w - x * x / z);
-			
-			if((xincrement < 0 && previous_xincrement < 0) || (xincrement > 0 && previous_xincrement > 0))
-			{
-			    //xtranslation += 2 * xincrement;
-				xtranslation += xincrement;
-			    previous_xincrement = xincrement;
-			}
-			else
-			{
-				//xtranslation += 2 * xincrement;
-				xtranslation += xincrement;
-				previous_xincrement = xincrement;
-			}
-			
 			yincrement = (b2 - x * b1 / w) / (z - x * x / w);
-			if((yincrement < 0 && previous_yincrement < 0) || (yincrement > 0 && previous_yincrement > 0))
+			
+			if(Math.abs(xincrement) < increment_min || Math.abs(yincrement) < increment_min)
 			{
-			    //ytranslation += 2 * yincrement;
-				ytranslation += yincrement;
-			    previous_yincrement = yincrement;
+				System.out.println("Produced an increment smaller than minimum.");
+			    dest[0] = xtranslation;
+		        dest[1] = ytranslation;
+				return (dest);
 			}
-			else
+			
+			if((xincrement < 0 && previous_xincrement > 0) || (xincrement > 0 && previous_xincrement < 0) 
+				|| (yincrement < 0 && previous_yincrement > 0) || (yincrement > 0 && previous_yincrement < 0))
 			{
-				//ytranslation += 2 * yincrement;
-				ytranslation += yincrement;
-				previous_yincrement = yincrement;
+				System.out.println("Produced an increment in the opposite direction.");
+				dest[0] = xtranslation;
+		        dest[1] = ytranslation;
+				return (dest);
 			}
+				
+			xtranslation += xincrement;
+		    previous_xincrement = xincrement;
+			
+			ytranslation += yincrement;
+			previous_yincrement = yincrement;
 			
 			string = String.format("%,.4f", xincrement);
 			System.out.println("Current x increment is " + string);
 			string = String.format("%,.4f", yincrement);
 			System.out.println("Current y increment is " + string);
-			
+			System.out.println();
 			
 			string = String.format("%,.4f", xtranslation);
 			System.out.println("Current x estimate is " + string);
@@ -1395,13 +1393,14 @@ public class ImageMapper
 			System.out.println("Current y estimate is " + string);
 			System.out.println();
 			
-		    // Create a new translated image.
+		    // Create a new translated image for the next iteration.
 			xshift = (int) xtranslation;
 			yshift = (int) ytranslation;
 			xdiff = xtranslation - xshift;
 			ydiff = ytranslation - yshift;
 			
-
+            //Check to see if our translation passes pixel boundries
+			//and we need to adjust our shift and diff values.
 			if(Math.abs(xdiff) > .5)
 			{
 				if(xdiff < 0)
@@ -1434,7 +1433,6 @@ public class ImageMapper
 			    }
 			}
 			
-			
 			if (xshift != 0 || yshift != 0)
 			{
 				int [][] intermediate = shift(source2, xshift, yshift);
@@ -1451,7 +1449,8 @@ public class ImageMapper
 			
 			current++;
 		}
-			
+		
+		System.out.println("Reached maximum iterations.");	
         dest[0] = xtranslation;
         dest[1] = ytranslation;
 		return (dest);
