@@ -811,7 +811,141 @@ public class ImageMapper
 		}
 		return (dst);
 	}
+    
+	public static ArrayList[][] getSmoothGradient(int src[][])
+	{
+		int ydim = src.length;
+		int xdim = src[0].length;
+		ArrayList[][] dst = new ArrayList[ydim][xdim];
 
+		for (int i = 0; i < ydim; i++)
+		{
+			for (int j = 0; j < xdim; j++)
+			{
+				int type = getLocationType(j, i, xdim, ydim);
+				double xgradient = 0;
+				double ygradient = 0;
+				if (type == 1)
+				{
+					xgradient = Double.NaN;
+					ygradient = Double.NaN;
+
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(ygradient);
+					dst[i][j] = gradient_list;
+				} 
+				else if (type == 2)
+				{
+					xgradient = (src[i][j + 1] - src[i][j - 1]) + (src[i + 1][j + 1] - src[i + 1][j - 1]);
+					xgradient /= 2;
+					ygradient = Double.NaN;
+
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(ygradient);
+					dst[i][j] = gradient_list;
+				} 
+				else if (type == 3)
+				{
+					xgradient = Double.NaN;
+					ygradient = Double.NaN;
+
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(ygradient);
+					dst[i][j] = gradient_list;
+				} 
+				else if (type == 4)
+				{
+					xgradient = Double.NaN;
+					ygradient = (src[i + 1][j] - src[i - 1][j]) + (src[i + 1][j + 1] - src[i - 1][j + 1]);
+					ygradient /= 2;
+
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(ygradient);
+					dst[i][j] = gradient_list;
+				} 
+				else if (type == 5)
+				{
+					if(((src[i][j + 1] < src[i][j]) && (src[i][j] < src[i][j - 1]))  ||
+					   ((src[i][j + 1] > src[i][j]) && (src[i][j] > src[i][j - 1])))	
+					{
+					    xgradient = src[i - 1][j + 1] - src[i - 1][j - 1] + 
+							        src[i][j + 1] - src[i][j - 1] +
+							        src[i + 1][j + 1] - src[i + 1][j - 1];
+					    xgradient /= 3;
+					}
+					else
+					{
+						xgradient = Double.NaN;	
+					}
+					
+					
+					if(((src[i + 1][j] < src[i][j]) && (src[i][j] < src[i - 1][j]))  ||
+							   ((src[i + 1][j] > src[i][j]) && (src[i][j] > src[i - 1][j])))		
+					{
+					    ygradient = src[i + 1][j - 1] - src[i - 1][j - 1] + 
+							    	src[i + 1][j] - src[i - 1][j] +
+							    	src[i + 1][j + 1] - src[i - 1][j + 1];
+					    ygradient /= 3;
+					}
+					else	
+				        ygradient = Double.NaN;	
+
+					
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(ygradient);
+					dst[i][j] = gradient_list;
+				} 
+				else if (type == 6)
+				{
+					xgradient = Double.NaN;
+					ygradient = src[i + 1][j - 1] - src[i - 1][j - 1] + src[i + 1][j] - src[i - 1][j];
+					ygradient /= 2;
+
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(ygradient);
+					dst[i][j] = gradient_list;
+				} 
+				else if (type == 7)
+				{
+					xgradient = Double.NaN;
+					ygradient = Double.NaN;
+
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(ygradient);
+					dst[i][j] = gradient_list;
+				} 
+				else if (type == 8)
+				{
+					xgradient = (src[i - 1][j + 1] - src[i - 1][j - 1]) + (src[i][j + 1] - src[i][j - 1]);
+					xgradient /= 2;
+					ygradient = Double.NaN;
+
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(ygradient);
+					dst[i][j] = gradient_list;
+				} 
+				else if (type == 9)
+				{
+					xgradient = Double.NaN;
+					ygradient = Double.NaN;
+
+					ArrayList gradient_list = new ArrayList();
+					gradient_list.add(xgradient);
+					gradient_list.add(ygradient);
+					dst[i][j] = gradient_list;
+				}
+			}
+		}
+		return (dst);
+	}
 	public static int[][] getVariance(int src[][])
 	{
 		int ydim = src.length;
