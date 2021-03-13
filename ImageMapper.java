@@ -1180,6 +1180,7 @@ public class ImageMapper
 		int src_xdim = source1[0].length;
 		int[][] estimate = new int[src_ydim][src_xdim];
 
+		
 		for (int i = 0; i < src_ydim; i++)
 		{
 			for (int j = 0; j < src_xdim; j++)
@@ -1188,7 +1189,7 @@ public class ImageMapper
 			}
 		}
 
-		double[] dest = new double[2];
+		double[] dest = new double[3];
 
 		double w = 0;
 		double x = 0;
@@ -1228,9 +1229,10 @@ public class ImageMapper
 		
 		if (xincrement == 0. && yincrement == 0.)
 		{
-			System.out.println("Produced zero increments.");
+			//System.out.println("Produced zero increments.");
 			dest[0] = 0;
 			dest[1] = 0;
+			dest[2] = 0;
 			return (dest);
 		}
 
@@ -1250,9 +1252,6 @@ public class ImageMapper
 		int xshift   = (int) (xtranslation);
 		double xdiff = xtranslation - xshift;
 		
-		
-		
-		
 		int yshift   = (int) (ytranslation);
 		double ydiff = ytranslation - yshift;
 		
@@ -1262,10 +1261,7 @@ public class ImageMapper
 		System.out.println("First y increment is " + string);
 		System.out.println();
 		
-		// We only use the original source in the first iteration.
-		// After that we need to extract and contract a region of interest
-		// so that it registers with the estimate for our sub-pixel calculation.
-		int [][] current_source;
+		
 		
 		if(Math.abs(xdiff) > .5)
 		{
@@ -1299,9 +1295,15 @@ public class ImageMapper
 		    }
 		}
 		
+		// We only use the original source in the first iteration.
+		// After that we need to extract and contract a region of interest
+		// so that it registers with the estimate for our sub-pixel calculation.
+		int [][] current_source;
+		
 		if (xshift != 0 || yshift != 0)
 		{
 			int [][] intermediate = shift(source1, -xshift, -yshift);
+			//We do this to align the images. It contracts the image.
 			current_source = translate(intermediate, 0, 0);	
 			intermediate = shift(source2, xshift, yshift);
 			estimate = translate(intermediate, 2 * xdiff, 2 * ydiff);  
@@ -1360,18 +1362,25 @@ public class ImageMapper
 			
 			if(Math.abs(xincrement) < increment_min || Math.abs(yincrement) < increment_min)
 			{
-				System.out.println("Produced an increment smaller than minimum.");
-			    dest[0] = xtranslation;
-		        dest[1] = ytranslation;
+				//System.out.println("Produced an increment smaller than minimum.");
+				//Converging.
+				dest[0] = 1;
+			    dest[1] = xtranslation;
+		        dest[2] = ytranslation;
 				return (dest);
 			}
 			
 			if((xincrement < 0 && previous_xincrement > 0) || (xincrement > 0 && previous_xincrement < 0) 
 				|| (yincrement < 0 && previous_yincrement > 0) || (yincrement > 0 && previous_yincrement < 0))
 			{
-				System.out.println("Produced an increment in the opposite direction.");
-				dest[0] = xtranslation;
-		        dest[1] = ytranslation;
+				//System.out.println("Produced an increment in the opposite direction.");
+				//Oscillating.
+				xtranslation += xincrement;
+				ytranslation += yincrement;
+				
+				dest[0] = 2;
+				dest[1] = xtranslation;
+		        dest[2] = ytranslation;
 				return (dest);
 			}
 				
@@ -1450,9 +1459,10 @@ public class ImageMapper
 			current++;
 		}
 		
-		System.out.println("Reached maximum iterations.");	
-        dest[0] = xtranslation;
-        dest[1] = ytranslation;
+		//System.out.println("Reached maximum iterations.");
+		dest[0] = 3;
+        dest[1] = xtranslation;
+        dest[2] = ytranslation;
 		return (dest);
 	}
 }
