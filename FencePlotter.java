@@ -39,8 +39,8 @@ public class FencePlotter
 	int left_margin = 60;
 	int top_margin = 10;
 	int right_margin = 10;
-	int xstep = 10;
-	int ystep = 20;
+	int xstep = 0;
+	int ystep = 0;
 	int xdim = 0;
 	int ydim = 0;
 	int graph_xdim = 0;
@@ -547,8 +547,13 @@ public class FencePlotter
 						g2.setColor(fill_color[i]);
 						g2.fillPolygon(polygon[i]);
 					}
+					else
+						g2.setStroke(new BasicStroke(3));
 					g2.setColor(outline_color[i]);
 					g2.drawPolygon(polygon[i]);
+					if(transparency.equals("yes"))
+						g2.setStroke(new BasicStroke(2));
+					
 
 				}
 			}
