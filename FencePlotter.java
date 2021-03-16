@@ -31,7 +31,8 @@ public class FencePlotter
 	boolean scrollbar_changed = false;
 
 	// Plotting parameters
-	Color[] color = new Color[5];
+	Color[] outline_color = new Color[5];
+	Color[] fill_color = new Color[5];
 	int number_of_sensors = 5;
 
 	int bottom_margin = 60;
@@ -52,7 +53,8 @@ public class FencePlotter
 	public JScrollBar scrollbar;
 	public JButton apply_button;
 	public RangeSlider range_slider;
-
+	public JTextField input;
+	
 	public static void main(String[] args)
 	{
 		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
@@ -60,7 +62,8 @@ public class FencePlotter
 		{
 			System.out.println("Usage: FencePlotter <data file>");
 			System.exit(0);
-		} else
+		} 
+		else
 		{
 			try
 			{
@@ -166,11 +169,17 @@ public class FencePlotter
 
 		frame.getContentPane().add(canvas, BorderLayout.CENTER);
 
-		color[0] = new Color(0, 0, 0);
-		color[1] = new Color(0, 0, 150);
-		color[2] = new Color(150, 0, 0);
-		color[3] = new Color(0, 150, 0);
-		color[4] = new Color(150, 0, 150);
+		outline_color[0] = new Color(0, 0, 0);
+		outline_color[1] = new Color(0, 0, 150);
+		outline_color[2] = new Color(150, 0, 0);
+		outline_color[3] = new Color(0, 150, 0);
+		outline_color[4] = new Color(150, 0, 150);
+        
+		fill_color[0] = new Color(196, 196, 196);
+		fill_color[1] = new Color(196, 196, 255);
+		fill_color[2] = new Color(255, 196, 196);
+		fill_color[3] = new Color(196, 255, 196);
+		fill_color[4] = new Color(255, 196, 255);
 
 		table = new JTable(6, 11)
 		{
@@ -178,7 +187,7 @@ public class FencePlotter
 			{
 				Component c = super.prepareRenderer(renderer, row, column);
 				if (column == 10 && row > 0)
-					c.setBackground(color[row - 1]);
+					c.setBackground(outline_color[row - 1]);
 				else
 					c.setBackground(java.awt.Color.WHITE);
 				return c;
@@ -217,15 +226,23 @@ public class FencePlotter
 		header = new String("Key");
 		table.setValueAt(header, 0, 10);
 
-		int rows = 5;
-		int line = 27;
-
+		int     rows  = 5;
+		int     line  = 4;
+		double start  = 32;
+		double range  = 6;
+		
+		input    = new JTextField();
+		input.setText(Integer.toString(line));
+		
 		for (int i = 0; i < rows; i++)
 		{
 			table.setValueAt((String) Integer.toString(line), i + 1, 0);
-			table.setValueAt((String) Integer.toString(i), i + 1, 1);
-			table.setValueAt((String) "35", i + 1, 2);
-			table.setValueAt((String) "20", i + 1, 3);
+			if(line % 2 == 1)
+			    table.setValueAt((String) Integer.toString(i), i + 1, 1);
+			else
+				table.setValueAt((String) Integer.toString(4 - i), i + 1, 1);
+			table.setValueAt(Double.toString(start), i + 1, 2);
+			table.setValueAt(Double.toString(range), i + 1, 3);
 			table.setValueAt((String) "0", i + 1, 4);
 			table.setValueAt((String) "100", i + 1, 5);
 			table.setValueAt((String) "0", i + 1, 6);
@@ -286,27 +303,40 @@ public class FencePlotter
 		ApplyHandler handler = new ApplyHandler();
 		apply_button.addActionListener(handler);
 		apply_panel.add(apply_button, BorderLayout.SOUTH);
+		
+		
+		JPanel load_panel   = new JPanel(new BorderLayout());
+		JButton load_button = new JButton("Load");
+		LoadHandler load_handler = new LoadHandler();
+		load_button.addActionListener(load_handler);
+		input.setHorizontalAlignment(JTextField.CENTER);
+		load_panel.add(load_button, BorderLayout.SOUTH);
+		load_panel.add(input, BorderLayout.NORTH);
 
 		JPanel canvas_panel = new JPanel(new BorderLayout());
 		Canvas apply_canvas = new Canvas();
-		apply_canvas.setSize(100, 80);
+		apply_canvas.setSize(40, 40);
 
 		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 190);
 		XStepHandler xstep_handler = new XStepHandler();
 		xstep_scrollbar.addAdjustmentListener(xstep_handler);
-		xstep_scrollbar.setValue(xstep);
+		xstep_scrollbar.setValue(0);
+		xstep = 0;
 
 		JScrollBar ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 190);
 		YStepHandler ystep_handler = new YStepHandler();
 		ystep_scrollbar.addAdjustmentListener(ystep_handler);
-		ystep_scrollbar.setValue(ystep);
+		ystep_scrollbar.setValue(189);
+		ystep = 0;
 
 		canvas_panel.add(apply_canvas, BorderLayout.CENTER);
 		canvas_panel.add(xstep_scrollbar, BorderLayout.SOUTH);
 		canvas_panel.add(ystep_scrollbar, BorderLayout.EAST);
 		apply_panel.add(canvas_panel, BorderLayout.CENTER);
+		
 		bottom_panel.add(apply_panel, BorderLayout.EAST);
-
+		bottom_panel.add(load_panel, BorderLayout.WEST);
+		
 		frame.getContentPane().add(bottom_panel, BorderLayout.SOUTH);
 		frame.pack();
 	}
@@ -514,10 +544,10 @@ public class FencePlotter
 				{
 					if (transparency.equals("no"))
 					{
-						g2.setColor(java.awt.Color.WHITE);
+						g2.setColor(fill_color[i]);
 						g2.fillPolygon(polygon[i]);
 					}
-					g2.setColor(color[i]);
+					g2.setColor(outline_color[i]);
 					g2.drawPolygon(polygon[i]);
 
 				}
@@ -540,10 +570,7 @@ public class FencePlotter
 				shift /= 200;
 				shift *= difference;
 				double start = 45. - (range / 2);
-				/*
-				if(range % 2 == 1)
-					start -= .5;
-				*/
+			
 				start += shift;
 				String start_string = String.format("%,.2f", start);
 				String shift_string = String.format("%,.2f", shift);
@@ -560,10 +587,7 @@ public class FencePlotter
 					shift /= 200;
 					shift *= difference;
 					start = 45. - (range / 2);
-					/*
-					if(range % 2 == 1)
-						start -= .5;
-					*/
+					
 					start += shift;
 					start_string = String.format("%,.2f", start);
 					shift_string = String.format("%,.2f", shift);
@@ -593,13 +617,33 @@ public class FencePlotter
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
 		{
-			ystep = event.getValue();
+			ystep = 189 - event.getValue();
 			System.out.println("Ystep is now " + ystep);
 			if (event.getValueIsAdjusting() == false)
 				apply_button.doClick(0);
 		}
 	}
 
+	class LoadHandler implements ActionListener
+	{
+		int rows = 5;
+		public void actionPerformed(ActionEvent e)
+		{
+			String current_line = input.getText();
+			int current_line_int = Integer.parseInt(current_line);
+			System.out.println("Current line is " + current_line);
+			for (int i = 0; i < rows; i++)
+			{
+				table.setValueAt(current_line, i + 1, 0);	
+				if(current_line_int % 2 == 1)
+					table.setValueAt((String) Integer.toString(i), i + 1, 1);	
+				else
+					table.setValueAt((String) Integer.toString(4 - i), i + 1, 1);
+			}
+			
+		}
+	}
+	
 	class ApplyHandler implements ActionListener
 	{
 		int[][] line_array;
