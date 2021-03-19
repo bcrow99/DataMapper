@@ -26,13 +26,14 @@ public class FencePlotter
 	ArrayList baseline_data = new ArrayList();
 	double max_delta;
 	//double shift, start, range;
-
+    double shift = 0;
 	boolean slider_changed = false;
 	boolean scrollbar_changed = false;
 
 	// Plotting parameters
 	Color[] outline_color = new Color[5];
 	Color[] fill_color = new Color[5];
+	Color[] zero_crossing_color = new Color[5];
 	int number_of_sensors = 5;
 
 	int bottom_margin = 60;
@@ -180,6 +181,12 @@ public class FencePlotter
 		fill_color[2] = new Color(255, 196, 196);
 		fill_color[3] = new Color(196, 255, 196);
 		fill_color[4] = new Color(255, 196, 255);
+		
+		zero_crossing_color[0] = new Color(60, 60, 60);
+		zero_crossing_color[1] = new Color(60, 60, 0);
+		zero_crossing_color[1] = new Color(0, 60, 60);
+		zero_crossing_color[1] = new Color(60, 0, 60);
+		zero_crossing_color[1] = new Color(0, 60, 0);
 
 		table = new JTable(6, 11)
 		{
@@ -187,7 +194,7 @@ public class FencePlotter
 			{
 				Component c = super.prepareRenderer(renderer, row, column);
 				if (column == 10 && row > 0)
-					c.setBackground(outline_color[row - 1]);
+					c.setBackground(fill_color[row - 1]);
 				else
 					c.setBackground(java.awt.Color.WHITE);
 				return c;
@@ -211,13 +218,13 @@ public class FencePlotter
 		table.setValueAt(header, 0, 2);
 		header = new String("Range");
 		table.setValueAt(header, 0, 3);
-		header = new String("Shift");
-		table.setValueAt(header, 0, 4);
 		header = new String("Resolution");
-		table.setValueAt(header, 0, 5);
+		table.setValueAt(header, 0, 4);
 		header = new String("Smoothing");
-		table.setValueAt(header, 0, 6);
+		table.setValueAt(header, 0, 5);
 		header = new String("Data Usage");
+		table.setValueAt(header, 0, 6);
+		header = new String("Zero Crosses");
 		table.setValueAt(header, 0, 7);
 		header = new String("Visible");
 		table.setValueAt(header, 0, 8);
@@ -227,8 +234,8 @@ public class FencePlotter
 		table.setValueAt(header, 0, 10);
 
 		int     rows  = 5;
-		int     line  = 4;
-		double start  = 32;
+		int     line  = 10;
+		double start  = 42;
 		double range  = 6;
 		
 		input    = new JTextField();
@@ -243,10 +250,10 @@ public class FencePlotter
 				table.setValueAt((String) Integer.toString(4 - i), i + 1, 1);
 			table.setValueAt(Double.toString(start), i + 1, 2);
 			table.setValueAt(Double.toString(range), i + 1, 3);
-			table.setValueAt((String) "0", i + 1, 4);
-			table.setValueAt((String) "100", i + 1, 5);
+			table.setValueAt((String) "100", i + 1, 4);
+			table.setValueAt((String) "0", i + 1, 5);
 			table.setValueAt((String) "0", i + 1, 6);
-			table.setValueAt((String) "0", i + 1, 7);
+			table.setValueAt((String) "yes", i + 1, 7);
 			table.setValueAt((String) "yes", i + 1, 8);
 			table.setValueAt((String) "no", i + 1, 9);
 		}
@@ -277,7 +284,7 @@ public class FencePlotter
 						double range = stop - start;
 						if (range == 0)
 							range = 1;
-						double shift = start - (45. - (range / 2));
+						shift = start - (45. - (range / 2));
 						String start_string = String.format("%,.2f", start);
 						String range_string = String.format("%,.2f", range);
 						String shift_string = String.format("%,.2f", shift);
@@ -285,7 +292,7 @@ public class FencePlotter
 						{
 							table.setValueAt(start_string, i, 2);
 							table.setValueAt(range_string, i, 3);
-							table.setValueAt(shift_string, i, 4);
+							//table.setValueAt(shift_string, i, 4);
 						}
 						apply_button.doClick(0);
 					}
@@ -403,7 +410,7 @@ public class FencePlotter
 			// Set labels.
 			double start = Double.valueOf((String) table.getValueAt(1, 2));
 			double current_range = Double.valueOf((String) table.getValueAt(1, 3));
-			double shift = Double.valueOf((String) table.getValueAt(1, 4));
+			//double shift = Double.valueOf((String) table.getValueAt(1, 4));
 			double stop = start + current_range;
 			String position_string = String.format("%,.2f", start);
 			g2.drawString(position_string, left_margin, ydim - bottom_margin / 2);
@@ -538,13 +545,78 @@ public class FencePlotter
 
 			for (int i = 4; i >= 0; i--)
 			{
-				String visibility = (String) table.getValueAt(i + 1, 8);
-				String transparency = (String) table.getValueAt(i + 1, 9);
+				String zero_crossings = (String) table.getValueAt(i + 1, 7);
+				String visibility     = (String) table.getValueAt(i + 1, 8);
+				String transparency   = (String) table.getValueAt(i + 1, 9);
+				int    xaddend = i * xstep;
+				int    yaddend = i * ystep;
 				if (visibility.equals("yes"))
 				{
 					if (transparency.equals("no"))
 					{
 						g2.setColor(fill_color[i]);
+						//g2.setColor(java.awt.Color.WHITE);
+						g2.fillPolygon(polygon[i]);
+					}
+					if(zero_crossings.equals("yes"))
+					{
+						ArrayList current_line  = (ArrayList)plot_data.get(i);
+						Point2D.Double previous = (Point2D.Double)current_line.get(0);
+						for(int j = 1; j < current_line.size(); j++)
+			            {
+							Point2D.Double current = (Point2D.Double)current_line.get(j);
+							double x1 = previous.getX();
+							double y1 = previous.getY();
+							double x2 = current.getX();
+							double y2 = current.getY();
+							if((y1 < 0 && y2 > 0) || (y1 > 0 && y2 < 0))
+							    g2.setColor(java.awt.Color.RED);
+							else
+								g2.setColor(outline_color[i]);
+							
+			        	    x1 -= minimum_x;
+			        	    x1 /= xrange;
+			        	    x1 *= graph_xdim;
+			        	    x1 += left_margin;
+			        	    x1 += xaddend;
+			        	    
+			        	    y1 -= minimum_y;  
+			        	    y1 /= yrange;
+			        	    y1 *= graph_ydim;
+			        	    y1 =  graph_ydim - y1;
+			        	    y1 += top_margin + 4 * ystep;
+			        	    y1 -= yaddend;
+			        	    
+			        	    x2 -= minimum_x;
+			        	    x2 /= xrange;
+			        	    x2 *= graph_xdim;
+			        	    x2 += left_margin;
+			        	    x2 += xaddend;
+			        	    
+			        	    y2 -= minimum_y;
+			        	    y2 /= yrange;
+			        	    y2 *= graph_ydim;
+		            	    y2 =  graph_ydim - y2;
+			        	    y2 += top_margin + 4 * ystep;
+			        	    y2 -= yaddend;
+			        	    
+			        	    g2.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
+			        	    previous = current;
+			            }
+					}
+					else
+					{
+						g2.setColor(outline_color[i]);
+						g2.drawPolygon(polygon[i]);
+					}
+						
+					
+					
+					/*
+					if (transparency.equals("no"))
+					{
+						g2.setColor(fill_color[i]);
+						//g2.setColor(java.awt.Color.WHITE);
 						g2.fillPolygon(polygon[i]);
 					}
 					else
@@ -553,8 +625,8 @@ public class FencePlotter
 					g2.drawPolygon(polygon[i]);
 					if(transparency.equals("yes"))
 						g2.setStroke(new BasicStroke(2));
+					*/
 					
-
 				}
 			}
 		}
@@ -571,7 +643,8 @@ public class FencePlotter
 				double difference = 60 - range;
 
 				int current_value = event.getValue();
-				double shift = current_value;
+				//double shift = current_value;
+				shift = current_value;
 				shift /= 200;
 				shift *= difference;
 				double start = 45. - (range / 2);
@@ -582,7 +655,7 @@ public class FencePlotter
 				for (int i = 1; i < 6; i++)
 				{
 					table.setValueAt(start_string, i, 2);
-					table.setValueAt(shift_string, i, 4);
+					//table.setValueAt(shift_string, i, 4);
 				}
 
 				if (event.getValueIsAdjusting() == false)
@@ -599,7 +672,7 @@ public class FencePlotter
 					for (int i = 1; i < 6; i++)
 					{
 						table.setValueAt(start_string, i, 2);
-						table.setValueAt(shift_string, i, 4);
+						//table.setValueAt(shift_string, i, 4);
 					}
 					apply_button.doClick(0);
 				}
@@ -669,7 +742,8 @@ public class FencePlotter
 			
 				current_start = Double.valueOf((String) table.getValueAt(1, 2));
 				current_range = Double.valueOf((String) table.getValueAt(1, 3));
-				current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+				//current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+				current_shift = shift;
 				
 				double normalized_start = current_start - 15;
 				normalized_start /= 60.;
@@ -689,7 +763,8 @@ public class FencePlotter
 				//Adjust slider;
 				current_start = Double.valueOf((String) table.getValueAt(1, 2));
 				current_range = Double.valueOf((String) table.getValueAt(1, 3));
-				current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+				//current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+				current_shift = shift;
 				
 				value = (int) current_start;
 				upper_value = (int) (current_start + current_range);
@@ -711,7 +786,8 @@ public class FencePlotter
 			// This seems kludgy.
 			current_start = Double.valueOf((String) table.getValueAt(1, 2));
 			current_range = Double.valueOf((String) table.getValueAt(1, 3));
-			current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+			//current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+			current_shift = shift;
 			
 			value = (int) current_start;
 			upper_value = (int) (current_start + current_range);
@@ -762,7 +838,8 @@ public class FencePlotter
 						Sample sample = (Sample) line_list.get(j);
 						sample_list.add(sample);
 					}
-				} else
+				} 
+				else
 				{
 					for (j = 4 - current_sensor; j < line_list.size(); j += 5)
 					{
@@ -797,7 +874,8 @@ public class FencePlotter
 					table.setValueAt(new_range, i, 3);
 					current_range = baseline_range;
 				}
-				double current_yshift = Double.valueOf((String) table.getValueAt(i, 4));
+				//double current_yshift = Double.valueOf((String) table.getValueAt(i, 4));
+				//double current_yshift = shift;
 
 				ArrayList sample_list = new ArrayList();
 				boolean first_sample = true;
@@ -834,8 +912,8 @@ public class FencePlotter
 				System.out.println("The number of samples in the region of interest is " + sample_list.size());
 			}
 
-			int baseline_resolution = Integer.parseInt((String) table.getValueAt(1, 5));
-			int baseline_reduction = Integer.parseInt((String) table.getValueAt(1, 6));
+			int baseline_resolution = Integer.parseInt((String) table.getValueAt(1, 4));
+			int baseline_reduction = Integer.parseInt((String) table.getValueAt(1, 5));
 			interpolated_data.clear();
 			int number_of_samples, number_of_samples_used;
 			for (int i = 1; i < number_of_rows; i++)
@@ -850,11 +928,11 @@ public class FencePlotter
 				double current_offset = Double.valueOf((String) table.getValueAt(i, 2));
 				current_range = Double.valueOf((String) table.getValueAt(i, 3));
 
-				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 5));
+				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 4));
 				if (current_resolution != baseline_resolution)
 				{
-					String new_resolution = (String) table.getValueAt(1, 5);
-					table.setValueAt(new_resolution, i, 5);
+					String new_resolution = (String) table.getValueAt(1, 4);
+					table.setValueAt(new_resolution, i, 4);
 					current_resolution = baseline_resolution;
 				}
 				ArrayList sample_list = new ArrayList();
@@ -880,7 +958,8 @@ public class FencePlotter
 					index = 2;
 					used_sample[0] = true;
 					used_sample[1] = true;
-				} else // init sample y exactly equals offset
+				} 
+				else // init sample y exactly equals offset
 				{
 					Sample sample = new Sample();
 					sample.x = init_sample.x;
@@ -937,7 +1016,7 @@ public class FencePlotter
 				double sample_ratio = number_of_samples_used;
 				sample_ratio /= number_of_samples;
 				String ratio_string = String.format("%,.2f", sample_ratio);
-				table.setValueAt(ratio_string, i, 7);
+				table.setValueAt(ratio_string, i, 6);
 				interpolated_data.add(sample_list);
 			}
 
@@ -946,12 +1025,12 @@ public class FencePlotter
 
 			for (int i = 1; i < number_of_rows; i++)
 			{
-				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 5));
-				int current_reduction = Integer.parseInt((String) table.getValueAt(i, 6));
+				int current_resolution = Integer.parseInt((String) table.getValueAt(i, 4));
+				int current_reduction = Integer.parseInt((String) table.getValueAt(i, 5));
 				if (current_reduction != baseline_reduction)
 				{
-					String new_reduction = (String) table.getValueAt(1, 6);
-					table.setValueAt(new_reduction, i, 6);
+					String new_reduction = (String) table.getValueAt(1, 5);
+					table.setValueAt(new_reduction, i, 5);
 					current_reduction = baseline_reduction;
 				}
 				int j = i - 1;
@@ -968,7 +1047,8 @@ public class FencePlotter
 						plot_list.add(point);
 					}
 					plot_data.add(plot_list);
-				} else // Reducing data.
+				} 
+				else // Reducing data.
 				{
 					int size = sample_list.size();
 					double[] x = new double[size];
@@ -992,7 +1072,7 @@ public class FencePlotter
 					{
 						Sample sample = new Sample();
 						sample.x = reduced_x[j];
-						sample.y = reduced_x[j];
+						sample.y = reduced_y[j];
 						sample.intensity = reduced_intensity[j];
 						reduced_list.add(sample);
 					}
