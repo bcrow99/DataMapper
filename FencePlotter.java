@@ -25,6 +25,8 @@ public class FencePlotter
 	ArrayList plot_data = new ArrayList();
 	ArrayList baseline_data = new ArrayList();
 	double max_delta;
+	
+	
 	//double shift, start, range;
     double shift = 0;
 	boolean slider_changed = false;
@@ -48,7 +50,7 @@ public class FencePlotter
 	int graph_ydim = 0;
 
 	// Interface componants.
-	private JFrame frame;
+	public JFrame frame;
 	public JTable table;
 	public LineCanvas canvas;
 	public JScrollBar scrollbar;
@@ -312,12 +314,21 @@ public class FencePlotter
 		apply_panel.add(apply_button, BorderLayout.SOUTH);
 		
 		
-		JPanel load_panel   = new JPanel(new BorderLayout());
 		JButton load_button = new JButton("Load");
 		LoadHandler load_handler = new LoadHandler();
 		load_button.addActionListener(load_handler);
+		JButton save_button = new JButton("Save");
+		SaveHandler save_handler = new SaveHandler();
+		save_button.addActionListener(save_handler);
+		
+		JPanel button_panel = new JPanel(new BorderLayout());
+		button_panel.add(load_button, BorderLayout.NORTH);
+		button_panel.add(save_button, BorderLayout.SOUTH);
+		
+		JPanel load_panel   = new JPanel(new BorderLayout());
+		
 		input.setHorizontalAlignment(JTextField.CENTER);
-		load_panel.add(load_button, BorderLayout.SOUTH);
+		load_panel.add(button_panel, BorderLayout.CENTER);
 		load_panel.add(input, BorderLayout.NORTH);
 
 		JPanel canvas_panel = new JPanel(new BorderLayout());
@@ -722,6 +733,22 @@ public class FencePlotter
 		}
 	}
 	
+	class SaveHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
+			file_dialog.setVisible(true);
+			String filename = file_dialog.getFile();
+			if(filename != "")
+			{
+				String current_directory = file_dialog.getDirectory();
+				System.out.println("Current directory is " + current_directory);
+				System.out.println("File name is " + filename);
+			}
+		}
+	}
+	
 	class ApplyHandler implements ActionListener
 	{
 		int[][] line_array;
@@ -739,10 +766,8 @@ public class FencePlotter
 			if (slider_changed)
 			{
 				// Adjust scrollbar.
-			
 				current_start = Double.valueOf((String) table.getValueAt(1, 2));
 				current_range = Double.valueOf((String) table.getValueAt(1, 3));
-				//current_shift = Double.valueOf((String) table.getValueAt(1, 4));
 				current_shift = shift;
 				
 				double normalized_start = current_start - 15;
