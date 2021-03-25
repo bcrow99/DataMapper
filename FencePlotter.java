@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -745,6 +746,86 @@ public class FencePlotter
 				String current_directory = file_dialog.getDirectory();
 				System.out.println("Current directory is " + current_directory);
 				System.out.println("File name is " + filename);
+				int    line  = Integer.parseInt((String) table.getValueAt(1, 0));
+				
+				int[][] line_array = ObjectMapper.getUnclippedLineArray();
+				int start = line_array[line][0];
+				int stop = line_array[line][1];
+				
+				ArrayList sample_list = new ArrayList();
+				if (line % 2 == 0)
+				{
+					for (int j = start; j < stop; j++)
+					{
+						Sample sample = (Sample) data.get(j);
+						sample_list.add(sample);
+					}
+				} 
+				else
+				{
+					for (int j = stop - 1; j >= start; j--)
+					{
+						Sample sample = (Sample) data.get(j);
+						sample_list.add(sample);
+					}
+				}
+				
+				sensor_data.clear();
+				for(int i = 0; i < 5; i++)
+				{
+					ArrayList sensor_list = new ArrayList();
+
+					for (int j = 4 - i; j < sample_list.size(); j += 5)
+					{
+						Sample sample = (Sample) sample_list.get(j);
+						sensor_list.add(sample);
+					}
+					sensor_data.add(sensor_list);
+				}
+				
+				try(PrintWriter output = new PrintWriter(current_directory + filename))
+		        {
+					double start_y = Double.valueOf((String) table.getValueAt(1, 2));
+					double range   = Double.valueOf((String) table.getValueAt(1, 3));
+					double stop_y  = start_y + range;
+					
+					int current_sensor = 0;
+				    if(line % 2 == 0)
+				        current_sensor = 5;	
+				    else
+				    	current_sensor = 1;
+				    
+				    for(int i = 0; i < 5; i++)
+				    {
+				        output.println("#Sensor " + current_sensor + ", Line " + line);
+				        ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+				        for(int j = 0; j < sensor_list.size(); j++)
+				        {
+				            Sample sample = (Sample)sensor_list.get(j);
+				            if(sample.y >= start_y && sample.y < stop_y)
+				            {
+				      		    String xstring   = String.format("%.2f", sample.x);
+				      				    
+				      				
+				      			String ystring   = String.format("%.2f", sample.y);
+				      				    
+				      				
+				    			String intensity_string   = String.format("%.2f", sample.intensity);
+				    			output.println(xstring + " " + ystring + " " + intensity_string);
+				            }
+				        }
+				        output.println();
+				        if(line % 2 == 0)
+					        current_sensor--;	
+					    else
+					    	current_sensor++;		
+				    }
+				    output.close();
+		        }
+				catch(Exception e1)
+				{
+					e1.printStackTrace();      
+				}
 			}
 		}
 	}
