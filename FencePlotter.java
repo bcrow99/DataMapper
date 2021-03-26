@@ -789,32 +789,97 @@ public class FencePlotter
 					double range   = Double.valueOf((String) table.getValueAt(1, 3));
 					double stop_y  = start_y + range;
 					
-					int current_sensor = 0;
+					
+				    // Get the min intensity for all sensors.
+				    double min_intensity = Double.MAX_VALUE;
+				    for(int i = 0; i < 5; i++)
+				    {
+				    	ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+				    	for(int j = 0; j < sensor_list.size(); j++)
+				        {
+				    		Sample sample = (Sample)sensor_list.get(j);
+				            if(sample.y >= start_y && sample.y < stop_y)
+				            {
+				            	if(sample.intensity < min_intensity)
+				            		min_intensity = sample.intensity;
+				            }
+				        }
+				    }
+				    String min_intensity_string   = String.format("%.2f", min_intensity);
+				    
+				    int current_sensor = 0;
 				    if(line % 2 == 0)
 				        current_sensor = 5;	
 				    else
 				    	current_sensor = 1;
 				    
+				    double x_start = line * 2.;
 				    for(int i = 0; i < 5; i++)
 				    {
 				        output.println("#Sensor " + current_sensor + ", Line " + line);
 				        ArrayList sensor_list = (ArrayList)sensor_data.get(i);
-				        for(int j = 0; j < sensor_list.size(); j++)
+				        
+				        int start_index = 0;
+				        int stop_index  = 0;
+				        
+				        boolean not_started  = true;
+				       
+				        outer: for(int j = 0; j < sensor_list.size(); j++)
 				        {
-				            Sample sample = (Sample)sensor_list.get(j);
-				            if(sample.y >= start_y && sample.y < stop_y)
-				            {
-				      		    String xstring   = String.format("%.2f", sample.x);
-				      				    
-				      				
-				      			String ystring   = String.format("%.2f", sample.y);
-				      				    
-				      				
-				    			String intensity_string   = String.format("%.2f", sample.intensity);
-				    			output.println(xstring + " " + ystring + " " + intensity_string);
-				            }
+				        	Sample sample = (Sample)sensor_list.get(j);
+				        	if(not_started)
+				        	{ 
+				        		System.out.println("Got here.");
+				        		if(sample.y >= start_y)
+				        		{
+				        		    start_index = j;
+				        		    not_started = false;
+				        		}
+				        	}
+				        
+				        	if(sample.y >= stop_y)
+				        	{
+				                stop_index = j;	
+				                break outer;
+				        	}  
 				        }
+				        
+				        System.out.println("Start y is " + start_y);
+				        System.out.println("Stop y is " + stop_y);
+
+				        System.out.println("Start index is " + start_index);
+				        System.out.println("Stop index is " + stop_index);
+				        
+				        Sample init_sample = (Sample) sensor_list.get(start_index);
+				        String xstring          = String.format("%.2f", init_sample.x);	
+		      			String ystring          = String.format("%.2f", init_sample.y);
+		      			String intensity_string = String.format("%.2f", init_sample.intensity);
+		      			//output.println(xstring + " " + ystring + " " + min_intensity_string + " " + (i + 1));
+		      			output.println(xstring + " " + ystring + " " + min_intensity_string + " " + x_start);
+				        
+				        for(int j = start_index; j < stop_index; j++)
+				        {
+				            Sample sample    = (Sample)sensor_list.get(j);
+				            xstring          = String.format("%.2f", sample.x);	
+			      			ystring          = String.format("%.2f", sample.y);	
+			    			intensity_string = String.format("%.2f", sample.intensity);
+				    		//output.println(xstring + " " + ystring + " " + intensity_string + " " + (i + 1));
+				    		output.println(xstring + " " + ystring + " " + intensity_string + " " + x_start);
+				        }
+				        
+				        Sample end_sample = (Sample) sensor_list.get(stop_index - 1);
+				        xstring          = String.format("%.2f", end_sample.x);	
+		      			ystring          = String.format("%.2f", end_sample.y);
+		      			//output.println(xstring + " " + ystring + " " + min_intensity_string + " " + (i + 1));
+		      			output.println(xstring + " " + ystring + " " + min_intensity_string + " " + x_start);
+		      			xstring          = String.format("%.2f", init_sample.x);	
+		      			ystring          = String.format("%.2f", init_sample.y);
+		      			
+		      			//output.println(xstring + " " + ystring + " " + min_intensity_string + " " + (i + 1));
+		      			output.println(xstring + " " + ystring + " " + min_intensity_string + " " + x_start);
 				        output.println();
+				        output.println();
+				        x_start += .5;
 				        if(line % 2 == 0)
 					        current_sensor--;	
 					    else
