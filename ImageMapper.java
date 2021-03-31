@@ -148,7 +148,7 @@ public class ImageMapper
 		// System.out.println("Origninal number of uninterpolated_cells is " +
 		// number_of_uninterpolated_cells);
 		boolean even = true; // Keep track of which buffer is the source and which is the destination.
-		while (number_of_uninterpolated_cells != 0)
+		while(number_of_uninterpolated_cells != 0)
 		{
 			number_of_iterations++;
 			if (even == true)
@@ -554,118 +554,224 @@ public class ImageMapper
 		}
 	}
 
-	public static void avgAreaXTransform(int src[], int xdim, int ydim, int dst[], int new_xdim, int start_fraction[],
-			int end_fraction[], int number_of_pixels[])
+	public static int[] avgAreaXTransform(int source[], int xdim, int ydim, int new_xdim)
 	{
-		int i, j, k, x, y;
-		int weight, current_whole_number, previous_whole_number;
-		int total, factor;
-		double real_position, differential, previous_position;
+		double differential         = (double) xdim / (double) new_xdim;
+		int    weight               = (int)(differential * xdim) * 1000;
+		int    factor               = xdim * 1000;
+		double real_position        = 0.;
+		int    current_whole_number = 0;
 
-		differential = (double) xdim / (double) new_xdim;
-		weight = (int) (differential * xdim);
-		weight *= 1000;
-		factor = 1000 * xdim;
-
-		real_position = 0.;
-		current_whole_number = 0;
-		for (i = 0; i < new_xdim; i++)
+		int [] start_fraction   = new int[new_xdim];
+		int [] end_fraction     = new int[new_xdim];
+		int [] number_of_pixels = new int[new_xdim];
+		for(int i = 0; i < new_xdim; i++)
 		{
-			previous_position = real_position;
-			previous_whole_number = current_whole_number;
-			real_position += differential;
-			current_whole_number = (int) (real_position);
-			number_of_pixels[i] = current_whole_number - previous_whole_number;
-			start_fraction[i] = (int) (1000. * (1. - (previous_position - (double) (previous_whole_number))));
-			end_fraction[i] = (int) (1000. * (real_position - (double) (current_whole_number)));
+		    double  previous_position     = real_position;
+		    int     previous_whole_number = current_whole_number;
+		    
+		    real_position       += differential;
+		    current_whole_number = (int) (real_position);
+			number_of_pixels[i]  = current_whole_number - previous_whole_number;
+			start_fraction[i]    = (int) (1000. * (1. - (previous_position - (double) (previous_whole_number))));
+			end_fraction[i]      = (int) (1000. * (real_position - (double) (current_whole_number)));	
 		}
-
-		for (y = 0; y < ydim; y++)
+		
+		int[] dest = new int[ydim * new_xdim];	
+		for (int y = 0; y < ydim; y++)
 		{
-			i = y * new_xdim;
-			j = y * xdim;
-			for (x = 0; x < new_xdim - 1; x++)
+			int i = y * new_xdim;
+			int j = y * xdim;
+			for (int x = 0; x < new_xdim - 1; x++)
 			{
 				if (number_of_pixels[x] == 0)
 				{
-					dst[i] = src[j];
+					dest[i] = source[j];
 					i++;
-				} else
+				} 
+				else
 				{
-					total = start_fraction[x] * xdim * src[j];
+					int total = start_fraction[x] * xdim * source[j];
 					j++;
-					k = number_of_pixels[x] - 1;
+					int k = number_of_pixels[x] - 1;
 					while (k > 0)
 					{
-						total += factor * src[j];
+						total += factor * source[j];
 						j++;
 						k--;
 					}
-					total += end_fraction[x] * xdim * src[j];
+					total += end_fraction[x] * xdim * source[j];
 					total /= weight;
-					dst[i] = total;
+					dest[i] = total;
 					i++;
 				}
 			}
+			
+			int x = new_xdim - 1;
 			if (number_of_pixels[x] == 0)
-				dst[i] = src[j];
+				dest[i] = source[j];
 			else
 			{
-				total = start_fraction[x] * xdim * src[j];
+				int total = start_fraction[x] * xdim * source[j];
 				j++;
-				k = number_of_pixels[x] - 1;
+				int k = number_of_pixels[x] - 1;
 				while (k > 0)
 				{
-					total += factor * src[j];
+					total += factor * source[j];
 					j++;
 					k--;
 				}
 				total /= weight - end_fraction[x] * xdim;
-				dst[i] = total;
+				dest[i] = total;
 			}
 		}
+		return(dest);
 	}
-
-	public static void avgAreaYTransform(int src[], int xdim, int ydim, int dst[], int new_ydim, int start_fraction[],
-			int end_fraction[], int number_of_pixels[])
+	
+	public static int[][] avgAreaXTransform(int src[][], int new_xdim)
 	{
-		int i, j, k, x, y;
-		int weight, current_whole_number, previous_whole_number;
-		int total, factor;
-		double real_position, differential, previous_position;
-
-		differential = (double) ydim / (double) new_ydim;
-		weight = (int) (differential * ydim);
-		weight *= 1000;
-		factor = ydim * 1000;
-
-		real_position = 0.;
-		current_whole_number = 0;
-		for (i = 0; i < new_ydim; i++)
+		int ydim = src.length;
+		int xdim = src[0].length;
+		int[][] dst = new int[ydim][new_xdim];	
+		
+		int [] source = new int[xdim * ydim];
+		int [] dest   = new int[new_xdim * ydim];
+		
+		// Changing from 2-d array to 1-d array to simplify processing.
+		// The main issue is a 2-d format complicates making the transform
+		// work in both directions.  On the other hand, the 2-d format
+		// is occasionally convenient.  
+		for (int i = 0; i < ydim; i++)
 		{
-			previous_position = real_position;
-			previous_whole_number = current_whole_number;
-			real_position += differential;
+			for (int j = 0; j < xdim; j++)
+			{
+				int k = i * xdim + j;
+				source[k] = src[i][j];
+			}
+		}
+		
+		double differential         = (double) xdim / (double) new_xdim;
+		int    weight               = (int)(differential * xdim) * 1000;
+		int    factor               = xdim * 1000;
+		double real_position        = 0.;
+		int    current_whole_number = 0;
+
+		int [] start_fraction   = new int[new_xdim];
+		int [] end_fraction     = new int[new_xdim];
+		int [] number_of_pixels = new int[new_xdim];
+		
+		for(int i = 0; i < new_xdim; i++)
+		{
+		    double  previous_position     = real_position;
+		    int     previous_whole_number = current_whole_number;
+		    
+		    real_position       += differential;
+		    current_whole_number = (int) (real_position);
+			number_of_pixels[i]  = current_whole_number - previous_whole_number;
+			start_fraction[i]    = (int) (1000. * (1. - (previous_position - (double) (previous_whole_number))));
+			end_fraction[i]      = (int) (1000. * (real_position - (double) (current_whole_number)));	
+		}
+		
+		for (int y = 0; y < ydim; y++)
+		{
+			int i = y * new_xdim;
+			int j = y * xdim;
+			for (int x = 0; x < new_xdim - 1; x++)
+			{
+				if (number_of_pixels[x] == 0)
+				{
+					dest[i] = source[j];
+					i++;
+				} 
+				else
+				{
+					int total = start_fraction[x] * xdim * source[j];
+					j++;
+					int k = number_of_pixels[x] - 1;
+					while (k > 0)
+					{
+						total += factor * source[j];
+						j++;
+						k--;
+					}
+					total += end_fraction[x] * xdim * source[j];
+					total /= weight;
+					dest[i] = total;
+					i++;
+				}
+			}
+			
+			int x = new_xdim - 1;
+			if (number_of_pixels[x] == 0)
+				dest[i] = source[j];
+			else
+			{
+				int total = start_fraction[x] * xdim * source[j];
+				j++;
+				int k = number_of_pixels[x] - 1;
+				while (k > 0)
+				{
+					total += factor * source[j];
+					j++;
+					k--;
+				}
+				total /= weight - end_fraction[x] * xdim;
+				dest[i] = total;
+			}
+		}
+		
+		// Back to 2-d.
+		for (int i = 0; i < ydim; i++)
+		{
+			for (int j = 0; j < new_xdim; j++)
+			{
+				int k = i * new_xdim + j;
+				dst[i][j] = dest[k];
+			}
+		}
+		return(dst);
+	}
+	
+	public static int [] avgAreaYTransform(int src[], int xdim, int ydim, int new_ydim)
+	{
+		double differential         = (double) ydim / (double) new_ydim;
+		int    weight               = (int) (differential * ydim) * 1000;
+		int    factor               = ydim * 1000;
+		double real_position        = 0.;
+		int    current_whole_number = 0;
+		
+		int [] start_fraction   = new int[new_ydim];
+		int [] end_fraction     = new int[new_ydim];
+		int [] number_of_pixels = new int[new_ydim];
+		for (int i = 0; i < new_ydim; i++)
+		{
+			double previous_position     = real_position;
+			int    previous_whole_number = current_whole_number;
+			
+			real_position       += differential;
 			current_whole_number = (int) (real_position);
-			number_of_pixels[i] = current_whole_number - previous_whole_number;
-			start_fraction[i] = (int) (1000. * (1. - (previous_position - (double) (previous_whole_number))));
-			end_fraction[i] = (int) (1000. * (real_position - (double) (current_whole_number)));
+			number_of_pixels[i]  = current_whole_number - previous_whole_number;
+			start_fraction[i]    = (int) (1000. * (1. - (previous_position - (double) (previous_whole_number))));
+			end_fraction[i]      = (int) (1000. * (real_position - (double) (current_whole_number)));
 		}
 
-		for (x = 0; x < xdim; x++)
+		int [] dst = new int[xdim * new_ydim];
+		for (int x = 0; x < xdim; x++)
 		{
-			i = j = x;
-			for (y = 0; y < new_ydim - 1; y++)
+			int i = x;
+			int j = x;
+			for (int y = 0; y < new_ydim - 1; y++)
 			{
 				if (number_of_pixels[y] == 0)
 				{
 					dst[i] = src[j];
 					i += xdim;
-				} else
+				} 
+				else
 				{
-					total = start_fraction[y] * ydim * src[j];
+					int total = start_fraction[y] * ydim * src[j];
 					j += xdim;
-					k = number_of_pixels[y] - 1;
+					int k = number_of_pixels[y] - 1;
 					while (k > 0)
 					{
 						total += factor * src[j];
@@ -678,13 +784,14 @@ public class ImageMapper
 					i += xdim;
 				}
 			}
+			int y = new_ydim - 1;
 			if (number_of_pixels[y] == 0)
 				dst[i] = src[j];
 			else
 			{
-				total = start_fraction[y] * ydim * src[j];
+				int total = start_fraction[y] * ydim * src[j];
 				j += xdim;
-				k = number_of_pixels[y] - 1;
+				int k = number_of_pixels[y] - 1;
 				while (k > 0)
 				{
 					total += factor * src[j];
@@ -695,15 +802,152 @@ public class ImageMapper
 				dst[i] = total;
 			}
 		}
+		return(dst);
 	}
-
-	public void avgAreaTransform(int src[], int xdim, int ydim, int dst[], int new_xdim, int new_ydim, int workspace[],
-			int start_fraction[], int end_fraction[], int number_of_pixels[])
+	
+	public static int[][] avgAreaYTransform(int src[][], int new_ydim)
 	{
-		avgAreaXTransform(src, xdim, ydim, workspace, new_xdim, start_fraction, end_fraction, number_of_pixels);
-		avgAreaYTransform(workspace, new_xdim, ydim, dst, new_ydim, start_fraction, end_fraction, number_of_pixels);
-	}
+		int ydim = src.length;
+		int xdim = src[0].length;
+			
+		// Changing from 2-d array to 1-d array to simplify processing.
+		int [] source = new int[xdim * ydim];
+		int [] dest   = new int[xdim * new_ydim];
+		for (int i = 0; i < ydim; i++)
+		{
+			int k = 0;
+			for (int j = 0; j < xdim; j++)
+			{
+				source[k] = src[i][j];
+				k++;
+			}
+		}
+		
+		double differential         = (double) ydim / (double) new_ydim;
+		int    weight               = (int) (differential * ydim) * 1000;
+		int    factor               = ydim * 1000;
+		double real_position        = 0.;
+		int    current_whole_number = 0;
+		
+		int [] start_fraction   = new int[new_ydim];
+		int [] end_fraction     = new int[new_ydim];
+		int [] number_of_pixels = new int[new_ydim];
+		for (int i = 0; i < new_ydim; i++)
+		{
+			double previous_position     = real_position;
+			int    previous_whole_number = current_whole_number;
+			
+			real_position       += differential;
+			current_whole_number = (int) (real_position);
+			number_of_pixels[i]  = current_whole_number - previous_whole_number;
+			start_fraction[i]    = (int) (1000. * (1. - (previous_position - (double) (previous_whole_number))));
+			end_fraction[i]      = (int) (1000. * (real_position - (double) (current_whole_number)));
+		}
 
+		for (int x = 0; x < xdim; x++)
+		{
+			int i = x;
+			int j = x;
+			for (int y = 0; y < new_ydim - 1; y++)
+			{
+				if (number_of_pixels[y] == 0)
+				{
+					dest[i] = source[j];
+					i += xdim;
+				} 
+				else
+				{
+					int total = start_fraction[y] * ydim * source[j];
+					j += xdim;
+					int k = number_of_pixels[y] - 1;
+					while (k > 0)
+					{
+						total += factor * source[j];
+						j += xdim;
+						k--;
+					}
+					total += end_fraction[y] * ydim * source[j];
+					total /= weight;
+					dest[i] = total;
+					i += xdim;
+				}
+			}
+			int y = new_ydim - 1;
+			if (number_of_pixels[y] == 0)
+				dest[i] = source[j];
+			else
+			{
+				int total = start_fraction[y] * ydim * source[j];
+				j += xdim;
+				int k = number_of_pixels[y] - 1;
+				while (k > 0)
+				{
+					total += factor * source[j];
+					j += xdim;
+					k--;
+				}
+				total /= weight - end_fraction[y] * ydim;
+				dest[i] = total;
+			}
+		}
+		
+		// Back to 2-d.
+		int[][] dst = new int[new_ydim][xdim];
+		for (int i = 0; i < new_ydim; i++)
+		{
+			int k = 0;
+			for (int j = 0; j < xdim; j++)
+			{
+				dst[i][j] = dest[k];
+				k++;
+			}
+		}
+
+		return(dst);
+		
+	}
+	
+	public static int [] avgAreaTransform(int src[], int xdim, int ydim, int new_xdim, int new_ydim)
+	{
+		int [] intermediate = avgAreaXTransform(src, xdim, ydim, new_xdim);
+	    int [] dst          = avgAreaYTransform(intermediate, new_xdim, ydim, new_ydim);
+	    return(dst);
+	}
+	
+	public static int [][] avgAreaTransform(int src[][], int new_xdim, int new_ydim)
+	{
+		int ydim = src.length;
+		int xdim = src[0].length;
+			
+		// Changing from 2-d array to 1-d array to simplify processing.
+		int [] source = new int[xdim * ydim];
+		for (int i = 0; i < ydim; i++)
+		{
+			int k = 0;
+			for (int j = 0; j < xdim; j++)
+			{
+				source[k] = src[i][j];
+				k++;
+			}
+		}
+		int [] intermediate = avgAreaXTransform(source, xdim, ydim, new_xdim);
+		int [] dest         = avgAreaYTransform(intermediate, new_xdim, ydim, new_ydim);
+		
+		// Back to 2-d.
+		int[][] dst = new int[new_ydim][new_xdim];
+		for (int i = 0; i < new_ydim; i++)
+		{
+			int k = 0;
+			for (int j = 0; j < xdim; j++)
+			{
+				dst[i][j] = dest[k];
+				k++;
+			}
+		}
+
+		return(dst);
+	}
+	
 	public static ArrayList[][] getGradient(int src[][])
 	{
 		int ydim = src.length;
@@ -876,7 +1120,7 @@ public class ImageMapper
 							        src[i][j + 1] - src[i][j - 1] +
 							        src[i + 1][j + 1] - src[i + 1][j - 1];
 					    xgradient /= 3;
-					    System.out.println("Got here.");
+					    //System.out.println("Got here.");
 					}
 					else
 					{
@@ -947,6 +1191,7 @@ public class ImageMapper
 		}
 		return (dst);
 	}
+	
 	public static int[][] getVariance(int src[][])
 	{
 		int ydim = src.length;
@@ -1027,7 +1272,6 @@ public class ImageMapper
 					variance += Math.abs(src[i][j] - src[i][j - 1]);
 					dst[i][j] = variance;
 				}
-
 			}
 		}
 		return (dst);
@@ -1127,20 +1371,18 @@ public class ImageMapper
 	
 	public static int[][] contract(int[][] source)
 	{
-		int src_ydim = source.length;
-		int src_xdim = source[0].length;
+		int ydim = source.length;
+		int xdim = source[0].length;
 		
-		int xdim = src_xdim - 1;
-		int ydim = src_ydim - 1;
-		int[][] dest = new int[ydim][xdim];
+		int[][] dest = new int[ydim - 1][xdim - 1];
 		
-	    for(int i = 0; i < ydim; i++)
+	    for(int i = 0; i < ydim - 1; i++)
 		{
-			for(int j = 0; j < xdim; j++)
+			for(int j = 0; j < xdim - 1; j++)
 			{
-				double a = (double) source[i][j] * .25 + (double) source[i][j + 1] * .25;
-				double b = (double) source[i + 1][j] * .25  + (double) source[i + 1][j + 1] * .25;
-				dest[i][j] = (int) (a + b + .5);
+				double a = (double) source[i][j] * .5 + (double) source[i][j + 1] * .5;
+				double b = (double) source[i + 1][j] * .5  + (double) source[i + 1][j + 1] * .5;
+				dest[i][j] = (int) ((a + b) * .25 + .5);
 			}
 		}
 		return(dest);
@@ -1171,8 +1413,6 @@ public class ImageMapper
 		return(dest);
 	}
 	
-	
-	
 	public static double[] getTranslation(int[][] source1, int[][] source2)
 	{
 		//Assumes source1 and source2 are same size.
@@ -1197,7 +1437,7 @@ public class ImageMapper
 		double b1 = 0;
 		double b2 = 0;
 
-		ArrayList[][] gradient = getGradient(estimate);
+		ArrayList[][] gradient = getSmoothGradient(estimate);
 		for (int i = 1; i < src_ydim - 1; i++)
 		{
 			for (int j = 1; j < src_xdim - 1; j++)
@@ -1205,25 +1445,35 @@ public class ImageMapper
 				ArrayList current_gradient = gradient[i][j];
 				double xgradient = (double) current_gradient.get(0);
 				double ygradient = (double) current_gradient.get(1);
-				
-				if(!(Double.isNaN(xgradient) && !(Double.isNaN(ygradient))))
+				boolean xgradient_isNaN = Double.isNaN(xgradient);
+				boolean ygradient_isNaN = Double.isNaN(ygradient);
+				if(!xgradient_isNaN && !ygradient_isNaN)
 				{
-				double xx = xgradient * xgradient;
-				double xy = xgradient * ygradient;
-				double yy = ygradient * ygradient;
-				double delta = source1[i][j] - estimate[i][j];
-				double xdelta = xgradient * delta;
-				double ydelta = ygradient * delta;
+					if(Double.isNaN(xgradient))
+						System.out.println("Xgradient is not a number.");
+					if(Double.isNaN(xgradient))
+						System.out.println("Ygradient is not a number.");
+				    double xx = xgradient * xgradient;
+				    double xy = xgradient * ygradient;
+				    double yy = ygradient * ygradient;
+				    double delta = source1[i][j] - estimate[i][j];
+				    double xdelta = xgradient * delta;
+				    double ydelta = ygradient * delta;
 
-				w += xx;
-				x += xy;
-				z += yy;
-				b1 += xdelta;
-				b2 += ydelta;
+				    w += xx;
+				    x += xy;
+				    z += yy;
+				    b1 += xdelta;
+				    b2 += ydelta;
 				}
 			}
 		}
 		
+		System.out.println("w = " + w);
+		System.out.println("x = " + x);
+		System.out.println("z = " + z);
+		System.out.println("b1 = " + b1);
+		System.out.println("b2 = " + b2);
 		double xincrement = (b1 - x * b2 / z) / (w - x * x / z);
 		double yincrement = (b2 - x * b1 / w) / (z - x * x / w);
 		
@@ -1247,8 +1497,6 @@ public class ImageMapper
 		double xtranslation        = xincrement;
 		double ytranslation        = yincrement;
 
-		
-		
 		int xshift   = (int) (xtranslation);
 		double xdiff = xtranslation - xshift;
 		
@@ -1260,8 +1508,6 @@ public class ImageMapper
 		string = String.format("%,.4f", yincrement);
 		System.out.println("First y increment is " + string);
 		System.out.println();
-		
-		
 		
 		if(Math.abs(xdiff) > .5)
 		{
@@ -1303,16 +1549,18 @@ public class ImageMapper
 		if (xshift != 0 || yshift != 0)
 		{
 			int [][] intermediate = shift(source1, -xshift, -yshift);
-			//We do this to align the images. It contracts the image.
+			//We do this to align the source and estimate. 
 			current_source = translate(intermediate, 0, 0);	
-			intermediate = shift(source2, xshift, yshift);
-			estimate = translate(intermediate, 2 * xdiff, 2 * ydiff);  
+			//current_source = contract(intermediate);
+			intermediate   = shift(source2, xshift, yshift);
+			estimate       = translate(intermediate, 2 * xdiff, 2 * ydiff);  
 			
 		}
 		else
 		{
 			estimate = translate(source2, 2 * xdiff, 2 * ydiff);  
 			current_source = translate(source1, 0, 0);
+			//current_source = contract(source1);
 		}
 
 		int current = 1;
@@ -1327,7 +1575,7 @@ public class ImageMapper
 			b1           = 0;
             b2           = 0;
         
-			gradient     = getGradient(estimate);
+			gradient     = getSmoothGradient(estimate);
 			int est_ydim = estimate.length;
 			int est_xdim = estimate[0].length;
 			
@@ -1339,20 +1587,22 @@ public class ImageMapper
 					ArrayList current_gradient = gradient[i][j];
 					double xgradient = (double) current_gradient.get(0);
 					double ygradient = (double) current_gradient.get(1);
-					if(!(Double.isNaN(xgradient) && !(Double.isNaN(ygradient))))
+					boolean xgradient_isNaN = Double.isNaN(xgradient);
+					boolean ygradient_isNaN = Double.isNaN(ygradient);
+					if(!xgradient_isNaN && !ygradient_isNaN)
 					{
-					double xx = xgradient * xgradient;
-					double xy = xgradient * ygradient;
-					double yy = ygradient * ygradient;
-					double delta = current_source[i][j] - estimate[i][j];
-					double xdelta = xgradient * delta;
-					double ydelta = ygradient * delta;
+					    double xx = xgradient * xgradient;
+					    double xy = xgradient * ygradient;
+					    double yy = ygradient * ygradient;
+					    double delta = current_source[i][j] - estimate[i][j];
+					    double xdelta = xgradient * delta;
+					    double ydelta = ygradient * delta;
 
-					w += xx;
-					x += xy;
-					z += yy;
-					b1 += xdelta;
-					b2 += ydelta;
+					    w += xx;
+					    x += xy;
+					    z += yy;
+					    b1 += xdelta;
+					    b2 += ydelta;
 					}
 				}
 			}
@@ -1409,7 +1659,7 @@ public class ImageMapper
 			ydiff = ytranslation - yshift;
 			
             //Check to see if our translation passes pixel boundries
-			//and we need to adjust our shift and diff values.
+			//so we need to adjust our shift and diff values.
 			if(Math.abs(xdiff) > .5)
 			{
 				if(xdiff < 0)
@@ -1448,14 +1698,15 @@ public class ImageMapper
 				estimate = translate(intermediate, 2 * xdiff, 2 * ydiff);
 				
 				intermediate = shift(source1, -xshift, -yshift);
-				current_source = translate(intermediate, 0, 0);	
+				current_source = translate(intermediate, 0, 0);
+				//current_source = contract(intermediate);
 			}
 			else
 			{
-				estimate = translate(source2, 2 * xdiff, 2 * ydiff);  
+				estimate = translate(source2, 2 * xdiff, 2 * ydiff);
 				current_source = translate(source1, 0, 0);
+				//current_source = contract(source1);
 			}
-			
 			current++;
 		}
 		
