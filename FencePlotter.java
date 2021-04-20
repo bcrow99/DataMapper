@@ -43,8 +43,8 @@ public class FencePlotter
 	int left_margin = 60;
 	int top_margin = 10;
 	int right_margin = 10;
-	int xstep = 0;
-	int ystep = 0;
+	double  normal_xstep = 0;
+	double  normal_ystep = 0;
 	int xdim = 0;
 	int ydim = 0;
 	int graph_xdim = 0;
@@ -240,7 +240,7 @@ public class FencePlotter
 		table.setValueAt(header, 0, 10);
 		header = new String("Imax");
 		table.setValueAt(header, 0, 11);
-		header = new String("Gamma");
+		header = new String("Slope");
 		table.setValueAt(header, 0, 12);
 		header = new String("Key");
 		table.setValueAt(header, 0, 13);
@@ -351,17 +351,17 @@ public class FencePlotter
 		Canvas apply_canvas = new Canvas();
 		apply_canvas.setSize(40, 40);
 
-		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 190);
+		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 101);
 		XStepHandler xstep_handler = new XStepHandler();
 		xstep_scrollbar.addAdjustmentListener(xstep_handler);
 		xstep_scrollbar.setValue(0);
-		xstep = 0;
+		normal_xstep = 0;
 
-		JScrollBar ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 190);
+		JScrollBar ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 101);
 		YStepHandler ystep_handler = new YStepHandler();
 		ystep_scrollbar.addAdjustmentListener(ystep_handler);
-		ystep_scrollbar.setValue(189);
-		ystep = 0;
+		ystep_scrollbar.setValue(100);
+		normal_ystep = 0;
 
 		canvas_panel.add(apply_canvas, BorderLayout.CENTER);
 		canvas_panel.add(xstep_scrollbar, BorderLayout.SOUTH);
@@ -384,8 +384,23 @@ public class FencePlotter
 			xdim = (int) visible_area.getWidth();
 			ydim = (int) visible_area.getHeight();
 
+			double max_xstep = (xdim - (left_margin + right_margin)) / 5;
+			int    xstep     = (int) (max_xstep * normal_xstep);
 			graph_xdim = xdim - (left_margin + right_margin) - (number_of_sensors - 1) * xstep;
-			graph_ydim = ydim - (left_margin + right_margin) - (number_of_sensors - 1) * ystep;
+			if(xstep == max_xstep)
+			{
+			    graph_xdim -= 5;	
+			}
+			
+			
+			double max_ystep = (ydim - (top_margin + bottom_margin)) / 5;
+			int    ystep     = (int) (max_ystep * normal_ystep);
+			graph_ydim = ydim - (top_margin + bottom_margin) - (number_of_sensors - 1) * ystep;
+			
+			if(ystep == max_ystep)
+			{
+			    graph_ydim -= 5;	
+			}
 
 			Graphics2D g2 = (Graphics2D) g;
 			g2.setStroke(new BasicStroke(2));
@@ -471,17 +486,13 @@ public class FencePlotter
 			Polygon[] polygon = new Polygon[5];
 			for (int i = 0; i < 5; i++)
 			{
-				// int j = order[i];
-
 				int a1 = left_margin;
 				int b1 = ydim - bottom_margin;
 
 				int a2 = a1 + graph_xdim;
 				int b2 = b1 - graph_ydim;
 
-				// int xaddend = j * xstep;
 				int xaddend = i * xstep;
-				// int yaddend = j * ystep;
 				int yaddend = i * ystep;
 				a1 += xaddend;
 				b1 -= yaddend;
@@ -586,6 +597,9 @@ public class FencePlotter
 						//g2.setColor(java.awt.Color.WHITE);
 						g2.fillPolygon(polygon[i]);
 					}
+					g2.setColor(outline_color[i]);
+					g2.drawPolygon(polygon[i]);
+					
 					if(zero_crossings.equals("yes"))
 					{
 						ArrayList current_line  = (ArrayList)plot_data.get(i);
@@ -637,24 +651,6 @@ public class FencePlotter
 						g2.setColor(outline_color[i]);
 						g2.drawPolygon(polygon[i]);
 					}
-						
-					
-					
-					/*
-					if (transparency.equals("no"))
-					{
-						g2.setColor(fill_color[i]);
-						//g2.setColor(java.awt.Color.WHITE);
-						g2.fillPolygon(polygon[i]);
-					}
-					else
-						g2.setStroke(new BasicStroke(3));
-					g2.setColor(outline_color[i]);
-					g2.drawPolygon(polygon[i]);
-					if(transparency.equals("yes"))
-						g2.setStroke(new BasicStroke(2));
-					*/
-					
 				}
 			}
 		}
@@ -679,11 +675,10 @@ public class FencePlotter
 			
 				start += shift;
 				String start_string = String.format("%,.2f", start);
-				String shift_string = String.format("%,.2f", shift);
+				
 				for (int i = 1; i < 6; i++)
 				{
 					table.setValueAt(start_string, i, 2);
-					//table.setValueAt(shift_string, i, 4);
 				}
 
 				if (event.getValueIsAdjusting() == false)
@@ -696,11 +691,10 @@ public class FencePlotter
 					
 					start += shift;
 					start_string = String.format("%,.2f", start);
-					shift_string = String.format("%,.2f", shift);
+					//shift_string = String.format("%,.2f", shift);
 					for (int i = 1; i < 6; i++)
 					{
 						table.setValueAt(start_string, i, 2);
-						//table.setValueAt(shift_string, i, 4);
 					}
 					apply_button.doClick(0);
 				}
@@ -712,8 +706,9 @@ public class FencePlotter
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
 		{
-			xstep = event.getValue();
-			System.out.println("Xstep is now " + xstep);
+			int xstep = event.getValue();
+			normal_xstep = (double)xstep / 100;
+			System.out.println("Normal xstep is now " + xstep);
 			if (event.getValueIsAdjusting() == false)
 				apply_button.doClick(0);
 		}
@@ -723,8 +718,9 @@ public class FencePlotter
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
 		{
-			ystep = 189 - event.getValue();
-			System.out.println("Ystep is now " + ystep);
+			int ystep = 100 - event.getValue();
+			normal_ystep = (double)ystep / 100;
+			System.out.println("Normal ystep is now " + normal_ystep);
 			if (event.getValueIsAdjusting() == false)
 				apply_button.doClick(0);
 		}
@@ -886,7 +882,6 @@ public class FencePlotter
 				            xstring          = String.format("%.2f", sample.x);	
 			      			ystring          = String.format("%.2f", sample.y);	
 			    			intensity_string = String.format("%.2f", sample.intensity);
-				    		//output.println(xstring + " " + ystring + " " + intensity_string + " " + (i + 1));
 				    		output.println(xstring + " " + ystring + " " + intensity_string + " " + x_start);
 				        }
 				        
@@ -1050,16 +1045,16 @@ public class FencePlotter
 
 			double baseline_offset = Double.valueOf((String) table.getValueAt(1, 2));
 			double baseline_range = Double.valueOf((String) table.getValueAt(1, 3));
-			double baseline_gamma = 1.;
+			double baseline_slope = 1.;
 			try
 			{
-				baseline_gamma = Double.valueOf((String) table.getValueAt(1, 12));
-				//System.out.println("Gamma table type is string.");
+				baseline_slope = Double.valueOf((String) table.getValueAt(1, 12));
+				//System.out.println("Slope table type is string.");
 			}
 			catch(Exception e1)
 			{
-				baseline_gamma = (double) table.getValueAt(1, 12);
-				//System.out.println("Gamma table type is double.");
+				baseline_slope = (double) table.getValueAt(1, 12);
+				//System.out.println("Slope table type is double.");
 			}
 			
 			for (int i = 1; i < number_of_rows; i++)
@@ -1080,21 +1075,21 @@ public class FencePlotter
 					table.setValueAt(new_range, i, 3);
 					current_range = baseline_range;
 				}
-				double current_gamma = 1.;
+				double current_slope = 1.;
 				try
 				{
-					current_gamma = Double.valueOf((String) table.getValueAt(i, 12));
-					//System.out.println("Gamma table type is string.");
+					current_slope = Double.valueOf((String) table.getValueAt(i, 12));
+					//System.out.println("Slope table type is string.");
 				}
 				catch(Exception e1)
 				{
-					current_gamma = (double) table.getValueAt(i, 12);
-					//System.out.println("Gamma table type is double.");
+					current_slope = (double) table.getValueAt(i, 12);
+					//System.out.println("Slope table type is double.");
 				}
-				if (current_gamma != baseline_gamma)
+				if (current_slope != baseline_slope)
 				{
-					String gamma_string = Double.toString(baseline_gamma);
-					table.setValueAt(gamma_string, i, 12);
+					String slope_string = Double.toString(baseline_slope);
+					table.setValueAt(slope_string, i, 12);
 				}
 				
 				ArrayList sample_list = new ArrayList();
@@ -1160,28 +1155,31 @@ public class FencePlotter
 					current_resolution = baseline_resolution;
 				}
 				
-                double current_gamma = 1.;
+                double current_slope = 1.;
 				
 				try
 				{
-					current_gamma = Double.valueOf((String) table.getValueAt(i, 12));
-					//System.out.println("Gamma table type is string.");
+					current_slope = Double.valueOf((String) table.getValueAt(i, 12));
+					//System.out.println("Slope table type is string.");
 				}
 				catch(Exception e1)
 				{
-					current_gamma = (double) table.getValueAt(i, 12);
-					//System.out.println("Gamma table type is double.");
+					current_slope = (double) table.getValueAt(i, 12);
+					//System.out.println("Slope table type is double.");
 				}
 				
-				if (current_gamma != baseline_gamma)
+				if (current_slope != baseline_slope)
 				{
-					String gamma_string = Double.toString(baseline_gamma);
-					table.setValueAt(gamma_string, i, 12);
+					String slope_string = Double.toString(baseline_slope);
+					table.setValueAt(slope_string, i, 12);
 					current_resolution = baseline_resolution;
 				}
 				
 				double baseline_imin = Double.valueOf((String) table.getValueAt(1, 10));
 				double baseline_imax = Double.valueOf((String) table.getValueAt(1, 11));
+				
+				System.out.println("Baseline imin is " + baseline_imin);
+				System.out.println("Baseline imax is " + baseline_imax);
 				
 				
 				ArrayList sample_list = new ArrayList();
@@ -1204,21 +1202,60 @@ public class FencePlotter
 						sample.intensity = baseline_imin;
 					else if(sample.intensity > baseline_imax)
 						sample.intensity = baseline_imax;
-					if(baseline_gamma != 1)
+					/*
+					if(baseline_slope != 1)
 					{
 						if(sample.intensity < 0)
 						{
 						    double factor = Math.abs(baseline_imin);
 						    double absolute_value  = Math.abs(sample.intensity);
-						    sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_gamma);
-						    sample.intensity = -sample.intensity;
+						    sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
+						    if(sample.intensity > 0)
+						    {
+						        sample.intensity = -sample.intensity;
+						    }
+						    else
+						    	System.out.println("Slope function produced negative value from positive value.");
 						}
 						else if(sample.intensity > 0)
 						{
 							double factor = baseline_imax;
 							double absolute_value  = sample.intensity;
-							sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_gamma);
+							sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
+						}	
+					}
+					*/
+					
+					/*
+					double factor = 0;
+					double absolute_value = 0;
+					if(sample.intensity < -1 || sample.intensity > 1)
+					{
+						if(sample.intensity < 0)
+						{
+							factor = Math.abs(baseline_imin);
+							absolute_value  = Math.abs(sample.intensity);
+							sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
+							sample.intensity = -sample.intensity;
 						}
+						else
+						{
+							factor = baseline_imax;
+							absolute_value = sample.intensity;
+							sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
+						}
+					}
+					*/
+					
+					sample.intensity = sample.intensity * baseline_slope;
+					
+					if(sample.intensity < baseline_imin)
+					{
+						sample.intensity = baseline_imin;
+					}
+					else if(sample.intensity > baseline_imax)
+					{
+						sample.intensity = baseline_imax;	
 					}
 					
 					sample.x = init_sample.x * (distance2 / total_distance);
@@ -1240,20 +1277,32 @@ public class FencePlotter
 						sample.intensity = baseline_imin;
 					else if(sample.intensity > baseline_imax)
 						sample.intensity = baseline_imax;
-					if(baseline_gamma != 1)
+					if(baseline_slope != 1)
 					{
+						/*
 						if(sample.intensity < 0)
 						{
 						    double factor = Math.abs(baseline_imin);
 						    double absolute_value  = Math.abs(sample.intensity);
-						    sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_gamma);
+						    sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
 						    sample.intensity = -sample.intensity;
 						}
 						else if(sample.intensity > 0)
 						{
 							double factor = baseline_imax;
 							double absolute_value  = sample.intensity;
-							sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_gamma);
+							sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
+						}
+						*/
+						sample.intensity = sample.intensity * baseline_slope;
+						
+						if(sample.intensity < baseline_imin)
+						{
+							sample.intensity = baseline_imin;
+						}
+						else if(sample.intensity > baseline_imax)
+						{
+							sample.intensity = baseline_imax;	
 						}
 					}
 					
@@ -1285,20 +1334,20 @@ public class FencePlotter
 							new_sample.intensity = baseline_imin;
 						else if(new_sample.intensity > baseline_imax)
 							new_sample.intensity = baseline_imax;
-						if(baseline_gamma != 1)
+						if(baseline_slope != 1)
 						{
 							if(new_sample.intensity < 0)
 							{
 							    double factor = Math.abs(baseline_imin);
 							    double absolute_value  = Math.abs(sample.intensity);
-							    new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_gamma);
+							    new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
 							    new_sample.intensity = -sample.intensity;
 							}
 							else if(sample.intensity > 0)
 							{
 								double factor = baseline_imax;
 								double absolute_value  = sample.intensity;
-								new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_gamma);
+								new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
 							}
 						}
 						
@@ -1320,20 +1369,32 @@ public class FencePlotter
 						else if(new_sample.intensity > baseline_imax)
 							new_sample.intensity = baseline_imax;
 						
-						if(baseline_gamma != 1)
+						if(baseline_slope != 1)
 						{
+							/*
 							if(new_sample.intensity < 0)
 							{
 							    double factor = Math.abs(baseline_imin);
 							    double absolute_value  = Math.abs(sample.intensity);
-							    new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_gamma);
+							    new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
 							    new_sample.intensity = -sample.intensity;
 							}
 							else if(sample.intensity > 0)
 							{
 								double factor = baseline_imax;
 								double absolute_value  = sample.intensity;
-								new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_gamma);
+								new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
+							}
+							*/
+							sample.intensity = sample.intensity * baseline_slope;
+							
+							if(sample.intensity < baseline_imin)
+							{
+								sample.intensity = baseline_imin;
+							}
+							else if(sample.intensity > baseline_imax)
+							{
+								sample.intensity = baseline_imax;	
 							}
 						}
 						
