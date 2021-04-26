@@ -25,13 +25,16 @@ public class FencePlotter
 	ArrayList reduced_data = new ArrayList();
 	ArrayList plot_data = new ArrayList();
 	ArrayList baseline_data = new ArrayList();
-	double max_delta;
+	//double max_delta;
 	
 	
-	//double shift, start, range;
-    double shift = 0;
+    double  shift = 0;
 	boolean slider_changed = false;
 	boolean scrollbar_changed = false;
+	double  line_imin = 0;
+	double  line_imax = 0;
+	double  segment_imin = 0;
+	double  segment_imax = 0;
 
 	// Plotting parameters
 	Color[] outline_color = new Color[5];
@@ -77,11 +80,13 @@ public class FencePlotter
 				{
 					FencePlotter window = new FencePlotter(filename);
 					window.frame.setVisible(true);
-				} catch (Exception e)
+				} 
+				catch (Exception e)
 				{
 					e.printStackTrace();
 				}
-			} catch (Exception e)
+			} 
+			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
@@ -161,18 +166,24 @@ public class FencePlotter
 					sample.x -= xmin;
 					sample.y -= ymin;
 					data.add(sample);
-				}
-			} catch (Exception e)
+				}	
+			} 
+			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
+		}
+		else
+		{
+			System.out.println("File not found.");
+			System.exit(0);
 		}
 
 		frame = new JFrame();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		canvas = new LineCanvas();
-		canvas.setSize(1000, 1000);
+		canvas.setSize(800, 600);
 
 		frame.getContentPane().add(canvas, BorderLayout.CENTER);
 
@@ -230,7 +241,7 @@ public class FencePlotter
 		table.setValueAt(header, 0, 5);
 		header = new String("Data Usage");
 		table.setValueAt(header, 0, 6);
-		header = new String("Zero Crosses");
+		header = new String("Autoscale");
 		table.setValueAt(header, 0, 7);
 		header = new String("Visible");
 		table.setValueAt(header, 0, 8);
@@ -250,9 +261,14 @@ public class FencePlotter
 		double start  = 42;
 		double range  = 6;
 		
-		double [] min_max = getMinMax(line, start, range, data);
-		System.out.println("Min intensity in segment is " + min_max[0]);
-		System.out.println("Max intensity in segment is " + min_max[1]);
+		double [] local_min_max = getMinMax(line, start, range, data);
+		System.out.println("Min intensity in segment is " + local_min_max[0]);
+		System.out.println("Max intensity in segment is " + local_min_max[1]);
+		double [] global_min_max = getMinMax(line, 15, 60, data);
+		System.out.println("Min intensity in line is " + global_min_max[0]);
+		System.out.println("Max intensity in line is " + global_min_max[1]);
+		line_imin = global_min_max[0];
+		line_imax = global_min_max[1];
 		
 		input    = new JTextField();
 		input.setText(Integer.toString(line));
@@ -269,11 +285,11 @@ public class FencePlotter
 			table.setValueAt((String) "100", i + 1, 4);
 			table.setValueAt((String) "0", i + 1, 5);
 			table.setValueAt((String) "0", i + 1, 6);
-			table.setValueAt((String) "yes", i + 1, 7);
+			table.setValueAt((String) "no", i + 1, 7);
 			table.setValueAt((String) "yes", i + 1, 8);
 			table.setValueAt((String) "no", i + 1, 9);	
-			table.setValueAt(Double.toString(min_max[0]), i + 1, 10);
-			table.setValueAt(Double.toString(min_max[1]), i + 1, 11);
+			table.setValueAt(Double.toString(local_min_max[0]), i + 1, 10);
+			table.setValueAt(Double.toString(local_min_max[1]), i + 1, 11);
 			table.setValueAt((String) "1.0", i + 1, 12);
 		}
 
@@ -312,6 +328,16 @@ public class FencePlotter
 							table.setValueAt(start_string, i, 2);
 							table.setValueAt(range_string, i, 3);
 						}
+						
+						int line = Integer.parseInt((String) table.getValueAt(1, 0));
+						double min_max[] = getMinMax(line, start, range, data);
+						for (int i = 1; i < 6; i++)
+						{
+						    table.setValueAt(Double.toString(min_max[0]), i, 10);
+						    table.setValueAt(Double.toString(min_max[1]), i, 11);
+						}
+						segment_imin = min_max[0];
+						segment_imax = min_max[1];
 						apply_button.doClick(0);
 					}
 				}
@@ -442,11 +468,19 @@ public class FencePlotter
 					if (point.y < minimum_y)
 					{
 						minimum_y = point.y;
-					} else if (point.y > maximum_y)
+					} 
+					else if (point.y > maximum_y)
 					{
 						maximum_y = point.y;
 					}
 				}
+			}
+			
+			String autoscale_string = (String) table.getValueAt(1, 7);
+			if(autoscale_string.equals("no"))
+			{
+				minimum_y = line_imin;
+				maximum_y = line_imax;
 			}
 			xrange = maximum_x - minimum_x;
 
@@ -482,7 +516,17 @@ public class FencePlotter
 			string_width = font_metrics.stringWidth(intensity_string);
 			g2.drawString(intensity_string, string_width / 2, top_margin + 4 * ystep + graph_ydim / 2);
 
-			// Construct polygons in second pass.
+			double zero_position = Math.abs(minimum_y);
+			zero_position /= yrange;
+    	    zero_position *= graph_ydim;
+    	    zero_position = graph_ydim - zero_position;
+    	    zero_position += top_margin + 4 * ystep;
+    	    String zero_string = new String("0.0");
+    	    string_width = font_metrics.stringWidth(zero_string);
+    	    //g2.drawString(zero_string, left_margin / 2 - string_width / 2, (int)zero_position);		
+    	    g2.drawString(zero_string, left_margin - (string_width + 5), (int)zero_position);	
+    	    
+			// Draw line showing y extent and construct polygons in second pass.
 			Polygon[] polygon = new Polygon[5];
 			for (int i = 0; i < 5; i++)
 			{
@@ -491,7 +535,7 @@ public class FencePlotter
 
 				int a2 = a1 + graph_xdim;
 				int b2 = b1 - graph_ydim;
-
+				
 				int xaddend = i * xstep;
 				int yaddend = i * ystep;
 				a1 += xaddend;
@@ -499,6 +543,17 @@ public class FencePlotter
 
 				a2 += xaddend;
 				b2 -= yaddend;
+				
+				if(ystep == 0 && xstep == 0)
+					g2.setColor(outline_color[0]);
+				else
+					g2.setColor(outline_color[i]);
+					
+				g2.setStroke(new BasicStroke(2));
+        	    g2.drawLine((int)a1, (int)b1, (int)a1, (int)b2);
+        	    g2.drawLine((int)a1, (int)b2, (int)a1 + 5, (int)b2);
+        	    
+				
 
 				// ArrayList current_line = (ArrayList) plot_data.get(j);
 				ArrayList current_line = (ArrayList) plot_data.get(i);
@@ -523,6 +578,7 @@ public class FencePlotter
 				y1 *= graph_ydim;
 				y1 = graph_ydim - y1;
 				y1 += top_margin + 4 * ystep;
+				//y1 += top_margin;
 				y1 -= yaddend;
 
 				x[1] = (int) x1;
@@ -545,7 +601,7 @@ public class FencePlotter
 					y1 /= yrange;
 					y1 *= graph_ydim;
 					y1 = graph_ydim - y1;
-					y1 += top_margin + 4 * ystep;
+				    y1 += top_margin + 4 * ystep;
 					y1 -= yaddend;
 
 					Point2D.Double current = (Point2D.Double) current_line.get(k);
@@ -584,7 +640,7 @@ public class FencePlotter
 
 			for (int i = 4; i >= 0; i--)
 			{
-				String zero_crossings = (String) table.getValueAt(i + 1, 7);
+				//String zero_crossings = (String) table.getValueAt(i + 1, 7);
 				String visibility     = (String) table.getValueAt(i + 1, 8);
 				String transparency   = (String) table.getValueAt(i + 1, 9);
 				int    xaddend = i * xstep;
@@ -594,12 +650,55 @@ public class FencePlotter
 					if (transparency.equals("no"))
 					{
 						g2.setColor(fill_color[i]);
-						//g2.setColor(java.awt.Color.WHITE);
 						g2.fillPolygon(polygon[i]);
 					}
 					g2.setColor(outline_color[i]);
 					g2.drawPolygon(polygon[i]);
 					
+					if(minimum_y < 0)
+					{
+						ArrayList current_line  = (ArrayList)plot_data.get(i);	
+						Point2D.Double first = (Point2D.Double)current_line.get(0);
+						size = current_line.size();
+						Point2D.Double last = (Point2D.Double)current_line.get(size - 1);
+						
+						double x1     = first.getX();
+						double x2     = last.getX();
+						double zero_y = Math.abs(minimum_y);
+						
+						x1 -= minimum_x;
+		        	    x1 /= xrange;
+		        	    x1 *= graph_xdim;
+		        	    x1 += left_margin;
+		        	    x1 += xaddend;
+		        	    
+		        	    x2 -= minimum_x;
+		        	    x2 /= xrange;
+		        	    x2 *= graph_xdim;
+		        	    x2 += left_margin;
+		        	    x2 += xaddend;
+		        	    
+		        	    zero_y /= yrange;
+		        	    zero_y *= graph_ydim;
+		        	    zero_y = graph_ydim - zero_y;
+		        	    zero_y += top_margin + 4 * ystep;
+		        	    //zero_y += top_margin;
+		        	    zero_y -= yaddend;
+		        	    
+		        	    float[] dash = { 2f, 0f, 2f };
+		        	    BasicStroke basic_stroke = new BasicStroke(1, 
+		        	            BasicStroke.CAP_BUTT, 
+		        	            BasicStroke.JOIN_ROUND, 
+		        	            1.0f, 
+		        	            dash,
+		        	            2f);
+		        	    g2.setStroke(basic_stroke);
+		        	    g2.setColor(java.awt.Color.BLACK);
+		        	    g2.drawLine((int)x1, (int)zero_y, (int)x2, (int)zero_y);
+		        	    g2.setStroke(new BasicStroke(2));
+					}
+					
+					/*
 					if(zero_crossings.equals("yes"))
 					{
 						ArrayList current_line  = (ArrayList)plot_data.get(i);
@@ -646,11 +745,7 @@ public class FencePlotter
 			        	    previous = current;
 			            }
 					}
-					else
-					{
-						g2.setColor(outline_color[i]);
-						g2.drawPolygon(polygon[i]);
-					}
+					*/
 				}
 			}
 		}
@@ -667,7 +762,7 @@ public class FencePlotter
 				double difference = 60 - range;
 
 				int current_value = event.getValue();
-				//double shift = current_value;
+				
 				shift = current_value;
 				shift /= 200;
 				shift *= difference;
@@ -696,6 +791,16 @@ public class FencePlotter
 					{
 						table.setValueAt(start_string, i, 2);
 					}
+					
+					int line         = Integer.parseInt((String) table.getValueAt(1, 0));
+					double min_max[] = getMinMax(line, start, range, data);
+					segment_imin     = min_max[0];
+					segment_imax     = min_max[1];
+					for (int i = 1; i < 6; i++)
+					{
+					    table.setValueAt(Double.toString(min_max[0]), i, 10);
+					    table.setValueAt(Double.toString(min_max[1]), i, 11);
+					}
 					apply_button.doClick(0);
 				}
 			}
@@ -708,7 +813,7 @@ public class FencePlotter
 		{
 			int xstep = event.getValue();
 			normal_xstep = (double)xstep / 100;
-			System.out.println("Normal xstep is now " + xstep);
+			//System.out.println("Normal xstep is now " + xstep);
 			if (event.getValueIsAdjusting() == false)
 				apply_button.doClick(0);
 		}
@@ -720,7 +825,7 @@ public class FencePlotter
 		{
 			int ystep = 100 - event.getValue();
 			normal_ystep = (double)ystep / 100;
-			System.out.println("Normal ystep is now " + normal_ystep);
+			//System.out.println("Normal ystep is now " + normal_ystep);
 			if (event.getValueIsAdjusting() == false)
 				apply_button.doClick(0);
 		}
@@ -750,6 +855,10 @@ public class FencePlotter
 				table.setValueAt(Double.toString(min_max[0]), i + 1, 10);	
 				table.setValueAt(Double.toString(min_max[1]), i + 1, 11);
 			}
+			
+			min_max = getMinMax(current_line_int, 15, 60, data);
+			line_imin = min_max[0];
+			line_imax = min_max[1];
 		}
 	}
 	
@@ -976,7 +1085,7 @@ public class FencePlotter
 			// This seems kludgy.
 			current_start = Double.valueOf((String) table.getValueAt(1, 2));
 			current_range = Double.valueOf((String) table.getValueAt(1, 3));
-			//current_shift = Double.valueOf((String) table.getValueAt(1, 4));
+			
 			current_shift = shift;
 			
 			value = (int) current_start;
@@ -1124,11 +1233,14 @@ public class FencePlotter
 					}
 				}
 				modified_data.add(sample_list);
-				System.out.println("The number of samples in the region of interest is " + sample_list.size());
+				//System.out.println("The number of samples in the region of interest is " + sample_list.size());
 			}
 
-			int baseline_resolution = Integer.parseInt((String) table.getValueAt(1, 4));
-			int baseline_reduction = Integer.parseInt((String) table.getValueAt(1, 5));
+			int baseline_resolution   = Integer.parseInt((String) table.getValueAt(1, 4));
+			int baseline_reduction    = Integer.parseInt((String) table.getValueAt(1, 5));
+			String baseline_autoscale = (String) table.getValueAt(1, 7);
+			double baseline_imin      = Double.valueOf((String) table.getValueAt(1, 10));
+			double baseline_imax      = Double.valueOf((String) table.getValueAt(1, 11));
 			
 			
 			interpolated_data.clear();
@@ -1155,6 +1267,12 @@ public class FencePlotter
 					current_resolution = baseline_resolution;
 				}
 				
+				String current_autoscale = (String) table.getValueAt(i, 7);
+				if(!current_autoscale.equals(baseline_autoscale))
+				{
+					table.setValueAt(baseline_autoscale, i, 7);	
+				}
+				
                 double current_slope = 1.;
 				
 				try
@@ -1175,12 +1293,21 @@ public class FencePlotter
 					current_resolution = baseline_resolution;
 				}
 				
-				double baseline_imin = Double.valueOf((String) table.getValueAt(1, 10));
-				double baseline_imax = Double.valueOf((String) table.getValueAt(1, 11));
+				double current_imin = Double.valueOf((String) table.getValueAt(i, 10));
+				if (current_imin != baseline_imin)
+				{
+					String imin_string = Double.toString(baseline_imin);
+					table.setValueAt(imin_string, i, 10);
+					current_imin = baseline_imin;
+				}
 				
-				System.out.println("Baseline imin is " + baseline_imin);
-				System.out.println("Baseline imax is " + baseline_imax);
-				
+				double current_imax = Double.valueOf((String) table.getValueAt(i, 11));
+				if (current_imax != baseline_imax)
+				{
+					String imax_string = Double.toString(baseline_imax);
+					table.setValueAt(imax_string, i, 11);
+					current_imax = baseline_imax;
+				}
 				
 				ArrayList sample_list = new ArrayList();
 				double increment = current_range / current_resolution;
@@ -1336,6 +1463,7 @@ public class FencePlotter
 							new_sample.intensity = baseline_imax;
 						if(baseline_slope != 1)
 						{
+							/*
 							if(new_sample.intensity < 0)
 							{
 							    double factor = Math.abs(baseline_imin);
@@ -1349,9 +1477,18 @@ public class FencePlotter
 								double absolute_value  = sample.intensity;
 								new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
 							}
+							*/
+							new_sample.intensity = new_sample.intensity * baseline_slope;
+							
+							if(new_sample.intensity < baseline_imin)
+							{
+								new_sample.intensity = baseline_imin;
+							}
+							else if(new_sample.intensity > baseline_imax)
+							{
+								new_sample.intensity = baseline_imax;	
+							}
 						}
-						
-						
 						
 						new_sample.x = previous_sample.x * (distance2 / total_distance);
 						new_sample.x += sample.x * (distance1 / total_distance);
@@ -1386,15 +1523,14 @@ public class FencePlotter
 								new_sample.intensity = factor * Math.pow(absolute_value / factor, 1 / baseline_slope);
 							}
 							*/
-							sample.intensity = sample.intensity * baseline_slope;
-							
-							if(sample.intensity < baseline_imin)
+							new_sample.intensity = new_sample.intensity * baseline_slope;
+							if(new_sample.intensity < baseline_imin)
 							{
-								sample.intensity = baseline_imin;
+								new_sample.intensity = baseline_imin;
 							}
-							else if(sample.intensity > baseline_imax)
+							else if(new_sample.intensity > baseline_imax)
 							{
-								sample.intensity = baseline_imax;	
+								new_sample.intensity = baseline_imax;	
 							}
 						}
 						
@@ -1413,7 +1549,7 @@ public class FencePlotter
 						number_of_samples_used++;
 				}
 
-				System.out.println("Number of samples used was " + number_of_samples_used);
+				//System.out.println("Number of samples used was " + number_of_samples_used);
 				double sample_ratio = number_of_samples_used;
 				sample_ratio /= number_of_samples;
 				String ratio_string = String.format("%,.2f", sample_ratio);
