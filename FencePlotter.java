@@ -251,22 +251,22 @@ public class FencePlotter
 		table.setValueAt(header, 0, 10);
 		header = new String("Imax");
 		table.setValueAt(header, 0, 11);
-		header = new String("Slope");
+		header = new String("Scale");
 		table.setValueAt(header, 0, 12);
 		header = new String("Key");
 		table.setValueAt(header, 0, 13);
 
 		int     rows  = 5;
-		int     line  = 12;
-		double start  = 42;
-		double range  = 6;
+		int     line  = 9;
+		double start  = 15;
+		double range  = 60;
 		
 		double [] local_min_max = getMinMax(line, start, range, data);
-		System.out.println("Min intensity in segment is " + local_min_max[0]);
-		System.out.println("Max intensity in segment is " + local_min_max[1]);
+		//System.out.println("Min intensity in segment is " + local_min_max[0]);
+		//System.out.println("Max intensity in segment is " + local_min_max[1]);
 		double [] global_min_max = getMinMax(line, 15, 60, data);
-		System.out.println("Min intensity in line is " + global_min_max[0]);
-		System.out.println("Max intensity in line is " + global_min_max[1]);
+		//System.out.println("Min intensity in line is " + global_min_max[0]);
+		//System.out.println("Max intensity in line is " + global_min_max[1]);
 		line_imin = global_min_max[0];
 		line_imax = global_min_max[1];
 		
@@ -343,6 +343,7 @@ public class FencePlotter
 				}
 			}
 		});
+		
 		segment_panel.add(range_slider, BorderLayout.SOUTH);
 
 		JPanel bottom_panel = new JPanel(new BorderLayout());
@@ -553,9 +554,6 @@ public class FencePlotter
         	    g2.drawLine((int)a1, (int)b1, (int)a1, (int)b2);
         	    g2.drawLine((int)a1, (int)b2, (int)a1 + 5, (int)b2);
         	    
-				
-
-				// ArrayList current_line = (ArrayList) plot_data.get(j);
 				ArrayList current_line = (ArrayList) plot_data.get(i);
 
 				int n = current_line.size() + 3;
@@ -578,7 +576,6 @@ public class FencePlotter
 				y1 *= graph_ydim;
 				y1 = graph_ydim - y1;
 				y1 += top_margin + 4 * ystep;
-				//y1 += top_margin;
 				y1 -= yaddend;
 
 				x[1] = (int) x1;
@@ -623,7 +620,6 @@ public class FencePlotter
 					x[m] = (int) x2;
 					y[m] = (int) y2;
 					m++;
-
 					previous = current;
 				}
 
@@ -1094,8 +1090,50 @@ public class FencePlotter
 			difference = upper_value - value;
 			range_slider.setValue(value);
 			range_slider.setUpperValue(upper_value);
-			
 			int number_of_rows = table.getRowCount();
+			
+			
+			int baseline       = Integer.parseInt((String) table.getValueAt(1, 0));
+			double line_min_max[] = getMinMax(baseline, 15, 75, data);
+			double segment_min_max[] = getMinMax(baseline, current_start, current_start + current_range, data);
+			
+			
+			line_imin = line_min_max[0];
+			line_imax = line_min_max[1];
+			segment_imin = segment_min_max[0];
+			segment_imax = segment_min_max[1];
+			
+			
+			
+		    // Section to extend dynamic range across flight lines.
+			
+			for (int i = 2; i < number_of_rows; i++)
+			{
+				int current_line = Integer.parseInt((String) table.getValueAt(i, 0));
+				if(current_line != baseline)
+				{
+					line_min_max = getMinMax(current_line, 15, 75, data);
+					segment_min_max = getMinMax(current_line, current_start, current_start + current_range, data);
+					if(line_min_max[0] < line_imin)
+						line_imin = line_min_max[0];
+					if(line_min_max[1] > line_imax)
+						line_imax = line_min_max[1];
+					if(segment_min_max[0] < segment_imin)
+						segment_imin = segment_min_max[0];
+					if(segment_min_max[1] > segment_imax)
+						segment_imax = segment_min_max[1];
+				}
+			}
+			
+			
+			
+			for (int i = 1; i < number_of_rows; i++)
+			{
+				table.setValueAt(Double.toString(segment_imin), i, 10);	
+				table.setValueAt(Double.toString(segment_imax), i, 11);
+			}
+			
+			
 			line_data.clear();
 			for (int i = 1; i < number_of_rows; i++)
 			{
@@ -1153,8 +1191,8 @@ public class FencePlotter
 			modified_data.clear();
 
 			double baseline_offset = Double.valueOf((String) table.getValueAt(1, 2));
-			double baseline_range = Double.valueOf((String) table.getValueAt(1, 3));
-			double baseline_slope = 1.;
+			double baseline_range  = Double.valueOf((String) table.getValueAt(1, 3));
+			double baseline_slope  = 1.;
 			try
 			{
 				baseline_slope = Double.valueOf((String) table.getValueAt(1, 12));
