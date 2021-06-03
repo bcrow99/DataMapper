@@ -18,6 +18,9 @@ public class XFencePlotter
 {
 	// Input
 	ArrayList data = new ArrayList();
+	
+	// Sensor data segmented at start of program and by File->Apply and accessed by LineCanvas.paint()
+	ArrayList sensor_data = new ArrayList();
 
 	// Shared interface componants.
 	public JFrame      frame;
@@ -31,10 +34,10 @@ public class XFencePlotter
 	// Shared program variables.
 	boolean slider_changed    = false;
 	boolean scrollbar_changed = false;
-	double  start             = 35;
+	double  offset             = 35;
 	double  range             = 20;
-	int     line              = 9;
-	int     sensor            = 0;
+	//int     line              = 9;
+	//int     sensor            = 0;
 	
 	boolean autoscale    = true;
 	double  scale_factor = 1.;
@@ -45,8 +48,8 @@ public class XFencePlotter
 	
 	public static void main(String[] args)
 	{
-		//String prefix = new String("C:/Users/Brian Crowley/Desktop/");
-		String prefix = new String("");
+		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
+		//String prefix = new String("");
 		if (args.length != 1)
 		{
 			System.out.println("Usage: XFencePlotter <data file>");
@@ -212,7 +215,7 @@ public class XFencePlotter
 		
 		frame.getContentPane().add(canvas_panel, BorderLayout.CENTER);
 
-		option_table = new JTable(4, 11)
+		option_table = new JTable(6, 11)
 		{
 			public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
 			{
@@ -243,30 +246,32 @@ public class XFencePlotter
 		header = new String("Key");
 		option_table.setValueAt(header, 3, 0);
 		
+		int init_line = 9;
+		
 		for (int i = 0; i < 5; i++)
 		{
-			if(line % 2 == 1)
+			if(init_line % 2 == 1)
 			{
-				String line_sensor = new String(line + ":" + i);
+				String line_sensor = new String(init_line + ":" + i);
 			    option_table.setValueAt(line_sensor, 0, i + 1);
 			}
 			else
 			{
-				String line_sensor = new String(line + ":" + (4 - i)); 
+				String line_sensor = new String(init_line + ":" + (4 - i)); 
 				option_table.setValueAt(line_sensor, 0, i + 1);
 			}
 		}
 		
 		for (int i = 0; i < 5; i++)
 		{
-			if((line + 1) % 2 == 1)
+			if((init_line + 1) % 2 == 1)
 			{
-				String line_sensor = new String((line + 1) + ":" + i);
+				String line_sensor = new String((init_line + 1) + ":" + i);
 			    option_table.setValueAt(line_sensor, 0, i + 6);
 			}
 			else
 			{
-				String line_sensor = new String((line + 1) + ":" + (4 - i)); 
+				String line_sensor = new String((init_line + 1) + ":" + (4 - i)); 
 				option_table.setValueAt(line_sensor, 0, i + 6);
 			}
 		}
@@ -277,7 +282,9 @@ public class XFencePlotter
 			option_table.setValueAt("No", 2, i);
 		}
 		
-		frame.getContentPane().add(option_table, BorderLayout.SOUTH);
+		JPanel option_panel = new JPanel(new BorderLayout());
+		option_panel.add(option_table, BorderLayout.CENTER);
+		frame.getContentPane().add(option_panel, BorderLayout.NORTH);
 		
 		JMenuBar menu_bar    = new JMenuBar();
 		
@@ -288,6 +295,12 @@ public class XFencePlotter
 		
 		LoadItemHandler load_item_handler = new LoadItemHandler();
 		load_item.addActionListener(load_item_handler);
+		
+		ApplyHandler apply_handler = new ApplyHandler();
+		apply_item.addActionListener(apply_handler);
+		
+		SaveHandler save_handler = new SaveHandler();
+		save_item.addActionListener(save_handler);
 		
 		file_menu.add(load_item);
 		file_menu.add(apply_item);
@@ -315,7 +328,7 @@ public class XFencePlotter
 		
 		input    = new JTextField();
 		input.setHorizontalAlignment(JTextField.CENTER);
-		input.setText(line + ":" + sensor);
+		input.setText("9:3");
 		
 		JButton load_button = new JButton("Load");
 		LoadHandler load_handler = new LoadHandler();
@@ -341,6 +354,8 @@ public class XFencePlotter
 		int right_margin  = 10;
 		int left_margin   = 60;
 		int bottom_margin = 60;
+		int original_xdim = 0;
+		int original_ydim = 0;
 		
 		public LineCanvas()
 		{
@@ -367,7 +382,7 @@ public class XFencePlotter
 			fill_color[6] = new Color(224, 224, 196);
 			fill_color[7] = new Color(224, 224, 224);
 			fill_color[8] = new Color(224, 224, 255);
-			fill_color[9] = new Color(224, 255, 224);   	
+			fill_color[9] = new Color(224, 255, 224);  
 		}
 		
 		public void paint(Graphics g)
@@ -377,16 +392,273 @@ public class XFencePlotter
 			int xdim = (int) visible_area.getWidth();
 			int ydim = (int) visible_area.getHeight();
 			
+			
+			
 			Graphics2D g2 = (Graphics2D) g;
 			Font current_font = g2.getFont();
 			FontMetrics font_metrics = g2.getFontMetrics(current_font);
 			g2.setColor(java.awt.Color.WHITE);
 			g2.fillRect(0, 0, xdim, ydim);
+		
+			int size = sensor_data.size();
+			System.out.println("Sensor data length is " + size);
 			
-			
+			if(size > 0)
+			{
+				int number_of_segments = size - 4;
+			    double seg_min  = (double) sensor_data.get(0);
+			    double seg_max  = (double) sensor_data.get(1);
+			    double line_min = (double) sensor_data.get(2);
+			    double line_max = (double) sensor_data.get(3);
+			    
+			    System.out.println("The number of segments being plotted is " + number_of_segments);
+			    System.out.println("Minimum value in the segments is " + seg_min);
+			    System.out.println("Maximum value in the segments is " + seg_max);
+			    System.out.println("Minimum value in the lines is " + line_min);
+			    System.out.println("Maximum value in the lines is " + line_max);
+			    
+			    double max_xstep = (xdim - (left_margin + right_margin)) / 5;
+				int    xstep     = (int) (max_xstep * normal_xstep);
+				int graph_xdim = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
+				if(xstep == max_xstep)
+				{
+				    graph_xdim -= 5;	
+				}
+				
+				double max_ystep = (ydim - (top_margin + bottom_margin)) / 5;
+				int    ystep     = (int) (max_ystep * normal_ystep);
+				int graph_ydim = ydim - (top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
+				
+				if(ystep == max_ystep)
+				{
+				    graph_ydim -= 5;	
+				}
+				System.out.println("Canvas xdim is " + xdim + ", ydim is " + ydim);
+				System.out.println("Graph xdim is " + graph_xdim + ", ydim is " + graph_ydim);
+				for(int i = 4; i < size; i++)
+				{
+					ArrayList list = (ArrayList)sensor_data.get(i);
+					int length = list.size();
+					System.out.println("Segment " + (i - 4) + " is " + length + " datum long.");
+				}
+			}
 		}
 	}
 
+	
+	class ApplyHandler implements ActionListener
+	{
+		int[][] line_array;
+		int[]   line;
+		int[]   sensor;
+
+		ApplyHandler()
+		{
+			line_array = ObjectMapper.getUnclippedLineArray();
+			line       = new int[10];
+			sensor     = new int[10];
+		}
+		
+		public void actionPerformed(ActionEvent event)
+		{
+			
+			//String description = event.paramString();
+			//System.out.println("Event paramstring is " + description);
+			//int number_of_pairs = 0;
+			
+			
+			sensor_data.clear();
+			
+			for(int i = 0; i < 10; i++)
+			{
+			    try
+			    {
+			    	String          line_sensor_pair   = (String) option_table.getValueAt(0, i + 1);
+					StringTokenizer tokenizer          = new StringTokenizer(line_sensor_pair, ":");
+					int             number_of_tokens   = tokenizer.countTokens();
+					if(number_of_tokens == 2)
+					{
+						//number_of_pairs++;
+						String line_string = tokenizer.nextToken(":");
+						int current_line = Integer.parseInt(line_string);
+						String sensor_string = tokenizer.nextToken(":");
+						int current_sensor = Integer.parseInt(sensor_string);
+					    
+						// Do a check for valid input
+						if(current_line >= 0 && current_line < 30 && current_sensor >= 0 && current_sensor < 5)
+						{ 
+						    line[i]   = current_line;
+						    sensor[i] = current_sensor;
+						}
+						else
+						{
+							line[i]   = -1;
+					    	sensor[i] = -1;	
+						}
+					}
+					else
+					{
+						line[i]   = -1;
+				    	sensor[i] = -1;	
+					}
+			    }
+			    catch(Exception exception)
+			    {
+			    	line[i]   = -1;
+			    	sensor[i] = -1;
+			    }
+			}
+			
+			//  Do a first pass thru the data to get the segment and line extrema.
+			//  This is so we can prepend it to the segment data for the line canvas
+			//  to use to implement autoscaling.
+			double seg_min  =  Double.MAX_VALUE;
+			double seg_max  = -Double.MAX_VALUE;
+			
+			double line_min =  Double.MAX_VALUE;
+			double line_max = -Double.MAX_VALUE;
+			
+			for(int i = 0; i < 10; i++)
+			{
+			    if(line[i] != -1)
+			    {
+			    	int current_line   = line[i];
+			    	int current_sensor = sensor[i];
+			    	int start          = line_array[current_line][0];
+					int stop           = line_array[current_line][1];
+					
+					// Add logic to eliminate dublicate y locations.
+					if (current_line % 2 == 0)
+					{
+						
+						for(int j = start + current_sensor; j < stop; j += 5)
+						{
+							Sample sample = (Sample) data.get(j);
+							if(sample.y >= offset && sample.y < (offset + range))
+							{
+							    if(seg_min > sample.intensity)
+							    {
+							    	seg_min = sample.intensity;	
+							    }
+							    if(seg_max < sample.intensity)
+							    {
+							    	seg_max = sample.intensity; 	
+							    }
+							}
+							if(sample.y >= 15 && sample.y < 75)
+							{
+							    if(line_min > sample.intensity)
+						        {
+								    line_min = sample.intensity;	
+						        }
+						        if(line_max < sample.intensity)
+						        {
+						    	    line_max = sample.intensity;   	
+						        }
+							}
+						}
+					} 
+					else
+					{
+						for(int j = stop - (1 + (4 - current_sensor)) ; j >= start; j -= 5)
+						{
+							Sample sample = (Sample) data.get(j);
+							if(sample.y >= offset && sample.y < (offset + range))
+							{
+							    if(seg_min > sample.intensity)
+							    {
+							    	seg_min = sample.intensity;	
+							    }
+							    if(seg_max < sample.intensity)
+							    {
+							    	seg_max = sample.intensity; 	
+							    }
+							}
+							if(sample.y >= 15 && sample.y < 75)
+							{
+							    if(line_min > sample.intensity)
+						        {
+								    line_min = sample.intensity;	
+						        }
+						        if(line_max < sample.intensity)
+						        {
+						    	    line_max = sample.intensity;   	
+						        }
+							}
+						}
+					}
+			    }
+			}
+		
+			sensor_data.add(seg_min);
+			sensor_data.add(seg_max);
+			sensor_data.add(line_min);
+			sensor_data.add(line_max);
+			
+			for(int i = 0; i < 10; i++)
+			{
+				if(line[i] != -1)
+				{
+					int current_line   = line[i];
+					int current_sensor = sensor[i];
+				    ArrayList segment_data = new ArrayList();
+				    segment_data.add(current_line);
+				    segment_data.add(current_sensor);
+				    
+				    String visible = (String) option_table.getValueAt(1, i + 1);
+				    segment_data.add(visible);
+					String transparent = (String) option_table.getValueAt(2, i + 1);
+					segment_data.add(transparent);
+				    
+					int start          = line_array[current_line][0];
+					int stop           = line_array[current_line][1];
+				    if (current_line % 2 == 0)
+					{
+						for(int j = start + current_sensor; j < stop; j += 5)
+						{
+							Sample sample = (Sample) data.get(j);
+							if(sample.y >= offset && sample.y < (offset + range))
+							    segment_data.add(sample);	
+						}
+					}
+				    else
+				    {
+				    	for(int j = stop - (1 + (4 - current_sensor)) ; j >= start; j -= 5)
+						{
+							Sample sample = (Sample) data.get(j);
+							if(sample.y >= offset && sample.y < (offset + range))
+							    segment_data.add(sample);
+						}	
+				    }
+				    sensor_data.add(segment_data);
+				}	
+			}
+
+			// Line canvas paint() gets called with when a pop-up menu obscures it,
+			// but with only the obscured area size, and not the coordinates, as far as I can tell.
+			// Not worth figuring out the work-around--just making sure no pop-up menus obscure the canvas.
+			// Requires some kind of double buffer where an arbitrary tile can be bit blitted if the tile can be located.
+			canvas.repaint();
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	class ScrollbarHandler implements AdjustmentListener
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
@@ -401,12 +673,12 @@ public class XFencePlotter
 				double shift = current_value;
 				shift /= 200;
 				shift *= difference;
-				start = 45. - (range / 2);
-				start += shift;
+				offset = 45. - (range / 2);
+				offset += shift;
 				
 				// Reset the slider.
-				int value = (int) start;
-				int upper_value = (int) (start + range);
+				int value = (int) offset;
+				int upper_value = (int) (offset + range);
 				range_slider.setValue(value);
 				range_slider.setUpperValue(upper_value);
 				
@@ -431,16 +703,15 @@ public class XFencePlotter
 					range = current_stop - current_start;
 					if (range == 0)
 						range = 1;
-					start = current_start;
-					//System.out.println("Start is " + start);
-					//System.out.println("Range is " + range);
+					offset = current_start;
+					
 					
 					// Reset the scrollbar.
-					double normalized_start = start - 15;
-					normalized_start /= 60.;
-					double normalized_stop = (start + range) - 15;
+					double normalized_offset = offset - 15;
+					normalized_offset /= 60.;
+					double normalized_stop = (offset + range) - 15;
 					normalized_stop /= 60.;
-					double normalized_center = (normalized_start + normalized_stop) / 2.;
+					double normalized_center = (normalized_offset + normalized_stop) / 2.;
 					normalized_center -= .5;
 					normalized_center *= 200;
 
@@ -470,17 +741,14 @@ public class XFencePlotter
 			String input_string = input.getText();
 			StringTokenizer input_tokenzer = new StringTokenizer(input_string);
 			String line_string = input_tokenzer.nextToken(":");
-			line = Integer.parseInt(line_string);
+			int current_line = Integer.parseInt(line_string);
 			String sensor_string = input_tokenzer.nextToken(":");
-			sensor = Integer.parseInt(sensor_string);
-			//System.out.println("Current line is " + line);
-			//System.out.println("Current sensor is " + sensor);
+			int current_sensor = Integer.parseInt(sensor_string);
+			
 			
 			String[] line_sensor_pair = new String[10];
 			
 			int current_pair   = 0;
-			int current_line   = line;
-			int current_sensor = sensor;
 			
 			if(current_line % 2 == 1)
 			{
@@ -553,6 +821,17 @@ public class XFencePlotter
 		}
 	}
 	
+	
+	
+	class SaveHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			//System.out.println("Got here.");
+		}
+	}
+	
+	/*
 	public double[] getMinMax(int line, double start, double range, ArrayList data)
 	{
 	    double [] min_max = new double[2];
@@ -579,6 +858,7 @@ public class XFencePlotter
 		min_max[1] = max_intensity;
 	    return(min_max);
 	}
+	*/
 	
 	public double[] reduce(double[] source, int iterations)
 	{
