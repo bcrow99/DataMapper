@@ -33,6 +33,9 @@ public class XFencePlotter
 	public JTable option_table;
 	public JDialog load_dialog;
 	public JDialog placement_dialog;
+	public JDialog scale_dialog;
+	public JDialog smooth_dialog;
+	
 	public JMenuItem apply_item;
 
 	// Shared program variables.
@@ -46,7 +49,7 @@ public class XFencePlotter
 	boolean autoscale = false;
 	double scale_factor = 1.;
 	int smoothing = 0;
-	int resolution = 300;
+	//int resolution = 300;
 	double normal_xstep = 0.;
 	double normal_ystep = 0.;
 
@@ -224,8 +227,10 @@ public class XFencePlotter
 					c.setBackground(fill_color[column - 1]);
 				else
 					c.setBackground(java.awt.Color.WHITE);
+				/*
 				if (column == 0)
 					c.setFont(c.getFont().deriveFont(Font.BOLD));
+				*/
 				return c;
 			}
 		};
@@ -316,14 +321,25 @@ public class XFencePlotter
 		
 
 		JMenu settings_menu = new JMenu("Settings");
-		JMenuItem location_item = new JMenuItem("Location");
-		JMenuItem resolution_item = new JMenuItem("Resolution");
+		
+		
 		JMenuItem scaling_item = new JMenuItem("Scaling");
-
-		settings_menu.add(location_item);
-		settings_menu.add(resolution_item);
+		ScaleHandler scale_handler = new ScaleHandler();
+		scaling_item.addActionListener(scale_handler);
+		
+		JMenuItem smoothing_item = new JMenuItem("Smoothing");
+		SmoothHandler smooth_handler = new SmoothHandler();
+		smoothing_item.addActionListener(smooth_handler);
+		
+		JMenuItem location_item = new JMenuItem("Location");
+		
+		
+		
+		
 		settings_menu.add(scaling_item);
-
+		settings_menu.add(smoothing_item);
+		settings_menu.add(location_item);
+		
 		menu_bar.add(file_menu);
 		menu_bar.add(format_menu);
 		menu_bar.add(settings_menu);
@@ -372,9 +388,77 @@ public class XFencePlotter
 		placement_dialog = new JDialog(frame);
 		placement_dialog.add(placement_panel);
 		
+		// A modeless dialog box that shows up if Settings->Scaling is selected.
+		JPanel scale_panel = new JPanel((new GridLayout(2, 1)));
+		JToggleButton autoscale_button = new JToggleButton("Autoscale");
+		ItemListener autoscale_handler = new ItemListener() 
+		{
+			  
+            // itemStateChanged() method is nvoked automatically
+            // whenever you click or unlick on the Button.
+            public void itemStateChanged(ItemEvent itemEvent)
+            {
+  
+                // event is generated in button
+                int state = itemEvent.getStateChange();
+  
+                // if selected print selected in console
+                if (state == ItemEvent.SELECTED) 
+                {
+                    autoscale = true;
+                    canvas.repaint();
+                }
+                else 
+                {
+                	autoscale = false;  
+                	canvas.repaint();
+                }
+            }
+        };
+        autoscale_button.addItemListener(autoscale_handler);
+        
+		JSlider factor_slider = new JSlider(0, 100, 0);
+		ChangeListener factor_handler = new ChangeListener()
+		{
+		    public void stateChanged(ChangeEvent e)
+	        {
+		    	JSlider slider = (JSlider)e.getSource();
+		    	if(slider.getValueIsAdjusting() == false)
+		    	{
+	                int value = factor_slider.getValue();
+	                scale_factor = (double)value / 100 + 1.;
+	                canvas.repaint();
+		    	}
+	        }
+		};
+		factor_slider.addChangeListener(factor_handler);
 		
+		scale_panel.add(autoscale_button);
+		scale_panel.add(factor_slider);
+		scale_dialog = new JDialog(frame);
+		scale_dialog.add(scale_panel);
 		
+		// A modeless dialog box that shows up if Settings->Smoothing is selected.
+		JPanel smooth_panel = new JPanel(new BorderLayout());
 		
+		JSlider smooth_slider = new JSlider(0, 100, 0);
+		ChangeListener smooth_slider_handler = new ChangeListener()
+		{
+		    public void stateChanged(ChangeEvent e)
+	        {
+		    	JSlider slider = (JSlider)e.getSource();
+		    	if(slider.getValueIsAdjusting() == false)
+		    	{
+		    		int value = slider.getValue();
+		    		smoothing = value;
+		            canvas.repaint();
+		    	} 
+	        }
+		};
+		smooth_slider.addChangeListener(smooth_slider_handler);
+		smooth_panel.add(smooth_slider, BorderLayout.CENTER);
+		smooth_dialog = new JDialog(frame, "Smoothing");
+		smooth_dialog.add(smooth_panel);
 		
 		frame.setJMenuBar(menu_bar);
 		frame.pack();
@@ -438,7 +522,7 @@ public class XFencePlotter
 			normal_xstep = (double)xstep / 100;
 			//System.out.println("Normal xstep is now " + xstep);
 			if (event.getValueIsAdjusting() == false)
-				apply_item.doClick(0);
+				canvas.repaint();
 		}
 	}
 
@@ -450,7 +534,7 @@ public class XFencePlotter
 			normal_ystep = (double)ystep / 100;
 			//System.out.println("Normal ystep is now " + normal_ystep);
 			if (event.getValueIsAdjusting() == false)
-				apply_item.doClick(0);
+				canvas.repaint();
 		}
 	}
 	
@@ -601,7 +685,7 @@ public class XFencePlotter
 				double yrange = maximum_y - minimum_y;
 
 				// Set labels.
-
+                /*
 				g2.setColor(java.awt.Color.BLACK);
 				double stop = offset + range;
 				String position_string = String.format("%,.2f", offset);
@@ -664,7 +748,8 @@ public class XFencePlotter
 					if (ystep == 0 && xstep == 0)
 						break;
 				}
-
+                */
+				
 				ArrayList plot_data = new ArrayList();
 				for (int i = 4; i < size; i++)
 				{
@@ -717,9 +802,41 @@ public class XFencePlotter
 						}
 					}
 					int plot_length = plot_list.size();
+					
+					
 					System.out.println("The plot list is " + plot_length + " points long");
 					System.out.println();
-					plot_data.add(plot_list);
+					if(smoothing == 0)
+					    plot_data.add(plot_list);
+					else
+					{
+						double x[] = new double[plot_length];
+						double y[] = new double[plot_length];
+						for (j = 0; j < plot_length; j++)
+						{
+							point = (Point2D.Double)  plot_list.get(j);
+							x[j] = point.getX();
+							y[j] = point.getY();
+						}
+						double [] smooth_x = smooth(x, smoothing);
+						double [] smooth_y = smooth(y, smoothing);
+						
+						
+						Point2D.Double start_point = (Point2D.Double) plot_list.get(0);
+						Point2D.Double end_point = (Point2D.Double) plot_list.get(plot_length - 1);
+						plot_list.clear();
+						
+						
+						plot_length = smooth_x.length;
+						plot_list.add(start_point);
+						for (j = 0; j < plot_length; j++)
+						{
+							Point2D.Double smooth_point = new Point2D.Double(smooth_x[j], smooth_y[j]);
+							plot_list.add(smooth_point);
+						}
+						plot_list.add(end_point);
+						plot_data.add(plot_list);
+					}
 				}
 
 				Polygon[] polygon = new Polygon[number_of_segments];
@@ -864,6 +981,7 @@ public class XFencePlotter
 			        	    zero_y += top_margin + 4 * ystep;
 			        	    zero_y -= yaddend;
 			        	    
+			        	    /*
 			        	    float[] dash = { 2f, 0f, 2f };
 			        	    BasicStroke basic_stroke = new BasicStroke(1, 
 			        	            BasicStroke.CAP_BUTT, 
@@ -875,6 +993,7 @@ public class XFencePlotter
 			        	    g2.setColor(java.awt.Color.BLACK);
 			        	    g2.drawLine((int)x1, (int)zero_y, (int)x2, (int)zero_y);
 			        	    g2.setStroke(new BasicStroke(2));
+			        	    */
 						}
 					}
 				}
@@ -1085,6 +1204,7 @@ public class XFencePlotter
 			{
 				scrollbar_changed = true;
 
+			    
 				// Get the new starting point.
 				double difference = 60 - range;
 				int current_value = event.getValue();
@@ -1147,6 +1267,47 @@ public class XFencePlotter
 		}
 	}
 
+	class ScaleHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			Point location_point = frame.getLocation();
+			int x = (int) location_point.getX();
+			int y = (int) location_point.getY();
+
+			x += 800;
+			y -= 100;
+
+			
+			if (y < 0)
+				y = 0;
+
+			scale_dialog.setLocation(x, y);
+			scale_dialog.pack();
+			scale_dialog.setVisible(true);
+		}
+	}
+	
+	class SmoothHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			Point location_point = frame.getLocation();
+			int x = (int) location_point.getX();
+			int y = (int) location_point.getY();
+
+			x += 800;
+			y -= 100;
+
+			
+			if (y < 0)
+				y = 0;
+
+			smooth_dialog.setLocation(x, y);
+			smooth_dialog.pack();
+			smooth_dialog.setVisible(true);
+		}
+	}
 	class PlacementHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1155,11 +1316,10 @@ public class XFencePlotter
 			int x = (int) location_point.getX();
 			int y = (int) location_point.getY();
 
-			x -= 100;
+			x += 800;
 			y -= 100;
 
-			if (x < 0)
-				x = 0;
+			
 			if (y < 0)
 				y = 0;
 
@@ -1168,8 +1328,6 @@ public class XFencePlotter
 			placement_dialog.setVisible(true);
 		}
 	}
-	
-	
 	
 	
 	class LoadHandler implements ActionListener
@@ -1286,24 +1444,7 @@ public class XFencePlotter
 
 	}
 
-	/*
-	 * public double[] getMinMax(int line, double start, double range, ArrayList
-	 * data) { double [] min_max = new double[2]; int[][] line_array =
-	 * ObjectMapper.getUnclippedLineArray(); int start_index = line_array[line][0];
-	 * int stop_index = line_array[line][1];
-	 * 
-	 * double min_intensity = Double.MAX_VALUE; double max_intensity =
-	 * -Double.MAX_VALUE;
-	 * 
-	 * for(int i = start_index; i < stop_index; i++) { Sample sample =
-	 * (Sample)data.get(i); if(sample.y >= start && sample.y < (start + range)) {
-	 * if(sample.intensity < min_intensity) min_intensity = sample.intensity;
-	 * if(sample.intensity > max_intensity) max_intensity = sample.intensity; } }
-	 * 
-	 * min_max[0] = min_intensity; min_max[1] = max_intensity; return(min_max); }
-	 */
-
-	public double[] reduce(double[] source, int iterations)
+	public double[] smooth(double[] source, int iterations)
 	{
 		int dst_length = source.length - 1;
 		double[] src = source;
