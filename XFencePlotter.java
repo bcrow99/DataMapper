@@ -61,7 +61,7 @@ public class XFencePlotter
 	// Shared by the scrollbar and range slider and adjust button.
 	boolean slider_changing        = false;
 	boolean scrollbar_changing     = false;
-	boolean adjust_button_changing = false;
+	boolean button_changing = false;
 	
 	
     // Referenced by pop-ups and canvas paint().
@@ -74,8 +74,8 @@ public class XFencePlotter
 
 	public static void main(String[] args)
 	{
-		//String prefix = new String("C:/Users/Brian Crowley/Desktop/");
-		String prefix = new String("");
+		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
+		//String prefix = new String("");
 		if (args.length != 1)
 		{
 			System.out.println("Usage: XFencePlotter <data file>");
@@ -535,7 +535,7 @@ public class XFencePlotter
 			    }
 			    else if(slider_changing == false && scrollbar_changing == false)
 				{
-					adjust_button_changing = true;
+					button_changing = true;
 					
 					offset = current_offset;
 					range  = current_range;
@@ -551,7 +551,7 @@ public class XFencePlotter
 					range_slider.setValue((int)(offset + range));
 					
 					
-					adjust_button_changing = false;
+					button_changing = false;
 					
 					// Resegment the data.
 					apply_item.doClick();
@@ -817,7 +817,11 @@ public class XFencePlotter
 		             a2 += xaddend; 
 		             b2 -= yaddend;
 		             
-		             buffered_g.setColor(outline_color[i]);
+		             if(view.equals("East"))
+		                 buffered_g.setColor(outline_color[i]);
+		             else
+		            	 buffered_g.setColor(outline_color[(number_of_segments - 1) - i]);
+		             
 		             buffered_g.setStroke(new BasicStroke(2));
 		             buffered_g.drawLine((int) a1, (int) b1, (int) a1, (int) b2); 
 		             buffered_g.drawLine((int) a1, (int) b2, (int) a1 + 5, (int) b2);
@@ -870,7 +874,8 @@ public class XFencePlotter
 								if (point.y < minimum_y)
 								{
 									point.y = minimum_y;
-								} else if (point.y > maximum_y)
+								} 
+								else if (point.y > maximum_y)
 								{
 									point.y = maximum_y;
 								}
@@ -880,7 +885,7 @@ public class XFencePlotter
 						}
 					}
 					int plot_length = plot_list.size();
-
+                     
 					//System.out.println("The plot list is " + plot_length + " points long");
 					//System.out.println();
 					if (smoothing == 0)
@@ -994,10 +999,16 @@ public class XFencePlotter
 						
 						if (transparent.equals("no"))
 						{
-							buffered_g.setColor(fill_color[i]);
+							if(view.equals("East"))
+							    buffered_g.setColor(fill_color[i]);
+							else
+								buffered_g.setColor(fill_color[(number_of_segments - 1) - i]);
 							buffered_g.fillPolygon(polygon[i]);
 						}
-						buffered_g.setColor(outline_color[i]);
+						if(view.equals("East"))
+						    buffered_g.setColor(outline_color[i]);
+						else
+							buffered_g.setColor(outline_color[(number_of_segments - 1) - i]);
 						buffered_g.drawPolygon(polygon[i]);
                         
 						if (minimum_y < 0)
@@ -1207,7 +1218,8 @@ public class XFencePlotter
 								segment_data.add(sample);
 							}
 						}
-					} else
+					} 
+					else
 					{
 						for (int j = stop - (1 + (4 - current_sensor)); j >= start; j -= 5)
 						{
@@ -1221,14 +1233,6 @@ public class XFencePlotter
 					sensor_data.add(segment_data);
 				}
 			}
-
-			// Line canvas paint() gets called with when a pop-up menu obscures it,
-			// but with only the obscured area size, and not the coordinates, as far as I
-			// can tell.
-			// Not worth figuring out the work-around--just making sure no pop-up menus
-			// obscure the canvas.
-			// Requires some kind of double buffer where an arbitrary tile can be bit
-			// blitted if the tile can be located.
 			canvas.repaint();
 		}
 	}
@@ -1246,7 +1250,7 @@ public class XFencePlotter
 			offset_information.setText(string);
 			if (scrollbar.getValueIsAdjusting() == false)
 			{
-				if (slider_changing == false  && adjust_button_changing == false)
+				if (slider_changing == false  && button_changing == false)
 				{
 					scrollbar_changing = true; 
 					
@@ -1277,7 +1281,7 @@ public class XFencePlotter
 	{
 		public void stateChanged(ChangeEvent e)
 		{
-			if (scrollbar_changing == false && adjust_button_changing == false)
+			if (scrollbar_changing == false && button_changing == false)
 			{
 				slider_changing = true;
 				RangeSlider slider = (RangeSlider) e.getSource();
