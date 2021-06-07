@@ -48,10 +48,10 @@ public class XFencePlotter
 	public JDialog location_dialog;
 	
 	// Shared program variables.
-	double offset = 35;
-	double range = 20;
+	double offset = 45.82;
+	double range = 14.;
 	
-	
+	// Updated by Slider, Scrollbar, and Button
 	JTextField offset_information;
 	JTextField range_information;
 	
@@ -63,6 +63,8 @@ public class XFencePlotter
 	boolean scrollbar_changing     = false;
 	boolean button_changing = false;
 	
+	// X and Y Step Handlers call repaint()
+	PlacementCanvas placement_canvas;
 	
     // Referenced by pop-ups and canvas paint().
 	boolean autoscale    = false;
@@ -74,8 +76,8 @@ public class XFencePlotter
 
 	public static void main(String[] args)
 	{
-		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
-		//String prefix = new String("");
+		//String prefix = new String("C:/Users/Brian Crowley/Desktop/");
+		String prefix = new String("");
 		if (args.length != 1)
 		{
 			System.out.println("Usage: XFencePlotter <data file>");
@@ -214,7 +216,7 @@ public class XFencePlotter
 			System.exit(0);
 		}
 
-		frame = new JFrame();
+		frame = new JFrame("Fence Plotter");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		canvas = new LineCanvas();
@@ -385,7 +387,7 @@ public class XFencePlotter
 		// A modeless dialog box that shows up if Format->Placement is selected.
 		JPanel placement_panel = new JPanel(new BorderLayout());
 
-		PlacementCanvas placement_canvas = new PlacementCanvas();
+		placement_canvas = new PlacementCanvas();
 
 		placement_canvas.setSize(100, 100);
 
@@ -425,6 +427,7 @@ public class XFencePlotter
 			    else
 			    	view = new String("East");
 			    canvas.repaint();
+			    placement_canvas.repaint();
 			    user_information.setText(view);
 			}
 		};
@@ -508,7 +511,6 @@ public class XFencePlotter
 		String string = String.format("%,.2f", offset);
 		offset_information.setText(string);
 		
-		
 		JPanel parameter_panel = new JPanel(new GridLayout(2,2));
 		parameter_panel.add(offset_information);
 		range_information  = new JTextField();
@@ -520,44 +522,7 @@ public class XFencePlotter
 		parameter_panel.add(new JLabel("Range", JLabel.CENTER));
 		
 		JButton adjust_button = new JButton("Adjust");
-		ActionListener adjust_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				String offset_string = offset_information.getText();
-			    String range_string  = range_information.getText();
-			    double current_offset = Double.valueOf(offset_string);
-			    double current_range  = Double.valueOf(range_string);
-			    
-			    if(current_offset < 15 || current_offset > (75 - current_range) || current_range < 0 || current_range > 59)
-			    {
-			    	System.out.println("Invalid input.");
-			    }
-			    else if(slider_changing == false && scrollbar_changing == false)
-				{
-					button_changing = true;
-					
-					offset = current_offset;
-					range  = current_range;
-					
-					// Reset the scrollbar.
-					double position = offset - 15.;
-					position *= 100. / (60 - range);
-					int value = (int) position;
-					scrollbar.setValue(value);
-					
-					// Reset the slider.
-					range_slider.setValue((int)offset);
-					range_slider.setValue((int)(offset + range));
-					
-					
-					button_changing = false;
-					
-					// Resegment the data.
-					apply_item.doClick();
-				}
-			}
-		};
+		ButtonHandler adjust_handler = new ButtonHandler();
 		adjust_button.addActionListener(adjust_handler);
 		
 		location_panel.add(parameter_panel, BorderLayout.CENTER);
@@ -565,16 +530,28 @@ public class XFencePlotter
         location_dialog = new JDialog(frame, "Location");
         location_dialog.add(location_panel);
         
-        
 		frame.setJMenuBar(menu_bar);
+		
+		Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
+		//Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
+		//Cursor cursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
+		//Cursor cursor = new Cursor(Cursor.E_RESIZE_CURSOR);
+		
+        frame.setCursor(cursor);
 		frame.pack();
 		frame.setLocation(300, 300);
+		apply_item.doClick();
 	}
 
 	class PlacementCanvas extends Canvas
 	{
 		Color[] outline_color;
 		Color[] fill_color;
+		
+		int top_margin    = 2;
+		int bottom_margin = 4;
+		int left_margin   = 4;
+		int right_margin  = 2;
 
 		public PlacementCanvas()
 		{
@@ -608,14 +585,122 @@ public class XFencePlotter
 		{
 			Rectangle visible_area = g.getClipBounds();
 
+			//System.out.println("Inside placement canvas paint()");
 			int xdim = (int) visible_area.getWidth();
 			int ydim = (int) visible_area.getHeight();
+			
+			//System.out.println("xdim = " + xdim + ", ydim = " + ydim);
 
 			Graphics2D g2 = (Graphics2D) g;
 			Font current_font = g2.getFont();
 			FontMetrics font_metrics = g2.getFontMetrics(current_font);
 			g2.setColor(java.awt.Color.WHITE);
 			g2.fillRect(0, 0, xdim, ydim);
+			
+			int size = sensor_data.size();
+			//System.out.println("Sensor data size is " + size);
+            int number_of_segments = 1;
+			if (size > 0)
+			{
+				number_of_segments = size - 4;
+			}
+			//System.out.println("number of segments is " + number_of_segments);
+			
+			double max_xstep = xdim / number_of_segments;
+			int xstep = (int) (max_xstep * normal_xstep);
+			//System.out.println("Xstep is " + xstep);
+			
+			int graph_xdim = xdim  - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
+
+			// Separate graphs instead of butting them.
+			if (xstep == max_xstep)
+			{
+				graph_xdim -= 2;
+			}
+			
+			double max_ystep  = ydim / number_of_segments;
+			int    ystep      = (int) (max_ystep * normal_ystep);
+			int    graph_ydim = ydim -(top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
+
+			
+			if (ystep == max_ystep)
+			{
+				graph_ydim -= 2;
+			}
+			
+			//System.out.println("graph xdim = " + graph_xdim + ", graph ydim = " + graph_ydim);
+			
+			Rectangle [] rectangle   = new Rectangle[number_of_segments];
+			boolean   [] visible     = new boolean[number_of_segments];
+			boolean   [] transparent = new boolean[number_of_segments];
+			
+			for (int i = 0; i < number_of_segments; i++) 
+			{ 
+				 int a1 = left_margin; 
+				 int b1 = ydim - bottom_margin;
+			     int a2 = a1 + graph_xdim; 
+			     int b2 = b1 - graph_ydim;
+			 
+			     int xaddend = i * xstep; 
+			     int yaddend = i * ystep; 
+			     a1 += xaddend; 
+			     b1 -= yaddend;
+	             a2 += xaddend; 
+	             b2 -= yaddend;
+	             
+	             //System.out.println("a1 is " + a1 + ", a2 is " + a2);
+	             //System.out.println("b1 is " + b1 + ", b2 is " + b2);
+	             rectangle[i] = new Rectangle(a2, b2, graph_xdim, graph_ydim);
+	             String visible_string = (String) option_table.getValueAt(1, i + 1);
+	             if(visible_string.equals("yes"))
+	                 visible[i] = true;	 
+	             else
+	            	 visible[i] = false;
+	             String transparent_string = (String) option_table.getValueAt(2, i + 1);
+	             if(transparent_string.equals("yes"))
+		                 transparent[i] = true;	 
+		             else
+		            	 transparent[i] = false;
+			}
+			
+			for (int i = (number_of_segments - 1); i >= 0; i--) 
+			{ 
+				int a1 = 0; 
+				int b1 = ydim;
+			    int a2 = a1 + graph_xdim; 
+			    int b2 = b1 - graph_ydim;
+			 
+			    int xaddend = i * xstep; 
+			    int yaddend = i * ystep; 
+			    a1 += xaddend; 
+			    b1 -= yaddend;
+	            a2 += xaddend; 
+	            b2 -= yaddend;
+				if(visible[i])
+				{
+					if(view.equals("East"))
+					{
+						if(!transparent[i])
+						{
+						    g2.setColor(fill_color[i]);  
+						    g2.fillRect(a1, b2, graph_xdim, graph_ydim);
+						}
+						g2.setColor(outline_color[i]);  
+					    g2.drawRect(a1, b2, graph_xdim, graph_ydim);
+					}
+					else
+					{
+						if(!transparent[i])
+						{
+						    g2.setColor(fill_color[(number_of_segments - 1) - i]);  
+						    g2.fillRect(a1, b2, graph_xdim, graph_ydim);
+						}
+						g2.setColor(outline_color[(number_of_segments - 1) - i]);  
+					    g2.drawRect(a1, b2, graph_xdim, graph_ydim);   	
+					}
+				}
+			}
+
 		}
 	}
 
@@ -627,7 +712,10 @@ public class XFencePlotter
 			normal_xstep = (double) xstep / 100;
 			// System.out.println("Normal xstep is now " + xstep);
 			if (event.getValueIsAdjusting() == false)
+			{
 				canvas.repaint();
+				placement_canvas.repaint();
+			}
 		}
 	}
 
@@ -639,17 +727,27 @@ public class XFencePlotter
 			normal_ystep = (double) ystep / 100;
 			// System.out.println("Normal ystep is now " + normal_ystep);
 			if (event.getValueIsAdjusting() == false)
+			{
 				canvas.repaint();
+				placement_canvas.repaint();
+			}
 		}
 	}
 
+	
+	
+	
+	
+	
+	
+	
 	class LineCanvas extends Canvas
 	{
 		Color[] outline_color;
 		Color[] fill_color;
-		int top_margin = 10;
-		int right_margin = 10;
-		int left_margin = 60;
+		int top_margin    = 10;
+		int right_margin  = 10;
+		int left_margin   = 60;
 		int bottom_margin = 60;
 		int original_xdim = 0;
 		int original_ydim = 0;
@@ -719,7 +817,6 @@ public class XFencePlotter
 				int xstep = (int) (max_xstep * normal_xstep);
 				int graph_xdim = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
 
-				
 				if (xstep == max_xstep)
 				{
 					graph_xdim -= number_of_segments;
@@ -768,40 +865,7 @@ public class XFencePlotter
 				double yrange = maximum_y - minimum_y;
 
 				
-				 buffered_g.setColor(java.awt.Color.BLACK); 
-				 double stop = offset + range; 
-				 String position_string = String.format("%,.2f", offset);
-				 buffered_g.drawString(position_string, left_margin, ydim - bottom_margin / 2);
-				 position_string = String.format("%,.2f", stop); 
-				 Font current_font = buffered_g.getFont(); 
-				 FontMetrics font_metrics = buffered_g.getFontMetrics(current_font);
 				
-				 int string_width = font_metrics.stringWidth(position_string);
-				 buffered_g.drawString(position_string, graph_xdim + left_margin - string_width, ydim - bottom_margin / 2);
-				  
-				 position_string = new String("meters"); 
-				 string_width = font_metrics.stringWidth(position_string); 
-				 buffered_g.drawString(position_string, left_margin + (graph_xdim + left_margin - string_width) / 2 - string_width / 2, ydim - bottom_margin / 3);
-				  
-				 String intensity_string = String.format("%,.2f", minimum_y); 
-				 string_width = font_metrics.stringWidth(intensity_string); 
-				 buffered_g.drawString(intensity_string, left_margin / 2 - string_width / 2, ydim - bottom_margin); 
-				 intensity_string = String.format("%,.2f", maximum_y); 
-				 string_width = font_metrics.stringWidth(intensity_string); 
-				 int string_height = font_metrics.getAscent(); 
-				 buffered_g.drawString(intensity_string, left_margin / 2 - string_width / 2, top_margin + (number_of_segments - 1) * ystep + string_height); 
-				 intensity_string =new String("nT"); 
-				 string_width = font_metrics.stringWidth(intensity_string);
-				 buffered_g.drawString(intensity_string, string_width / 2, top_margin + (number_of_segments - 1) * ystep + graph_ydim / 2);
-				  
-				 double zero_position = Math.abs(minimum_y); 
-				 zero_position /= yrange;
-				 zero_position *= graph_ydim; 
-				 zero_position = graph_ydim - zero_position;
-				 zero_position += top_margin + (number_of_segments - 1) * ystep; 
-				 String zero_string = new String("0.0"); 
-				 string_width = font_metrics.stringWidth(zero_string);
-				 buffered_g.drawString(zero_string, left_margin - (string_width + 5), (int)zero_position);
 				  
 				 for (int i = 0; i < number_of_segments; i++) 
 				 { 
@@ -1049,8 +1113,46 @@ public class XFencePlotter
 						}
 					}
 				}
+				g2.drawImage(buffered_image, 0, 0, null);
+				g2.setColor(java.awt.Color.BLACK); 
+				double stop = offset + range; 
+				String position_string = String.format("%,.2f", offset);
+				g2.drawString(position_string, left_margin, ydim - bottom_margin / 2);
+				
+				position_string = String.format("%,.2f", stop); 
+				Font current_font = g2.getFont(); 
+				FontMetrics font_metrics = g2.getFontMetrics(current_font);
+				int string_width = font_metrics.stringWidth(position_string);
+				g2.drawString(position_string, graph_xdim + left_margin - string_width, ydim - bottom_margin / 2);
+				
+				position_string = new String("meters"); 
+				string_width = font_metrics.stringWidth(position_string); 
+				g2.drawString(position_string, left_margin + (graph_xdim + left_margin - string_width) / 2 - string_width / 2, ydim - bottom_margin / 3);
+				
+				String intensity_string = String.format("%,.2f", minimum_y); 
+				string_width = font_metrics.stringWidth(intensity_string); 
+				g2.drawString(intensity_string, left_margin / 2 - string_width / 2, ydim - bottom_margin); 
+				
+				intensity_string = String.format("%,.2f", maximum_y); 
+				string_width = font_metrics.stringWidth(intensity_string); 
+				int string_height = font_metrics.getAscent(); 
+				g2.drawString(intensity_string, left_margin / 2 - string_width / 2, top_margin + (number_of_segments - 1) * ystep + string_height);
+				
+				
+				intensity_string =new String("nT"); 
+				string_width = font_metrics.stringWidth(intensity_string);
+				g2.drawString(intensity_string, string_width / 2, top_margin + (number_of_segments - 1) * ystep + graph_ydim / 2);
+				
+				double zero_position = Math.abs(minimum_y); 
+				zero_position /= yrange;
+				zero_position *= graph_ydim; 
+				zero_position = graph_ydim - zero_position;
+				zero_position += top_margin + (number_of_segments - 1) * ystep; 
+				String zero_string = new String("0.0"); 
+				string_width = font_metrics.stringWidth(zero_string);
+				g2.drawString(zero_string, left_margin - (string_width + 5), (int)zero_position);
+				
 			}
-			g2.drawImage(buffered_image, 0, 0, null);
 		}
 	}
 
@@ -1276,7 +1378,50 @@ public class XFencePlotter
 			}
 		}
 	}
-
+    
+	class ButtonHandler  implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			String offset_string = offset_information.getText();
+		    String range_string  = range_information.getText();
+		    double current_offset = Double.valueOf(offset_string);
+		    double current_range  = Double.valueOf(range_string);
+		    
+		    if(current_offset < 15 || current_offset > (75 - current_range) || current_range < 0 || current_range > 59)
+		    {
+		    	System.out.println("Invalid input.");
+		    	offset_string = String.format("%,.2f", offset);
+		    	range_string = String.format("%,.2f", range);
+		    	offset_information.setText(offset_string);
+		    	range_information.setText(range_string);
+		    }
+		    else if(slider_changing == false && scrollbar_changing == false)
+			{
+				button_changing = true;
+				
+				offset = current_offset;
+				range  = current_range;
+				
+				// Reset the scrollbar.
+				double position = offset - 15.;
+				position *= 100. / (60 - range);
+				int value = (int) position;
+				scrollbar.setValue(value);
+				
+				// Reset the slider.
+				range_slider.setValue((int)offset);
+				range_slider.setValue((int)(offset + range));
+				
+				
+				button_changing = false;
+				
+				// Resegment the data.
+				apply_item.doClick();
+			}
+		}
+	};
+	
 	class SliderHandler implements ChangeListener
 	{
 		public void stateChanged(ChangeEvent e)
@@ -1312,6 +1457,20 @@ public class XFencePlotter
 		}
 	}
 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	class ScaleHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1504,7 +1663,7 @@ public class XFencePlotter
 						String current_string = new String(current_line + ":" + i);
 						line_sensor_pair[current_pair] = current_string;
 						current_pair++;
-						if (current_pair == 10)
+						if(current_pair == 10)
 							break outer;
 					}
 				}
@@ -1539,8 +1698,11 @@ public class XFencePlotter
 					System.out.println("File name is " + filename);
 					try(PrintWriter output = new PrintWriter(current_directory + filename))
 			        {
-						// The first 4 elements in the sensor data are global min, global max, local min, and local max.
+						// The first 4 elements in the sensor data are local min, local max, global min, and global max.
 						// The rest are array lists of samples, with some information prepended.  
+						
+						double intensity_min = (double)sensor_data.get(0);
+						String intensity_min_string = String.format("%.2f", intensity_min);
 					    for(int i = 4; i < size; i++)
 					    {
 					    	// The first 4 elements are flight line, sensor, visibility, and transparency.
@@ -1549,8 +1711,11 @@ public class XFencePlotter
 					        int       line         = (int)segment_list.get(0);
 					        int       sensor       = (int)segment_list.get(1);
 					        
+					        
+					        
 					        output.println("#Sensor " + sensor + ", Line " + line);
 					        
+			      			
 					        double ideal_x = line * 2;
 					        if(line % 2 == 0)
 					        {
@@ -1560,16 +1725,33 @@ public class XFencePlotter
 					        {
 					        	ideal_x += sensor * .5;
 					        }
+					        
 					        String ideal_string          = String.format("%.2f", ideal_x);
+					        
+					        Sample init_sample = (Sample)segment_list.get(4);
+					        String xstring          = String.format("%.2f", init_sample.x);	
+			      			String ystring          = String.format("%.2f", init_sample.y);
+			      			output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
+					        
 					        
 					        for(int j = 4; j < segment_list.size(); j++)
 					        {
 					            Sample sample = (Sample)segment_list.get(j);
-					            String xstring          = String.format("%.2f", sample.x);	
-				      			String ystring          = String.format("%.2f", sample.y);
+					            xstring          = String.format("%.2f", sample.x);	
+				      			ystring          = String.format("%.2f", sample.y);
 				      			String intensity_string = String.format("%.2f", sample.intensity);
 				      			output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
 					        }
+					        
+					        Sample end_sample  = (Sample)segment_list.get(size - 1);
+					        xstring          = String.format("%.2f", end_sample.x);	
+			      			ystring          = String.format("%.2f", end_sample.y);
+			      			output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
+			      			
+			      			xstring          = String.format("%.2f", init_sample.x);	
+			      			ystring          = String.format("%.2f", init_sample.y);
+			      			output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
+			      			
 					        output.println();
 					        output.println();
 					    }
