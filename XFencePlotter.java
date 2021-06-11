@@ -31,6 +31,8 @@ public class XFencePlotter
 	public RangeSlider range_slider;
 	public JTextField  input;
 	public JTable      option_table;
+	public JTextField  lower_bound;
+	public JTextField  upper_bound;
 	
 	// Pop-ups associated with the menu bar.  File->Apply does not have a pop-up.
 	
@@ -44,12 +46,13 @@ public class XFencePlotter
 	
 	// Settings
 	public JDialog scale_dialog;
+	public JDialog dynamic_range_dialog;
 	public JDialog smooth_dialog;
 	public JDialog location_dialog;
 	
 	// Shared program variables.
 	double offset = 45.82;
-	double range = 14.;
+	double range  = 14.;
 	
 	// Updated by Slider, Scrollbar, and Button
 	JTextField offset_information;
@@ -59,9 +62,13 @@ public class XFencePlotter
 	public JMenuItem apply_item;
 	
 	// Shared by the scrollbar and range slider and adjust button.
-	boolean slider_changing        = false;
-	boolean scrollbar_changing     = false;
-	boolean button_changing = false;
+	boolean slider_changing     = false;
+	boolean scrollbar_changing  = false;
+	boolean button_changing     = false;
+	
+	// Shared by the dynamic range adjust and reset handlers.
+	// Referenced by canvas.paint().
+	boolean data_clipped        = false;
 	
 	// X and Y Step Handlers call repaint()
 	PlacementCanvas placement_canvas;
@@ -76,8 +83,8 @@ public class XFencePlotter
 
 	public static void main(String[] args)
 	{
-		//String prefix = new String("C:/Users/Brian Crowley/Desktop/");
-		String prefix = new String("");
+		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
+		//String prefix = new String("");
 		if (args.length != 1)
 		{
 			System.out.println("Usage: XFencePlotter <data file>");
@@ -351,7 +358,11 @@ public class XFencePlotter
 		JMenuItem scaling_item = new JMenuItem("Scaling");
 		ScaleHandler scale_handler = new ScaleHandler();
 		scaling_item.addActionListener(scale_handler);
-
+		
+		JMenuItem dynamic_range_item = new JMenuItem("Dynamic Range");
+		DynamicRangeHandler dynamic_range_handler = new DynamicRangeHandler();
+		dynamic_range_item.addActionListener(dynamic_range_handler);
+		
 		JMenuItem smoothing_item = new JMenuItem("Smoothing");
 		SmoothHandler smooth_handler = new SmoothHandler();
 		smoothing_item.addActionListener(smooth_handler);
@@ -361,6 +372,7 @@ public class XFencePlotter
 		location_item.addActionListener(location_handler);
 		
 		settings_menu.add(scaling_item);
+		settings_menu.add(dynamic_range_item);
 		settings_menu.add(smoothing_item);
 		settings_menu.add(location_item);
 
@@ -479,7 +491,37 @@ public class XFencePlotter
 		scale_panel.add(factor_slider);
 		scale_dialog = new JDialog(frame);
 		scale_dialog.add(scale_panel);
-
+		
+		// A modeless dialog box that shows up if Settings->Dynamic Range is selected.
+		JPanel dynamic_range_panel = new JPanel(new BorderLayout());
+		
+		
+		lower_bound = new JTextField();
+		lower_bound.setHorizontalAlignment(JTextField.CENTER);
+		upper_bound = new JTextField();
+		upper_bound.setHorizontalAlignment(JTextField.CENTER);
+		
+		JPanel bounds_panel = new JPanel(new GridLayout(2,2));
+		bounds_panel.add(lower_bound);
+		bounds_panel.add(upper_bound);
+		bounds_panel.add(new JLabel("Lower", JLabel.CENTER));
+		bounds_panel.add(new JLabel("Upper", JLabel.CENTER));
+		
+		JPanel bounds_button_panel = new JPanel(new GridLayout(1,2));
+		JButton adjust_bounds_button = new JButton("Adjust");
+		JButton reset_bounds_button  = new JButton("Reset");
+		bounds_button_panel.add(adjust_bounds_button);
+		AdjustRangeHandler adjust_range_handler = new AdjustRangeHandler();
+		adjust_bounds_button.addActionListener(adjust_range_handler);
+		bounds_button_panel.add(reset_bounds_button);
+		ResetRangeHandler reset_handler = new ResetRangeHandler();
+		reset_bounds_button.addActionListener(reset_handler);
+		
+		dynamic_range_panel.add(bounds_panel, BorderLayout.CENTER);
+		dynamic_range_panel.add(bounds_button_panel, BorderLayout.SOUTH);
+		dynamic_range_dialog = new JDialog(frame);
+		dynamic_range_dialog.add(dynamic_range_panel);
+		
 		// A modeless dialog box that shows up if Settings->Smoothing is selected.
 		JPanel smooth_panel = new JPanel(new BorderLayout());
 
@@ -504,7 +546,6 @@ public class XFencePlotter
 
 		// A modeless dialog box that shows up if Settings->Location is selected.
 		JPanel location_panel = new JPanel(new BorderLayout());
-		
 	
 		offset_information = new JTextField();
 		offset_information.setHorizontalAlignment(JTextField.CENTER);
@@ -850,23 +891,30 @@ public class XFencePlotter
 				double maximum_x = offset + range;
 				double minimum_y = 0;
 				double maximum_y = 0;
-				if (!autoscale)
+				if(data_clipped == true)
 				{
-					minimum_y = line_min;
-					maximum_y = line_max;
-				} 
+				    String bound_string = lower_bound.getText();
+				    minimum_y = Double.valueOf(bound_string);
+				    bound_string = upper_bound.getText();
+				    maximum_y = Double.valueOf(bound_string);
+				}
 				else
 				{
-					minimum_y = seg_min;
-					maximum_y = seg_max;
+				    if(!autoscale)
+				    {
+					    minimum_y = line_min;
+					    maximum_y = line_max;
+				    } 
+				    else
+				    {
+					    minimum_y = seg_min;
+					    maximum_y = seg_max;
+				    }
 				}
                 
 				double xrange = range;
 				double yrange = maximum_y - minimum_y;
 
-				
-				
-				  
 				 for (int i = 0; i < number_of_segments; i++) 
 				 { 
 					 int a1 = left_margin; 
@@ -890,7 +938,7 @@ public class XFencePlotter
 		             buffered_g.drawLine((int) a1, (int) b1, (int) a1, (int) b2); 
 		             buffered_g.drawLine((int) a1, (int) b2, (int) a1 + 5, (int) b2);
 		             
-		             
+		             // If plots directly overlap, we only need one line to show the y extent.
 				     if (ystep == 0 && xstep == 0) 
 					     break; 
 				 }
@@ -901,52 +949,58 @@ public class XFencePlotter
 				{
 					ArrayList sensor_list = (ArrayList) sensor_data.get(i);
 					int length = sensor_list.size();
-					//System.out.println("The sensor list is " + length + " samples long.");
 					ArrayList plot_list = new ArrayList();
-
+					
+                    // This is to help filter out vertical jitter but not sure that's what we want to do.
+					/*
 					int j = 4;
 					Sample sample = (Sample) sensor_list.get(j);
 					Point2D.Double point = new Point2D.Double();
 					point.x = sample.y;
 					point.y = sample.intensity;
-
-					if (scale_factor != 1.)
-					{
-						point.y *= scale_factor;
-						if (point.y < minimum_y)
-						{
-							point.y = minimum_y;
-						} else if (point.y > maximum_y)
-						{
-							point.y = maximum_y;
-						}
-					}
+					point.y *= scale_factor;
 					plot_list.add(point);
-					double previous_y = sample.y;
+					double previous_x = sample.x;
+					double current_intensity_max = sample.intensity;
+					double current_intensity_min = sample.intensity;
 					for (j = 5; j < length; j++)
+					*/
+					for (int j = 4; j < length; j++)
 					{
-						sample = (Sample) sensor_list.get(j);
-						if (sample.y > previous_y + quantum_distance)
+						Sample sample = (Sample) sensor_list.get(j);
+						// Will revisit this later.
+						// Need to keep track of new dynamic range after subsampling.
+						/*
+						if (sample.x > previous_x + quantum_distance)
 						{
 							point = new Point2D.Double();
 							point.x = sample.y;
 							point.y = sample.intensity;
-
-							if (scale_factor != 1.)
-							{
-								point.y *= scale_factor;
-								if (point.y < minimum_y)
-								{
-									point.y = minimum_y;
-								} 
-								else if (point.y > maximum_y)
-								{
-									point.y = maximum_y;
-								}
-							}
-							plot_list.add(point);
-							previous_y = sample.y;
+                            point.y *= scale_factor;
+                            if (point.y < minimum_y)
+                                point.y = minimum_y;
+                            else if (point.y > maximum_y)
+                                point.y = maximum_y;
+							previous_x = sample.x;
+							if(sample.intensity < current_intensity_min)
+							    current_intensity_min = sample.intensity;
+							 else if(sample.intensity > current_intensity_max)
+							    current_intensity_max = sample.intensity;
 						}
+						*/
+						
+						// Using all the points, even the ones that map to the
+						// same x coordinate on the display.
+						Point2D.Double point = new Point2D.Double();
+						point.x = sample.y;
+						point.y = sample.intensity; 
+						point.y *= scale_factor;
+						if (point.y < minimum_y)
+                            point.y = minimum_y;
+                        else if (point.y > maximum_y)
+                            point.y = maximum_y;
+						plot_list.add(point);
+						
 					}
 					int plot_length = plot_list.size();
                      
@@ -958,9 +1012,9 @@ public class XFencePlotter
 					{
 						double x[] = new double[plot_length];
 						double y[] = new double[plot_length];
-						for (j = 0; j < plot_length; j++)
+						for (int j = 0; j < plot_length; j++)
 						{
-							point = (Point2D.Double) plot_list.get(j);
+							Point2D.Double point = (Point2D.Double) plot_list.get(j);
 							x[j] = point.getX();
 							y[j] = point.getY();
 						}
@@ -973,7 +1027,7 @@ public class XFencePlotter
 
 						plot_length = smooth_x.length;
 						plot_list.add(start_point);
-						for (j = 0; j < plot_length; j++)
+						for (int j = 0; j < plot_length; j++)
 						{
 							Point2D.Double smooth_point = new Point2D.Double(smooth_x[j], smooth_y[j]);
 							plot_list.add(smooth_point);
@@ -1033,6 +1087,16 @@ public class XFencePlotter
 						
 						double current_y = point.getY();
 						current_y -= minimum_y;
+						if(current_y < 0)
+						{
+							System.out.println("Current y is " + current_y);					
+						}
+						/*
+						if(autoscale)
+							current_y -= line_min;
+						else
+							current_y -= seg_min;
+						*/
 						current_y /= yrange;
 						current_y *= graph_ydim;
 						current_y = graph_ydim - current_y;
@@ -1457,20 +1521,6 @@ public class XFencePlotter
 		}
 	}
 
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	class ScaleHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1491,6 +1541,46 @@ public class XFencePlotter
 		}
 	}
 
+	class DynamicRangeHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			Point location_point = frame.getLocation();
+			int x = (int) location_point.getX();
+			int y = (int) location_point.getY();
+
+			x += 800;
+			y -= 100;
+
+			if(y < 0)
+				y = 0;
+			
+			double seg_min = (double) sensor_data.get(0);
+			double seg_max = (double) sensor_data.get(1);
+			double line_min = (double) sensor_data.get(2);
+			double line_max = (double) sensor_data.get(3);
+			
+			if(autoscale)
+			{
+			    String lower_bound_string = String.format("%,.2f", seg_min);
+			    String upper_bound_string = String.format("%,.2f", seg_max);
+			    lower_bound.setText(lower_bound_string);
+			    upper_bound.setText(upper_bound_string);
+			    
+			}
+			else
+			{
+				String lower_bound_string = String.format("%,.2f", line_min);
+			    String upper_bound_string = String.format("%,.2f", line_max);
+			    lower_bound.setText(lower_bound_string);
+			    upper_bound.setText(upper_bound_string);   	
+			}
+			dynamic_range_dialog.setLocation(x, y);
+			dynamic_range_dialog.pack();
+			dynamic_range_dialog.setVisible(true);
+		}
+	}
+	
 	class SmoothHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1592,7 +1682,91 @@ public class XFencePlotter
 			load_dialog.setVisible(true);
 		}
 	}
-
+	
+	class AdjustRangeHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			double seg_min = (double) sensor_data.get(0);
+			double seg_max = (double) sensor_data.get(1);
+			double line_min = (double) sensor_data.get(2);
+			double line_max = (double) sensor_data.get(3);
+			
+			String lower_bound_string = lower_bound.getText();
+			String upper_bound_string = upper_bound.getText();
+			double current_min = Double.valueOf(lower_bound_string);
+			double current_max = Double.valueOf(upper_bound_string);
+			System.out.println("Current min is " + current_min);
+			System.out.println("Current max is " + current_max);
+			System.out.println("Seg min is " + seg_min);
+			System.out.println("Seg max is " + seg_max);
+			System.out.println("Line min is " + line_min);
+			System.out.println("Line max is " + line_max);
+			
+			if(autoscale)
+			{
+				if(current_min >= seg_min && current_max <= seg_max)
+				{
+					data_clipped = true;
+					apply_item.doClick();
+				}
+				else
+				{
+			        lower_bound_string = String.format("%,.2f", seg_min);
+			        upper_bound_string = String.format("%,.2f", seg_max);
+			        lower_bound.setText(lower_bound_string);
+			        upper_bound.setText(upper_bound_string);
+			        System.out.println("Clipping values are outside of current dynamic range.");
+				}
+			    
+			}
+			else
+			{
+				if(current_min >= line_min && current_max <= line_max)
+				{
+					data_clipped = true;
+					apply_item.doClick();
+				}
+				else
+				{
+					lower_bound_string = String.format("%,.2f", line_min);
+			        upper_bound_string = String.format("%,.2f", line_max);
+			        lower_bound.setText(lower_bound_string);
+			        upper_bound.setText(upper_bound_string);
+			        System.out.println("Clipping values are outside of current dynamic range.");   
+				}
+			}
+		}
+	}
+	
+	class ResetRangeHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			double seg_min = (double) sensor_data.get(0);
+			double seg_max = (double) sensor_data.get(1);
+			double line_min = (double) sensor_data.get(2);
+			double line_max = (double) sensor_data.get(3);
+			if(autoscale)
+			{
+			    String lower_bound_string = String.format("%,.2f", seg_min);
+			    String upper_bound_string = String.format("%,.2f", seg_max);
+			    lower_bound.setText(lower_bound_string);
+			    upper_bound.setText(upper_bound_string);
+			    
+			}
+			else
+			{
+				String lower_bound_string = String.format("%,.2f", line_min);
+			    String upper_bound_string = String.format("%,.2f", line_max);
+			    lower_bound.setText(lower_bound_string);
+			    upper_bound.setText(upper_bound_string);   	
+			}
+			data_clipped = false;
+			apply_item.doClick();
+		}
+	}
+	
 	class InputHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1764,7 +1938,6 @@ public class XFencePlotter
 				}		
 			}
 		}
-
 	}
 
 	public double[] smooth(double[] source, int iterations)
