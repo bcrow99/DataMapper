@@ -584,199 +584,6 @@ public class XFencePlotter
 		apply_item.doClick();
 	}
 
-	class PlacementCanvas extends Canvas
-	{
-		Color[] outline_color;
-		Color[] fill_color;
-		
-		int top_margin    = 2;
-		int bottom_margin = 4;
-		int left_margin   = 4;
-		int right_margin  = 2;
-
-		public PlacementCanvas()
-		{
-			outline_color = new Color[10];
-			fill_color = new Color[10];
-
-			outline_color[0] = new Color(0, 0, 0);
-			outline_color[1] = new Color(0, 0, 75);
-			outline_color[2] = new Color(0, 75, 0);
-			outline_color[3] = new Color(75, 0, 0);
-			outline_color[4] = new Color(0, 75, 75);
-			outline_color[5] = new Color(75, 0, 75);
-			outline_color[6] = new Color(75, 75, 0);
-			outline_color[7] = new Color(75, 75, 75);
-			outline_color[8] = new Color(75, 75, 150);
-			outline_color[9] = new Color(75, 150, 75);
-
-			fill_color[0] = new Color(196, 196, 196);
-			fill_color[1] = new Color(196, 196, 224);
-			fill_color[2] = new Color(196, 224, 196);
-			fill_color[3] = new Color(224, 196, 196);
-			fill_color[4] = new Color(196, 224, 255);
-			fill_color[5] = new Color(224, 196, 224);
-			fill_color[6] = new Color(224, 224, 196);
-			fill_color[7] = new Color(224, 224, 224);
-			fill_color[8] = new Color(224, 224, 255);
-			fill_color[9] = new Color(224, 255, 224);
-		}
-
-		public void paint(Graphics g)
-		{
-			Rectangle visible_area = g.getClipBounds();
-
-			//System.out.println("Inside placement canvas paint()");
-			int xdim = (int) visible_area.getWidth();
-			int ydim = (int) visible_area.getHeight();
-			
-			//System.out.println("xdim = " + xdim + ", ydim = " + ydim);
-
-			Graphics2D g2 = (Graphics2D) g;
-			Font current_font = g2.getFont();
-			FontMetrics font_metrics = g2.getFontMetrics(current_font);
-			g2.setColor(java.awt.Color.WHITE);
-			g2.fillRect(0, 0, xdim, ydim);
-			
-			int size = sensor_data.size();
-			//System.out.println("Sensor data size is " + size);
-            int number_of_segments = 1;
-			if (size > 0)
-			{
-				number_of_segments = size - 4;
-			}
-			//System.out.println("number of segments is " + number_of_segments);
-			
-			double max_xstep = xdim / number_of_segments;
-			int xstep = (int) (max_xstep * normal_xstep);
-			//System.out.println("Xstep is " + xstep);
-			
-			int graph_xdim = xdim  - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
-
-			// Separate graphs instead of butting them.
-			if (xstep == max_xstep)
-			{
-				graph_xdim -= 2;
-			}
-			
-			double max_ystep  = ydim / number_of_segments;
-			int    ystep      = (int) (max_ystep * normal_ystep);
-			int    graph_ydim = ydim -(top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
-
-			
-			if (ystep == max_ystep)
-			{
-				graph_ydim -= 2;
-			}
-			
-			//System.out.println("graph xdim = " + graph_xdim + ", graph ydim = " + graph_ydim);
-			
-			Rectangle [] rectangle   = new Rectangle[number_of_segments];
-			boolean   [] visible     = new boolean[number_of_segments];
-			boolean   [] transparent = new boolean[number_of_segments];
-			
-			for (int i = 0; i < number_of_segments; i++) 
-			{ 
-				 int a1 = left_margin; 
-				 int b1 = ydim - bottom_margin;
-			     int a2 = a1 + graph_xdim; 
-			     int b2 = b1 - graph_ydim;
-			 
-			     int xaddend = i * xstep; 
-			     int yaddend = i * ystep; 
-			     a1 += xaddend; 
-			     b1 -= yaddend;
-	             a2 += xaddend; 
-	             b2 -= yaddend;
-	             
-	             //System.out.println("a1 is " + a1 + ", a2 is " + a2);
-	             //System.out.println("b1 is " + b1 + ", b2 is " + b2);
-	             rectangle[i] = new Rectangle(a2, b2, graph_xdim, graph_ydim);
-	             String visible_string = (String) option_table.getValueAt(1, i + 1);
-	             if(visible_string.equals("yes"))
-	                 visible[i] = true;	 
-	             else
-	            	 visible[i] = false;
-	             String transparent_string = (String) option_table.getValueAt(2, i + 1);
-	             if(transparent_string.equals("yes"))
-		                 transparent[i] = true;	 
-		             else
-		            	 transparent[i] = false;
-			}
-			
-			for (int i = (number_of_segments - 1); i >= 0; i--) 
-			{ 
-				int a1 = 0; 
-				int b1 = ydim;
-			    int a2 = a1 + graph_xdim; 
-			    int b2 = b1 - graph_ydim;
-			 
-			    int xaddend = i * xstep; 
-			    int yaddend = i * ystep; 
-			    a1 += xaddend; 
-			    b1 -= yaddend;
-	            a2 += xaddend; 
-	            b2 -= yaddend;
-				if(visible[i])
-				{
-					if(view.equals("East"))
-					{
-						if(!transparent[i])
-						{
-						    g2.setColor(fill_color[i]);  
-						    g2.fillRect(a1, b2, graph_xdim, graph_ydim);
-						}
-						g2.setColor(outline_color[i]);  
-					    g2.drawRect(a1, b2, graph_xdim, graph_ydim);
-					}
-					else
-					{
-						if(!transparent[i])
-						{
-						    g2.setColor(fill_color[(number_of_segments - 1) - i]);  
-						    g2.fillRect(a1, b2, graph_xdim, graph_ydim);
-						}
-						g2.setColor(outline_color[(number_of_segments - 1) - i]);  
-					    g2.drawRect(a1, b2, graph_xdim, graph_ydim);   	
-					}
-				}
-			}
-
-		}
-	}
-
-	class XStepHandler implements AdjustmentListener
-	{
-		public void adjustmentValueChanged(AdjustmentEvent event)
-		{
-			int xstep = event.getValue();
-			normal_xstep = (double) xstep / 100;
-			// System.out.println("Normal xstep is now " + xstep);
-			if (event.getValueIsAdjusting() == false)
-			{
-				canvas.repaint();
-				placement_canvas.repaint();
-			}
-		}
-	}
-
-	class YStepHandler implements AdjustmentListener
-	{
-		public void adjustmentValueChanged(AdjustmentEvent event)
-		{
-			int ystep = 100 - event.getValue();
-			normal_ystep = (double) ystep / 100;
-			// System.out.println("Normal ystep is now " + normal_ystep);
-			if (event.getValueIsAdjusting() == false)
-			{
-				canvas.repaint();
-				placement_canvas.repaint();
-			}
-		}
-	}
-
-	
-	
 	
 	
 	
@@ -1520,7 +1327,7 @@ public class XFencePlotter
 
 	
 	
-	
+	/************************************************/
 	class LoadHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1543,6 +1350,91 @@ public class XFencePlotter
 		}
 	}
 	
+	class InputHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			String input_string = input.getText();
+			StringTokenizer input_tokenzer = new StringTokenizer(input_string);
+			String line_string = input_tokenzer.nextToken(":");
+			int current_line = Integer.parseInt(line_string);
+			String sensor_string = input_tokenzer.nextToken(":");
+			int current_sensor = Integer.parseInt(sensor_string);
+
+			String[] line_sensor_pair = new String[10];
+
+			int current_pair = 0;
+
+			if (current_line % 2 == 1)
+			{
+				for (int i = current_sensor; i < 5; i++)
+				{
+					String current_string = new String(current_line + ":" + i);
+					line_sensor_pair[current_pair] = current_string;
+					current_pair++;
+				}
+			} else
+			{
+				for (int i = current_sensor; i >= 0; i--)
+				{
+					String current_string = new String(current_line + ":" + i);
+					line_sensor_pair[current_pair] = current_string;
+					current_pair++;
+				}
+			}
+			current_line++;
+			if (current_line % 2 == 1)
+			{
+				for (int i = 0; i < 5; i++)
+				{
+					String current_string = new String(current_line + ":" + i);
+					line_sensor_pair[current_pair] = current_string;
+					current_pair++;
+				}
+			} else
+			{
+				for (int i = 4; i >= 0; i--)
+				{
+					String current_string = new String(current_line + ":" + i);
+					line_sensor_pair[current_pair] = current_string;
+					current_pair++;
+				}
+			}
+			current_line++;
+			outer: if (current_pair < 10)
+			{
+				if (current_line % 2 == 1)
+				{
+					for (int i = 0; i < 5; i++)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+						if (current_pair == 10)
+							break outer;
+					}
+				} else
+				{
+					for (int i = 4; i >= 0; i--)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+						if(current_pair == 10)
+							break outer;
+					}
+				}
+			}
+
+			for (int i = 0; i < 10; i++)
+			{
+				option_table.setValueAt(line_sensor_pair[i], 0, i + 1);
+			}
+		}
+	}
+	
+	
+	/*********************************************************/
 	class SaveHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent ev)
@@ -1633,6 +1525,7 @@ public class XFencePlotter
 		}
 	}
 
+	/*************************************************/
 	class PlacementHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1653,6 +1546,199 @@ public class XFencePlotter
 		}
 	}
 	
+	class PlacementCanvas extends Canvas
+	{
+		Color[] outline_color;
+		Color[] fill_color;
+		
+		int top_margin    = 2;
+		int bottom_margin = 4;
+		int left_margin   = 4;
+		int right_margin  = 2;
+
+		public PlacementCanvas()
+		{
+			outline_color = new Color[10];
+			fill_color = new Color[10];
+
+			outline_color[0] = new Color(0, 0, 0);
+			outline_color[1] = new Color(0, 0, 75);
+			outline_color[2] = new Color(0, 75, 0);
+			outline_color[3] = new Color(75, 0, 0);
+			outline_color[4] = new Color(0, 75, 75);
+			outline_color[5] = new Color(75, 0, 75);
+			outline_color[6] = new Color(75, 75, 0);
+			outline_color[7] = new Color(75, 75, 75);
+			outline_color[8] = new Color(75, 75, 150);
+			outline_color[9] = new Color(75, 150, 75);
+
+			fill_color[0] = new Color(196, 196, 196);
+			fill_color[1] = new Color(196, 196, 224);
+			fill_color[2] = new Color(196, 224, 196);
+			fill_color[3] = new Color(224, 196, 196);
+			fill_color[4] = new Color(196, 224, 255);
+			fill_color[5] = new Color(224, 196, 224);
+			fill_color[6] = new Color(224, 224, 196);
+			fill_color[7] = new Color(224, 224, 224);
+			fill_color[8] = new Color(224, 224, 255);
+			fill_color[9] = new Color(224, 255, 224);
+		}
+
+		public void paint(Graphics g)
+		{
+			Rectangle visible_area = g.getClipBounds();
+
+			//System.out.println("Inside placement canvas paint()");
+			int xdim = (int) visible_area.getWidth();
+			int ydim = (int) visible_area.getHeight();
+			
+			//System.out.println("xdim = " + xdim + ", ydim = " + ydim);
+
+			Graphics2D g2 = (Graphics2D) g;
+			Font current_font = g2.getFont();
+			FontMetrics font_metrics = g2.getFontMetrics(current_font);
+			g2.setColor(java.awt.Color.WHITE);
+			g2.fillRect(0, 0, xdim, ydim);
+			
+			int size = sensor_data.size();
+			//System.out.println("Sensor data size is " + size);
+            int number_of_segments = 1;
+			if (size > 0)
+			{
+				number_of_segments = size - 4;
+			}
+			//System.out.println("number of segments is " + number_of_segments);
+			
+			double max_xstep = xdim / number_of_segments;
+			int xstep = (int) (max_xstep * normal_xstep);
+			//System.out.println("Xstep is " + xstep);
+			
+			int graph_xdim = xdim  - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
+
+			// Separate graphs instead of butting them.
+			if (xstep == max_xstep)
+			{
+				graph_xdim -= 2;
+			}
+			
+			double max_ystep  = ydim / number_of_segments;
+			int    ystep      = (int) (max_ystep * normal_ystep);
+			int    graph_ydim = ydim -(top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
+
+			
+			if (ystep == max_ystep)
+			{
+				graph_ydim -= 2;
+			}
+			
+			//System.out.println("graph xdim = " + graph_xdim + ", graph ydim = " + graph_ydim);
+			
+			Rectangle [] rectangle   = new Rectangle[number_of_segments];
+			boolean   [] visible     = new boolean[number_of_segments];
+			boolean   [] transparent = new boolean[number_of_segments];
+			
+			for (int i = 0; i < number_of_segments; i++) 
+			{ 
+				 int a1 = left_margin; 
+				 int b1 = ydim - bottom_margin;
+			     int a2 = a1 + graph_xdim; 
+			     int b2 = b1 - graph_ydim;
+			 
+			     int xaddend = i * xstep; 
+			     int yaddend = i * ystep; 
+			     a1 += xaddend; 
+			     b1 -= yaddend;
+	             a2 += xaddend; 
+	             b2 -= yaddend;
+	             
+	             //System.out.println("a1 is " + a1 + ", a2 is " + a2);
+	             //System.out.println("b1 is " + b1 + ", b2 is " + b2);
+	             rectangle[i] = new Rectangle(a2, b2, graph_xdim, graph_ydim);
+	             String visible_string = (String) option_table.getValueAt(1, i + 1);
+	             if(visible_string.equals("yes"))
+	                 visible[i] = true;	 
+	             else
+	            	 visible[i] = false;
+	             String transparent_string = (String) option_table.getValueAt(2, i + 1);
+	             if(transparent_string.equals("yes"))
+		                 transparent[i] = true;	 
+		             else
+		            	 transparent[i] = false;
+			}
+			
+			for (int i = (number_of_segments - 1); i >= 0; i--) 
+			{ 
+				int a1 = 0; 
+				int b1 = ydim;
+			    int a2 = a1 + graph_xdim; 
+			    int b2 = b1 - graph_ydim;
+			 
+			    int xaddend = i * xstep; 
+			    int yaddend = i * ystep; 
+			    a1 += xaddend; 
+			    b1 -= yaddend;
+	            a2 += xaddend; 
+	            b2 -= yaddend;
+				if(visible[i])
+				{
+					if(view.equals("East"))
+					{
+						if(!transparent[i])
+						{
+						    g2.setColor(fill_color[i]);  
+						    g2.fillRect(a1, b2, graph_xdim, graph_ydim);
+						}
+						g2.setColor(outline_color[i]);  
+					    g2.drawRect(a1, b2, graph_xdim, graph_ydim);
+					}
+					else
+					{
+						if(!transparent[i])
+						{
+						    g2.setColor(fill_color[(number_of_segments - 1) - i]);  
+						    g2.fillRect(a1, b2, graph_xdim, graph_ydim);
+						}
+						g2.setColor(outline_color[(number_of_segments - 1) - i]);  
+					    g2.drawRect(a1, b2, graph_xdim, graph_ydim);   	
+					}
+				}
+			}
+
+		}
+	}
+
+	class XStepHandler implements AdjustmentListener
+	{
+		public void adjustmentValueChanged(AdjustmentEvent event)
+		{
+			int xstep = event.getValue();
+			normal_xstep = (double) xstep / 100;
+			// System.out.println("Normal xstep is now " + xstep);
+			if (event.getValueIsAdjusting() == false)
+			{
+				canvas.repaint();
+				placement_canvas.repaint();
+			}
+		}
+	}
+
+	class YStepHandler implements AdjustmentListener
+	{
+		public void adjustmentValueChanged(AdjustmentEvent event)
+		{
+			int ystep = 100 - event.getValue();
+			normal_ystep = (double) ystep / 100;
+			// System.out.println("Normal ystep is now " + normal_ystep);
+			if (event.getValueIsAdjusting() == false)
+			{
+				canvas.repaint();
+				placement_canvas.repaint();
+			}
+		}
+	}
+	
+	
+	/**********************************************************/
 	class ViewHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1673,6 +1759,8 @@ public class XFencePlotter
 		}
 	}
 	
+	
+	/*************************************************************/
 	class ScaleHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1690,6 +1778,7 @@ public class XFencePlotter
 		}
 	}
     
+	/****************************************************************/
 	class DynamicRangeHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1726,42 +1815,6 @@ public class XFencePlotter
 			dynamic_range_dialog.setVisible(true);
 		}
 	}
-	
-	class SmoothHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent e)
-		{
-			Point location_point = frame.getLocation();
-			int x = (int) location_point.getX();
-			int y = (int) location_point.getY();
-
-			x += 830;
-			y += 540;
-			
-			smooth_dialog.setLocation(x, y);
-			smooth_dialog.pack();
-			smooth_dialog.setVisible(true);
-		}
-	}
-
-	class LocationHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent e)
-		{
-			Point location_point = frame.getLocation();
-			int x = (int) location_point.getX();
-			int y = (int) location_point.getY();
-
-			x += 830;
-			y += 590;
-
-			location_dialog.setLocation(x, y);
-			location_dialog.pack();
-			location_dialog.setVisible(true);
-		}
-	}
-	
-	
 	
 	class AdjustRangeHandler implements ActionListener
 	{
@@ -1847,90 +1900,24 @@ public class XFencePlotter
 		}
 	}
 	
-	class InputHandler implements ActionListener
+	/*************************************************************************/
+	class SmoothHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
 		{
-			String input_string = input.getText();
-			StringTokenizer input_tokenzer = new StringTokenizer(input_string);
-			String line_string = input_tokenzer.nextToken(":");
-			int current_line = Integer.parseInt(line_string);
-			String sensor_string = input_tokenzer.nextToken(":");
-			int current_sensor = Integer.parseInt(sensor_string);
+			Point location_point = frame.getLocation();
+			int x = (int) location_point.getX();
+			int y = (int) location_point.getY();
 
-			String[] line_sensor_pair = new String[10];
-
-			int current_pair = 0;
-
-			if (current_line % 2 == 1)
-			{
-				for (int i = current_sensor; i < 5; i++)
-				{
-					String current_string = new String(current_line + ":" + i);
-					line_sensor_pair[current_pair] = current_string;
-					current_pair++;
-				}
-			} else
-			{
-				for (int i = current_sensor; i >= 0; i--)
-				{
-					String current_string = new String(current_line + ":" + i);
-					line_sensor_pair[current_pair] = current_string;
-					current_pair++;
-				}
-			}
-			current_line++;
-			if (current_line % 2 == 1)
-			{
-				for (int i = 0; i < 5; i++)
-				{
-					String current_string = new String(current_line + ":" + i);
-					line_sensor_pair[current_pair] = current_string;
-					current_pair++;
-				}
-			} else
-			{
-				for (int i = 4; i >= 0; i--)
-				{
-					String current_string = new String(current_line + ":" + i);
-					line_sensor_pair[current_pair] = current_string;
-					current_pair++;
-				}
-			}
-			current_line++;
-			outer: if (current_pair < 10)
-			{
-				if (current_line % 2 == 1)
-				{
-					for (int i = 0; i < 5; i++)
-					{
-						String current_string = new String(current_line + ":" + i);
-						line_sensor_pair[current_pair] = current_string;
-						current_pair++;
-						if (current_pair == 10)
-							break outer;
-					}
-				} else
-				{
-					for (int i = 4; i >= 0; i--)
-					{
-						String current_string = new String(current_line + ":" + i);
-						line_sensor_pair[current_pair] = current_string;
-						current_pair++;
-						if(current_pair == 10)
-							break outer;
-					}
-				}
-			}
-
-			for (int i = 0; i < 10; i++)
-			{
-				option_table.setValueAt(line_sensor_pair[i], 0, i + 1);
-			}
+			x += 830;
+			y += 540;
+			
+			smooth_dialog.setLocation(x, y);
+			smooth_dialog.pack();
+			smooth_dialog.setVisible(true);
 		}
 	}
 
-	
 	public double[] smooth(double[] source, int iterations)
 	{
 		int dst_length = source.length - 1;
@@ -1949,4 +1936,30 @@ public class XFencePlotter
 		}
 		return (dst);
 	}
+	
+	/**************************************************************************/
+	class LocationHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			Point location_point = frame.getLocation();
+			int x = (int) location_point.getX();
+			int y = (int) location_point.getY();
+
+			x += 830;
+			y += 590;
+
+			location_dialog.setLocation(x, y);
+			location_dialog.pack();
+			location_dialog.setVisible(true);
+		}
+	}
+	
+	
+	
+	
+	
+
+	
+	
 }
