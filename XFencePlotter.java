@@ -580,7 +580,7 @@ public class XFencePlotter
 		
         frame.setCursor(cursor);
 		frame.pack();
-		frame.setLocation(300, 300);
+		frame.setLocation(600, 300);
 		apply_item.doClick();
 	}
 
@@ -1518,6 +1518,161 @@ public class XFencePlotter
 		}
 	}
 
+	
+	
+	
+	class LoadHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			Point location_point = frame.getLocation();
+			int x = (int) location_point.getX();
+			int y = (int) location_point.getY();
+
+			x += 830;
+			//y -= 100;
+
+			if (x < 0)
+				x = 0;
+			if (y < 0)
+				y = 0;
+
+			load_dialog.setLocation(x, y);
+			load_dialog.pack();
+			load_dialog.setVisible(true);
+		}
+	}
+	
+	class SaveHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent ev)
+		{
+			int size = sensor_data.size();
+			if(size == 0)
+			{
+				System.out.println("No data to save.");
+			}
+			else
+			{
+				System.out.println("Data to save.");
+				FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
+				file_dialog.setVisible(true);
+				String filename = file_dialog.getFile();
+				if(filename != "")
+				{
+					String current_directory = file_dialog.getDirectory();
+					System.out.println("Current directory is " + current_directory);
+					System.out.println("File name is " + filename);
+					try(PrintWriter output = new PrintWriter(current_directory + filename))
+			        {
+						// The first 4 elements in the sensor data are local min, local max, global min, and global max.
+						// The rest are array lists of samples, with some information prepended.  
+						
+						double intensity_min = (double)sensor_data.get(0);
+						String intensity_min_string = String.format("%.2f", intensity_min);
+					    for(int i = 4; i < size; i++)
+					    {
+					    	// The first 4 elements are flight line, sensor, visibility, and transparency.
+					    	// The last two are yes/no strings.
+					        ArrayList segment_list = (ArrayList)sensor_data.get(i);
+					        int       line         = (int)segment_list.get(0);
+					        int       sensor       = (int)segment_list.get(1);
+					        
+					        
+					        
+					        output.println("#Sensor " + sensor + ", Line " + line);
+					        
+			      			
+					        double ideal_x = line * 2;
+					        if(line % 2 == 0)
+					        {
+					        	ideal_x += ((4 - sensor)* .5);
+					        }
+					        else
+					        {
+					        	ideal_x += sensor * .5;
+					        }
+					        
+					        String ideal_string          = String.format("%.2f", ideal_x);
+					        
+					        Sample init_sample = (Sample)segment_list.get(4);
+					        String xstring          = String.format("%.2f", init_sample.x);	
+			      			String ystring          = String.format("%.2f", init_sample.y);
+			      			output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
+					        
+					        
+					        for(int j = 4; j < segment_list.size(); j++)
+					        {
+					            Sample sample = (Sample)segment_list.get(j);
+					            xstring          = String.format("%.2f", sample.x);	
+				      			ystring          = String.format("%.2f", sample.y);
+				      			String intensity_string = String.format("%.2f", sample.intensity);
+				      			output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
+					        }
+					        
+					        Sample end_sample  = (Sample)segment_list.get(size - 1);
+					        xstring          = String.format("%.2f", end_sample.x);	
+			      			ystring          = String.format("%.2f", end_sample.y);
+			      			output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
+			      			
+			      			xstring          = String.format("%.2f", init_sample.x);	
+			      			ystring          = String.format("%.2f", init_sample.y);
+			      			output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
+			      			
+					        output.println();
+					        output.println();
+					    }
+					    output.close();
+			        }
+					catch(Exception ex)
+					{
+						System.out.println(ex.toString());
+					}
+				}		
+			}
+		}
+	}
+
+	class PlacementHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			Point location_point = frame.getLocation();
+			int x = (int) location_point.getX();
+			int y = (int) location_point.getY();
+
+			x += 830;
+			y += 95;
+
+			if (y < 0)
+				y = 0;
+
+			placement_dialog.setLocation(x, y);
+			placement_dialog.pack();
+			placement_dialog.setVisible(true);
+		}
+	}
+	
+	class ViewHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			Point location_point = frame.getLocation();
+			int x = (int) location_point.getX();
+			int y = (int) location_point.getY();
+
+			x += 830;
+			y += 250;
+
+			if (y < 0)
+				y = 0;
+
+			view_dialog.setLocation(x, y);
+			view_dialog.pack();
+			view_dialog.setVisible(true);
+		}
+	}
+	
 	class ScaleHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1526,18 +1681,15 @@ public class XFencePlotter
 			int x = (int) location_point.getX();
 			int y = (int) location_point.getY();
 
-			x += 800;
-			y -= 100;
-
-			if (y < 0)
-				y = 0;
+			x += 830;
+			y += 340;
 
 			scale_dialog.setLocation(x, y);
 			scale_dialog.pack();
 			scale_dialog.setVisible(true);
 		}
 	}
-
+    
 	class DynamicRangeHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -1546,11 +1698,8 @@ public class XFencePlotter
 			int x = (int) location_point.getX();
 			int y = (int) location_point.getY();
 
-			x += 800;
-			y -= 100;
-
-			if(y < 0)
-				y = 0;
+			x += 830;
+			y += 440;
 			
 			double seg_min = (double) sensor_data.get(0);
 			double seg_max = (double) sensor_data.get(1);
@@ -1586,35 +1735,12 @@ public class XFencePlotter
 			int x = (int) location_point.getX();
 			int y = (int) location_point.getY();
 
-			x += 800;
-			y -= 100;
-
-			if (y < 0)
-				y = 0;
-
+			x += 830;
+			y += 540;
+			
 			smooth_dialog.setLocation(x, y);
 			smooth_dialog.pack();
 			smooth_dialog.setVisible(true);
-		}
-	}
-
-	class PlacementHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent e)
-		{
-			Point location_point = frame.getLocation();
-			int x = (int) location_point.getX();
-			int y = (int) location_point.getY();
-
-			x += 800;
-			y -= 100;
-
-			if (y < 0)
-				y = 0;
-
-			placement_dialog.setLocation(x, y);
-			placement_dialog.pack();
-			placement_dialog.setVisible(true);
 		}
 	}
 
@@ -1626,11 +1752,8 @@ public class XFencePlotter
 			int x = (int) location_point.getX();
 			int y = (int) location_point.getY();
 
-			x += 800;
-			y -= 100;
-
-			if (y < 0)
-				y = 0;
+			x += 830;
+			y += 590;
 
 			location_dialog.setLocation(x, y);
 			location_dialog.pack();
@@ -1638,47 +1761,7 @@ public class XFencePlotter
 		}
 	}
 	
-	class ViewHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent e)
-		{
-			Point location_point = frame.getLocation();
-			int x = (int) location_point.getX();
-			int y = (int) location_point.getY();
-
-			x += 800;
-			y -= 100;
-
-			if (y < 0)
-				y = 0;
-
-			view_dialog.setLocation(x, y);
-			view_dialog.pack();
-			view_dialog.setVisible(true);
-		}
-	}
 	
-	class LoadHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent e)
-		{
-			Point location_point = frame.getLocation();
-			int x = (int) location_point.getX();
-			int y = (int) location_point.getY();
-
-			x -= 100;
-			y -= 100;
-
-			if (x < 0)
-				x = 0;
-			if (y < 0)
-				y = 0;
-
-			load_dialog.setLocation(x, y);
-			load_dialog.pack();
-			load_dialog.setVisible(true);
-		}
-	}
 	
 	class AdjustRangeHandler implements ActionListener
 	{
@@ -1847,96 +1930,7 @@ public class XFencePlotter
 		}
 	}
 
-	class SaveHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent ev)
-		{
-			int size = sensor_data.size();
-			if(size == 0)
-			{
-				System.out.println("No data to save.");
-			}
-			else
-			{
-				System.out.println("Data to save.");
-				FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
-				file_dialog.setVisible(true);
-				String filename = file_dialog.getFile();
-				if(filename != "")
-				{
-					String current_directory = file_dialog.getDirectory();
-					System.out.println("Current directory is " + current_directory);
-					System.out.println("File name is " + filename);
-					try(PrintWriter output = new PrintWriter(current_directory + filename))
-			        {
-						// The first 4 elements in the sensor data are local min, local max, global min, and global max.
-						// The rest are array lists of samples, with some information prepended.  
-						
-						double intensity_min = (double)sensor_data.get(0);
-						String intensity_min_string = String.format("%.2f", intensity_min);
-					    for(int i = 4; i < size; i++)
-					    {
-					    	// The first 4 elements are flight line, sensor, visibility, and transparency.
-					    	// The last two are yes/no strings.
-					        ArrayList segment_list = (ArrayList)sensor_data.get(i);
-					        int       line         = (int)segment_list.get(0);
-					        int       sensor       = (int)segment_list.get(1);
-					        
-					        
-					        
-					        output.println("#Sensor " + sensor + ", Line " + line);
-					        
-			      			
-					        double ideal_x = line * 2;
-					        if(line % 2 == 0)
-					        {
-					        	ideal_x += ((4 - sensor)* .5);
-					        }
-					        else
-					        {
-					        	ideal_x += sensor * .5;
-					        }
-					        
-					        String ideal_string          = String.format("%.2f", ideal_x);
-					        
-					        Sample init_sample = (Sample)segment_list.get(4);
-					        String xstring          = String.format("%.2f", init_sample.x);	
-			      			String ystring          = String.format("%.2f", init_sample.y);
-			      			output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
-					        
-					        
-					        for(int j = 4; j < segment_list.size(); j++)
-					        {
-					            Sample sample = (Sample)segment_list.get(j);
-					            xstring          = String.format("%.2f", sample.x);	
-				      			ystring          = String.format("%.2f", sample.y);
-				      			String intensity_string = String.format("%.2f", sample.intensity);
-				      			output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
-					        }
-					        
-					        Sample end_sample  = (Sample)segment_list.get(size - 1);
-					        xstring          = String.format("%.2f", end_sample.x);	
-			      			ystring          = String.format("%.2f", end_sample.y);
-			      			output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
-			      			
-			      			xstring          = String.format("%.2f", init_sample.x);	
-			      			ystring          = String.format("%.2f", init_sample.y);
-			      			output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
-			      			
-					        output.println();
-					        output.println();
-					    }
-					    output.close();
-			        }
-					catch(Exception ex)
-					{
-						System.out.println(ex.toString());
-					}
-				}		
-			}
-		}
-	}
-
+	
 	public double[] smooth(double[] source, int iterations)
 	{
 		int dst_length = source.length - 1;
