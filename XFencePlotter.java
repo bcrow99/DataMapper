@@ -788,8 +788,8 @@ public class XFencePlotter
 		Color[] fill_color;
 		int top_margin    = 10;
 		int right_margin  = 10;
-		int left_margin   = 60;
-		int bottom_margin = 60;
+		int left_margin   = 90;
+		int bottom_margin = 80;
 		int original_xdim = 0;
 		int original_ydim = 0;
 
@@ -857,7 +857,8 @@ public class XFencePlotter
 				double max_xstep = (xdim - (left_margin + right_margin)) / number_of_segments;
 				int xstep = (int) (max_xstep * normal_xstep);
 				int graph_xdim = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
-
+                
+				// So that graphs are not butted together.
 				if (xstep == max_xstep)
 				{
 					graph_xdim -= number_of_segments;
@@ -867,7 +868,6 @@ public class XFencePlotter
 				int    ystep      = (int) (max_ystep * normal_ystep);
 				int    graph_ydim = ydim - (top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
 
-				
 				if (ystep == max_ystep)
 				{
 					graph_ydim -= number_of_segments;
@@ -875,17 +875,6 @@ public class XFencePlotter
 
 				double quantum_distance = range / graph_xdim;
 				//System.out.println("The quantum distance for a pixel is " + quantum_distance);
-
-				/*
-				System.out.println("The number of segments being plotted is " + number_of_segments);
-				System.out.println("Minimum value in the segments is " + seg_min);
-				System.out.println("Maximum value in the segments is " + seg_max);
-				System.out.println("Minimum value in the lines is " + line_min);
-				System.out.println("Maximum value in the lines is " + line_max);
-				*/
-
-				// System.out.println("Canvas xdim is " + xdim + ", ydim is " + ydim);
-				// System.out.println("Graph xdim is " + graph_xdim + ", ydim is " + graph_ydim);
 
 				double minimum_x = offset;
 				double maximum_x = offset + range;
@@ -936,7 +925,15 @@ public class XFencePlotter
 		             
 		             buffered_g.setStroke(new BasicStroke(2));
 		             buffered_g.drawLine((int) a1, (int) b1, (int) a1, (int) b2); 
-		             buffered_g.drawLine((int) a1, (int) b2, (int) a1 + 5, (int) b2);
+		             buffered_g.drawLine((int) a1, (int) b1, (int) a1 - 10, (int) b1);
+		             buffered_g.drawLine((int) a1, (int) (b1 + b2)/2, (int) a1 - 10, (int) (b1 + b2)/2);
+		             buffered_g.drawLine((int) a1, (int) b2, (int) a1 - 10, (int) b2);
+		             if(i == 0)
+		             {
+		            	 buffered_g.drawLine((int) a1, (int) b1, (int) a1, (int) b1 + 10);
+		            	 buffered_g.drawLine((int) (a1 + a2)/2, (int) b1, (int) (a1 + a2)/2, (int) b1 + 10);
+		            	 buffered_g.drawLine((int) a2, (int) b1, (int) a2, (int) b1 + 10);
+		             }
 		             
 		             // If plots directly overlap, we only need one line to show the y extent.
 				     if (ystep == 0 && xstep == 0) 
@@ -990,7 +987,7 @@ public class XFencePlotter
 						*/
 						
 						// Using all the points, even the ones that map to the
-						// same x coordinate on the display.
+						// same x coordinate on the display and vertical lines in the curve.
 						Point2D.Double point = new Point2D.Double();
 						point.x = sample.y;
 						point.y = sample.intensity; 
@@ -1087,16 +1084,6 @@ public class XFencePlotter
 						
 						double current_y = point.getY();
 						current_y -= minimum_y;
-						if(current_y < 0)
-						{
-							System.out.println("Current y is " + current_y);					
-						}
-						/*
-						if(autoscale)
-							current_y -= line_min;
-						else
-							current_y -= seg_min;
-						*/
 						current_y /= yrange;
 						current_y *= graph_ydim;
 						current_y = graph_ydim - current_y;
@@ -1124,7 +1111,6 @@ public class XFencePlotter
 
 					if (visible.equals("yes"))
 					{
-						
 						if (transparent.equals("no"))
 						{
 							if(view.equals("East"))
@@ -1169,29 +1155,34 @@ public class XFencePlotter
 							zero_y -= yaddend;
 
 							float[] dash = { 2f, 0f, 2f }; 
-							BasicStroke basic_stroke = new BasicStroke(1,BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
+							BasicStroke basic_stroke = new BasicStroke(2,BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
 							buffered_g.setStroke(basic_stroke); 
-							buffered_g.setColor(java.awt.Color.BLACK);
+							buffered_g.setColor(java.awt.Color.RED);
 							buffered_g.drawLine((int)x1, (int)zero_y, (int)x2, (int)zero_y); 
 							buffered_g.setStroke(new BasicStroke(2));
 						}
 					}
 				}
 				g2.drawImage(buffered_image, 0, 0, null);
+				Font current_font = g2.getFont(); 
+				FontMetrics font_metrics = g2.getFontMetrics(current_font);
 				g2.setColor(java.awt.Color.BLACK); 
 				double stop = offset + range; 
+				
 				String position_string = String.format("%,.2f", offset);
 				g2.drawString(position_string, left_margin, ydim - bottom_margin / 2);
 				
 				position_string = String.format("%,.2f", stop); 
-				Font current_font = g2.getFont(); 
-				FontMetrics font_metrics = g2.getFontMetrics(current_font);
 				int string_width = font_metrics.stringWidth(position_string);
 				g2.drawString(position_string, graph_xdim + left_margin - string_width, ydim - bottom_margin / 2);
 				
+				position_string = String.format("%,.2f", (offset + stop)/2);
+				string_width = font_metrics.stringWidth(position_string);
+				g2.drawString(position_string, graph_xdim/2 + left_margin - string_width/2, ydim - bottom_margin / 2);
+				
 				position_string = new String("meters"); 
 				string_width = font_metrics.stringWidth(position_string); 
-				g2.drawString(position_string, left_margin + (graph_xdim + left_margin - string_width) / 2 - string_width / 2, ydim - bottom_margin / 3);
+				g2.drawString(position_string, left_margin + (xdim - right_margin - left_margin) / 2 - string_width / 2, ydim - bottom_margin / 4);
 				
 				String intensity_string = String.format("%,.2f", minimum_y); 
 				string_width = font_metrics.stringWidth(intensity_string); 
@@ -1202,11 +1193,16 @@ public class XFencePlotter
 				int string_height = font_metrics.getAscent(); 
 				g2.drawString(intensity_string, left_margin / 2 - string_width / 2, top_margin + (number_of_segments - 1) * ystep + string_height);
 				
+				intensity_string = String.format("%,.2f", (maximum_y + minimum_y)/2); 
+				string_width = font_metrics.stringWidth(intensity_string); 
+				string_height = font_metrics.getAscent(); 
+				g2.drawString(intensity_string, left_margin / 2 - string_width / 2, ydim - bottom_margin - graph_ydim / 2);
 				
 				intensity_string =new String("nT"); 
 				string_width = font_metrics.stringWidth(intensity_string);
-				g2.drawString(intensity_string, string_width / 2, top_margin + (number_of_segments - 1) * ystep + graph_ydim / 2);
+				g2.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
 				
+				/*
 				double zero_position = Math.abs(minimum_y); 
 				zero_position /= yrange;
 				zero_position *= graph_ydim; 
@@ -1215,6 +1211,7 @@ public class XFencePlotter
 				String zero_string = new String("0.0"); 
 				string_width = font_metrics.stringWidth(zero_string);
 				g2.drawString(zero_string, left_margin - (string_width + 5), (int)zero_position);
+				*/
 				
 			}
 		}
