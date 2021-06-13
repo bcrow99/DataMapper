@@ -228,6 +228,10 @@ public class XFencePlotter
 
 		canvas = new LineCanvas();
 		canvas.setSize(800, 600);
+		
+		MouseHandler mouse_handler = new MouseHandler();
+		canvas.addMouseListener(mouse_handler);
+		
 		JPanel canvas_panel = new JPanel(new BorderLayout());
 		canvas_panel.add(canvas, BorderLayout.CENTER);
 
@@ -584,11 +588,6 @@ public class XFencePlotter
 		apply_item.doClick();
 	}
 
-	
-	
-	
-	
-	
 	class LineCanvas extends Canvas
 	{
 		Color[] outline_color;
@@ -717,14 +716,13 @@ public class XFencePlotter
 					 int b1 = ydim - bottom_margin;
 				     int a2 = a1 + graph_xdim; 
 				     int b2 = b1 - graph_ydim;
-				 
 				     int xaddend = i * xstep; 
 				     int yaddend = i * ystep; 
 				     a1 += xaddend; 
 				     b1 -= yaddend;
 		             a2 += xaddend; 
 		             b2 -= yaddend;
-		             
+		            
 		             if(view.equals("East"))
 		                 buffered_g.setColor(outline_color[i]);
 		             else
@@ -732,14 +730,33 @@ public class XFencePlotter
 		             
 		             buffered_g.setStroke(new BasicStroke(2));
 		             buffered_g.drawLine((int) a1, (int) b1, (int) a1, (int) b2); 
-		             buffered_g.drawLine((int) a1, (int) b1, (int) a1 - 10, (int) b1);
-		             buffered_g.drawLine((int) a1, (int) (b1 + b2)/2, (int) a1 - 10, (int) (b1 + b2)/2);
-		             buffered_g.drawLine((int) a1, (int) b2, (int) a1 - 10, (int) b2);
+		             double number_of_units = 8;
+	            	 double current_range = b1 - b2;
+	            	 double current_increment = current_range / number_of_units;
+	            	 double current_position = b2;
+
+		             buffered_g.drawLine((int) a1, (int) current_position, (int) a1 - 10, (int) current_position);
 		             if(i == 0)
 		             {
-		            	 buffered_g.drawLine((int) a1, (int) b1, (int) a1, (int) b1 + 10);
-		            	 buffered_g.drawLine((int) (a1 + a2)/2, (int) b1, (int) (a1 + a2)/2, (int) b1 + 10);
-		            	 buffered_g.drawLine((int) a2, (int) b1, (int) a2, (int) b1 + 10);
+		                 for(int j = 0; j < number_of_units; j++)
+		                 {
+		            	     current_position += current_increment;
+		            	     buffered_g.drawLine((int) a1, (int) current_position, (int) a1 - 10, (int) current_position);
+		                 }
+		             }
+		            
+		             if(i == 0)
+		             {
+		            	 number_of_units = 8;
+		            	 current_range = a2 - a1;
+		            	 current_increment = current_range / number_of_units;
+		            	 current_position = a1;
+		            	 buffered_g.drawLine((int) current_position, (int) b1, (int) current_position, (int) b1 + 10);
+		            	 for(int j = 0; j < number_of_units; j++)
+		            	 {
+		            		 current_position += current_increment;
+		            		 buffered_g.drawLine((int) current_position, (int) b1, (int) current_position, (int) b1 + 10); 
+		            	 }
 		             }
 		             
 		             // If plots directly overlap, we only need one line to show the y extent.
@@ -971,45 +988,54 @@ public class XFencePlotter
 					}
 				}
 				g2.drawImage(buffered_image, 0, 0, null);
+				
+				
 				Font current_font = g2.getFont(); 
 				FontMetrics font_metrics = g2.getFontMetrics(current_font);
 				g2.setColor(java.awt.Color.BLACK); 
-				double stop = offset + range; 
 				
-				String position_string = String.format("%,.2f", offset);
-				g2.drawString(position_string, left_margin, ydim - bottom_margin / 2);
+				double current_value = offset;
+				double number_of_units = 8;
+				double current_value_increment = range / number_of_units;
 				
-				position_string = String.format("%,.2f", stop); 
-				int string_width = font_metrics.stringWidth(position_string);
-				g2.drawString(position_string, graph_xdim + left_margin - string_width, ydim - bottom_margin / 2);
+				double current_position = left_margin;
+				double current_position_increment = graph_xdim / number_of_units;
 				
-				position_string = String.format("%,.2f", (offset + stop)/2);
-				string_width = font_metrics.stringWidth(position_string);
-				g2.drawString(position_string, graph_xdim/2 + left_margin - string_width/2, ydim - bottom_margin / 2);
+				String position_string = String.format("%,.2f", current_value);
+				int string_width = font_metrics.stringWidth(position_string); 
+				g2.drawString(position_string, (int)current_position - string_width / 2, ydim - bottom_margin / 2);
 				
-				position_string = new String("meters"); 
-				string_width = font_metrics.stringWidth(position_string); 
-				g2.drawString(position_string, left_margin + (xdim - right_margin - left_margin) / 2 - string_width / 2, ydim - bottom_margin / 4);
+				for(int j = 0; j < number_of_units; j++)
+				{
+					current_value += current_value_increment;
+					current_position += current_position_increment;
+					position_string = String.format("%,.2f", current_value);
+					string_width = font_metrics.stringWidth(position_string); 
+					if(j != number_of_units - 1)
+					    g2.drawString(position_string, (int)current_position - string_width / 2, ydim - bottom_margin / 2);
+					else
+						g2.drawString(position_string, (int)current_position - string_width, ydim - bottom_margin / 2);
+				}
 				
-				String intensity_string = String.format("%,.2f", minimum_y); 
-				string_width = font_metrics.stringWidth(intensity_string); 
-				g2.drawString(intensity_string, left_margin / 2 - string_width / 2, ydim - bottom_margin); 
+				current_value = minimum_y;
+				current_value_increment = (maximum_y - minimum_y)/ number_of_units;
+				current_position = ydim - bottom_margin;
+				current_position_increment = graph_ydim / number_of_units;
 				
-				intensity_string = String.format("%,.2f", maximum_y); 
-				string_width = font_metrics.stringWidth(intensity_string); 
-				int string_height = font_metrics.getAscent(); 
-				g2.drawString(intensity_string, left_margin / 2 - string_width / 2, top_margin + (number_of_segments - 1) * ystep + string_height);
+				String intensity_string = String.format("%,.2f", current_value); 
+			    string_width = font_metrics.stringWidth(intensity_string); 
+				g2.drawString(intensity_string, left_margin / 2 - string_width / 2, (int)current_position); 
 				
-				intensity_string = String.format("%,.2f", (maximum_y + minimum_y)/2); 
-				string_width = font_metrics.stringWidth(intensity_string); 
-				string_height = font_metrics.getAscent(); 
-				g2.drawString(intensity_string, left_margin / 2 - string_width / 2, ydim - bottom_margin - graph_ydim / 2);
+				for(int j = 0; j < number_of_units; j++)
+				{
+					current_value    += current_value_increment;
+					current_position -= current_position_increment;
+					intensity_string = String.format("%,.2f", current_value);
+					int string_height = font_metrics.getAscent(); 
+					g2.drawString(intensity_string, left_margin / 2 - string_width / 2, (int)(current_position + string_height / 2));
+				}
 				
-				intensity_string =new String("nT"); 
-				string_width = font_metrics.stringWidth(intensity_string);
-				g2.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
-				
-				/*
+			    /*
 				double zero_position = Math.abs(minimum_y); 
 				zero_position /= yrange;
 				zero_position *= graph_ydim; 
@@ -1024,6 +1050,39 @@ public class XFencePlotter
 		}
 	}
 
+	class MouseMotionHandler extends MouseMotionAdapter
+	{
+		public void mouseMoved(MouseEvent event)
+	    {
+	        int x = event.getX();
+	        int y = event.getY();
+	    }
+	}
+	
+	class MouseHandler extends MouseAdapter
+	{
+		public void mouseClicked(MouseEvent event)
+	    {
+	        int x = event.getX();
+	        int y = event.getY();
+	        
+	        System.out.println("Mouse click at " + x + ", " + y);
+	    }
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	class ApplyHandler implements ActionListener
 	{
 		int[][] line_array;
@@ -1039,8 +1098,6 @@ public class XFencePlotter
 
 		public void actionPerformed(ActionEvent event)
 		{
-			//System.out.println("Offset is " + offset);
-			//System.out.println("Range is " + range);
 			for (int i = 0; i < 10; i++)
 			{
 				try
@@ -1954,12 +2011,4 @@ public class XFencePlotter
 			location_dialog.setVisible(true);
 		}
 	}
-	
-	
-	
-	
-	
-
-	
-	
 }
