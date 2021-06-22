@@ -569,7 +569,7 @@ public class XFencePlotter
 		JPanel dynamic_range_panel = new JPanel(new BorderLayout());
 		dynamic_range_panel.add(dynamic_range_canvas_panel, BorderLayout.CENTER);
 		dynamic_range_panel.add(dynamic_range_button_panel, BorderLayout.SOUTH);
-		
+		//dynamic_range_panel.setSize(100, 2000);		
 		dynamic_range_dialog = new JDialog(frame);
 		dynamic_range_dialog.add(dynamic_range_panel);
 		
@@ -2288,8 +2288,9 @@ public class XFencePlotter
 			int x = (int) location_point.getX();
 			int y = (int) location_point.getY();
 
-			x += 830;
-			y += 440;
+			x -= 150;
+			y += 110;
+			
 			
 			double seg_min = (double) sensor_data.get(0);
 			double seg_max = (double) sensor_data.get(1);
