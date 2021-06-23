@@ -62,8 +62,8 @@ public class XFencePlotter
 	public JDialog information_dialog;
 	
 	// Shared program variables.
-	double offset = 45.82;
-	double range  = 14.;
+	double offset     = 45.82;
+	double range      = 14.;
 	int top_margin    = 10;
 	int right_margin  = 10;
 	int left_margin   = 90;
@@ -226,6 +226,8 @@ public class XFencePlotter
 				}
 				reader.close();
 				double range_of_data = ymax - ymin;
+				//System.out.println("Xmin is " + xmin);
+				//System.out.println("Ymin is " + ymin);
 				//System.out.println("Range of data is " + range_of_data);
 				for (int i = 0; i < original_data.size(); i++)
 				{
@@ -561,6 +563,7 @@ public class XFencePlotter
 		
 		
 		dynamic_range_canvas = new RangeCanvas();
+		dynamic_range_canvas.setSize(100, 520);
 		
 		JPanel dynamic_range_canvas_panel = new JPanel(new BorderLayout());
 		dynamic_range_canvas_panel.add(dynamic_range_slider, BorderLayout.WEST);
@@ -1248,9 +1251,17 @@ public class XFencePlotter
 	{
 		
 		boolean persistent_sample_information = false;
+		
 		public void mouseClicked(MouseEvent event)
 	    {
-			
+		    int button = event.getButton();
+		    if(button == 3)
+		    {
+		    	if(persistent_sample_information == false)
+		    		persistent_sample_information = true;	
+		    	else
+		    		persistent_sample_information = false;	
+		    }
 	    }
 		
 		/*
@@ -1289,20 +1300,26 @@ public class XFencePlotter
 		
 		public void mousePressed(MouseEvent event)
 		{
-			 Point location_point = frame.getLocation();
-			 int frame_x = (int) location_point.getX();
-			 frame_x += 830;
-			 int frame_y = (int) location_point.getY();
+			 int button = event.getButton();
+			
+			 if(button == 1)
+			 {
+			     Point location_point = frame.getLocation();
+			     int frame_x = (int) location_point.getX();
+			     frame_x += 830;
+			     int frame_y = (int) location_point.getY();
 
-            
-			 information_dialog.setLocation(frame_x, frame_y);
-			 information_dialog.pack();
-			 information_dialog.setVisible(true);	
+			     information_dialog.setLocation(frame_x, frame_y);
+			     information_dialog.pack();
+			     information_dialog.setVisible(true);
+			 }
 		}
 		
 		public void mouseReleased(MouseEvent event)
 		{
-			 information_dialog.setVisible(false);	
+			int button = event.getButton();
+			if(button == 1 && persistent_sample_information == false)
+			    information_dialog.setVisible(false);	
 		}
 	}
 	
