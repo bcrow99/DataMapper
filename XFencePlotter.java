@@ -120,8 +120,8 @@ public class XFencePlotter
 	
 	public static void main(String[] args)
 	{
-		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
-		//String prefix = new String("");
+		//String prefix = new String("C:/Users/Brian Crowley/Desktop/");
+		String prefix = new String("");
 		if (args.length != 1)
 		{
 			System.out.println("Usage: XFencePlotter <data file>");
@@ -1416,7 +1416,6 @@ public class XFencePlotter
 	                    information_string = new String("  Absolute y: " + number_string + "\n");
 	                    sample_information.append(information_string);     
 	                }
-	                
 	        	}
 	        } 
 	    }
@@ -1430,9 +1429,9 @@ public class XFencePlotter
 
 		ApplyHandler()
 		{
-			line_array = ObjectMapper.getUnclippedLineArray();
-			current_line       = new int[10];
-			current_sensor     = new int[10];
+			line_array     = ObjectMapper.getUnclippedLineArray();
+			current_line   = new int[10];
+			current_sensor = new int[10];
 		}
 
 		public void actionPerformed(ActionEvent event)
@@ -1838,6 +1837,8 @@ public class XFencePlotter
 			{
 				sensor[i].setText(line_sensor_pair[i]);
 			}
+			// Resegment the data.
+			apply_item.doClick();
 		}
 	}
 	
@@ -2033,7 +2034,6 @@ public class XFencePlotter
 		    }
 		    else if(button == 3)
 		    {
-		    	//System.out.println("Right click.");
 		    	if(index == 9)
 		    	{
 		    		sensor[index].setText("");
