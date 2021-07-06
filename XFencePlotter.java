@@ -28,7 +28,6 @@ public class XFencePlotter
 	// Data collected by LineCanvas.paint() and accessed by the MouseHandler
 	ArrayList [][] grid_data;
 	
-	
 	// Shared interface componants.
 	public JFrame      frame;
 	public LineCanvas  canvas;
@@ -65,10 +64,11 @@ public class XFencePlotter
 	double offset     = 45.82;
 	double range      = 14.;
 	int top_margin    = 10;
-	int right_margin  = 10;
+	int right_margin  = 20;
 	int left_margin   = 90;
 	int bottom_margin = 80;
 	
+	// Variables determined when reading in data.
 	double global_xmin, global_xmax, global_ymin, global_ymax;
 	
 	// Updated by Slider, Scrollbar, and Button
@@ -108,6 +108,16 @@ public class XFencePlotter
 	// Shared by dynamic range control and autoscale control.
 	JButton reset_bounds_button;
 
+	// Replacing option table.
+	JTextField [] sensor = new JTextField[10];
+	Canvas     [] sensor_canvas = new SensorCanvas[10];
+	int        [] sensor_state  = new int[10];
+	boolean    [] visible       = new boolean[10];
+	boolean    [] transparent   = new boolean[10];
+	
+	Color      [] outline_color = new Color[10];
+	Color      [] fill_color    = new Color[10];
+	
 	public static void main(String[] args)
 	{
 		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
@@ -141,9 +151,6 @@ public class XFencePlotter
 
 	public XFencePlotter(String filename)
 	{
-		Color[] outline_color = new Color[10];
-		Color[] fill_color = new Color[10];
-
 		outline_color[0] = new Color(0, 0, 0);
 		outline_color[1] = new Color(0, 0, 75);
 		outline_color[2] = new Color(0, 75, 0);
@@ -155,16 +162,16 @@ public class XFencePlotter
 		outline_color[8] = new Color(75, 75, 150);
 		outline_color[9] = new Color(75, 150, 75);
 
-		fill_color[0] = new Color(196, 196, 196);
-		fill_color[1] = new Color(196, 196, 224);
-		fill_color[2] = new Color(196, 224, 196);
-		fill_color[3] = new Color(224, 196, 196);
-		fill_color[4] = new Color(196, 224, 255);
-		fill_color[5] = new Color(224, 196, 224);
-		fill_color[6] = new Color(224, 224, 196);
-		fill_color[7] = new Color(224, 224, 224);
-		fill_color[8] = new Color(224, 224, 255);
-		fill_color[9] = new Color(224, 255, 224);
+		fill_color[0]    = new Color(196, 196, 196);
+		fill_color[1]    = new Color(196, 196, 224);
+		fill_color[2]    = new Color(196, 224, 196);
+		fill_color[3]    = new Color(224, 196, 196);
+		fill_color[4]    = new Color(196, 224, 255);
+		fill_color[5]    = new Color(224, 196, 224);
+		fill_color[6]    = new Color(224, 224, 196);
+		fill_color[7]    = new Color(224, 224, 224);
+		fill_color[8]    = new Color(224, 224, 255);
+		fill_color[9]    = new Color(224, 255, 224);
 
 		// System.out.println(System.getProperty("java.version"));
 		File file = new File(filename);
@@ -232,8 +239,8 @@ public class XFencePlotter
 				}
 				reader.close();
 				double range_of_data = global_ymax - global_ymin;
-				System.out.println("Xmin is " + global_xmin);
-				System.out.println("Ymin is " + global_ymin);
+				//System.out.println("Xmin is " + global_xmin);
+				//System.out.println("Ymin is " + global_ymin);
 				//System.out.println("Range of data is " + range_of_data);
 				for (int i = 0; i < original_data.size(); i++)
 				{
@@ -287,39 +294,29 @@ public class XFencePlotter
 		canvas_panel.add(segment_panel, BorderLayout.SOUTH);
 
 		frame.getContentPane().add(canvas_panel, BorderLayout.CENTER);
-
-		option_table = new JTable(5, 11)
-		{
-			public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
-			{
-				Component c = super.prepareRenderer(renderer, row, column);
-				if (row == 3 && column > 0)
-					c.setBackground(fill_color[column - 1]);
-				else
-					c.setBackground(java.awt.Color.WHITE);
-				/*
-				 * if (column == 0) c.setFont(c.getFont().deriveFont(Font.BOLD));
-				 */
-				return c;
-			}
-		};
-		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-		centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-		for (int i = 0; i < 11; i++)
-		{
-			option_table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-		}
-
-		String header;
-		header = new String("Line:Sensor");
-		option_table.setValueAt(header, 0, 0);
-		header = new String("Visible");
-		option_table.setValueAt(header, 1, 0);
-		header = new String("Transparent");
-		option_table.setValueAt(header, 2, 0);
-		header = new String("Key");
-		option_table.setValueAt(header, 3, 0);
-
+        
+		// Replacing option table with sensor panel.
+		JPanel sensor_panel = new JPanel(new GridLayout(2,10));
+        for(int i = 0; i < 10; i++)
+        {
+        	visible[i] = true;
+        	transparent[i] = false;
+        	sensor[i] = new JTextField();
+        	sensor[i].setHorizontalAlignment(JTextField.CENTER);
+        	sensor_panel.add(sensor[i]);
+        	sensor_state[i] = 0;
+        }
+        
+        
+        // Doing this separately so it goes in the next row of the sensor panel.
+        for(int i = 0; i < 10; i++)
+        {
+        	sensor_canvas[i] = new SensorCanvas(i);
+        	SensorCanvasMouseHandler sensor_canvas_mouse_handler = new SensorCanvasMouseHandler(i);
+        	sensor_canvas[i].addMouseListener(sensor_canvas_mouse_handler);
+        	sensor_panel.add(sensor_canvas[i]);
+        }
+ 
 		int init_line = 9;
 
 		for (int i = 0; i < 5; i++)
@@ -327,12 +324,12 @@ public class XFencePlotter
 			if (init_line % 2 == 1)
 			{
 				String line_sensor = new String(init_line + ":" + i);
-				option_table.setValueAt(line_sensor, 0, i + 1);
+				sensor[i].setText(line_sensor);
 			} 
 			else
 			{
 				String line_sensor = new String(init_line + ":" + (4 - i));
-				option_table.setValueAt(line_sensor, 0, i + 1);
+				sensor[i].setText(line_sensor);
 			}
 		}
 
@@ -341,24 +338,14 @@ public class XFencePlotter
 			if ((init_line + 1) % 2 == 1)
 			{
 				String line_sensor = new String((init_line + 1) + ":" + i);
-				option_table.setValueAt(line_sensor, 0, i + 6);
+				sensor[i + 5].setText(line_sensor);
 			} 
 			else
 			{
 				String line_sensor = new String((init_line + 1) + ":" + (4 - i));
-				option_table.setValueAt(line_sensor, 0, i + 6);
+				sensor[i + 5].setText(line_sensor);
 			}
 		}
-
-		for (int i = 1; i < 11; i++)
-		{
-			option_table.setValueAt("yes", 1, i);
-			option_table.setValueAt("no", 2, i);
-		}
-
-		JPanel option_panel = new JPanel(new BorderLayout());
-		option_panel.add(option_table, BorderLayout.CENTER);
-		frame.getContentPane().add(option_panel, BorderLayout.NORTH);
 
 		JMenuBar menu_bar = new JMenuBar();
 
@@ -548,7 +535,6 @@ public class XFencePlotter
 		
 		JPanel bounds_button_panel = new JPanel(new GridLayout(1,2));
 		JButton adjust_bounds_button = new JButton("Adjust");
-		//JButton reset_bounds_button  = new JButton("Reset");
 		reset_bounds_button  = new JButton("Reset");
 		bounds_button_panel.add(adjust_bounds_button);
 		AdjustRangeHandler adjust_range_handler = new AdjustRangeHandler();
@@ -572,7 +558,6 @@ public class XFencePlotter
 		RangeSliderHandler dynamic_range_slider_handler = new RangeSliderHandler();
 		dynamic_range_slider.addChangeListener(dynamic_range_slider_handler);
 		
-		
 		dynamic_range_canvas = new RangeCanvas();
 		dynamic_range_canvas.setSize(100, 520);
 		
@@ -582,12 +567,10 @@ public class XFencePlotter
 		
 		JPanel dynamic_range_panel = new JPanel(new BorderLayout());
 		dynamic_range_panel.add(dynamic_range_canvas_panel, BorderLayout.CENTER);
-		dynamic_range_panel.add(dynamic_range_button_panel, BorderLayout.SOUTH);
-		//dynamic_range_panel.setSize(100, 2000);		
+		dynamic_range_panel.add(dynamic_range_button_panel, BorderLayout.SOUTH);		
 		dynamic_range_dialog = new JDialog(frame);
 		dynamic_range_dialog.add(dynamic_range_panel);
-		
-		
+	
 		// A modeless dialog box that shows up if Settings->Smoothing is selected.
 		JPanel smooth_panel = new JPanel(new BorderLayout());
 
@@ -649,9 +632,9 @@ public class XFencePlotter
 		//Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
 		Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
 		//Cursor cursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
-		//Cursor cursor = new Cursor(Cursor.E_RESIZE_CURSOR);
 		
         frame.setCursor(cursor);
+        frame.getContentPane().add(sensor_panel, BorderLayout.SOUTH);
 		frame.pack();
 		frame.setLocation(600, 300);
 		apply_item.doClick();
@@ -659,40 +642,9 @@ public class XFencePlotter
 
 	class LineCanvas extends Canvas
 	{
-		Color[] outline_color;
-		Color[] fill_color;
-		
 		int original_xdim = 0;
 		int original_ydim = 0;
-
-		public LineCanvas()
-		{
-			outline_color = new Color[10];
-			fill_color = new Color[10];
-
-			outline_color[0] = new Color(0, 0, 0);
-			outline_color[1] = new Color(0, 0, 75);
-			outline_color[2] = new Color(0, 75, 0);
-			outline_color[3] = new Color(75, 0, 0);
-			outline_color[4] = new Color(0, 75, 75);
-			outline_color[5] = new Color(75, 0, 75);
-			outline_color[6] = new Color(75, 75, 0);
-			outline_color[7] = new Color(75, 75, 75);
-			outline_color[8] = new Color(75, 75, 150);
-			outline_color[9] = new Color(75, 150, 75);
-
-			fill_color[0] = new Color(196, 196, 196);
-			fill_color[1] = new Color(196, 196, 224);
-			fill_color[2] = new Color(196, 224, 196);
-			fill_color[3] = new Color(224, 196, 196);
-			fill_color[4] = new Color(196, 224, 255);
-			fill_color[5] = new Color(224, 196, 224);
-			fill_color[6] = new Color(224, 224, 196);
-			fill_color[7] = new Color(224, 224, 224);
-			fill_color[8] = new Color(224, 224, 255);
-			fill_color[9] = new Color(224, 255, 224);
-		}
-
+		
 		public void paint(Graphics g)
 		{
 			Rectangle visible_area = g.getClipBounds();
@@ -711,21 +663,21 @@ public class XFencePlotter
 			if(clipped_area != entire_area)
 			{
 				//System.out.println("Filtering out a partial repaint.");
-				
-				//This doesn't seem to do anything.
+				//Not sure what this does.
 				super.paint(g);
 			    return;
 			}
 			else
 			{	
-			grid_data = new ArrayList[ydim][xdim];
-			for(int i = 0; i < ydim; i++)
-			{
-				for(int j = 0; j < xdim; j++)
-				{
-				    grid_data[i][j] = new ArrayList();	
-				}
-			}
+			    grid_data = new ArrayList[ydim][xdim];
+			    for(int i = 0; i < ydim; i++)
+			    {
+				    for(int j = 0; j < xdim; j++)
+				    {
+				        grid_data[i][j] = new ArrayList();	
+				    }
+			    }
+			//}
            
 			Graphics2D g2 = (Graphics2D)g;
 			Image buffered_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
@@ -757,15 +709,13 @@ public class XFencePlotter
 				int xstep = (int) (max_xstep * normal_xstep);
 				int graph_xdim = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
 				
-				
 				// So that graphs are not butted together.
 				// The graphs actually overlap--don't understand why.
 				if (xstep == max_xstep)
 				{
 					graph_xdim -= number_of_segments;
 				}
-				
-				
+					
 				double max_ystep  = (ydim - (top_margin + bottom_margin)) / number_of_segments;
 				int    ystep      = (int) (max_ystep * normal_ystep);
 				int    graph_ydim = ydim - (top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
@@ -781,8 +731,8 @@ public class XFencePlotter
 				
                 // Use this to filter out vertical jitter.
 				// Not doing that currently.
-				//double quantum_distance = range / graph_xdim;
-				//System.out.println("The quantum distance for a pixel is " + quantum_distance);
+				// double quantum_distance = range / graph_xdim;
+				// System.out.println("The quantum distance for overlapping pixels is " + quantum_distance);
 
 				double minimum_x = offset;
 				double maximum_x = offset + range;
@@ -831,43 +781,17 @@ public class XFencePlotter
 		             else
 		            	 graphics_buffer.setColor(outline_color[(number_of_segments - 1) - i]);
 		             
+		             
 		             graphics_buffer.setStroke(new BasicStroke(2));
 		             graphics_buffer.drawLine((int) a1, (int) b1, (int) a1, (int) b2); 
-		             double number_of_units = 8;
-	            	 double current_range = b1 - b2;
-	            	 double current_increment = current_range / number_of_units;
+	            	 double current_range    = b1 - b2;
 	            	 double current_position = b2;
-
 		             graphics_buffer.drawLine((int) a1, (int) current_position, (int) a1 - 10, (int) current_position);
-		             if(i == 0)
-		             {
-		                 for(int j = 0; j < number_of_units; j++)
-		                 {
-		            	     current_position += current_increment;
-		            	     graphics_buffer.drawLine((int) a1, (int) current_position, (int) a1 - 10, (int) current_position);
-		                 }
-		             }
-		            
-		             if(i == 0)
-		             {
-		            	 number_of_units = 8;
-		            	 current_range = a2 - a1;
-		            	 current_increment = current_range / number_of_units;
-		            	 current_position = a1;
-		            	 graphics_buffer.drawLine((int) current_position, (int) b1, (int) current_position, (int) b1 + 10);
-		            	 for(int j = 0; j < number_of_units; j++)
-		            	 {
-		            		 current_position += current_increment;
-		            		 graphics_buffer.drawLine((int) current_position, (int) b1, (int) current_position, (int) b1 + 10); 
-		            	 }
-		             }
-		             
 		             // If plots directly overlap, we only need one line to show the y extent.
 				     if (ystep == 0 && xstep == 0) 
 					     break; 
 				}
 				 
-
 				ArrayList plot_data = new ArrayList();
 				ArrayList sample_data = new ArrayList();
 			
@@ -1048,10 +972,7 @@ public class XFencePlotter
 						}
 						current_y *= graph_ydim;
 						current_y = graph_ydim - current_y;
-						//current_y += top_margin + (number_of_segments) * ystep;
 						current_y += top_margin + (number_of_segments - 1) * ystep;
-						//current_y += top_margin + i * ystep;
-						//current_y += top_margin;
 						current_y -= yaddend;
 					
 						x[m] = (int) current_x;
@@ -1069,7 +990,6 @@ public class XFencePlotter
 						
 						// Associate this point with sample information.
 						// Where endpoints overlap, there should be multiple samples.
-						
 						ArrayList grid_list = grid_data[(int)current_y][(int)current_x];
 						if(grid_list.size() == 0)
 						{
@@ -1083,8 +1003,6 @@ public class XFencePlotter
 							// two points in the data map to one point in graph.
 							// Throwing out entries that were generated
 							// by a neighboring pixel.
-							
-
 							int this_line   = (int)sensor_list.get(0);
 							int this_sensor = (int)sensor_list.get(1);
 							ArrayList new_grid_list = new ArrayList();
@@ -1187,13 +1105,9 @@ public class XFencePlotter
 					java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
 					polygon[i] = sensor_polygon;
 
-					//ArrayList sensor_list = (ArrayList) sensor_data.get(i + 4);
-					String visible = (String) sensor_list.get(2);
-					String transparent = (String) sensor_list.get(3);
-
-					if (visible.equals("yes"))
+					if(visible[i] == true)
 					{
-						if (transparent.equals("no"))
+						if (transparent[i] == false)
 						{
 							if(view.equals("East"))
 							    graphics_buffer.setColor(fill_color[i]);
@@ -1248,76 +1162,66 @@ public class XFencePlotter
 				g2.drawImage(buffered_image, 0, 0, null);
 				
 				// Drawing directly to the display because the buffered fonts look like dot matrix resolution.
-				Font current_font = g2.getFont(); 
-				FontMetrics font_metrics = g2.getFontMetrics(current_font);
 				g2.setColor(java.awt.Color.BLACK); 
 				
 				double current_value = offset;
-				double number_of_units = 8;
-				double current_value_increment = range / number_of_units;
-				
 				double current_position = left_margin;
-				double current_position_increment = graph_xdim / number_of_units;
+				int a1 = left_margin;
+				int b1 = ydim - bottom_margin;
+
+				int a2 = a1 + graph_xdim;
+				int b2 = b1 - graph_ydim;
 				
-				String position_string = String.format("%,.2f", current_value);
+				// Drawing tick marks on position axis.
+				String position_string = String.format("%,.1f", current_value);
+				Font current_font = g2.getFont(); 
+				FontMetrics font_metrics = g2.getFontMetrics(current_font);
 				int string_width = font_metrics.stringWidth(position_string); 
 				g2.drawString(position_string, (int)current_position - string_width / 2, ydim - bottom_margin / 2);
-				
-				if((string_width + 3) * (number_of_units + 1) < graph_xdim)
+				g2.drawLine((int)current_position, b1, (int)current_position, b1 + 10);
+				int number_of_units = (int)(graph_xdim / (string_width * 2));
+				double current_value_increment = range / number_of_units;
+				double current_position_increment = graph_xdim;
+				current_position_increment /= number_of_units;
+				for(int i = 0; i < number_of_units; i++)
 				{
-				  for(int j = 0; j < number_of_units; j++)
-				  {
 					  current_value += current_value_increment;
 					  current_position += current_position_increment;
-					  position_string = String.format("%,.2f", current_value);
+					  position_string = String.format("%,.1f", current_value);
 					  string_width = font_metrics.stringWidth(position_string); 
-					  if(j != number_of_units - 1)
-					      g2.drawString(position_string, (int)current_position - string_width / 2, ydim - bottom_margin / 2);
-					  else
-						  g2.drawString(position_string, (int)current_position - string_width, ydim - bottom_margin / 2);
-				  }
+					  g2.drawString(position_string, (int)current_position - string_width / 2, ydim - bottom_margin / 2);
+					  g2.drawLine((int)current_position, b1, (int)current_position, b1 + 10);
 				}
-				else
-				{
-					current_value = offset + range;
-					current_position += current_position_increment * number_of_units;
-					position_string = String.format("%,.2f", current_value);
-					g2.drawString(position_string, (int)current_position - string_width, ydim - bottom_margin / 2);
-				}
-				
 				position_string = new String("meters"); 
 				string_width = font_metrics.stringWidth(position_string);  
 				g2.drawString(position_string, left_margin + (xdim - right_margin - left_margin) / 2 - string_width / 2, ydim - bottom_margin / 4);
 				
-				current_value = minimum_y;
-				current_value_increment = (maximum_y - minimum_y)/ number_of_units;
-				current_position = ydim - bottom_margin;
-				current_position_increment = graph_ydim / number_of_units;
-				
-				String intensity_string = String.format("%,.2f", current_value); 
-			    string_width = font_metrics.stringWidth(intensity_string); 
-				g2.drawString(intensity_string, left_margin / 2 - string_width / 2, (int)current_position); 
-				
+				// Drawing tick marks on intensity axis.
+				current_value = maximum_y;
+				double current_intensity_range = maximum_y - minimum_y;
+				double current_range = b1 - b2;
 				int string_height = font_metrics.getAscent();
-				if((string_height + 1) * (number_of_units + 1) < graph_ydim)
-				{
-				    for(int j = 0; j < number_of_units; j++)
-				    {
-					    current_value    += current_value_increment;
-					    current_position -= current_position_increment;
-					    intensity_string = String.format("%,.2f", current_value);
-					    g2.drawString(intensity_string, left_margin / 2 - string_width / 2, (int)(current_position + string_height / 2));
-				    }
-				}
-				else
-				{
-					current_value = maximum_y;
-					current_position -= current_position_increment * number_of_units;
-					intensity_string = String.format("%,.2f", current_value);
-					g2.drawString(intensity_string, left_margin / 2 - string_width / 2, (int)(current_position + string_height / 2));	
-				}
-				
-				intensity_string =new String("nT"); 
+				number_of_units = (int)(current_range / (string_height + 2));
+				double current_increment = current_range / number_of_units;
+				current_value_increment = current_intensity_range / number_of_units;
+				current_position = b2;
+	            g2.drawLine((int) a1, (int) current_position, (int) a1 - 10, (int) current_position);
+	            
+	            for(int j = 0; j < number_of_units; j++)
+	            {
+	                g2.drawLine((int) a1, (int) current_position, (int) a1 - 10, (int) current_position);
+	            	String intensity_string = String.format("%,.0f", current_value);
+	            	string_width = font_metrics.stringWidth(intensity_string); 
+	            	g2.drawString(intensity_string, left_margin / 2 - string_width / 2, (int)(current_position + string_height / 2));
+	            	current_position += current_increment;
+				    current_value -= current_value_increment;
+	            }
+	            g2.drawLine((int) a1, (int) current_position, (int) a1 - 10, (int) current_position);
+           	    String intensity_string = String.format("%,.0f", current_value);
+           	    string_width = font_metrics.stringWidth(intensity_string); 
+           	    g2.drawString(intensity_string, left_margin / 2 - string_width / 2, (int)(current_position + string_height / 2));
+           	   
+				intensity_string = new String("nT"); 
 				string_width = font_metrics.stringWidth(intensity_string);
 				g2.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
 				
@@ -1355,7 +1259,7 @@ public class XFencePlotter
 		    }
 	    }
 	    
-		
+		// Useful debugging function.
 		/*
 		public void mouseClicked(MouseEvent event)
 	    {
@@ -1521,14 +1425,14 @@ public class XFencePlotter
 	class ApplyHandler implements ActionListener
 	{
 		int[][] line_array;
-		int[]   line;
-		int[]   sensor;
+		int[]   current_line;
+		int[]   current_sensor;
 
 		ApplyHandler()
 		{
 			line_array = ObjectMapper.getUnclippedLineArray();
-			line       = new int[10];
-			sensor     = new int[10];
+			current_line       = new int[10];
+			current_sensor     = new int[10];
 		}
 
 		public void actionPerformed(ActionEvent event)
@@ -1537,38 +1441,39 @@ public class XFencePlotter
 			{
 				try
 				{
-					String line_sensor_pair = (String) option_table.getValueAt(0, i + 1);
+					//String line_sensor_pair = (String) option_table.getValueAt(0, i + 1);
+					String line_sensor_pair = sensor[i].getText();
 					StringTokenizer tokenizer = new StringTokenizer(line_sensor_pair, ":");
 					int number_of_tokens = tokenizer.countTokens();
 					if (number_of_tokens == 2)
 					{
 						String line_string = tokenizer.nextToken(":");
-						int current_line = Integer.parseInt(line_string);
+						int next_line = Integer.parseInt(line_string);
 						String sensor_string = tokenizer.nextToken(":");
-						int current_sensor = Integer.parseInt(sensor_string);
+						int next_sensor = Integer.parseInt(sensor_string);
 
 						// Do a check for valid input
-						if (current_line >= 0 && current_line < 30 && current_sensor >= 0 && current_sensor < 5)
+						if(next_line >= 0 && next_line < 30 && next_sensor >= 0 && next_sensor < 5)
 						{
-							line[i] = current_line;
-							sensor[i] = current_sensor;
+							current_line[i] = next_line;
+							current_sensor[i] = next_sensor;
 						} 
 						else
 						{
-							line[i]   = -1;
-							sensor[i] = -1;
+							current_line[i]   = -1;
+							current_sensor[i] = -1;
 						}
 					} 
 					else
 					{
-						line[i]   = -1;
-						sensor[i] = -1;
+						current_line[i]   = -1;
+						current_sensor[i] = -1;
 					}
 				} 
 				catch (Exception exception)
 				{
-					line[i]   = -1;
-					sensor[i] = -1;
+					current_line[i]   = -1;
+					current_sensor[i] = -1;
 				}
 			}
 
@@ -1583,16 +1488,16 @@ public class XFencePlotter
 
 			for (int i = 0; i < 10; i++)
 			{
-				if (line[i] != -1)
+				if (current_line[i] != -1)
 				{
-					int current_line = line[i];
-					int current_sensor = sensor[i];
-					int start = line_array[current_line][0];
-					int stop = line_array[current_line][1];
+					//int current_line = line[i];
+					//int current_sensor = sensor[i];
+					int start = line_array[current_line[i]][0];
+					int stop = line_array[current_line[i]][1];
 
-					if (current_line % 2 == 0)
+					if (current_line[i] % 2 == 0)
 					{
-						for (int j = start + current_sensor; j < stop; j += 5)
+						for (int j = start + current_sensor[i]; j < stop; j += 5)
 						{
 							Sample sample = (Sample) data.get(j);
 							if (sample.y >= offset && sample.y < (offset + range))
@@ -1621,7 +1526,7 @@ public class XFencePlotter
 					} 
 					else
 					{
-						for (int j = stop - (1 + (4 - current_sensor)); j >= start; j -= 5)
+						for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
 						{
 							Sample sample = (Sample) data.get(j);
 							if (sample.y >= offset && sample.y < (offset + range))
@@ -1659,24 +1564,33 @@ public class XFencePlotter
 
 			for (int i = 0; i < 10; i++)
 			{
-				if (line[i] != -1)
+				if (current_line[i] != -1)
 				{
-					int current_line = line[i];
-					int current_sensor = sensor[i];
 					ArrayList segment_data = new ArrayList();
-					segment_data.add(current_line);
-					segment_data.add(current_sensor);
+					segment_data.add(current_line[i]);
+					segment_data.add(current_sensor[i]);
 
+					/*
 					String visible = (String) option_table.getValueAt(1, i + 1);
 					segment_data.add(visible);
 					String transparent = (String) option_table.getValueAt(2, i + 1);
 					segment_data.add(transparent);
+					*/
+					
+					if(visible[i] == true)
+						segment_data.add(new String("yes"));
+					else
+						segment_data.add(new String("no"));
+					if(transparent[i] == true)
+						segment_data.add(new String("yes"));
+					else
+						segment_data.add(new String("no"));
 
-					int start = line_array[current_line][0];
-					int stop = line_array[current_line][1];
-					if (current_line % 2 == 0)
+					int start = line_array[current_line[i]][0];
+					int stop = line_array[current_line[i]][1];
+					if (current_line[i] % 2 == 0)
 					{
-						for (int j = start + current_sensor; j < stop; j += 5)
+						for (int j = start + current_sensor[i]; j < stop; j += 5)
 						{
 							Sample sample = (Sample) data.get(j);
 							if (sample.y >= offset && sample.y < (offset + range))
@@ -1687,7 +1601,7 @@ public class XFencePlotter
 					} 
 					else
 					{
-						for (int j = stop - (1 + (4 - current_sensor)); j >= start; j -= 5)
+						for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
 						{
 							Sample sample = (Sample) data.get(j);
 							if (sample.y >= offset && sample.y < (offset + range))
@@ -1776,8 +1690,7 @@ public class XFencePlotter
 				// Reset the slider.
 				range_slider.setValue((int)offset);
 				range_slider.setValue((int)(offset + range));
-				
-				
+
 				button_changing = false;
 				
 				// Resegment the data.
@@ -1845,13 +1758,21 @@ public class XFencePlotter
 		public void actionPerformed(ActionEvent e)
 		{
 			String input_string = input.getText();
-			StringTokenizer input_tokenzer = new StringTokenizer(input_string, ":./");
+			StringTokenizer input_tokenizer = new StringTokenizer(input_string, ":./");
 			
-			String line_string = input_tokenzer.nextToken();
+			String line_string = input_tokenizer.nextToken();
 			int current_line = Integer.parseInt(line_string);
 			
-			String sensor_string = input_tokenzer.nextToken();
+			String sensor_string = input_tokenizer.nextToken();
 			int current_sensor = Integer.parseInt(sensor_string);
+			
+			int number_of_pairs = 10;
+			if(input_tokenizer.hasMoreTokens())
+			{
+				String number_of_pairs_string = input_tokenizer.nextToken();
+				number_of_pairs        = Integer.parseInt(number_of_pairs_string); 
+				System.out.println("Number of pairs to be loaded is " + number_of_pairs);
+			}
 
 			String[] line_sensor_pair = new String[10];
 
@@ -1920,7 +1841,11 @@ public class XFencePlotter
 
 			for (int i = 0; i < 10; i++)
 			{
-				option_table.setValueAt(line_sensor_pair[i], 0, i + 1);
+				sensor[i].setText("");
+			}
+			for (int i = 0; i < number_of_pairs; i++)
+			{
+				sensor[i].setText(line_sensor_pair[i]);
 			}
 		}
 	}
@@ -2038,54 +1963,102 @@ public class XFencePlotter
 		}
 	}
 	
+	class SensorCanvas extends Canvas
+	{
+	    int index;
+	    
+	    SensorCanvas(int index)
+	    {
+	    	this.index = index;
+	    }
+	    
+	    public void paint(Graphics g)
+		{
+	    	Rectangle visible_area = g.getClipBounds();
+			int xdim = (int) visible_area.getWidth();
+			int ydim = (int) visible_area.getHeight();
+			Graphics2D g2 = (Graphics2D) g;
+			
+			int state = sensor_state[index];
+			if(state == 0)
+			{
+				g2.setColor(fill_color[index]);
+				g2.fillRect(0, 0, xdim, ydim);
+				g2.setColor(outline_color[index]);
+				g2.setStroke(new BasicStroke(3));
+				g2.drawRect(0, 0, xdim, ydim);
+			}
+			else if(state == 1)
+			{
+				g2.setColor(java.awt.Color.WHITE);
+				g2.fillRect(0, 0, xdim, ydim);  
+				g2.setColor(outline_color[index]);
+				g2.setStroke(new BasicStroke(3));
+				g2.drawRect(0, 0, xdim, ydim);
+			}
+			else if(state == 2)
+			{
+				g2.setColor(java.awt.Color.WHITE);
+				g2.fillRect(0, 0, xdim, ydim);     		
+			}
+		}
+	}
+	
+	class SensorCanvasMouseHandler extends MouseAdapter
+	{
+		int index;
+		
+		SensorCanvasMouseHandler(int index)
+		{
+			this.index = index;
+		}
+		
+		public void mouseClicked(MouseEvent event)
+	    {
+		    int button = event.getButton();
+		    
+		    if(button == 1)
+		    {
+		        if(sensor_state[index] == 2)
+		        {
+		        	sensor_state[index] = 0;
+		        	visible[index] = true;
+		        	transparent[index] = false;
+		        }
+		        else
+		        {
+		        	sensor_state[index]++;	
+		        	if(sensor_state[index] == 1)
+		        	{
+		        		visible[index] = true;
+			        	transparent[index] = true;	
+		        	}
+		        	else
+		        		visible[index] = false;   
+		        }
+		        sensor_canvas[index].repaint();
+		        canvas.repaint();
+		        placement_canvas.repaint();
+		    }
+		    else if(button == 3)
+		    {
+		    	System.out.println("Right click.");
+		    }
+	    }
+	}
+	   
 	class PlacementCanvas extends Canvas
 	{
-		Color[] outline_color;
-		Color[] fill_color;
-		
 		int top_margin    = 2;
 		int bottom_margin = 4;
 		int left_margin   = 4;
 		int right_margin  = 2;
 
-		public PlacementCanvas()
-		{
-			outline_color = new Color[10];
-			fill_color = new Color[10];
-
-			outline_color[0] = new Color(0, 0, 0);
-			outline_color[1] = new Color(0, 0, 75);
-			outline_color[2] = new Color(0, 75, 0);
-			outline_color[3] = new Color(75, 0, 0);
-			outline_color[4] = new Color(0, 75, 75);
-			outline_color[5] = new Color(75, 0, 75);
-			outline_color[6] = new Color(75, 75, 0);
-			outline_color[7] = new Color(75, 75, 75);
-			outline_color[8] = new Color(75, 75, 150);
-			outline_color[9] = new Color(75, 150, 75);
-
-			fill_color[0] = new Color(196, 196, 196);
-			fill_color[1] = new Color(196, 196, 224);
-			fill_color[2] = new Color(196, 224, 196);
-			fill_color[3] = new Color(224, 196, 196);
-			fill_color[4] = new Color(196, 224, 255);
-			fill_color[5] = new Color(224, 196, 224);
-			fill_color[6] = new Color(224, 224, 196);
-			fill_color[7] = new Color(224, 224, 224);
-			fill_color[8] = new Color(224, 224, 255);
-			fill_color[9] = new Color(224, 255, 224);
-		}
-
 		public void paint(Graphics g)
 		{
 			Rectangle visible_area = g.getClipBounds();
-
-			//System.out.println("Inside placement canvas paint()");
 			int xdim = (int) visible_area.getWidth();
 			int ydim = (int) visible_area.getHeight();
-			
-			//System.out.println("xdim = " + xdim + ", ydim = " + ydim);
-
 			Graphics2D g2 = (Graphics2D) g;
 			Font current_font = g2.getFont();
 			FontMetrics font_metrics = g2.getFontMetrics(current_font);
@@ -2123,11 +2096,7 @@ public class XFencePlotter
 				graph_ydim -= 2;
 			}
 			
-			//System.out.println("graph xdim = " + graph_xdim + ", graph ydim = " + graph_ydim);
-			
 			Rectangle [] rectangle   = new Rectangle[number_of_segments];
-			boolean   [] visible     = new boolean[number_of_segments];
-			boolean   [] transparent = new boolean[number_of_segments];
 			
 			for (int i = 0; i < number_of_segments; i++) 
 			{ 
@@ -2143,19 +2112,7 @@ public class XFencePlotter
 	             a2 += xaddend; 
 	             b2 -= yaddend;
 	             
-	             //System.out.println("a1 is " + a1 + ", a2 is " + a2);
-	             //System.out.println("b1 is " + b1 + ", b2 is " + b2);
 	             rectangle[i] = new Rectangle(a2, b2, graph_xdim, graph_ydim);
-	             String visible_string = (String) option_table.getValueAt(1, i + 1);
-	             if(visible_string.equals("yes"))
-	                 visible[i] = true;	 
-	             else
-	            	 visible[i] = false;
-	             String transparent_string = (String) option_table.getValueAt(2, i + 1);
-	             if(transparent_string.equals("yes"))
-		                 transparent[i] = true;	 
-		             else
-		            	 transparent[i] = false;
 			}
 			
 			for (int i = (number_of_segments - 1); i >= 0; i--) 
@@ -2351,12 +2308,6 @@ public class XFencePlotter
 					graphics.drawLine(xdim / 2, top_margin + (int)delta, xdim / 2 + 10, top_margin + (int)delta);
 					intensity_string = String.format("%,.2f", current_max);
 					graphics.drawString(intensity_string, xdim / 2 + 15, top_margin + (int)delta);
-					/*
-					System.out.println("Current delta is " + max_delta);
-					System.out.println("Current range is " + current_range);
-					System.out.println("Current graph ydim is " + graph_ydim);
-					System.out.println("Delta is " + delta);
-					*/
 					
 				    double min_delta = current_min - min;
 				    min_delta /= current_range;
