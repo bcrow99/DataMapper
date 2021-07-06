@@ -1441,7 +1441,6 @@ public class XFencePlotter
 			{
 				try
 				{
-					//String line_sensor_pair = (String) option_table.getValueAt(0, i + 1);
 					String line_sensor_pair = sensor[i].getText();
 					StringTokenizer tokenizer = new StringTokenizer(line_sensor_pair, ":");
 					int number_of_tokens = tokenizer.countTokens();
@@ -1490,8 +1489,6 @@ public class XFencePlotter
 			{
 				if (current_line[i] != -1)
 				{
-					//int current_line = line[i];
-					//int current_sensor = sensor[i];
 					int start = line_array[current_line[i]][0];
 					int stop = line_array[current_line[i]][1];
 
@@ -1570,13 +1567,6 @@ public class XFencePlotter
 					segment_data.add(current_line[i]);
 					segment_data.add(current_sensor[i]);
 
-					/*
-					String visible = (String) option_table.getValueAt(1, i + 1);
-					segment_data.add(visible);
-					String transparent = (String) option_table.getValueAt(2, i + 1);
-					segment_data.add(transparent);
-					*/
-					
 					if(visible[i] == true)
 						segment_data.add(new String("yes"));
 					else
@@ -1614,6 +1604,7 @@ public class XFencePlotter
 				}
 			}
 			canvas.repaint();
+			placement_canvas.repaint();
 		}
 	}
 
@@ -2042,7 +2033,27 @@ public class XFencePlotter
 		    }
 		    else if(button == 3)
 		    {
-		    	System.out.println("Right click.");
+		    	//System.out.println("Right click.");
+		    	if(index == 9)
+		    	{
+		    		sensor[index].setText("");
+		    	}
+		    	else
+		    	{
+		    		int next_index = index + 1;
+		    		String line_sensor_pair = sensor[next_index].getText();
+		    		sensor[next_index - 1].setText(line_sensor_pair);
+		    		while(next_index < 9)
+		    		{
+		    			next_index++;
+		    			line_sensor_pair = sensor[next_index].getText();
+		    			sensor[next_index - 1].setText(line_sensor_pair);
+		    		}
+		    		sensor_state[index] = 2;
+		    		sensor_canvas[index].repaint();	
+		    	}
+		    	// Resegment the data.
+				apply_item.doClick();
 		    }
 	    }
 	}
