@@ -109,7 +109,7 @@ public class XFencePlotter
 	int     smoothing    = 0;
 	double  normal_xstep = 0.;
 	double  normal_ystep = 0.;
-	String  view         = new String("East");
+	String  view         = new String("Reverse East");
 	String  number_mode  = new String("Relative");
 
 	// Shared by dynamic range control and autoscale control.
@@ -126,8 +126,8 @@ public class XFencePlotter
 
 	public static void main(String[] args)
 	{
-		// String prefix = new String("C:/Users/Brian Crowley/Desktop/");
-		String prefix = new String("");
+		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
+		// String prefix = new String("");
 		if(args.length != 1)
 		{
 			System.out.println("Usage: XFencePlotter <data file>");
@@ -329,7 +329,8 @@ public class XFencePlotter
 			{
 				String line_sensor = new String(init_line + ":" + i);
 				sensor[i].setText(line_sensor);
-			} else
+			} 
+			else
 			{
 				String line_sensor = new String(init_line + ":" + (4 - i));
 				sensor[i].setText(line_sensor);
@@ -342,7 +343,8 @@ public class XFencePlotter
 			{
 				String line_sensor = new String((init_line + 1) + ":" + i);
 				sensor[i + 5].setText(line_sensor);
-			} else
+			} 
+			else
 			{
 				String line_sensor = new String((init_line + 1) + ":" + (4 - i));
 				sensor[i + 5].setText(line_sensor);
@@ -459,7 +461,7 @@ public class XFencePlotter
 		// A modeless dialog box that shows up if Format->View is selected.
 		JPanel view_panel = new JPanel((new GridLayout(2, 1)));
 		JTextField user_information = new JTextField();
-		user_information.setText("East");
+		user_information.setText("Reverse East");
 		user_information.setHorizontalAlignment(JTextField.CENTER);
 		user_information.setEditable(false);
 
@@ -468,10 +470,10 @@ public class XFencePlotter
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				if (view.equals("East"))
+				if (view.equals("Reverse East"))
 					view = new String("West");
 				else
-					view = new String("East");
+					view = new String("Reverse East");
 				canvas.repaint();
 				placement_canvas.repaint();
 				user_information.setText(view);
@@ -824,9 +826,8 @@ public class XFencePlotter
 						b1 -= yaddend;
 						a2 += xaddend;
 						b2 -= yaddend;
-
-						// Might want to call this reverse-east.
-						if (view.equals("East"))
+						
+						if (view.equals("Reverse East"))
 							graphics_buffer.setColor(outline_color[i]);
 						else
 							graphics_buffer.setColor(outline_color[(number_of_segments - 1) - i]);
@@ -837,6 +838,7 @@ public class XFencePlotter
 						double current_position = b2;
 						graphics_buffer.drawLine((int) a1, (int) current_position, (int) a1 - 10,
 								(int) current_position);
+						
 						// If plots directly overlap, we only need one line to show the y extent.
 						if (ystep == 0 && xstep == 0)
 							break;
@@ -962,7 +964,7 @@ public class XFencePlotter
 						ArrayList sensor_list;
 						int current_line;
 						int current_sensor;
-						if (view.equals("East"))
+						if (view.equals("Reverse East"))
 						{
 							sensor_list = (ArrayList) sensor_data.get(i + 4);
 							current_line = (int) sensor_list.get(0);
@@ -1135,13 +1137,13 @@ public class XFencePlotter
 						{
 							if (transparent[i] == false)
 							{
-								if (view.equals("East"))
+								if (view.equals("Reverse East"))
 									graphics_buffer.setColor(fill_color[i]);
 								else
 									graphics_buffer.setColor(fill_color[(number_of_segments - 1) - i]);
 								graphics_buffer.fillPolygon(polygon[i]);
 							}
-							if (view.equals("East"))
+							if (view.equals("Reverse East"))
 								graphics_buffer.setColor(outline_color[i]);
 							else
 								graphics_buffer.setColor(outline_color[(number_of_segments - 1) - i]);
