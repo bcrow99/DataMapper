@@ -12,10 +12,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.*;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.table.*;
+
+import java.awt.print.*;
+import javax.print.*;
 
 public class XFencePlotter
 {
@@ -35,7 +40,7 @@ public class XFencePlotter
 	// Shared interface componants.
 	public JFrame             frame;
 	public LineCanvas         line_canvas;
-	public JScrollBar         scrollbar;
+	public JScrollBar         range_scrollbar;
 	public RangeSlider        range_slider;
 	public RangeSlider        dynamic_range_slider;
 	public DynamicRangeCanvas dynamic_range_canvas;
@@ -48,16 +53,16 @@ public class XFencePlotter
 	public JScrollPane        order_scrollpane;
 	public BufferedImage      buffered_image;
 
-	// File
+	// File menu
 	public JDialog load_dialog;
 	public JDialog save_dialog;
 
-	// Format
+	// Format menu
 	public JDialog placement_dialog;
 	public JDialog sort_dialog;
 	public JDialog image_dialog;
 
-	// Settings
+	// Settings menu
 	public JDialog scale_dialog;
 	public JDialog dynamic_range_dialog;
 	public JDialog smooth_dialog;
@@ -80,15 +85,17 @@ public class XFencePlotter
 	int    xlocation     = 1000;
 	int    ylocation     = 1000;
 	
-	//Share by image canvas and XFencePlotter
+	//Shared by image canvas and XFencePlotter
 	int    image_xdim    = 670;
 	int    image_ydim    = 640;
+	
+	// Used by XFencePlotter at startup
 	int    init_line     = 10;
 
 	// Variables determined when reading in data.
 	double global_xmin, global_xmax, global_ymin, global_ymax,intensity_min, intensity_max;
 
-	// Updated by Slider, Scrollbar, and Button
+	// Updated by Range Slider, Range Scrollbar, and Range Button
 	JTextField offset_information, range_information;
 
 	// Updated by MouseMotionHandler
@@ -115,8 +122,10 @@ public class XFencePlotter
 	
 	// Referenced by canvas.paint() and modified by tick mark item handler.
 	boolean tick_marks     = false;
+	
 	// Referenced by canvas.paint() and modified by overlay item handler.
 	boolean raster_overlay = false;
+	
 	// Referenced by canvas.paint() and modified by number mode handler.
 	boolean relative_mode = true;
 	
@@ -133,15 +142,13 @@ public class XFencePlotter
 	// Apply Handler calls repaint()
 	ImageCanvas image_canvas;
 	
-	// Referenced by pop-ups and canvas paint().
+	// Referenced by line canvas paint() and modified by item dialogs.
 	boolean autoscale    = false;
 	double  scale_factor = 1.;
 	int     smoothing    = 0;
 	double  normal_xstep = 0.5;
 	double  normal_ystep = 0.5;
 	double  normal_sort_location = 0.5;
-	//String  view         = new String("Reverse East");
-	//String  number_mode  = new String("Relative");
 
 	// Shared by dynamic range control and autoscale control.
 	JButton reset_bounds_button;
@@ -157,8 +164,8 @@ public class XFencePlotter
 
 	public static void main(String[] args)
 	{
-		//String prefix = new String("C:/Users/Brian Crowley/Desktop/");
-		String prefix = new String("");
+		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
+		//String prefix = new String("");
 		if(args.length != 1)
 		{
 			System.out.println("Usage: XFencePlotter <data file>");
@@ -242,7 +249,6 @@ public class XFencePlotter
 					Sample current_sample = new Sample(x, y, intensity);
 					original_data.add(current_sample);
 				}
-
 				while(line != null)
 				{
 					try
@@ -296,7 +302,46 @@ public class XFencePlotter
 		}
 
 		frame = new JFrame("Fence Plotter");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		WindowAdapter window_handler = new WindowAdapter()
+	    {
+	        public void windowClosing(WindowEvent event)
+	        {
+	        	String current_directory = new String("C:/Users/Brian Crowley/Desktop/");
+	        	String filename          = new String("xfp.cfg");
+	        	try
+	            {
+	            	PrintWriter output = new PrintWriter(current_directory + filename);	
+	            	
+	            	String      string = String.format("%,.2f", offset);
+	            	output.write("Offset\t\t" + string + "\n");
+	            	
+	            	string = String.format("%,.2f", range);
+	            	output.write("Range\t\t" + string + "\n");
+	                
+	            	int number_of_segments = sensor_data.size() - 4;
+	            	if(west_view)
+	            	{
+	            	    string = sensor[number_of_segments - 1].getText();	
+	            	    output.write("InitLine\t" + string + "\n");
+	            	    output.write("WestView\ttrue\n");
+	            	}
+	            	else
+	            	{
+	            		string = sensor[0].getText();   	
+	            	    output.write("InitLine\t" + string + "\n");
+	            	    output.write("WestView\tfalse\n");
+	            	}
+	            	output.close();	
+	            }
+	        	catch(Exception e)
+	        	{
+	        		System.out.println(e.toString());
+	        	}
+	            System.exit(0);
+	        }
+	    };
+	    frame.addWindowListener(window_handler);
+	    //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		line_canvas = new LineCanvas();
 		line_canvas.setSize(900, 700);
 		MouseHandler mouse_handler = new MouseHandler();
@@ -305,9 +350,9 @@ public class XFencePlotter
 		line_canvas.addMouseMotionListener(mouse_motion_handler);
 		JPanel canvas_panel = new JPanel(new BorderLayout());
 		canvas_panel.add(line_canvas, BorderLayout.CENTER);
-		scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 50, 3, 0, 103);
+		range_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 50, 3, 0, 103);
 		ScrollbarHandler scrollbar_handler = new ScrollbarHandler();
-		scrollbar.addAdjustmentListener(scrollbar_handler);
+		range_scrollbar.addAdjustmentListener(scrollbar_handler);
 		range_slider = new RangeSlider();
 		range_slider.setMinimum(15);
 		range_slider.setMaximum(75);
@@ -316,7 +361,7 @@ public class XFencePlotter
 		SliderHandler slider_handler = new SliderHandler();
 		range_slider.addChangeListener(slider_handler);
 		JPanel segment_panel = new JPanel(new BorderLayout());
-		segment_panel.add(scrollbar, BorderLayout.NORTH);
+		segment_panel.add(range_scrollbar, BorderLayout.NORTH);
 		segment_panel.add(range_slider, BorderLayout.SOUTH);
 		canvas_panel.add(segment_panel, BorderLayout.SOUTH);
 		frame.getContentPane().add(canvas_panel, BorderLayout.CENTER);
@@ -340,9 +385,7 @@ public class XFencePlotter
 			sensor_canvas[i].addMouseListener(sensor_canvas_mouse_handler);
 			sensor_panel.add(sensor_canvas[i]);
 		}
-
 		
-
 		for (int i = 0; i < 5; i++)
 		{
 			if (init_line % 2 == 1)
@@ -389,10 +432,11 @@ public class XFencePlotter
 
 		JMenuBar menu_bar = new JMenuBar();
 
-		JMenu file_menu = new JMenu("File");
-		JMenuItem load_item = new JMenuItem("Load");
-		apply_item          = new JMenuItem("Apply");
-		JMenuItem save_item = new JMenuItem("Save");
+		JMenu     file_menu  = new JMenu("File");
+		JMenuItem load_item  = new JMenuItem("Load");
+		apply_item           = new JMenuItem("Apply");
+		//JMenuItem print_item = new JMenuItem("Print");
+		JMenuItem save_item  = new JMenuItem("Save");
 
 		ActionListener load_handler = new ActionListener()
 		{
@@ -413,16 +457,22 @@ public class XFencePlotter
 
 		ApplyHandler apply_handler = new ApplyHandler();
 		apply_item.addActionListener(apply_handler);
-
-		SaveHandler save_handler = new SaveHandler();
+		
+		//PrintHandler print_handler = new PrintHandler();
+		//print_item.addActionListener(print_handler);
+		
+		SaveHandler  save_handler = new SaveHandler();
 		save_item.addActionListener(save_handler);
 
 		file_menu.add(load_item);
 		file_menu.add(apply_item);
+		// File->Print works but produces a low quality print.
+		// Not worth trying to make it look better when
+		// we can just print from Photoshop or Gimp instead.
+		//file_menu.add(print_item);
 		file_menu.add(save_item);
 
 		JMenu format_menu = new JMenu("Format");
-
 		JMenuItem place_item = new JMenuItem("Placement");
 		ActionListener placement_handler = new ActionListener()
 		{
@@ -834,7 +884,6 @@ public class XFencePlotter
 			}
 		};
 		factor_slider.addChangeListener(factor_handler);
-
 		scale_panel.add(autoscale_button);
 		scale_panel.add(factor_slider);
 		scale_dialog = new JDialog(frame);
@@ -845,44 +894,133 @@ public class XFencePlotter
 		lower_bound.setHorizontalAlignment(JTextField.CENTER);
 		upper_bound = new JTextField();
 		upper_bound.setHorizontalAlignment(JTextField.CENTER);
-
 		JPanel bounds_panel = new JPanel(new GridLayout(2, 2));
 		bounds_panel.add(lower_bound);
 		bounds_panel.add(upper_bound);
 		bounds_panel.add(new JLabel("Lower", JLabel.CENTER));
 		bounds_panel.add(new JLabel("Upper", JLabel.CENTER));
-
 		JPanel bounds_button_panel = new JPanel(new GridLayout(1, 2));
 		JButton adjust_bounds_button = new JButton("Adjust");
 		reset_bounds_button = new JButton("Reset");
 		bounds_button_panel.add(adjust_bounds_button);
-		AdjustRangeHandler adjust_range_handler = new AdjustRangeHandler();
+		ActionListener adjust_range_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				double seg_min      = (double) sensor_data.get(0);
+				double seg_max      = (double) sensor_data.get(1);
+				double line_min     = (double) sensor_data.get(2);
+				double line_max     = (double) sensor_data.get(3);
+				String bound_string = lower_bound.getText();
+				double min          = Double.valueOf(bound_string);
+				bound_string        = upper_bound.getText();
+				double max          = Double.valueOf(bound_string);
+				double global_min   = 0;
+				double global_max   = 0;
+				
+				if(autoscale)
+				{
+					global_min = seg_min;
+					global_max = seg_max;
+				}
+				else
+				{
+					global_min = line_min;
+					global_max = line_max;	
+				}
+				data_clipped = true;
+				if(global_min < min)
+					intensity_min = global_min;
+				else
+					intensity_min = min;
+				if(global_max > max)
+					intensity_max= global_max;
+				else
+					intensity_max = max;
+				apply_item.doClick();
+				dynamic_range_canvas.repaint();
+				dynamic_button_changing = true;
+				double current_range = intensity_max - intensity_min;
+				int min_value = 0;
+				int max_value = 0;
+				if(min > global_min)
+				{
+					min_value = (int) ((min - global_min) / current_range * 100);
+				    if(max < global_max)
+				    	max_value = (int) ((max - global_min) / current_range * 100);	
+				    else
+				    	max_value = (int) ((global_max - global_min) / current_range * 100);    
+				}
+				else
+				{
+					min_value = (int) ((global_min - min) / current_range * 100);
+					if(max < global_max)
+				    	max_value = (int) ((max - min) / current_range * 100);	
+				    else
+				    	max_value = (int) ((global_max - min) / current_range * 100);
+				}
+				dynamic_range_slider.setValue(min_value);
+				dynamic_range_slider.setUpperValue(max_value);
+				dynamic_button_changing = false;	
+			}
+		};
 		adjust_bounds_button.addActionListener(adjust_range_handler);
 		bounds_button_panel.add(reset_bounds_button);
-		ResetRangeHandler reset_handler = new ResetRangeHandler();
-		reset_bounds_button.addActionListener(reset_handler);
+		ActionListener reset_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				double seg_min = (double) sensor_data.get(0);
+				double seg_max = (double) sensor_data.get(1);
+				double line_min = (double) sensor_data.get(2);
+				double line_max = (double) sensor_data.get(3);
+				if(autoscale)
+				{
+					String lower_bound_string = String.format("%,.2f", seg_min);
+					String upper_bound_string = String.format("%,.2f", seg_max);
+					lower_bound.setText(lower_bound_string);
+					upper_bound.setText(upper_bound_string);
 
+					dynamic_button_changing = true;
+					dynamic_range_slider.setValue(0);
+					dynamic_range_slider.setUpperValue(100);
+					dynamic_button_changing = false;
+
+				} 
+				else
+				{
+					String lower_bound_string = String.format("%,.2f", line_min);
+					String upper_bound_string = String.format("%,.2f", line_max);
+					lower_bound.setText(lower_bound_string);
+					upper_bound.setText(upper_bound_string);
+
+					dynamic_button_changing = true;
+					dynamic_range_slider.setValue(0);
+					dynamic_range_slider.setUpperValue(100);
+					dynamic_button_changing = false;
+				}
+				data_clipped = false;
+				apply_item.doClick();
+				dynamic_range_canvas.repaint();
+			}
+		};
+		reset_bounds_button.addActionListener(reset_handler);
 		JPanel dynamic_range_button_panel = new JPanel(new BorderLayout());
 		dynamic_range_button_panel.add(bounds_panel, BorderLayout.CENTER);
 		dynamic_range_button_panel.add(bounds_button_panel, BorderLayout.SOUTH);
-
 		dynamic_range_slider = new RangeSlider();
 		dynamic_range_slider.setOrientation(JSlider.VERTICAL);
 		dynamic_range_slider.setMinimum(0);
 		dynamic_range_slider.setMaximum(100);
 		dynamic_range_slider.setValue(0);
 		dynamic_range_slider.setUpperValue(100);
-
 		RangeSliderHandler dynamic_range_slider_handler = new RangeSliderHandler();
 		dynamic_range_slider.addChangeListener(dynamic_range_slider_handler);
-
 		dynamic_range_canvas = new DynamicRangeCanvas();
 		dynamic_range_canvas.setSize(100, 520);
-
 		JPanel dynamic_range_canvas_panel = new JPanel(new BorderLayout());
 		dynamic_range_canvas_panel.add(dynamic_range_slider, BorderLayout.WEST);
 		dynamic_range_canvas_panel.add(dynamic_range_canvas, BorderLayout.CENTER);
-
 		JPanel dynamic_range_panel = new JPanel(new BorderLayout());
 		dynamic_range_panel.add(dynamic_range_canvas_panel, BorderLayout.CENTER);
 		dynamic_range_panel.add(dynamic_range_button_panel, BorderLayout.SOUTH);
@@ -890,8 +1028,7 @@ public class XFencePlotter
 		dynamic_range_dialog.add(dynamic_range_panel);
 
 		// A modeless dialog box that shows up if Settings->Smoothing is selected.
-		JPanel smooth_panel = new JPanel(new BorderLayout());
-
+		JPanel  smooth_panel  = new JPanel(new BorderLayout());
 		JSlider smooth_slider = new JSlider(0, 100, 0);
 		ChangeListener smooth_slider_handler = new ChangeListener()
 		{
@@ -913,12 +1050,10 @@ public class XFencePlotter
 
 		// A modeless dialog box that shows up if Settings->Location is selected.
 		JPanel location_panel = new JPanel(new BorderLayout());
-
 		offset_information = new JTextField();
 		offset_information.setHorizontalAlignment(JTextField.CENTER);
 		String string = String.format("%,.2f", offset);
 		offset_information.setText(string);
-
 		JPanel location_canvas_panel = new JPanel(new BorderLayout());
 		location_canvas = new LocationCanvas();
 		location_canvas.setSize(240, 360);
@@ -934,7 +1069,6 @@ public class XFencePlotter
 		};		
 		xlocation_scrollbar.addAdjustmentListener(xlocation_handler);
 		xlocation_scrollbar.setValue(1000);
-
 		JScrollBar ylocation_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 2001);
 		AdjustmentListener ylocation_handler = new AdjustmentListener()
 		{
@@ -947,7 +1081,6 @@ public class XFencePlotter
 		};		
 		ylocation_scrollbar.addAdjustmentListener(ylocation_handler);
 		ylocation_scrollbar.setValue(1000);
-
 		location_canvas_panel.add(location_canvas, BorderLayout.CENTER);
 		location_canvas_panel.add(xlocation_scrollbar, BorderLayout.SOUTH);
 		location_canvas_panel.add(ylocation_scrollbar, BorderLayout.EAST);
@@ -961,15 +1094,12 @@ public class XFencePlotter
 		parameter_panel.add(range_information);
 		parameter_panel.add(new JLabel("Offset", JLabel.CENTER));
 		parameter_panel.add(new JLabel("Range", JLabel.CENTER));
-
 		JButton adjust_button = new JButton("Adjust");
 		ButtonHandler adjust_handler = new ButtonHandler();
 		adjust_button.addActionListener(adjust_handler);
-		
 	    JPanel bottom_panel = new JPanel(new BorderLayout());
 	    bottom_panel.add(parameter_panel, BorderLayout.NORTH);
 	    bottom_panel.add(adjust_button, BorderLayout.SOUTH);
-	    
 		location_panel.add(location_canvas_panel, BorderLayout.CENTER);
 		location_panel.add(bottom_panel, BorderLayout.SOUTH);
 		location_dialog = new JDialog(frame, "Location");
@@ -1643,7 +1773,6 @@ public class XFencePlotter
 						polygon[i]  = sensor_polygon;
 					}
 					
-					
 					for (int i = number_of_segments - 1; i >= 0; i--)
 					{
 						int a1 = left_margin;
@@ -1928,11 +2057,10 @@ public class XFencePlotter
 										else
 											ideal_x += sensor * .5;
 										String ideal_string = String.format("%,.1f", ideal_x);
+										String actual_string = String.format("%, .2f", sample.x);
 										*/
 										size = sensor_list.size();
 										Sample sample = (Sample)sensor_list.get(size - 1);
-										//String actual_string = String.format("%, .2f", sample.x);
-										
 										String line_id = new String(line + ":" + sensor);
 										if(ystep != 0)
 										    graphics_buffer.drawString(line_id, a2 + 6, (int) current_position + ( 3 * string_height / 4));
@@ -2014,26 +2142,6 @@ public class XFencePlotter
 			}
 		}
 
-		// Useful debugging function.
-		/*
-		 * public void mouseClicked(MouseEvent event) { int x = event.getX(); int y =
-		 * event.getY(); ArrayList sample_list = grid_data[y][x]; int size =
-		 * sample_list.size(); if(size != 0) { System.out.println("Pixel at x = " + x +
-		 * ", y = " + y + " has " + size + " samples associated with it."); }
-		 * 
-		 * int number_of_pixels_with_data = 0; int total_number_of_pixels = 0; for(int i
-		 * = 0; i < grid_data.length; i++) { for(int j = 0; j < grid_data[0].length;
-		 * j++) { sample_list = grid_data[i][j]; size = sample_list.size(); if(size !=
-		 * 0) { System.out.println("Pixel at x = " + j + ", y = " + i + " has " + size +
-		 * " samples associated with it."); number_of_pixels_with_data++; }
-		 * total_number_of_pixels++; } }
-		 * 
-		 * 
-		 * System.out.println("There were " + number_of_pixels_with_data +
-		 * " pixels associated with data."); System.out.println("There were " +
-		 * total_number_of_pixels + " pixels."); }
-		 */
-
 		public void mousePressed(MouseEvent event)
 		{
 			int button = event.getButton();
@@ -2078,57 +2186,38 @@ public class XFencePlotter
 				{
 					int current_line, current_sensor;
 					double current_intensity, current_x, current_y;
-
 					ArrayList sample_list = grid_data[y][x];
 					int size = sample_list.size();
-					// System.out.println("Central pixel at x = " + x + ", y = " + y + " has " +
-					// (size / 3) + " samples associated with it.");
 					outer: if (size == 0)
 					{
 						sample_list = grid_data[y - 1][x];
 						size = sample_list.size();
-						// System.out.println("North pixel at x = " + x + ", y = " + (y - 1) + " has " +
-						// (size / 3) + " samples associated with it.");
 						if (size != 0)
 							break outer;
 						sample_list = grid_data[y + 1][x];
 						size = sample_list.size();
-						// System.out.println("South pixel at x = " + x + ", y = " + (y + 1) + " has " +
-						// (size / 3) + " samples associated with it.");
 						if (size != 0)
 							break outer;
 						sample_list = grid_data[y][x - 1];
 						size = sample_list.size();
-						// System.out.println("East pixel at x = " + (x + 1) + ", y = " + y + " has " +
-						// (size / 3) + " samples associated with it.");
 						if (size != 0)
 							break outer;
 						sample_list = grid_data[y][x + 1];
 						size = sample_list.size();
-						// System.out.println("West pixel at x = " + (x - 1) + ", y = " + y + " has " +
-						// (size / 3) + " samples associated with it.");
 						if (size != 0)
 							break outer;
 						sample_list = grid_data[y - 1][x - 1];
 						size = sample_list.size();
-						// System.out.println("Northwest pixel at x = " + (x - 1) + ", y = " + (y - 1) +
-						// " has " + (size / 3) + " samples associated with it.");
 						if (size != 0)
 							break outer;
 						sample_list = grid_data[y + 1][x - 1];
 						size = sample_list.size();
-						// System.out.println("Southwest pixel at x = " + (x - 1) + ", y = " + (y + 1) +
-						// " has " + (size / 3) + " samples associated with it.");
 						sample_list = grid_data[y - 1][x + 1];
 						size = sample_list.size();
-						// System.out.println("Northeast pixel at x = " + (x + 1) + ", y = " + (y - 1) +
-						// " has " + (size / 3) + " samples associated with it.");
 						if (size != 0)
 							break outer;
 						sample_list = grid_data[y + 1][x + 1];
 						size = sample_list.size();
-						// System.out.println("Southeast pixel at x = " + (x + 1) + ", y = " + (y + 1) +
-						// " has " + (size / 3) + " samples associated with it.");
 					}
 
 					if (size != 0)
@@ -2296,7 +2385,6 @@ public class XFencePlotter
 			sensor_data.add(seg_max);
 			sensor_data.add(line_min);
 			sensor_data.add(line_max);
-
 			for (int i = 0; i < 10; i++)
 			{
 				if (current_line[i] != -1)
@@ -2341,7 +2429,6 @@ public class XFencePlotter
 			placement_canvas.repaint();
 			location_canvas.repaint();
 			image_canvas.repaint();
-			
 			order_canvas.repaint();
 		}
 	}
@@ -2372,11 +2459,10 @@ public class XFencePlotter
 					offset_information.setText(string);
 
 					// Reset the slider.
-					int value = (int) offset;
+					int value       = (int) offset;
 					int upper_value = (int) (offset + range);
 					range_slider.setValue(value);
 					range_slider.setUpperValue(upper_value);
-
 					scrollbar_changing = false;
 
 					// Resegment the data.
@@ -2408,7 +2494,6 @@ public class XFencePlotter
 			else if (slider_changing == false && scrollbar_changing == false)
 			{
 				button_changing = true;
-
 				offset = current_offset;
 				range = current_range;
 
@@ -2416,12 +2501,11 @@ public class XFencePlotter
 				double position = offset - 15.;
 				position *= 100. / (60 - range);
 				int value = (int) position;
-				scrollbar.setValue(value);
+				range_scrollbar.setValue(value);
 
 				// Reset the slider.
 				range_slider.setValue((int) offset);
 				range_slider.setUpperValue((int) (offset + range));
-
 				button_changing = false;
 
 				// Resegment the data.
@@ -2451,12 +2535,11 @@ public class XFencePlotter
 					offset_information.setText(string);
 					string = String.format("%,.2f", range);
 					range_information.setText(string);
-
 					// Reset the scrollbar.
 					double position = offset - 15.;
 					position *= 100. / (60 - range);
 					int value = (int) position;
-					scrollbar.setValue(value);
+					range_scrollbar.setValue(value);
 					slider_changing = false;
 
 					// Resegment the data.
@@ -2484,7 +2567,6 @@ public class XFencePlotter
 			{
 				String number_of_pairs_string = input_tokenizer.nextToken();
 				number_of_pairs = Integer.parseInt(number_of_pairs_string);
-				System.out.println("Number of pairs to be loaded is " + number_of_pairs);
 			}
 
 			String[] line_sensor_pair = new String[10];
@@ -2568,7 +2650,48 @@ public class XFencePlotter
 		}
 	}
 
-	/*********************************************************/
+	class PrintHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent event)
+		{
+		    try
+		    {
+			    PrintService service = PrintServiceLookup.lookupDefaultPrintService();
+			    DocPrintJob  job     = service.createPrintJob();
+			    DocFlavor    flavor  = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
+			    SimpleDoc    doc     = new SimpleDoc(new GraphPrintable(), flavor, null);
+			    job.print(doc, null);
+		    }
+		    catch(Exception e)
+		    {
+		    	System.out.println(e.toString());
+		    }
+		}
+	}
+	
+	class GraphPrintable implements Printable 
+	{
+		 public int print(Graphics g, PageFormat pf, int pageIndex) 
+		 {
+		      Graphics2D graphics = (Graphics2D) g;
+		      g.translate((int) (pf.getImageableX()), (int) (pf.getImageableY()));
+		      if (pageIndex == 0) 
+		      {
+		          double pageWidth   = pf.getImageableWidth();
+		          double pageHeight  = pf.getImageableHeight();
+		          double imageWidth  = buffered_image.getWidth();
+		          double imageHeight = buffered_image.getHeight();
+		          double scaleX = pageWidth / imageWidth;
+		          double scaleY = pageHeight / imageHeight;
+		          double scaleFactor = Math.min(scaleX, scaleY);
+		          graphics.scale(scaleFactor, scaleFactor);
+		          g.drawImage(buffered_image, 0, 0, null);
+		          return Printable.PAGE_EXISTS;
+		      }
+		      return Printable.NO_SUCH_PAGE;
+		 }
+	}
+	
 	class SaveHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent ev)
@@ -2577,23 +2700,29 @@ public class XFencePlotter
 			if (size == 0)
 			{
 				System.out.println("No data to save.");
-			} else
+			} 
+			else
 			{
 				System.out.println("Data to save.");
 				FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
+				
 				file_dialog.setVisible(true);
 				String filename = file_dialog.getFile();
 				if (filename != "")
 				{
 					String current_directory = file_dialog.getDirectory();
-					System.out.println("Current directory is " + current_directory);
-					System.out.println("File name is " + filename);
-					try (PrintWriter output = new PrintWriter(current_directory + filename))
+					StringTokenizer filename_tokenizer = new StringTokenizer(filename, ".");
+					String name = filename_tokenizer.nextToken();
+					String extension = filename_tokenizer.nextToken();
+					
+					if(extension.equals("txt"))
 					{
+						System.out.println("Writing text file.");
+					    try (PrintWriter output = new PrintWriter(current_directory + filename))
+					    {
 						// The first 4 elements in the sensor data are local min, local max, global min,
 						// and global max.
 						// The rest are array lists of samples, with some information prepended.
-
 						double intensity_min = (double) sensor_data.get(0);
 						String intensity_min_string = String.format("%.2f", intensity_min);
 						for (int i = 4; i < size; i++)
@@ -2630,32 +2759,39 @@ public class XFencePlotter
 								String intensity_string = String.format("%.2f", sample.intensity);
 								output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
 							}
-
 							Sample end_sample = (Sample) segment_list.get(size - 1);
 							xstring = String.format("%.2f", end_sample.x);
 							ystring = String.format("%.2f", end_sample.y);
 							output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
-
 							xstring = String.format("%.2f", init_sample.x);
 							ystring = String.format("%.2f", init_sample.y);
 							output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
-
 							output.println();
 							output.println();
 						}
 						output.close();
-					} 
-					catch (Exception ex)
+					    } 
+					    catch (Exception ex)
+					    {
+						    System.out.println(ex.toString());
+					    }
+				    }
+					else if(extension.equals("png"))
 					{
-						System.out.println(ex.toString());
+						try 
+	        	        {  
+	        	            ImageIO.write(buffered_image, "png", new File(current_directory + filename)); 
+	        	        } 
+	        	        catch(IOException e) 
+	        	        {  
+	        	            e.printStackTrace(); 
+	        	        }  
 					}
 				}
 			}
 		}
 	}
 
-	
-    
 	class OrderCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -2692,7 +2828,6 @@ public class XFencePlotter
 				int       current_line   = (int)sensor_list.get(0);
 				int       current_sensor = (int)sensor_list.get(1);
 				size                     = sensor_list.size();
-				
 				Sample sample = (Sample)sensor_list.get(4);
 				int j = 5;
 				while(sample.y < current_position && j < size)
@@ -2700,7 +2835,6 @@ public class XFencePlotter
 					sample = (Sample)sensor_list.get(j);
 					j++;
 				}
-				
 				if(i == 0)
 					previous_x = sample.x;  	
 				else
@@ -2759,7 +2893,7 @@ public class XFencePlotter
 	class SensorCanvasMouseHandler extends MouseAdapter
 	{
 		int index;
-
+		
 		SensorCanvasMouseHandler(int index)
 		{
 			this.index = index;
@@ -2821,7 +2955,6 @@ public class XFencePlotter
 		int right_margin  = 20;
 		int xdim          = 600;
 		int ydim          = 600;
-		
 		int image_xdim    = xdim + left_margin + right_margin;
 		int image_ydim    = ydim + top_margin  + bottom_margin;
 		
@@ -2849,7 +2982,6 @@ public class XFencePlotter
 			int position      = b2;
 			for(int i = 0; i < 12; i++)
 			{
-				//graphics_buffer.drawLine(a1, position, a1 - 10, position); 
 				graphics_buffer.drawLine(a1, position, a2, position);
 				String string;
 				int j = i * 5;
@@ -2945,7 +3077,6 @@ public class XFencePlotter
 			g2.fillRect(0, 0, xdim, ydim);
 
 			int size = sensor_data.size();
-			// System.out.println("Sensor data size is " + size);
 			int number_of_segments = 1;
 			if (size > 0)
 			{
@@ -3214,15 +3345,14 @@ public class XFencePlotter
 				    previous_x = sample.x;
 				}
 				
-				
-				//If we want to make sure the sensor bar and data are synchronized.
-				//At the moment, the only time when that is not true is when someone edits the sensor bar by hand.
-				//String sensor_bar_string = sensor[i].getText();
+				// If we want to make sure the sensor bar and segmented data are synchronized we would check the sensor bar.
+				// At the moment, the only time when that is not true (we think) is when someone edits the sensor bar by hand,
+				// and does not subsequently click apply.  
+				// String sensor_bar_string = sensor[i].getText();
+				// String order_string = new String(sensor_bar_string + " " + data_string + " " + xstring);
 				
 				String data_string       = new String(current_line + ":" + current_sensor);
 				String xstring           = String.format("%,.2f", sample.x);
-				
-				//String order_string = new String(sensor_bar_string + " " + data_string + " " + xstring);
 				String order_string = new String(data_string + "   " + xstring);
 				if(order_information != null)
 					order_information.append(order_string + "\n");	
@@ -3230,7 +3360,6 @@ public class XFencePlotter
 				int max = this_scrollbar.getMaximum();
 				this_scrollbar.setValue(max);
 			}
-			
 			if(sort_canvas != null)
 			    sort_canvas.repaint();
 			if(order_canvas != null)
@@ -3252,7 +3381,6 @@ public class XFencePlotter
 				String line_id = sensor[i].getText();
 				line_sensor_list.add(line_id);
 			}
-			
 			// We're using x values as keys to a hashtable,
 			// so we need to make sure none of them are equal.
 			// We'll add a small value to subsequent numbers,
@@ -3290,7 +3418,7 @@ public class XFencePlotter
 			    order_information.append(line_id + "  " + xstring + "\n");
 			}
 			in_order = true;
-			order_canvas.repaint();
+			//order_canvas.repaint();
 			apply_item.doClick();	
 		}
 	}
@@ -3357,7 +3485,6 @@ public class XFencePlotter
 			graphics_buffer.setColor(java.awt.Color.WHITE);
 			graphics_buffer.fillRect(0, 0, xdim, ydim);
 			graphics_buffer.setColor(java.awt.Color.BLACK);
-			
 			
 			Sample sample = (Sample) data.get(2);
 			int previous_x = (int)(sample.x * xfactor);
@@ -3467,7 +3594,6 @@ public class XFencePlotter
 				current_ylocation += string_height + 1;
 			else
 				current_ylocation -= 3;
-			
 			graphics_buffer.setColor(java.awt.Color.WHITE);
 			graphics_buffer.fillRect(current_xlocation, current_ylocation  - string_height + 1, string_width, string_height);
 			graphics_buffer.setColor(java.awt.Color.BLACK);
@@ -3476,7 +3602,6 @@ public class XFencePlotter
 		}
 	}
 	
-	/****************************************************************/
 	class DynamicRangeCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -3647,7 +3772,6 @@ public class XFencePlotter
 						else
 							zero_point = global_max / current_range;
 						zero_point *= graph_ydim;
-
 						graphics.setColor(java.awt.Color.RED);
 						graphics.drawLine(xdim / 2 - 10, top_margin + (int) zero_point, xdim / 2, top_margin + (int) zero_point);
 						graphics.setColor(java.awt.Color.BLACK);
@@ -3696,7 +3820,6 @@ public class XFencePlotter
 			{
 				double min = 0;
 				double max = 0;
-				
 				if(data_clipped)
 				{
 				    min = intensity_min;
@@ -3712,124 +3835,16 @@ public class XFencePlotter
 					min = (double) sensor_data.get(2);
 					max = (double) sensor_data.get(3);
 				}
-
-				double current_range = max - min;
-				double fraction = (double) lower / 100;
-				double lower_value = (fraction * current_range) + min;
+				double current_range      = max - min;
+				double fraction           = (double) lower / 100;
+				double lower_value        = (fraction * current_range) + min;
 				String lower_bound_string = String.format("%,.2f", lower_value);
-				lower_bound.setText(lower_bound_string);
-				
-				fraction = (double) upper / 100;
-				double upper_value = (fraction * current_range) + min;
+				fraction                  = (double) upper / 100;
+				double upper_value        = (fraction * current_range) + min;
 				String upper_bound_string = String.format("%,.2f", upper_value);
-				upper_bound.setText(upper_bound_string);
-			}
-		}
-	}
-
-	class AdjustRangeHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent e)
-		{
-			double seg_min      = (double) sensor_data.get(0);
-			double seg_max      = (double) sensor_data.get(1);
-			double line_min     = (double) sensor_data.get(2);
-			double line_max     = (double) sensor_data.get(3);
-
-			String bound_string = lower_bound.getText();
-			double min          = Double.valueOf(bound_string);
-			bound_string        = upper_bound.getText();
-			double max          = Double.valueOf(bound_string);
-            
-			double global_min   = 0;
-			double global_max   = 0;
-			
-			if(autoscale)
-			{
-				global_min = seg_min;
-				global_max = seg_max;
-			}
-			else
-			{
-				global_min = line_min;
-				global_max = line_max;	
-			}
-			
-			data_clipped = true;
-			if(global_min < min)
-				intensity_min = global_min;
-			else
-				intensity_min = min;
-			if(global_max > max)
-				intensity_max= global_max;
-			else
-				intensity_max = max;
-			apply_item.doClick();
-			dynamic_range_canvas.repaint();
-
-			dynamic_button_changing = true;
-			double current_range = intensity_max - intensity_min;
-			int min_value = 0;
-			int max_value = 0;
-			
-			if(min > global_min)
-			{
-				min_value = (int) ((min - global_min) / current_range * 100);
-			    if(max < global_max)
-			    	max_value = (int) ((max - global_min) / current_range * 100);	
-			    else
-			    	max_value = (int) ((global_max - global_min) / current_range * 100);    
-			}
-			else
-			{
-				min_value = (int) ((global_min - min) / current_range * 100);
-				if(max < global_max)
-			    	max_value = (int) ((max - min) / current_range * 100);	
-			    else
-			    	max_value = (int) ((global_max - min) / current_range * 100);
-			}
-			dynamic_range_slider.setValue(min_value);
-			dynamic_range_slider.setUpperValue(max_value);
-			dynamic_button_changing = false;	
-		}
-	}
-
-	class ResetRangeHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent e)
-		{
-			double seg_min = (double) sensor_data.get(0);
-			double seg_max = (double) sensor_data.get(1);
-			double line_min = (double) sensor_data.get(2);
-			double line_max = (double) sensor_data.get(3);
-			if (autoscale)
-			{
-				String lower_bound_string = String.format("%,.2f", seg_min);
-				String upper_bound_string = String.format("%,.2f", seg_max);
 				lower_bound.setText(lower_bound_string);
 				upper_bound.setText(upper_bound_string);
-
-				dynamic_button_changing = true;
-				dynamic_range_slider.setValue(0);
-				dynamic_range_slider.setUpperValue(100);
-				dynamic_button_changing = false;
-
-			} 
-			else
-			{
-				String lower_bound_string = String.format("%,.2f", line_min);
-				String upper_bound_string = String.format("%,.2f", line_max);
-				lower_bound.setText(lower_bound_string);
-				upper_bound.setText(upper_bound_string);
-
-				dynamic_button_changing = true;
-				dynamic_range_slider.setValue(0);
-				dynamic_range_slider.setUpperValue(100);
-				dynamic_button_changing = false;
 			}
-			data_clipped = false;
-			apply_item.doClick();
-			dynamic_range_canvas.repaint();
 		}
 	}
 
