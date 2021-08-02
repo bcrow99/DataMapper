@@ -24,18 +24,33 @@ import javax.print.*;
 
 public class XFencePlotter
 {
-	// Input
-	ArrayList data = new ArrayList();
-
-	// Sensor data segmented at start of program and by File->Apply and accessed by
-	// LineCanvas.paint()
-	ArrayList sensor_data = new ArrayList();
-
-	// Data collected by LineCanvas.paint() and accessed by the MouseHandler
+	// Used by XFencePlotter at startup if there is no config file
+	double  offset         = 15;
+	double  range          = 60;
+	int     init_line      = 10;
+	boolean autoscale      = false;
+    boolean tick_marks     = false;
+    boolean raster_overlay = false;
+	boolean relative_mode  = true;
+    boolean west_view      = false;
+    boolean data_scaled    = false;
+    double  scale_factor   = 1.;
+    double  normal_xstep   = 0.5;
+	double  normal_ystep   = 0.5;
+	double  sort_location  = 0.5;
+	boolean in_order       = true;	
+    boolean data_clipped   = false;
+    double  minimum_y      = 0;
+    double  maximum_y      = 0;
+    int     smooth         = 0;
+    
+    // Used by XFencePlotter in constructor
+    boolean config_file_exists = false;
+ 	
+	ArrayList     data        = new ArrayList();
+	ArrayList     sensor_data = new ArrayList();
+	ArrayList     xlist       = new ArrayList();
 	ArrayList[][] grid_data;
-
-	// Data collected by SortLocationHandler and accessed and modified by SortButtonHandler
-	ArrayList xlist = new ArrayList();
 			
 	// Shared interface componants.
 	public JFrame             frame;
@@ -71,27 +86,21 @@ public class XFencePlotter
 	// Pop-up associated with graph.
 	public JDialog information_dialog;
 
-	// Shared program variables.
-	double offset        = 15;
-	double range         = 60;
-	
 	// Shared by line canvas and mouse handler.
 	int    top_margin    = 20;
 	int    right_margin  = 70;
 	int    left_margin   = 90;
 	int    bottom_margin = 80;
     
-	// Shared by sort location button and order canvas.
+	// Shared by location scrollbar and canvas.
 	int    xlocation     = 1000;
 	int    ylocation     = 1000;
 	
 	//Shared by image canvas and XFencePlotter
-	int    image_xdim    = 670;
-	int    image_ydim    = 640;
+	int     image_xdim     = 670;
+	int     image_ydim     = 640;
+	boolean image_visible  = false;
 	
-	// Used by XFencePlotter at startup
-	int    init_line     = 10;
-
 	// Variables determined when reading in data.
 	double global_xmin, global_xmax, global_ymin, global_ymax,intensity_min, intensity_max;
 
@@ -101,54 +110,24 @@ public class XFencePlotter
 	// Updated by MouseMotionHandler
 	JTextArea sample_information;
 
-	// Fired by the scrollbar and range slider and adjust button and XFencePlotter
+	// Fired by the range scrollbar and range slider and range adjust button and XFencePlotter
 	public JMenuItem apply_item;
 
-	// Shared by the scrollbar and range slider and adjust button.
-	boolean slider_changing    = false;
-	boolean scrollbar_changing = false;
-	boolean button_changing    = false;
+	// Shared by the range scrollbar and range slider and range adjust button.
+	boolean range_slider_changing    = false;
+	boolean range_scrollbar_changing = false;
+	boolean range_button_changing    = false;
 
 	// Shared by dynamic range slider and adjust buttons.
 	boolean dynamic_slider_changing = false;
 	boolean dynamic_button_changing = false;
 
-	// Shared by the dynamic range adjust and reset button handlers and dynamic
-	// range slider handler.
-	// Referenced by line canvas.paint() and range_canvas.paint().
-	boolean data_clipped  = false;
-	boolean data_scaled   = false;
-	boolean image_visible = false;
-	
-	// Referenced by canvas.paint() and modified by tick mark item handler.
-	boolean tick_marks     = false;
-	
-	// Referenced by canvas.paint() and modified by overlay item handler.
-	boolean raster_overlay = false;
-	
-	// Referenced by canvas.paint() and modified by number mode handler.
-	boolean relative_mode = true;
-	
-	// Referenced by canvas.paint() and modified by view handler.
-	boolean west_view = false;
-	
-	// Referenced by order_canvas.paint()
-	boolean in_order = true;
-	
 	// X and Y Step Handlers call repaint()
 	PlacementCanvas placement_canvas;
 	LocationCanvas  location_canvas;
 	
 	// Apply Handler calls repaint()
 	ImageCanvas image_canvas;
-	
-	// Referenced by line canvas paint() and modified by item dialogs.
-	boolean autoscale    = false;
-	double  scale_factor = 1.;
-	int     smoothing    = 0;
-	double  normal_xstep = 0.5;
-	double  normal_ystep = 0.5;
-	double  normal_sort_location = 0.5;
 
 	// Shared by dynamic range control and autoscale control.
 	JButton reset_bounds_button;
@@ -221,6 +200,141 @@ public class XFencePlotter
 		File file = new File(filename);
 		if (file.exists())
 		{
+			StringTokenizer tokenizer = new StringTokenizer(filename, "/");
+			String current_directory = new String("");
+			String directory         = new String("");
+			while(tokenizer.hasMoreTokens())
+			{
+				directory = new String(current_directory);
+			    String  next_string = tokenizer.nextToken();
+			    current_directory   = new String(current_directory + next_string + "/");
+			}
+			String config_filename = new String(directory + "xfp.cfg");
+			File config_file = new File(config_filename);
+			/*
+			if(config_file.exists())
+			{
+				config_file_exists = true;
+				try
+				{
+					int            number_of_lines = 0;
+				    BufferedReader config_reader   = new BufferedReader(new InputStreamReader(new FileInputStream(config_file)));
+				    
+				    String line;
+				    StringTokenizer config_tokenizer;
+				    
+				    // Get line sensor pairs.
+				    line = config_reader.readLine();
+				    config_tokenizer = new StringTokenizer(line);
+				    int number_of_tokens = config_tokenizer.countTokens();
+				    System.out.println("Number of tokens is " + number_of_tokens);
+				    String token = config_tokenizer.nextToken();
+				    System.out.println("First token from first line is " + token);
+				    number_of_tokens--;
+				    for(int i = 0; i < number_of_tokens; i++)
+				    {
+				    	token = config_tokenizer.nextToken();
+				    	sensor[i].setText(token);
+				    }
+				    
+				    // Get visibility.
+				    line = config_reader.readLine();
+				    config_tokenizer = new StringTokenizer(line);
+				    number_of_tokens = config_tokenizer.countTokens();
+				    token = config_tokenizer.nextToken();
+				    number_of_tokens--;
+				    for(int i = 0; i < number_of_tokens; i++)
+				    {
+				    	token = config_tokenizer.nextToken();
+				    	if(token.equals("true"))
+				    		visible[i] = true;
+				    	else
+				    		visible[i] = false;
+				    }
+				    
+				    // Get transparency.
+				    line = config_reader.readLine();
+				    config_tokenizer = new StringTokenizer(line);
+				    number_of_tokens = config_tokenizer.countTokens();
+				    token = config_tokenizer.nextToken();
+				    
+				    number_of_tokens--;
+				    for(int i = 0; i < number_of_tokens; i++)
+				    {
+				    	token = config_tokenizer.nextToken();
+				    	if(token.equals("true"))
+				    		transparent[i] = true;
+				    	else
+				    		transparent[i] = false;
+				    }
+				    
+				    // Skip line.
+				    line = config_reader.readLine();
+				    
+				    while(line != null)
+				    {
+				        line             = config_reader.readLine();
+				        config_tokenizer = new StringTokenizer(line);
+				        String key       = config_tokenizer.nextToken();
+				        String value     = config_tokenizer.nextToken();
+				        if(key.equals("Offset"))
+				    	    offset = Double.valueOf(value);
+				        else if(key.equals("Range")) 
+				        	range = Double.valueOf(value);
+				        else if(key.equals("WestView")) 
+				        {
+				        	if(value.equals("true"))
+				        		west_view = true;
+				        	else
+				        		west_view = false;
+				        }
+				        else if(key.equals("TickMarks")) 
+				        {
+				        	if(value.equals("true"))
+				        		tick_marks = true;
+				        	else
+				        		tick_marks = false;
+				        }
+				        else if(key.equals("RelativeMode")) 
+				        {
+				        	if(value.equals("true"))
+				        		relative_mode = true;
+				        	else
+				        		relative_mode = false;
+				        }
+				        else if(key.equals("RasterOverlay")) 
+				        {
+				        	if(value.equals("true"))
+				        		raster_overlay = true;
+				        	else
+				        		raster_overlay = false;
+				        }
+				        else if(key.equals("Autoscale")) 
+				        {
+				        	if(value.equals("true"))
+				        		autoscale = true;
+				        	else
+				        		autoscale = false;
+				        } 
+				        else if(key.equals("Xstep"))
+				    	    normal_xstep = Double.valueOf(value);
+				        else if(key.equals("Ystep")) 
+				        	normal_ystep = Double.valueOf(value);
+				        else if(key.equals("SortLocation")) 
+				        	sort_location = Double.valueOf(value);
+				        
+				    }
+				    
+				    
+					config_reader.close();
+				}
+				catch(Exception e)
+				{
+					System.out.println(e.toString());
+				}
+			}
+			*/
+			
 			ArrayList original_data = new ArrayList();
 			global_xmin = Double.MAX_VALUE;
 			global_xmax = Double.MIN_VALUE;
@@ -310,27 +424,69 @@ public class XFencePlotter
 	        	String filename          = new String("xfp.cfg");
 	        	try
 	            {
-	            	PrintWriter output = new PrintWriter(current_directory + filename);	
+	            	PrintWriter output  = new PrintWriter(current_directory + filename);	
+	            	String id           = new String("");
+	            	String _visible     = new String("");
+	            	String _transparent = new String("");
+	            	for(int i = 0; i < 10; i++)
+	            	{
+	            	    id = new String(id + sensor[i].getText() + "\t");
+	            	    if(visible[i])
+	            	    	_visible = new String(_visible + "true\t");
+	            	    else
+	            	    	_visible = new String(_visible + "false\t");
+	            	    if(transparent[i])
+	            	    	_transparent = new String(_transparent + "true\t");
+	            	    else
+	            	    	_transparent = new String(_transparent + "false\t");	  
+	            	}
+	            	output.write("SensorID\t" + id + "\n");
+	            	output.write("Visible\t\t" + _visible + "\n");
+	            	output.write("Transparent\t" + _transparent + "\n\n");
 	            	
-	            	String      string = String.format("%,.2f", offset);
-	            	output.write("Offset\t\t" + string + "\n");
+	            	output.write("Offset\t\t\t" + String.format("%,.2f", offset) + "\n");
 	            	
-	            	string = String.format("%,.2f", range);
-	            	output.write("Range\t\t" + string + "\n");
-	                
-	            	int number_of_segments = sensor_data.size() - 4;
+	            	output.write("Range\t\t\t" + String.format("%,.2f", range) + "\n");
+	            	
 	            	if(west_view)
-	            	{
-	            	    string = sensor[number_of_segments - 1].getText();	
-	            	    output.write("InitLine\t" + string + "\n");
-	            	    output.write("WestView\ttrue\n");
-	            	}
+	            		output.write("WestView\t\ttrue\n");
 	            	else
-	            	{
-	            		string = sensor[0].getText();   	
-	            	    output.write("InitLine\t" + string + "\n");
-	            	    output.write("WestView\tfalse\n");
-	            	}
+	            		output.write("WestView\t\tfalse\n");
+	            	if(tick_marks)
+	            		output.write("TickMarks\t\ttrue\n");
+	            	else
+	            		output.write("TickMarks\t\tfalse\n");
+	            	if(relative_mode)
+	            		output.write("RelativeMode\ttrue\n");
+	            	else
+	            		output.write("RelativeMode\tfalse\n");
+	            	if(raster_overlay)
+	            		output.write("RasterOverlay\ttrue\n");
+	            	else
+	            		output.write("RasterOverlay\tfalse\n");
+	            	if(autoscale)
+	            		output.write("Autoscale\t\ttrue\n");
+	            	else
+	            		output.write("Autoscale\t\tfalse\n");
+	            	if(data_scaled)
+	            		output.write("Scaling\t\t\ttrue\n");
+	            	else
+	            		output.write("Scaling\t\t\tfalse\n");
+	            	output.write("Scale Factor\t" + String.format("%,.2f", scale_factor) + "\n");
+	            	output.write("Xstep\t\t\t" + String.format("%,.2f", normal_xstep) + "\n");
+	            	output.write("Ystep\t\t\t" + String.format("%,.2f", normal_ystep) + "\n");
+	            	output.write("SortLocation\t" + String.format("%,.2f", sort_location) + "\n");
+	            	if(in_order)
+	            		output.write("InOrder\t\t\ttrue\n");
+	            	else
+	            		output.write("InOrder\t\t\tfalse\n");
+	            	if(data_clipped)
+	            		output.write("Clipping\t\ttrue\n");
+	            	else
+	            		output.write("Clipping\t\tfalse\n");
+	            	output.write("Maximum\t\t\t" + String.format("%,.2f", maximum_y) + "\n");
+	            	output.write("Minimum\t\t\t" + String.format("%,.2f", minimum_y) + "\n");
+	            	output.write("Smooth\t\t\t" + smooth + "\n");
 	            	output.close();	
 	            }
 	        	catch(Exception e)
@@ -435,7 +591,7 @@ public class XFencePlotter
 		JMenu     file_menu  = new JMenu("File");
 		JMenuItem load_item  = new JMenuItem("Load");
 		apply_item           = new JMenuItem("Apply");
-		//JMenuItem print_item = new JMenuItem("Print");
+		JMenuItem print_item = new JMenuItem("Print");
 		JMenuItem save_item  = new JMenuItem("Save");
 
 		ActionListener load_handler = new ActionListener()
@@ -458,8 +614,8 @@ public class XFencePlotter
 		ApplyHandler apply_handler = new ApplyHandler();
 		apply_item.addActionListener(apply_handler);
 		
-		//PrintHandler print_handler = new PrintHandler();
-		//print_item.addActionListener(print_handler);
+		PrintHandler print_handler = new PrintHandler();
+		print_item.addActionListener(print_handler);
 		
 		SaveHandler  save_handler = new SaveHandler();
 		save_item.addActionListener(save_handler);
@@ -469,7 +625,9 @@ public class XFencePlotter
 		// File->Print works but produces a low quality print.
 		// Not worth trying to make it look better when
 		// we can just print from Photoshop or Gimp instead.
-		//file_menu.add(print_item);
+		// Still leaving the hook in here.  We might want 
+		// to print text for one thing.
+		file_menu.add(print_item);
 		file_menu.add(save_item);
 
 		JMenu format_menu = new JMenu("Format");
@@ -524,11 +682,13 @@ public class XFencePlotter
 				{
             		west_view = false;
 					item.setState(false);
+					placement_canvas.repaint();
 				}
 				else
 				{
 					west_view = true;
 					item.setState(true);
+					placement_canvas.repaint();
 				}
 		        line_canvas.repaint();
             }   	
@@ -672,10 +832,8 @@ public class XFencePlotter
 				Point location_point = frame.getLocation();
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
-
 				x += 830;
 				y += 640;
-
 				smooth_dialog.setLocation(x, y);
 				smooth_dialog.pack();
 				smooth_dialog.setVisible(true);
@@ -693,7 +851,6 @@ public class XFencePlotter
 			    int y = (int) location_point.getY();
 
 			    x += 830;
-			    //y += 590;
 			    location_dialog.setLocation(x, y);
 			    location_dialog.pack();
 			    location_dialog.setVisible(true);
@@ -712,7 +869,6 @@ public class XFencePlotter
 				int y = (int) location_point.getY();
 
 				x += 830;
-
 				image_dialog.setLocation(x, y);
 				image_dialog.pack();
 				image_dialog.setVisible(true);
@@ -748,10 +904,8 @@ public class XFencePlotter
 
 		// A modeless dialog box that shows up if Format->Placement is selected.
 		JPanel placement_panel = new JPanel(new BorderLayout());
-
 		placement_canvas = new PlacementCanvas();
 		placement_canvas.setSize(100, 100);
-
 		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 101);
 		AdjustmentListener xstep_handler = new AdjustmentListener()
 		{
@@ -1038,7 +1192,7 @@ public class XFencePlotter
 				if (slider.getValueIsAdjusting() == false)
 				{
 					int value = slider.getValue();
-					smoothing = value;
+					smooth = value;
 					line_canvas.repaint();
 				}
 			}
@@ -1157,12 +1311,10 @@ public class XFencePlotter
 				if (size > 0)
 				{
 					int number_of_segments = size - 4;
-
 					double seg_min  = (double) sensor_data.get(0);
 					double seg_max  = (double) sensor_data.get(1);
 					double line_min = (double) sensor_data.get(2);
 					double line_max = (double) sensor_data.get(3);
-
 					int max_length = 0;
 					for (int i = 0; i < number_of_segments; i++)
 					{
@@ -1171,7 +1323,6 @@ public class XFencePlotter
 						if ((current_length - 4) > max_length)
 							max_length = current_length - 4;
 					}
-
 					double max_xstep = (xdim - (left_margin + right_margin)) / number_of_segments;
 					int    xstep     = (int) (max_xstep * normal_xstep);
 					int   graph_xdim = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
@@ -1202,8 +1353,8 @@ public class XFencePlotter
 
 					double minimum_x = offset;
 					double maximum_x = offset + range;
-					double minimum_y = 0;
-					double maximum_y = 0;
+					minimum_y = 0;
+					maximum_y = 0;
 					if(data_clipped == true)
 					{
 						String bound_string = lower_bound.getText();
@@ -1531,7 +1682,7 @@ public class XFencePlotter
 						}
 						int plot_length = plot_list.size();
 
-						if (smoothing == 0)
+						if (smooth == 0)
 						{
 							plot_data.add(plot_list);
 							sample_data.add(sample_list);
@@ -1546,8 +1697,8 @@ public class XFencePlotter
 								x[j] = point.getX();
 								y[j] = point.getY();
 							}
-							double[] smooth_x = smooth(x, smoothing);
-							double[] smooth_y = smooth(y, smoothing);
+							double[] smooth_x = smooth(x, smooth);
+							double[] smooth_y = smooth(y, smooth);
 
 							Point2D.Double start_point = (Point2D.Double) plot_list.get(0);
 							Point2D.Double end_point = (Point2D.Double) plot_list.get(plot_length - 1);
@@ -2446,9 +2597,9 @@ public class XFencePlotter
 			offset_information.setText(string);
 			if (scrollbar.getValueIsAdjusting() == false)
 			{
-				if (slider_changing == false && button_changing == false)
+				if (range_slider_changing == false && range_button_changing == false)
 				{
-					scrollbar_changing = true;
+					range_scrollbar_changing = true;
 
 					// Reset the offset.
 					offset = (double) event.getValue();
@@ -2463,7 +2614,7 @@ public class XFencePlotter
 					int upper_value = (int) (offset + range);
 					range_slider.setValue(value);
 					range_slider.setUpperValue(upper_value);
-					scrollbar_changing = false;
+					range_scrollbar_changing = false;
 
 					// Resegment the data.
 					apply_item.doClick();
@@ -2491,9 +2642,9 @@ public class XFencePlotter
 				offset_information.setText(offset_string);
 				range_information.setText(range_string);
 			} 
-			else if (slider_changing == false && scrollbar_changing == false)
+			else if (range_slider_changing == false && range_scrollbar_changing == false)
 			{
-				button_changing = true;
+				range_button_changing = true;
 				offset = current_offset;
 				range = current_range;
 
@@ -2506,7 +2657,7 @@ public class XFencePlotter
 				// Reset the slider.
 				range_slider.setValue((int) offset);
 				range_slider.setUpperValue((int) (offset + range));
-				button_changing = false;
+				range_button_changing = false;
 
 				// Resegment the data.
 				apply_item.doClick();
@@ -2519,9 +2670,9 @@ public class XFencePlotter
 	{
 		public void stateChanged(ChangeEvent e)
 		{
-			if (scrollbar_changing == false && button_changing == false)
+			if (range_scrollbar_changing == false && range_button_changing == false)
 			{
-				slider_changing = true;
+				range_slider_changing = true;
 				RangeSlider slider = (RangeSlider) e.getSource();
 				if (slider.getValueIsAdjusting() == false)
 				{
@@ -2540,7 +2691,7 @@ public class XFencePlotter
 					position *= 100. / (60 - range);
 					int value = (int) position;
 					range_scrollbar.setValue(value);
-					slider_changing = false;
+					range_slider_changing = false;
 
 					// Resegment the data.
 					apply_item.doClick();
@@ -2817,7 +2968,7 @@ public class XFencePlotter
 		
 		public void init()
 		{
-			double current_position = range * normal_sort_location + offset;
+			double current_position = range * sort_location + offset;
 			int size                = sensor_data.size();
 			int number_of_segments  = size - 4;
 			double previous_x       = 0;
@@ -3202,7 +3353,6 @@ public class XFencePlotter
 			// Should probably get this in the apply handler, but the length of the
 			// header is hard coded in a lot of places, so we'll just do it here.
 			// Might rethink this if the information is helpful in other places.
-			
 			double xmin = Double.MAX_VALUE;
 			double xmax = Double.MIN_NORMAL;
 			for(int i = 4; i < sensor_data.size(); i++)
@@ -3286,11 +3436,11 @@ public class XFencePlotter
 			graphics_buffer.drawLine((int) a1, (int)b2, (int) a2, (int)b2);
 			
 			double current_position = graph_xdim;
-			current_position        *= normal_sort_location;
+			current_position        *= sort_location;
 			current_position        += left_margin;
 			graphics_buffer.setColor(java.awt.Color.BLUE);
 			graphics_buffer.drawLine((int) current_position, (int)b1, (int) current_position, (int)b2);
-			double current_ylocation = range * normal_sort_location + offset;
+			double current_ylocation = range * sort_location + offset;
 			String position_string = String.format("%,.2f",  current_ylocation); 
 			String string = new String("Y = " + position_string);
 			string_width = font_metrics.stringWidth(string);
@@ -3307,10 +3457,10 @@ public class XFencePlotter
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
 		{
-			int sort_location = event.getValue();
-			normal_sort_location = (double)sort_location / 500.;
+			int location = event.getValue();
+			sort_location = (double)location / 500.;
 			
-			double current_position = range * normal_sort_location + offset;
+			double current_position = range * sort_location + offset;
 			xlist.clear();
 			
 			int size = sensor_data.size();
