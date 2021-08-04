@@ -345,6 +345,15 @@ public class XFencePlotter
 					        	else
 					        		data_scaled = false;
 					        } 
+					        else if(key.equals("ScaleFactor")) 
+					        	scale_factor = Double.valueOf(value);
+					        else if(key.equals("Scaling")) 
+					        {
+					        	if(value.equals("true"))
+					        		data_scaled = true;
+					        	else
+					        		data_scaled = false;
+					        } 
 				        }
 				    }
 				    config_reader.close();
@@ -472,7 +481,6 @@ public class XFencePlotter
 	            		output.write("InOrder\t\t\ttrue\n");
 	            	else
 	            		output.write("InOrder\t\t\tfalse\n");
-	            	
 	                output.write("XLocation\t\t" + String.format("%,.4f", xlocation) + "\n");
 	            	output.write("YLocation\t\t" + String.format("%,.4f", ylocation) + "\n");
 	            	output.write("XStep\t\t\t" + String.format("%,.2f", normal_xstep) + "\n");
@@ -541,27 +549,29 @@ public class XFencePlotter
 		normal_position       *= 2000;
 		RangeScrollbarHandler range_scrollbar_handler = new RangeScrollbarHandler();
 		range_scrollbar.addAdjustmentListener(range_scrollbar_handler);	
+		
 		// Taking advantage of an implementation detail and setting a semaphore
 		// so the scrollbar handler doesn't do anything when starting up.
 		range_slider_changing = true;
-		int _value = (int)normal_position;
 		range_scrollbar.setValue((int)normal_position);
 		range_slider_changing = false;
+		
 		range_slider = new RangeSlider();
 		range_slider.setMinimum(0);
 		range_slider.setMaximum(2000);
-		
-		// Can't do this with the scrollbar--assign values before adding a handler.
-		// We don't have to worry if the handler is going to do anything when
-		// we set the values.
+		RangeSliderHandler range_slider_handler = new RangeSliderHandler();
+		range_slider.addChangeListener(range_slider_handler);
 		normal_position  = (offset - 15) / 60;
 		normal_position *= 2000;
+		
+		// Again with a semaphore.
+		// Actually works now, but in case it doesn't later.
+		range_scrollbar_changing = true;
 		range_slider.setValue((int)normal_position);
 		normal_position  = (offset + range - 15) / 60;
 		normal_position *= 2000;
 		range_slider.setUpperValue((int)normal_position);
-		RangeSliderHandler range_slider_handler = new RangeSliderHandler();
-		range_slider.addChangeListener(range_slider_handler);
+		range_scrollbar_changing = false;
 	
 		JPanel segment_panel = new JPanel(new BorderLayout());
 		segment_panel.add(range_scrollbar, BorderLayout.NORTH);
@@ -590,9 +600,18 @@ public class XFencePlotter
 				{
 				    String line_sensor = (String)sensor_id.get(i);
 				    sensor[i].setText(line_sensor);
+				    if(visible[i] == true && transparent[i] == false)
+				    	sensor_state[i] = 0;
+				    else if(visible[i] == true && transparent[i] == true)
+					    sensor_state[i] = 1;
+				    else
+				    	sensor_state[i] = 2;
 				}
 				else // There may be less than 10 sensor_ids.
-					sensor[i].setText("");	
+				{
+					sensor[i].setText("");
+					sensor_state[i] = 2;
+				}
 			}
 			ActionListener sensor_handler = new ActionListener()
 			{
@@ -1843,12 +1862,19 @@ public class XFencePlotter
 						int n   = segment.size() + 3;
 						int[] x = new int[n];
 						int[] y = new int[n];
+						/*
 						x[0]    = a1;
 						y[0]    = b1;
-
 						int m = 1;
+						*/
+						
+						int m = 0;
                         yrange = maximum_y - minimum_y;
                         xrange = range;
+                        
+                        double this_minimum_y = maximum_y;
+                        double this_maximum_y = minimum_y;
+                        double init_point = 0;
 						for(int k = 0; k < segment.size(); k++)
 						{
 							Point2D.Double point = (Point2D.Double) segment.get(k);
@@ -1862,12 +1888,19 @@ public class XFencePlotter
 							current_x += xaddend;
 
 							double current_y = point.getY();
+							if(current_y < this_minimum_y)
+								this_minimum_y = current_y;	
+							if(current_y > this_maximum_y)
+								this_maximum_y = current_y;
 							current_y -= minimum_y;
 							current_y /= yrange;
 							current_y *= graph_ydim;
 							current_y = graph_ydim - current_y;
 							current_y += top_margin + (number_of_segments - 1) * ystep;
 							current_y -= yaddend;
+							
+							if(k == 0)
+								init_point = current_y;
 
 							x[m] = (int) current_x;
 							y[m] = (int) current_y;
@@ -1978,17 +2011,46 @@ public class XFencePlotter
 								grid_list.add(sensor_list.get(1));
 								grid_list.add(sample);
 							}
-
 							m++;
 						}
 
+						double local_min = this_minimum_y;
+						local_min -= minimum_y;
+						local_min /= yrange;
+						local_min *= graph_ydim;
+						local_min = graph_ydim - local_min;
+						local_min+= top_margin + (number_of_segments - 1) * ystep;
+						local_min -= yaddend;
+						
+						double local_max = this_maximum_y;
+						local_max -= minimum_y;
+						local_max /= yrange;
+						local_max *= graph_ydim;
+						local_max  = graph_ydim - local_max;
+						local_max += top_margin + (number_of_segments - 1) * ystep;
+						local_max -= yaddend;
+						
 						x[m] = a2;
-						y[m] = b1;
+						y[m] = (int)local_min;
 						m++;
 
 						x[m] = a1;
-						y[m] = b1;
-
+						y[m] = (int)local_min;
+						m++;
+						
+						x[m] = a1;
+						y[m] = (int)init_point;
+						graphics_buffer.setColor(Color.BLACK);
+					    graphics_buffer.setStroke(new BasicStroke(1));
+					    graphics_buffer.drawLine(a2, (int)local_min, a2, b1);
+					    
+						//graphics_buffer.setColor(Color.RED);
+					    if(west_view)
+					    	graphics_buffer.setColor(fill_color[number_of_segments - 1 - i]);
+					    else
+					    	graphics_buffer.setColor(fill_color[i]);
+					    graphics_buffer.setStroke(new BasicStroke(3));
+					    graphics_buffer.drawLine(a1, (int)local_min, a1, (int)local_max);
 						java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
 						polygon[i]  = sensor_polygon;
 					}
@@ -2121,7 +2183,7 @@ public class XFencePlotter
 					// Previously we were drawing directly to the display when adding labels and numbers
 					// because the fonts looked better than the buffered fonts, but the convenience of having
 					// the entire graph buffered as far as save, print, and partial repaints is concerned 
-					// is such that we are sacrificing aesthic considerations.
+					// is such that we are that sacrificing aesthic consideration.
 					
 					graphics_buffer.setColor(java.awt.Color.BLACK);
 					double current_value    = offset;
@@ -2687,7 +2749,7 @@ public class XFencePlotter
 					}
 					
 					// Reset the offset information.
-					String string = String.format("%,.2f", offset);
+					String string = String.format("%,.4f", offset);
 					if(offset_information != null)
 					    offset_information.setText(string);
 
@@ -2718,11 +2780,11 @@ public class XFencePlotter
 
 			if (current_offset < 15 || current_offset > (75 - current_range) || current_range < 0 || current_range > (75 - current_offset))
 			{
-				offset_string = String.format("%,.2f", offset);
-				range_string = String.format("%,.2f", range);
+				offset_string = String.format("%,.4f", offset);
+				range_string = String.format("%,.4f", range);
 				System.out.println("Invalid input: offset = " + offset_string + " range = " + range_string);
-				offset_string = String.format("%,.2f", offset);
-				range_string = String.format("%,.2f", range);
+				offset_string = String.format("%,.4f", offset);
+				range_string = String.format("%,.4f", range);
 				offset_information.setText(offset_string);
 				range_information.setText(range_string);
 			} 
@@ -2956,10 +3018,10 @@ public class XFencePlotter
 			if (size == 0)
 			{
 				System.out.println("No data to save.");
+				return;
 			} 
 			else
 			{
-				System.out.println("Data to save.");
 				FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
 				
 				file_dialog.setVisible(true);
@@ -2968,8 +3030,19 @@ public class XFencePlotter
 				{
 					String current_directory = file_dialog.getDirectory();
 					StringTokenizer filename_tokenizer = new StringTokenizer(filename, ".");
+					int number_of_tokens = filename_tokenizer.countTokens();
+					if(number_of_tokens != 2)
+					{
+					    System.out.println("Filename require .txt or .png extension.");
+					    return;
+					}
 					String name = filename_tokenizer.nextToken();
 					String extension = filename_tokenizer.nextToken();
+					if(!extension.equals("txt") && !extension.equals("png"))
+					{
+						System.out.println("Filename require .txt or .png extension.");
+					    return;	
+					}
 					
 					if(extension.equals("txt"))
 					{
