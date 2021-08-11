@@ -51,8 +51,7 @@ public class RangeSlider extends JSlider {
      * Returns the lower value in the range.
      */
     @Override
-    public int getValue() 
-    {
+    public int getValue() {
         return super.getValue();
     }
 
@@ -60,51 +59,57 @@ public class RangeSlider extends JSlider {
      * Sets the lower value in the range.
      */
     @Override
-    public void setValue(int value) 
-    {
-        int previous_value = getValue();
-        if(previous_value == value) 
+    public void setValue(int value) {
+        int oldValue = getValue();
+        if (oldValue == value) {
             return;
-        
-        int minimum         = getMinimum();
+        }
+
+        // Compute new value and extent to maintain upper value.
+        int oldExtent = getExtent();
+        int minimum   = getMinimum();
         if(value < minimum)
-        {
         	value = minimum;
-        	System.out.println("Resetting input less than minimum.");
-        }
-        int previous_extent = getExtent();
-        int upper_value     = previous_value + previous_extent;
-        if(value >= upper_value)
-        {
-        	value = upper_value - 1;
-        	System.out.println("Resetting out of order input.");
-        }
-        int extent = upper_value - value;
-        getModel().setRangeProperties(value, extent, getMinimum(), 
+        int upper_value = oldValue + oldExtent;
+        if(value >  upper_value)
+        	value = upper_value;
+        
+        //int newValue = Math.min(Math.max(getMinimum(), value), oldValue + oldExtent);
+        int newExtent = upper_value - value;
+
+        // Set new value and extent, and fire a single change event.
+        getModel().setRangeProperties(value, newExtent, getMinimum(), 
             getMaximum(), getValueIsAdjusting());
     }
 
+    /**
+     * Returns the upper value in the range.
+     */
     public int getUpperValue() 
     {
         return getValue() + getExtent();
     }
 
+    /**
+     * Sets the upper value in the range.
+     */
     public void setUpperValue(int value) 
     {
+        // Compute new extent.
         int lower_value = getValue();
-        if(value <= lower_value)
+        if(value < lower_value)
         {
-        	value = lower_value + 1;
-        	System.out.println("Resetting out of order input.");
+            setExtent(0);	
         }
-        int maximum         = getMaximum();
-        if(value > maximum)
+        else
         {
-        	value = maximum;
-        	System.out.println("Resetting input more than maximum.");      	
+            int maximum = getMaximum();
+            if(value > maximum)
+            	value = maximum;
+            int extent = value - lower_value;
+            setExtent(extent);
         }
-        int extent = value - lower_value;
-        setExtent(extent);
+        //int newExtent = Math.min(Math.max(0, value - lowerValue), getMaximum() - lowerValue);
     }
 }
 
