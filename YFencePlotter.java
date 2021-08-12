@@ -23,11 +23,12 @@ public class YFencePlotter
 	public int         scrollbar_resolution = 2640;
 	public int         data_length          = 2640;
 	public Color[]     fill_color           = new Color[10];
+	public ArrayList   relative_data        = new ArrayList();
 	public ArrayList   data                 = new ArrayList();
-	public ArrayList   adjusted_data        = new ArrayList();
 	public ArrayList   index                = new ArrayList();
 	public double      data_offset          = .25;
 	public double      data_range           = .5;
+	ArrayList[][]      pixel_data;
 	
 	public static void main(String[] args)
 	{
@@ -150,24 +151,21 @@ public class YFencePlotter
 					Sample sample = (Sample) original_data.get(i);
 					sample.x -= global_xmin;
 					sample.y -= global_ymin;
-					data.add(sample);
+					relative_data.add(sample);
 				}
 				
-				Sample previous_sample = (Sample)data.get(2);
+				Sample previous_sample = (Sample)relative_data.get(2);
 				double total_distance  = 0;
-				for(int i = 7; i < data.size(); i += 5)
+				for(int i = 7; i < relative_data.size(); i += 5)
 				{
-					Sample sample   = (Sample) data.get(i);
-					//double distance = Math.abs(sample.y - previous_sample.y);
+					Sample sample   = (Sample) relative_data.get(i);
 					double distance = getDistance(sample.x, sample.y, previous_sample.x, previous_sample.y);
 					total_distance += distance;
 					previous_sample = sample;
 				}
 				
-				System.out.println("The total distance traveled by the drone was " + String.format("%.2f", total_distance) + " meters.");
-				data_length = (int)total_distance;
-				System.out.println("Data length is " + data_length);
-				slider_resolution = data_length;
+				data_length          = (int)total_distance;
+				slider_resolution    = data_length;
 				scrollbar_resolution = data_length;
 				
 				int _index = 0;
@@ -175,11 +173,11 @@ public class YFencePlotter
 				total_distance  = 0;
 				for(int i = 1; i < data_length; i++)
 				{
-					previous_sample = (Sample)data.get(_index + 2);
+					previous_sample = (Sample)relative_data.get(_index + 2);
 					
-					for(int j = _index + 7; j < data.size(); j += 5)
+					for(int j = _index + 7; j < relative_data.size(); j += 5)
 					{
-						Sample sample   = (Sample) data.get(j);	
+						Sample sample   = (Sample) relative_data.get(j);	
 						double distance = getDistance(sample.x, sample.y, previous_sample.x, previous_sample.y);
 						total_distance += distance;
 						previous_sample = sample;
@@ -191,17 +189,20 @@ public class YFencePlotter
 						}
 					}
 				}
+				_index = relative_data.size() - 1;
+				index.add(_index);
 				
-				adjusted_data   = new ArrayList();
-				previous_sample = (Sample)data.get(2);
-				for(int i = 7; i < data.size(); i += 5)
+				data   = new ArrayList();
+				previous_sample = (Sample)relative_data.get(2);
+				int previous_index = 0;
+				for(int i = 7; i < relative_data.size(); i += 5)
 				{
-					Sample sample   = (Sample) data.get(i);	
+					Sample sample   = (Sample) relative_data.get(i);	
 					double axis     = getDistance(sample.x, sample.y, previous_sample.x, previous_sample.y);
 					total_distance += axis;
 					
-					Sample previous_set     = (Sample) data.get(i - 7);
-					Sample current_set      = (Sample) data.get(i - 2);
+					Sample previous_set     = (Sample) relative_data.get(i - 7);
+					Sample current_set      = (Sample) relative_data.get(i - 2);
 					double current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
 					Sample adjusted_sample  = previous_set;
 					adjusted_sample.y       = total_distance - axis;
@@ -209,10 +210,10 @@ public class YFencePlotter
 					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
 					else if(current_distance < axis)
 						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   	
-					adjusted_data.add(adjusted_sample);
+					data.add(adjusted_sample);
 					
-					previous_set     = (Sample) data.get(i - 6);
-					current_set      = (Sample) data.get(i - 1);
+					previous_set     = (Sample) relative_data.get(i - 6);
+					current_set      = (Sample) relative_data.get(i - 1);
 					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
 					adjusted_sample  = previous_set;
 					adjusted_sample.y       = total_distance - axis;
@@ -220,15 +221,15 @@ public class YFencePlotter
 					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
 					else if(current_distance < axis)
 						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   	
-					adjusted_data.add(adjusted_sample);
+					data.add(adjusted_sample);
 					
-					previous_set      = (Sample) data.get(i - 5);
+					previous_set      = (Sample) relative_data.get(i - 5);
 					adjusted_sample   = previous_set;
 					adjusted_sample.y = total_distance - axis;
-					adjusted_data.add(adjusted_sample);
+					data.add(adjusted_sample);
 					
-					previous_set     = (Sample) data.get(i - 4);
-					current_set      = (Sample) data.get(i + 1);
+					previous_set     = (Sample) relative_data.get(i - 4);
+					current_set      = (Sample) relative_data.get(i + 1);
 					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
 					adjusted_sample  = previous_set;
 					adjusted_sample.y       = total_distance - axis;
@@ -236,10 +237,10 @@ public class YFencePlotter
 					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
 					else if(current_distance < axis)
 						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   	
-					adjusted_data.add(adjusted_sample);
+					data.add(adjusted_sample);
 					
-					previous_set     = (Sample) data.get(i - 4);
-					current_set      = (Sample) data.get(i + 1);
+					previous_set     = (Sample) relative_data.get(i - 4);
+					current_set      = (Sample) relative_data.get(i + 1);
 					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
 					adjusted_sample  = previous_set;
 					adjusted_sample.y       = total_distance - axis;
@@ -247,13 +248,22 @@ public class YFencePlotter
 					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
 					else if(current_distance < axis)
 						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   	
-					adjusted_data.add(adjusted_sample);
+					data.add(adjusted_sample);
+					previous_index = i - 2;
 				}
 				
 				// Add last set of adjusted data.
-				int size = data.size();
-				size = adjusted_data.size();
-				System.out.println("Adjusted data size is " + size);
+				for(int i = previous_index; i < previous_index + 5; i++)
+				{
+					// Not bothering to adjust intensity for 5 samples out of 400000+
+				    Sample sample = (Sample)relative_data.get(i);
+				    sample.y      = total_distance;
+				    data.add(sample);
+				}
+				int size = relative_data.size();
+				//System.out.println("Original data size is " + size);
+				size = data.size();
+				//System.out.println("Adjusted data size is " + size);
 			} 
 			catch (Exception e)
 			{
@@ -289,7 +299,7 @@ public class YFencePlotter
 		Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
 		frame.setCursor(cursor);
 
-		data_canvas = new Canvas();
+		data_canvas = new PlotCanvas();
 		data_canvas.setSize(600, 400);
 		
 		int thumb_size        = 3;
@@ -317,12 +327,11 @@ public class YFencePlotter
         
         position = slider_resolution * .75;
         value = (int) position;
-		//System.out.println("Setting upper range slider value to " + value);
 		data_slider.setUpperValue((int)position);
 		
 		position = slider_resolution * .25;
 		value = (int)position;
-		//System.out.println("Setting lower range slider value to " + value);
+		
 		data_slider.setValue((int)position);
 
 		data_scrollbar_changing = false;
@@ -330,6 +339,85 @@ public class YFencePlotter
 		frame.getContentPane().add(data_panel, BorderLayout.CENTER);
 		frame.pack();
 		frame.setLocation(400, 200);
+	}
+	
+	class PlotCanvas extends Canvas
+	{
+		ArrayList data_array;
+		
+		PlotCanvas()
+		{
+			// We can just do this once and save the garbage collector some work.
+			data_array = new ArrayList();
+			for(int i = 0; i < 5; i++)
+			{
+				ArrayList data_list = new ArrayList();
+				data_array.add(data_list);
+			}
+		}
+		
+		public void paint(Graphics g)
+		{
+			Rectangle  visible_area = g.getClipBounds();
+			int        xdim         = (int) visible_area.getWidth();
+			int        ydim         = (int) visible_area.getHeight();
+			
+			// Reallocate the memory every time because the canvas might get resized.
+			pixel_data = new ArrayList[ydim][xdim];
+			for (int i = 0; i < ydim; i++)
+				for (int j = 0; j < xdim; j++)
+					pixel_data[i][j] = new ArrayList();
+			
+			// Remember to clear any previous segments.
+			for(int i = 0; i < 5; i++)
+			{
+				ArrayList data_list = (ArrayList)data_array.get(i);
+				data_list.clear();
+			}
+			
+			BufferedImage buffered_image  = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
+			Graphics2D    graphics_buffer = (Graphics2D) buffered_image.getGraphics();
+			graphics_buffer.setColor(java.awt.Color.WHITE);
+			graphics_buffer.fillRect(0, 0, xdim, ydim);
+			g.drawImage(buffered_image, 0, 0, null);
+			
+			// Get the indices for the segmented data.
+			double data_location  = data_offset * data_length;
+			int    start_location = (int)data_location;
+			int    start_index    = (int)index.get(start_location);
+			data_location         += data_range * data_length;
+			int stop_location     = (int)data_location;
+			int    stop_index     = (int)index.get(stop_location);
+			
+			//System.out.println("Data offset is " + String.format("%.2f", data_offset));
+			//System.out.println("Data range is " + String.format("%.5f", data_range));
+			//System.out.println("Start index is " + start_index);
+			//System.out.println("Stop index is " + stop_index);
+			double seg_min  = Double.MAX_VALUE;
+			double seg_max  = -Double.MAX_VALUE;
+			
+			for(int i = start_index; i < stop_index; i++)
+			{
+				Sample sample = (Sample) data.get(i);
+				int j = i % 5;
+			    ArrayList data_list = (ArrayList)data_array.get(j);
+			    data_list.add(sample);
+				if (seg_min > sample.intensity)
+					seg_min = sample.intensity;
+				if (seg_max < sample.intensity)
+					seg_max = sample.intensity;	
+			}
+			
+			//System.out.println("Minimum intensity in segment was " + String.format("%.2f", seg_min));
+			//System.out.println("Maximum intensity in segment was " + String.format("%.2f", seg_max));
+			for(int i = 0; i < 5; i++)
+			{
+				ArrayList data_list = (ArrayList)data_array.get(i);
+				int       size      = data_list.size();
+				//System.out.println("Data list " + i + " has size " + size);
+			}
+			//System.out.println();
+		}
 	}
 	
 	class DataSliderHandler implements ChangeListener
@@ -344,17 +432,31 @@ public class YFencePlotter
 				{
 					int value = slider.getValue();
 					int upper_value = slider.getUpperValue();
+					if(value == upper_value)
+					{
+						if(value == slider.getMaximum())
+						{
+							value--;
+							slider.setValue(value);
+						}
+						else
+						{
+							upper_value++;
+							slider.setUpperValue(upper_value);
+						}
+					}
 					double start = (double) value;
-					start /= slider_resolution;
 					double stop = (double) upper_value;
+					double range = (stop - start) / slider_resolution;
+					start /= slider_resolution;
 					stop /= slider_resolution;	
-					double range = stop - start;
 					data_offset = start;
 					data_range  = range;
 					double scrollbar_position = start + range / 2;
 					scrollbar_position *= scrollbar_resolution;
 					data_scrollbar.setValue((int)scrollbar_position);
 					data_slider_changing = false;
+					data_canvas.repaint();
 				}
 			}
 		}
@@ -375,8 +477,6 @@ public class YFencePlotter
 					normal_position         /= scrollbar_resolution;
 					double normal_start     = data_offset; 
 					double normal_stop      = normal_start + data_range; 
-					//System.out.println("Normal position is " + String.format("%.3f", normal_position));
-					//System.out.println("Normal range is " + String.format("%.3f", data_range));
 					normal_start = normal_position - data_range / 2;
 					normal_stop = normal_start + data_range;
 					if(normal_start < 0)
@@ -389,17 +489,7 @@ public class YFencePlotter
 						normal_stop = 1;
 						normal_start = 1 - data_range;
 					}
-					
-					boolean moving_down = true;
-					if(normal_start >  data_offset)
-						moving_down = false;
-					
-					data_offset   = normal_start;
-					normal_start *= slider_resolution;
-					normal_stop  *= slider_resolution;
-					int start     = (int)normal_start;
-					int stop      = (int)normal_stop;
-					
+		
 					// If you set the lower value to a value more
 					// than the upper value, or the upper value
 					// to a value less than the lower value,
@@ -410,6 +500,14 @@ public class YFencePlotter
 					// Maybe one of the reasons it's not in the regular API.
 					// If we figure out which way we're moving the slider
 					// range we can avoid that problem.
+					boolean moving_down = true;
+					if(normal_start >  data_offset)
+						moving_down = false;
+					data_offset   = normal_start;
+					normal_start *= slider_resolution;
+					normal_stop  *= slider_resolution;
+					int start     = (int)normal_start;
+					int stop      = (int)normal_stop;
 					int error = 0;
 					if(moving_down)
 					{
@@ -421,8 +519,8 @@ public class YFencePlotter
 					    data_slider.setUpperValue(stop);
 					    data_slider.setValue(start);
 					}
-					
-					data_scrollbar_changing = false;	
+					data_scrollbar_changing = false;
+					data_canvas.repaint();
 				}
 			}
 		}
