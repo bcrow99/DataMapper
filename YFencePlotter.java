@@ -28,8 +28,8 @@ public class YFencePlotter
 	public ArrayList   index                = new ArrayList();
 	public double      data_offset          = .5;
 	public double      data_range           = .0005;
-	public double      normal_xstep         = 0;
-	public double      normal_ystep         = 1;
+	public double      normal_xstep         = .5;
+	public double      normal_ystep         = .5;
 	public int         x_remainder          = 0;
 	public int         y_remainder          = 0;
 	ArrayList[][]      pixel_data;
@@ -350,7 +350,7 @@ public class YFencePlotter
 	{
 		ArrayList data_array;
 		int       left_margin        = 70;
-		int       right_margin       = 10;
+		int       right_margin       = 20;
 		int       top_margin         = 10;
 		int       bottom_margin      = 70;
 		int       number_of_segments = 5;
@@ -433,23 +433,23 @@ public class YFencePlotter
 			int    graph_ydim        = ydim - (top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
 
 			// So that graphs are not butted together.
-			if (xstep == max_xstep)
+			if (xstep == max_xstep && ystep == 0)
 			{
-				graph_xdim -= 15;
-				x_remainder = 15;
+				graph_xdim -= 25;
+				x_remainder = 25;
 			}	
 			else
 				x_remainder = 0;
 
 			
-			if(ystep == max_ystep)
+			if(ystep == max_ystep && xstep == 0)
 			{
-			    graph_ydim -= 10;
-			    y_remainder = 10;
+			    graph_ydim -= 20;
+			    y_remainder = 20;
 			}
 			else
 				y_remainder = 0;
-		
+			
 			double minimum_y = seg_min;
 			double maximum_y = seg_max;
 			double minimum_x = seg_xmin;
@@ -458,19 +458,19 @@ public class YFencePlotter
 			// Layout the isometric space.
 			for (int i = 0; i < number_of_segments; i++)
 			{
-				int a1 = left_margin;
-				int b1 = ydim - bottom_margin;
-				int a2 = a1 + graph_xdim;
-				int b2 = b1 - graph_ydim;
-				int xaddend = i * xstep + x_remainder;
-				int yaddend = i * ystep + y_remainder;
-				a1 += xaddend;
-				b1 -= yaddend;
-				a2 += xaddend;
-				b2 -= yaddend;
+				int a1      = left_margin;
+				int b1      = ydim - bottom_margin;
+				int a2      = a1 + graph_xdim;
+				int b2      = b1 - graph_ydim;
+				int xaddend = i * xstep;
+				int yaddend = i * ystep;
+				a1         += xaddend;
+				b1         -= yaddend;
+				a2         += xaddend;
+				b2         -= yaddend;
                 
-				double current_range           = b1 - b2;
-				double current_position        = b2;
+				double current_range    = b1 - b2;
+				double current_position = b2;
 			
 				graphics_buffer.setColor(java.awt.Color.BLACK);
 			    graphics_buffer.setStroke(new BasicStroke(1));
@@ -480,9 +480,8 @@ public class YFencePlotter
 		        double current_position_increment = graph_xdim;
 		        current_position_increment        /= number_of_units;
 		        
-		        if(i == 0)
+		        if(i == 0  || (xstep == max_xstep && ystep == 0))
 		        {
-		        	//System.out.println("Number of units is " + number_of_units);
 		        	//Put down lines on the frontmost graph where we can hang location information.
 		            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10); 
 		            for(int j = 0; j < number_of_units; j++)
@@ -508,7 +507,7 @@ public class YFencePlotter
 			            current_position += current_increment;
 		            }
 		            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
-		            if(xstep == 0 && ystep == 0)
+		            if((xstep == 0 && ystep == 0) || (xstep == 0 && ystep == max_ystep) || (xstep == max_xstep && ystep == 0) || (xstep == max_xstep && ystep == max_ystep))
 		            {
 		            	current_position = b2;
 			    	    for(int j = 0; j < number_of_units; j++)
@@ -547,19 +546,44 @@ public class YFencePlotter
 				            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
 			            }
 		            }
+		        	
 		        	if(ystep != 0)
 		        	{
-		        	    graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep); 
+		        		graphics_buffer.drawLine((int) current_position, b1 + y_remainder, (int) current_position - xstep, b1 + ystep);
 		        	    for(int j = 0; j < number_of_units; j++)
 		        	    {
 		        	    	current_position += current_position_increment;
-		        		    graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep);
+		        		    graphics_buffer.drawLine((int) current_position, b1 + y_remainder, (int) current_position - xstep, b1 + ystep);
 		        		    // At the end of a graph, put down a line where we can hang a line id or location information.
 		        		    // It also helps define the isometric space.
-		        		    if(j == number_of_units - 1)
+		        		    if(j == number_of_units - 1 && xstep != 0)
 		        		    	graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);  	
 		        	    }
 		            }
+		        	
+		        	if(xstep == 0 && ystep == max_ystep)
+		        	{
+		        		//Put down lines where we can hang intensity information since graphs are laid out
+		        		//in a column.
+		        		current_position         = b2;
+		                current_range            = b1 - b2;
+					    number_of_units          = (int) (current_range / (2 * (string_height)));
+					    double current_increment = current_range / number_of_units;
+					    graphics_buffer.setColor(Color.BLACK);
+				    	graphics_buffer.setStroke(new BasicStroke(2));
+				    	graphics_buffer.drawLine(a1, b1, a1, b2);
+				    	
+				    	graphics_buffer.setStroke(new BasicStroke(1));
+				    	graphics_buffer.setColor(new Color(196, 196, 196));
+				    	graphics_buffer.drawLine(a1, b1, a2, b1);
+			            for(int j = 0; j < number_of_units; j++)
+			            {
+			            	graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
+				            current_position += current_increment;
+			            }
+			            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
+		        	}
+		        	
 		        	current_position         = b2;
 	                current_range            = b1 - b2;
 				    number_of_units          = (int) (current_range / (2 * (string_height)));
@@ -619,7 +643,6 @@ public class YFencePlotter
 			    	    }	
 			    	}
 				    
-	
 				    if(i == number_of_segments - 1 && (ystep != max_ystep || xstep != max_xstep))
 				    {
 				    	if(xstep == 0 && ystep == max_ystep)
@@ -660,9 +683,9 @@ public class YFencePlotter
 				int a1      = left_margin;
 				int b1      = ydim - bottom_margin;
 				int a2      = a1 + graph_xdim;
-				int b2      = b1 - (graph_ydim + y_remainder);
-				int xaddend = i * xstep + x_remainder;
-				int yaddend = i * ystep + y_remainder;
+				int b2      = b1 - graph_ydim;
+				int xaddend = i * xstep;
+				int yaddend = i * ystep;
 				a1         += xaddend;
 				b1         -= yaddend;
 				a2         += xaddend;
@@ -715,10 +738,10 @@ public class YFencePlotter
 				int b1 = ydim - bottom_margin;
 
 				int a2 = a1 + graph_xdim;
-				int b2 = b1 - (graph_ydim + y_remainder);
+				int b2 = b1 - graph_ydim;
 
-				int xaddend = i * xstep + x_remainder;
-				int yaddend = i * ystep + y_remainder;
+				int xaddend = i * xstep;
+				int yaddend = i * ystep;
 
 				a1 += xaddend;
 				b1 -= yaddend;
@@ -765,11 +788,9 @@ public class YFencePlotter
 					current_y -= minimum_y;
 					current_y /= yrange;
 					current_y *= graph_ydim;
-					current_y = graph_ydim - current_y;
+					current_y = (graph_ydim + y_remainder) - current_y;
 					current_y += top_margin + (number_of_segments - 1) * ystep;
 					current_y -= yaddend;
-					
-					
 					
 					if(k == 0)
 						init_point = current_y;
@@ -784,7 +805,7 @@ public class YFencePlotter
 				local_min -= minimum_y;
 				local_min /= yrange;
 				local_min *= graph_ydim;
-				local_min = graph_ydim - local_min;
+				local_min = (graph_ydim + y_remainder) - local_min;
 				local_min += top_margin + (number_of_segments - 1) * ystep;
 				local_min -= yaddend;
 				
@@ -792,7 +813,7 @@ public class YFencePlotter
 				local_max -= minimum_y;
 				local_max /= yrange;
 				local_max *= graph_ydim;
-				local_max  = graph_ydim - local_max;
+				local_max  = (graph_ydim + y_remainder) - local_max;
 				local_max += top_margin + (number_of_segments - 1) * ystep;
 				local_max -= yaddend;
 				
@@ -832,8 +853,8 @@ public class YFencePlotter
 				int a2 = a1 + graph_xdim;
 				int b2 = b1 - graph_ydim;
 
-				int xaddend = i * xstep + x_remainder;
-				int yaddend = i * ystep + y_remainder;
+				int xaddend = i * xstep;
+				int yaddend = i * ystep;
 
 				a1 += xaddend;
 				b1 -= yaddend;
@@ -877,7 +898,7 @@ public class YFencePlotter
 					double zero_y = Math.abs(minimum_y);
 					zero_y /= yrange;
 					zero_y *= graph_ydim;
-					zero_y = graph_ydim - zero_y;
+					zero_y = (graph_ydim + y_remainder) - zero_y;
 					zero_y += top_margin + (number_of_segments - 1) * ystep;
 					zero_y -= yaddend;
 
@@ -892,7 +913,6 @@ public class YFencePlotter
 			}
 			
 			// Add numbers and labels.
-			
 			graphics_buffer.setColor(java.awt.Color.BLACK);
 			double current_value    = data_offset;
 			double current_position = left_margin;
@@ -909,8 +929,8 @@ public class YFencePlotter
 			    a2 = a1 + graph_xdim;
 			    b2 = b1 - graph_ydim;
 
-			    int xaddend = i * xstep + x_remainder;
-			    int yaddend = i * ystep + y_remainder;
+			    int xaddend = i * xstep;
+			    int yaddend = i * ystep;
 
 			    a1 += xaddend;
 			    b1 -= yaddend;
@@ -946,13 +966,13 @@ public class YFencePlotter
 		        
 		        String position_string;
 		        if(xrange < 1.)
-		            position_string = String.format("%,.2f", current_value);
+		            position_string = String.format("%,.1f", current_value);
 		        else
 		        	position_string = String.format("%,.1f", current_value);
 		        
-		        if(i == 0)
+		        if(i == 0 || (xstep == max_xstep && ystep == 0) )
 		        {
-		        	// Hanging numbers on frontmost xaxis.
+		        	// Hanging locations on frontmost graph or all the graphs if they are laid out in a row.
 		        	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
 		            double current_value_increment = xrange / number_of_units;	            
 		            for(int j = 0; j < number_of_units; j++)
@@ -960,11 +980,40 @@ public class YFencePlotter
 			            current_value += current_value_increment;
 			            current_position += current_position_increment;
 			            if(xrange < 1.)
-			                position_string = String.format("%,.2f", current_value);
+			                position_string = String.format("%,.1f", current_value);
 			            else
 			            	position_string = String.format("%,.1f", current_value);
 			            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
 		            }
+		        }
+		        
+		        if(i == 0 || (xstep == 0 && ystep == max_ystep))
+		        {
+		        	double current_intensity_range = maximum_y - minimum_y;
+				    double current_range = b1 - b2;
+				    number_of_units = (int) (current_range / (2 * string_height));
+				    double current_increment = current_range / number_of_units;
+				    double current_value_increment = current_intensity_range / number_of_units;
+				    current_position = b2;
+				    current_value = maximum_y;
+				    String intensity_string;
+				    for(int j = 0; j < number_of_units; j++)
+		            {
+				    	if(current_intensity_range > 20)
+					        intensity_string = String.format("%,.0f", current_value);
+					    else
+					    	intensity_string = String.format("%,.1f", current_value);
+			            string_width     = font_metrics.stringWidth(intensity_string);
+			            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
+			            current_position += current_increment;
+			            current_value    -= current_value_increment;
+		            }
+				    if(current_intensity_range > 20)
+				        intensity_string = String.format("%,.0f", current_value);
+				    else
+				    	intensity_string = String.format("%,.1f", current_value);
+		            string_width     = font_metrics.stringWidth(intensity_string);
+		            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));	
 		        }
 		    }
 			
@@ -972,37 +1021,7 @@ public class YFencePlotter
 			int string_width = font_metrics.stringWidth(position_string);
 			graphics_buffer.drawString(position_string, left_margin + (xdim - right_margin - left_margin) / 2 - string_width / 2, ydim - bottom_margin / 6);
 			
-			a1 = left_margin;
-		    b1 = ydim - bottom_margin;
-		    a2 = a1 + graph_xdim;
-		    b2 = b1 - graph_ydim;
-		    double current_intensity_range = maximum_y - minimum_y;
-		    double current_range = b1 - b2;
-		    int number_of_units = (int) (current_range / (2 * string_height));
-		    double current_increment = current_range / number_of_units;
-		    double current_value_increment = current_intensity_range / number_of_units;
-		    current_position = b2;
-		    current_value = maximum_y;
-		    String intensity_string;
-		    for(int i = 0; i < number_of_units; i++)
-            {
-		    	if(current_intensity_range > 20)
-			        intensity_string = String.format("%,.0f", current_value);
-			    else
-			    	intensity_string = String.format("%,.1f", current_value);
-	            string_width     = font_metrics.stringWidth(intensity_string);
-	            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
-	            current_position += current_increment;
-	            current_value    -= current_value_increment;
-            }
-		    if(current_intensity_range > 20)
-		        intensity_string = String.format("%,.0f", current_value);
-		    else
-		    	intensity_string = String.format("%,.1f", current_value);
-            string_width     = font_metrics.stringWidth(intensity_string);
-            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
-            
-		    intensity_string = new String("nT");
+		    String intensity_string = new String("nT");
 			string_width = font_metrics.stringWidth(intensity_string);
 			graphics_buffer.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
 			
