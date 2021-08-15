@@ -26,9 +26,15 @@ public class YFencePlotter
 	public ArrayList   relative_data        = new ArrayList();
 	public ArrayList   data                 = new ArrayList();
 	public ArrayList   index                = new ArrayList();
-	public double      data_offset          = .25;
-	public double      data_range           = .5;
+	public double      data_offset          = .5;
+	public double      data_range           = .0005;
+	public double      normal_xstep         = 0;
+	public double      normal_ystep         = 1;
+	public int         x_remainder          = 0;
+	public int         y_remainder          = 0;
 	ArrayList[][]      pixel_data;
+	
+	boolean            raster_overlay       = false;
 	
 	public static void main(String[] args)
 	{
@@ -195,6 +201,7 @@ public class YFencePlotter
 				data   = new ArrayList();
 				previous_sample = (Sample)relative_data.get(2);
 				int previous_index = 0;
+				total_distance = 0;
 				for(int i = 7; i < relative_data.size(); i += 5)
 				{
 					Sample sample   = (Sample) relative_data.get(i);	
@@ -250,20 +257,17 @@ public class YFencePlotter
 						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   	
 					data.add(adjusted_sample);
 					previous_index = i - 2;
+					previous_sample = sample;
 				}
 				
 				// Add last set of adjusted data.
 				for(int i = previous_index; i < previous_index + 5; i++)
 				{
-					// Not bothering to adjust intensity for 5 samples out of 400000+
+					// Not bothering to adjust intensity for 4 samples out of 400000+
 				    Sample sample = (Sample)relative_data.get(i);
 				    sample.y      = total_distance;
 				    data.add(sample);
 				}
-				int size = relative_data.size();
-				//System.out.println("Original data size is " + size);
-				size = data.size();
-				//System.out.println("Adjusted data size is " + size);
 			} 
 			catch (Exception e)
 			{
@@ -300,10 +304,11 @@ public class YFencePlotter
 		frame.setCursor(cursor);
 
 		data_canvas = new PlotCanvas();
-		data_canvas.setSize(600, 400);
+		data_canvas.setSize(1000, 800);
 		
 		int thumb_size        = 3;
-		data_scrollbar        = new JScrollBar(JScrollBar.HORIZONTAL, scrollbar_resolution / 2, thumb_size, 0, scrollbar_resolution + thumb_size);
+		int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+		data_scrollbar        = new JScrollBar(JScrollBar.HORIZONTAL, scrollbar_position, thumb_size, 0, scrollbar_resolution + thumb_size);
 		DataScrollbarHandler data_scrollbar_handler = new DataScrollbarHandler();
 		data_scrollbar.addAdjustmentListener(data_scrollbar_handler);	
 		
@@ -325,11 +330,11 @@ public class YFencePlotter
         double position;
         int    value;
         
-        position = slider_resolution * .75;
+        position = slider_resolution * data_offset;
         value = (int) position;
 		data_slider.setUpperValue((int)position);
 		
-		position = slider_resolution * .25;
+		position = slider_resolution * data_offset + slider_resolution * data_range;
 		value = (int)position;
 		
 		data_slider.setValue((int)position);
@@ -344,12 +349,17 @@ public class YFencePlotter
 	class PlotCanvas extends Canvas
 	{
 		ArrayList data_array;
+		int       left_margin        = 70;
+		int       right_margin       = 10;
+		int       top_margin         = 10;
+		int       bottom_margin      = 70;
+		int       number_of_segments = 5;
 		
 		PlotCanvas()
 		{
 			// We can just do this once and save the garbage collector some work.
 			data_array = new ArrayList();
-			for(int i = 0; i < 5; i++)
+			for(int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList data_list = new ArrayList();
 				data_array.add(data_list);
@@ -369,7 +379,7 @@ public class YFencePlotter
 					pixel_data[i][j] = new ArrayList();
 			
 			// Remember to clear any previous segments.
-			for(int i = 0; i < 5; i++)
+			for(int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList data_list = (ArrayList)data_array.get(i);
 				data_list.clear();
@@ -379,22 +389,24 @@ public class YFencePlotter
 			Graphics2D    graphics_buffer = (Graphics2D) buffered_image.getGraphics();
 			graphics_buffer.setColor(java.awt.Color.WHITE);
 			graphics_buffer.fillRect(0, 0, xdim, ydim);
-			g.drawImage(buffered_image, 0, 0, null);
+			
+			
+			FontMetrics font_metrics = graphics_buffer.getFontMetrics();
+			// This doesn't change so we can just set it once.
+			// We also use string_width which varies.
+			int string_height        = font_metrics.getAscent();
 			
 			// Get the indices for the segmented data.
 			double data_location  = data_offset * data_length;
 			int    start_location = (int)data_location;
 			int    start_index    = (int)index.get(start_location);
 			data_location         += data_range * data_length;
-			int stop_location     = (int)data_location;
+			int    stop_location  = (int)data_location;
 			int    stop_index     = (int)index.get(stop_location);
-			
-			//System.out.println("Data offset is " + String.format("%.2f", data_offset));
-			//System.out.println("Data range is " + String.format("%.5f", data_range));
-			//System.out.println("Start index is " + start_index);
-			//System.out.println("Stop index is " + stop_index);
-			double seg_min  = Double.MAX_VALUE;
-			double seg_max  = -Double.MAX_VALUE;
+			double seg_min        = Double.MAX_VALUE;
+			double seg_max        = -Double.MAX_VALUE;
+			double seg_xmin       = Double.MAX_VALUE;
+			double seg_xmax       = 0;
 			
 			for(int i = start_index; i < stop_index; i++)
 			{
@@ -406,17 +418,595 @@ public class YFencePlotter
 					seg_min = sample.intensity;
 				if (seg_max < sample.intensity)
 					seg_max = sample.intensity;	
+				if(seg_xmin > sample.y)
+					seg_xmin = sample.y;
+				if(seg_xmax < sample.y)
+					seg_xmax = sample.y;
 			}
 			
-			//System.out.println("Minimum intensity in segment was " + String.format("%.2f", seg_min));
-			//System.out.println("Maximum intensity in segment was " + String.format("%.2f", seg_max));
-			for(int i = 0; i < 5; i++)
+			double max_xstep         = (xdim - (left_margin + right_margin)) / number_of_segments;
+			int    xstep             = (int) (max_xstep * normal_xstep);
+			int    graph_xdim        = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
+			
+			double max_ystep         = (ydim - (top_margin + bottom_margin)) / number_of_segments;
+			int    ystep             = (int) (max_ystep * normal_ystep);
+			int    graph_ydim        = ydim - (top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
+
+			// So that graphs are not butted together.
+			if (xstep == max_xstep)
 			{
-				ArrayList data_list = (ArrayList)data_array.get(i);
-				int       size      = data_list.size();
-				//System.out.println("Data list " + i + " has size " + size);
+				graph_xdim -= 15;
+				x_remainder = 15;
+			}	
+			else
+				x_remainder = 0;
+
+			
+			if(ystep == max_ystep)
+			{
+			    graph_ydim -= 10;
+			    y_remainder = 10;
 			}
-			//System.out.println();
+			else
+				y_remainder = 0;
+		
+			double minimum_y = seg_min;
+			double maximum_y = seg_max;
+			double minimum_x = seg_xmin;
+			double maximum_x = seg_xmax;
+			
+			// Layout the isometric space.
+			for (int i = 0; i < number_of_segments; i++)
+			{
+				int a1 = left_margin;
+				int b1 = ydim - bottom_margin;
+				int a2 = a1 + graph_xdim;
+				int b2 = b1 - graph_ydim;
+				int xaddend = i * xstep + x_remainder;
+				int yaddend = i * ystep + y_remainder;
+				a1 += xaddend;
+				b1 -= yaddend;
+				a2 += xaddend;
+				b2 -= yaddend;
+                
+				double current_range           = b1 - b2;
+				double current_position        = b2;
+			
+				graphics_buffer.setColor(java.awt.Color.BLACK);
+			    graphics_buffer.setStroke(new BasicStroke(1));
+			    current_position = a1;
+			    int string_width = font_metrics.stringWidth("77.7");
+			    int    number_of_units            = (int) (graph_xdim / (string_width + 6));  
+		        double current_position_increment = graph_xdim;
+		        current_position_increment        /= number_of_units;
+		        
+		        if(i == 0)
+		        {
+		        	//System.out.println("Number of units is " + number_of_units);
+		        	//Put down lines on the frontmost graph where we can hang location information.
+		            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10); 
+		            for(int j = 0; j < number_of_units; j++)
+		            {
+			            current_position += current_position_increment;
+			            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
+		            }
+		            
+		            current_position         = b2;
+	                current_range            = b1 - b2;
+				    number_of_units          = (int) (current_range / (2 * (string_height)));
+				    double current_increment = current_range / number_of_units;
+				    graphics_buffer.setColor(Color.BLACK);
+			    	graphics_buffer.setStroke(new BasicStroke(2));
+			    	graphics_buffer.drawLine(a1, b1, a1, b2);
+			    	
+			    	graphics_buffer.setStroke(new BasicStroke(1));
+			    	graphics_buffer.setColor(new Color(196, 196, 196));
+			    	graphics_buffer.drawLine(a1, b1, a2, b1);
+		            for(int j = 0; j < number_of_units; j++)
+		            {
+		            	graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
+			            current_position += current_increment;
+		            }
+		            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
+		            if(xstep == 0 && ystep == 0)
+		            {
+		            	current_position = b2;
+			    	    for(int j = 0; j < number_of_units; j++)
+		                {
+		    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+			                current_position += current_increment;
+		                }
+			    	    current_position  = a1;
+			    	    number_of_units   = (int)(graph_xdim / (string_width + 6));  
+			    	    current_increment = graph_xdim;
+			    	    current_increment /= number_of_units;
+			    	    // Creating grid on rear of data space on frontmost graph panel.
+			    	    for(int j = 0; j < number_of_units; j++)
+		                {
+		    			    graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
+		    			    current_position += current_increment;
+		    			}	
+			    	    graphics_buffer.drawLine((int)a2, b1, (int)a2, b2);
+			    	    
+			    	    graphics_buffer.drawLine(a1, b1, a2, b1); 
+		            }
+		            // If plots directly overlap, we only need one set of axes.
+					if (ystep == 0 && xstep == 0)
+						break;
+		        }
+		        else
+		        {
+		        	if(xstep == max_xstep && ystep == 0)
+		        	{
+		        	    //Put down lines on all the graphs where we can hang location information since they
+		        		// are all laid out in a line.
+		                graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10); 
+		                for(int j = 0; j < number_of_units; j++)
+			            {
+				            current_position += current_position_increment;
+				            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
+			            }
+		            }
+		        	if(ystep != 0)
+		        	{
+		        	    graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep); 
+		        	    for(int j = 0; j < number_of_units; j++)
+		        	    {
+		        	    	current_position += current_position_increment;
+		        		    graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep);
+		        		    // At the end of a graph, put down a line where we can hang a line id or location information.
+		        		    // It also helps define the isometric space.
+		        		    if(j == number_of_units - 1)
+		        		    	graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);  	
+		        	    }
+		            }
+		        	current_position         = b2;
+	                current_range            = b1 - b2;
+				    number_of_units          = (int) (current_range / (2 * (string_height)));
+				    double current_increment = current_range / number_of_units;
+				    if(ystep != 0)
+			    	{
+			    		graphics_buffer.setColor(Color.BLACK);
+			    		graphics_buffer.setStroke(new BasicStroke(2));
+			    		graphics_buffer.drawLine(a1, b1, a1, b2);
+				    	graphics_buffer.setColor(new Color(196, 196, 196));
+				    	graphics_buffer.setStroke(new BasicStroke(1));
+			    		for(int j = 0; j < number_of_units; j++)
+			            {
+			    			graphics_buffer.drawLine(a1, (int)current_position, a1 - xstep, (int)current_position + ystep);
+				            current_position += current_increment;
+			            }
+			    		graphics_buffer.drawLine(a1, (int)current_position, a1 - xstep, (int)current_position + ystep);
+			    	}
+			    	if(ystep == max_ystep)
+			    	{
+			    		graphics_buffer.setColor(new Color(196, 196, 196));
+			    		graphics_buffer.setStroke(new BasicStroke(1));
+			    		current_position = b2;
+			    	    for(int j = 0; j < number_of_units; j++)
+		                {
+		    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+			                current_position += current_increment;
+		                }	
+			    	}
+			    	graphics_buffer.setColor(new Color(196, 196, 196));
+		    	    graphics_buffer.setStroke(new BasicStroke(1));
+		    	    graphics_buffer.drawLine(a1, b1, a2, b1);
+		    	    
+		    	    
+		    	    if(xstep == max_xstep && ystep == 0)
+		    	        graphics_buffer.drawLine(a1, b1, a1, b2);
+		    	    if(xstep > (max_xstep - 2)  && ystep > (max_ystep - 2))
+			    	{
+			    		graphics_buffer.drawLine(a1, b1, a2, b1); 
+				    	graphics_buffer.drawLine(a1, b2, a2, b2);
+				    	graphics_buffer.drawLine(a2, b1, a2, b2);
+				    	    
+				    	current_position = b2;
+				    	for(int j = 0; j < number_of_units; j++)
+			            {
+			    			graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+				            current_position += current_increment;
+			            }
+				    	current_position  = a1;
+				    	number_of_units   = (int)(graph_xdim / (string_width + 6));  
+				    	current_increment = graph_xdim;
+				    	current_increment /= number_of_units;
+				    	for(int j = 0; j < number_of_units; j++)
+			            {
+			    			graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
+			    			current_position += current_increment;
+			    	    }	
+			    	}
+				    
+	
+				    if(i == number_of_segments - 1 && (ystep != max_ystep || xstep != max_xstep))
+				    {
+				    	if(xstep == 0 && ystep == max_ystep)
+				    		graphics_buffer.setColor(Color.BLACK);
+				    	else
+				    	graphics_buffer.setColor(new Color(196, 196, 196));
+			    	    graphics_buffer.setStroke(new BasicStroke(1));
+			    	    graphics_buffer.drawLine(a1, b1, a2, b1);
+				    	if(!(xstep == max_xstep && ystep == 0) || xstep == 0)
+				    	{
+				    	    graphics_buffer.drawLine(a1, b1, a2, b1); 
+				    	    graphics_buffer.drawLine(a1, b2, a2, b2);
+				    	    graphics_buffer.drawLine(a2, b1, a2, b2);
+				    	    
+				    	    current_position = b2;
+				    	    for(int j = 0; j < number_of_units; j++)
+			                {
+			    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+				                current_position += current_increment;
+			                }
+				    	    current_position  = a1;
+				    	    number_of_units   = (int)(graph_xdim / (string_width + 6));  
+				    	    current_increment = graph_xdim;
+				    	    current_increment /= number_of_units;
+				    	    // Creating grid on rear of data space.
+				    	    for(int j = 0; j < number_of_units; j++)
+			                {
+			    			    graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
+			    			    current_position += current_increment;
+			    			}
+				    	}
+			        }
+		        }
+			}
+			ArrayList plot_data = new ArrayList();
+			for(int i = 0; i < number_of_segments; i++)
+			{
+				int a1      = left_margin;
+				int b1      = ydim - bottom_margin;
+				int a2      = a1 + graph_xdim;
+				int b2      = b1 - (graph_ydim + y_remainder);
+				int xaddend = i * xstep + x_remainder;
+				int yaddend = i * ystep + y_remainder;
+				a1         += xaddend;
+				b1         -= yaddend;
+				a2         += xaddend;
+				b2         -= yaddend;
+                
+				double current_range           = b1 - b2;
+				double current_position        = b2;
+				double current_value           = maximum_y;
+				double current_intensity_range = maximum_y - minimum_y;
+				
+				ArrayList data_list = (ArrayList)data_array.get(i);
+				ArrayList plot_list = new ArrayList();
+				for(int j = 0; j < data_list.size(); j++)
+				{
+					// We probably want to save pixel data here,
+					// but since we can't test whether its working
+					// until we have graphs, we'll just start
+					// constructing the graph.  Recall that
+					// the data we are working with has both
+					// an adjusted y and intensity value, so we
+					// would get something from relative_data.
+					Sample sample = (Sample)data_list.get(j);
+					Point2D.Double point = new Point2D.Double();
+					point.x              = sample.y;
+					point.y              = sample.intensity;
+					plot_list.add(point);
+				}
+				plot_data.add(plot_list);
+			}
+			
+			Polygon[] polygon              = new Polygon[number_of_segments];
+			boolean[] polygon_zero_crossing = new boolean[number_of_segments];
+			double[]  polygon_min           = new double[number_of_segments];
+			for (int i = 0; i < number_of_segments; i++)
+			{
+				ArrayList data_list       = (ArrayList)data_array.get(i);
+				Sample    previous_sample = (Sample)data_list.get(0);
+				polygon_zero_crossing[i]  = false;
+				for(int j = 1; j < data_list.size(); j++)
+				{
+				    Sample current_sample = (Sample)data_list.get(j);
+				    if((previous_sample.intensity <= 0 && current_sample.intensity >= 0) ||
+				    (previous_sample.intensity >= 0 && current_sample.intensity <= 0))
+				    {
+				    	polygon_zero_crossing[i]  = true;	
+				    }
+				}
+				
+				int a1 = left_margin;
+				int b1 = ydim - bottom_margin;
+
+				int a2 = a1 + graph_xdim;
+				int b2 = b1 - (graph_ydim + y_remainder);
+
+				int xaddend = i * xstep + x_remainder;
+				int yaddend = i * ystep + y_remainder;
+
+				a1 += xaddend;
+				b1 -= yaddend;
+
+				a2 += xaddend;
+				b2 -= yaddend;
+
+				ArrayList segment = (ArrayList)plot_data.get(i);
+
+				int n   = segment.size() + 3;
+				int[] x = new int[n];
+				int[] y = new int[n];
+				
+				int m         = 0;
+                double yrange = maximum_y - minimum_y;
+                double xrange = maximum_x - minimum_x;
+                
+                double this_minimum_y = maximum_y;
+                double this_maximum_y = minimum_y;
+                double init_point     = 0;
+                
+                double zero_y = Math.abs(minimum_y);
+				zero_y /= yrange;
+				zero_y *= graph_ydim;
+				zero_y = graph_ydim - zero_y;
+				zero_y += top_margin + (number_of_segments - 1) * ystep;
+				zero_y -= yaddend;
+				double previous_y = 0;
+				for(int k = 0; k < segment.size(); k++)
+				{
+					Point2D.Double point = (Point2D.Double) segment.get(k);
+					double current_x = point.getX();
+					current_x -= minimum_x;
+					current_x /= xrange;
+					current_x *= graph_xdim;
+					current_x += left_margin;
+					current_x += xaddend;
+
+					double current_y = point.getY();
+					if(current_y < this_minimum_y)
+						this_minimum_y = current_y;	
+					if(current_y > this_maximum_y)
+						this_maximum_y = current_y;
+					current_y -= minimum_y;
+					current_y /= yrange;
+					current_y *= graph_ydim;
+					current_y = graph_ydim - current_y;
+					current_y += top_margin + (number_of_segments - 1) * ystep;
+					current_y -= yaddend;
+					
+					
+					
+					if(k == 0)
+						init_point = current_y;
+
+					x[m] = (int) current_x;
+					y[m] = (int) current_y;
+
+					m++;
+				}
+
+				double local_min = this_minimum_y;
+				local_min -= minimum_y;
+				local_min /= yrange;
+				local_min *= graph_ydim;
+				local_min = graph_ydim - local_min;
+				local_min += top_margin + (number_of_segments - 1) * ystep;
+				local_min -= yaddend;
+				
+				double local_max = this_maximum_y;
+				local_max -= minimum_y;
+				local_max /= yrange;
+				local_max *= graph_ydim;
+				local_max  = graph_ydim - local_max;
+				local_max += top_margin + (number_of_segments - 1) * ystep;
+				local_max -= yaddend;
+				
+				x[m] = a2;
+				y[m] = (int)local_min;
+				m++;
+
+				x[m] = a1;
+				y[m] = (int)local_min;
+				m++;
+				
+				x[m] = a1;
+				y[m] = (int)init_point;
+				
+				
+				// Color y axis.
+				graphics_buffer.setColor(fill_color[i]);
+			    graphics_buffer.setStroke(new BasicStroke(3)); 
+			    graphics_buffer.drawLine(a1, (int)local_min, a1, (int)local_max);
+			    
+			    polygon_min[i] = local_min;
+			    
+			   
+			    
+				java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
+				polygon[i]  = sensor_polygon;
+			}
+			
+			double xrange = maximum_x - minimum_x;
+			double yrange = maximum_y - minimum_y;
+			
+			for (int i = number_of_segments - 1; i >= 0; i--)
+			{
+				int a1 = left_margin;
+				int b1 = ydim - bottom_margin;
+
+				int a2 = a1 + graph_xdim;
+				int b2 = b1 - graph_ydim;
+
+				int xaddend = i * xstep + x_remainder;
+				int yaddend = i * ystep + y_remainder;
+
+				a1 += xaddend;
+				b1 -= yaddend;
+
+				a2 += xaddend;
+				b2 -= yaddend;
+       
+				graphics_buffer.setColor(fill_color[i]);
+			    graphics_buffer.fillPolygon(polygon[i]);
+			    graphics_buffer.setStroke(new BasicStroke(2));
+			    graphics_buffer.setColor(java.awt.Color.BLACK);
+			    graphics_buffer.drawPolygon(polygon[i]);
+			    
+			    // Anchor polygon to isometric grid.
+			    graphics_buffer.setColor(Color.DARK_GRAY);
+			    graphics_buffer.setStroke(new BasicStroke(1)); 
+			    graphics_buffer.drawLine(a2, (int)polygon_min[i], a2, b1);
+				
+				//if (minimum_y < 0  && maximum_y > 0  && polygon_zero_crossing[i] == true)
+			    if(polygon_zero_crossing[i]  || (xstep == max_xstep  || ystep == max_ystep))
+				{
+					ArrayList plot_list = (ArrayList) plot_data.get(i);
+					Point2D.Double first = (Point2D.Double) plot_list.get(0);
+					int plot_length = plot_list.size();
+					Point2D.Double last = (Point2D.Double) plot_list.get(plot_length - 1);
+					double x1 = first.getX();
+					double x2 = last.getX();
+					
+					x1 -= minimum_x;
+					x1 /= xrange;
+					x1 *= graph_xdim;
+					x1 += left_margin;
+					x1 += xaddend;
+
+					x2 -= minimum_x;
+					x2 /= xrange;
+					x2 *= graph_xdim;
+					x2 += left_margin;
+					x2 += xaddend;
+					
+					double zero_y = Math.abs(minimum_y);
+					zero_y /= yrange;
+					zero_y *= graph_ydim;
+					zero_y = graph_ydim - zero_y;
+					zero_y += top_margin + (number_of_segments - 1) * ystep;
+					zero_y -= yaddend;
+
+					float[] dash ={ 2f, 0f, 2f };
+					BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
+					graphics_buffer.setStroke(basic_stroke);
+					graphics_buffer.setColor(java.awt.Color.RED);
+					graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
+					graphics_buffer.setStroke(new BasicStroke(2));
+						
+				}	
+			}
+			
+			// Add numbers and labels.
+			
+			graphics_buffer.setColor(java.awt.Color.BLACK);
+			double current_value    = data_offset;
+			double current_position = left_margin;
+			int a1                  = left_margin;
+			int b1                  = ydim - bottom_margin;
+			int a2                  = a1 + graph_xdim;
+			int b2                  = b1 - graph_ydim;
+			
+			for(int i = 0; i < number_of_segments; i++)
+		    {
+			    a1 = left_margin;
+			    b1 = ydim - bottom_margin;
+
+			    a2 = a1 + graph_xdim;
+			    b2 = b1 - graph_ydim;
+
+			    int xaddend = i * xstep + x_remainder;
+			    int yaddend = i * ystep + y_remainder;
+
+			    a1 += xaddend;
+			    b1 -= yaddend;
+
+			    a2 += xaddend;
+			    b2 -= yaddend;
+			    
+			    //Create a top on the frame around each graph to help evaluate relative y dimensions accurately.
+			    if(raster_overlay)
+			    {
+			        if(i != number_of_segments - 1)
+			        {
+			    	    //Side--seems like it just gets in the way.
+		                //graphics_buffer.drawLine(a1, b1, a2, b1); 
+			    	    if(ystep != 0)
+			    	    {
+			    	    	graphics_buffer.setColor(new Color(196, 196, 196));
+				    	    graphics_buffer.setStroke(new BasicStroke(1));
+	    	                graphics_buffer.drawLine(a1, b2, a2, b2);
+	    	                graphics_buffer.drawLine(a2, b2, a2 + xstep, b2 - ystep);
+	    	                graphics_buffer.setColor(Color.BLACK);
+			    	    }
+			        }
+			    }
+			 
+			    current_value    = 0;
+			    current_position = a1;
+			    int string_width = font_metrics.stringWidth("77.7");
+			    xrange           = maximum_x - minimum_x;
+		        int    number_of_units            = (int) (graph_xdim / (string_width + 6));
+		        double current_position_increment = graph_xdim;
+		        current_position_increment        /= number_of_units;
+		        
+		        String position_string;
+		        if(xrange < 1.)
+		            position_string = String.format("%,.2f", current_value);
+		        else
+		        	position_string = String.format("%,.1f", current_value);
+		        
+		        if(i == 0)
+		        {
+		        	// Hanging numbers on frontmost xaxis.
+		        	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
+		            double current_value_increment = xrange / number_of_units;	            
+		            for(int j = 0; j < number_of_units; j++)
+		            {
+			            current_value += current_value_increment;
+			            current_position += current_position_increment;
+			            if(xrange < 1.)
+			                position_string = String.format("%,.2f", current_value);
+			            else
+			            	position_string = String.format("%,.1f", current_value);
+			            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
+		            }
+		        }
+		    }
+			
+			String position_string = new String("meters");
+			int string_width = font_metrics.stringWidth(position_string);
+			graphics_buffer.drawString(position_string, left_margin + (xdim - right_margin - left_margin) / 2 - string_width / 2, ydim - bottom_margin / 6);
+			
+			a1 = left_margin;
+		    b1 = ydim - bottom_margin;
+		    a2 = a1 + graph_xdim;
+		    b2 = b1 - graph_ydim;
+		    double current_intensity_range = maximum_y - minimum_y;
+		    double current_range = b1 - b2;
+		    int number_of_units = (int) (current_range / (2 * string_height));
+		    double current_increment = current_range / number_of_units;
+		    double current_value_increment = current_intensity_range / number_of_units;
+		    current_position = b2;
+		    current_value = maximum_y;
+		    String intensity_string;
+		    for(int i = 0; i < number_of_units; i++)
+            {
+		    	if(current_intensity_range > 20)
+			        intensity_string = String.format("%,.0f", current_value);
+			    else
+			    	intensity_string = String.format("%,.1f", current_value);
+	            string_width     = font_metrics.stringWidth(intensity_string);
+	            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
+	            current_position += current_increment;
+	            current_value    -= current_value_increment;
+            }
+		    if(current_intensity_range > 20)
+		        intensity_string = String.format("%,.0f", current_value);
+		    else
+		    	intensity_string = String.format("%,.1f", current_value);
+            string_width     = font_metrics.stringWidth(intensity_string);
+            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
+            
+		    intensity_string = new String("nT");
+			string_width = font_metrics.stringWidth(intensity_string);
+			graphics_buffer.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
+			
+			g.drawImage(buffered_image, 0, 0, null);
 		}
 	}
 	
