@@ -26,7 +26,7 @@ public class YFencePlotter
 	public ArrayList   relative_data        = new ArrayList();
 	public ArrayList   data                 = new ArrayList();
 	public ArrayList   index                = new ArrayList();
-	public double      data_offset          = .5;
+	public double      data_offset          = .0;
 	public double      data_range           = .0005;
 	public double      normal_xstep         = .5;
 	public double      normal_ystep         = .5;
@@ -34,7 +34,35 @@ public class YFencePlotter
 	public int         y_remainder          = 0;
 	ArrayList[][]      pixel_data;
 	
+	int                start_flight_line = 0;
+	int                stop_flight_line  = 0;
+	
 	boolean            raster_overlay       = false;
+	boolean            reverse_view            = false;
+	
+	
+	Canvas[]           sensor_canvas = new SensorCanvas[10];
+	int[]              sensor_state  = new int[10];
+	boolean[]          visible       = new boolean[5];
+	boolean[]          transparent   = new boolean[5];
+	
+	public JDialog information_dialog;
+	public JDialog placement_dialog;
+	public JDialog sensor_dialog;
+	
+	public PlacementCanvas placement_canvas;
+	
+	// Updated by MouseMotionHandler
+	JTextArea sample_information;
+	
+	int       left_margin        = 70;
+	int       right_margin       = 20;
+	int       top_margin         = 10;
+	int       bottom_margin      = 70;
+	
+	
+	
+	BufferedImage buffered_image;
 	
 	public static void main(String[] args)
 	{
@@ -280,6 +308,14 @@ public class YFencePlotter
 			System.exit(0);
 		}
 
+		
+		// A modeless dialog box that shows up if the mouse is dragged on the canvas.
+		JPanel information_panel = new JPanel(new BorderLayout());
+		sample_information = new JTextArea(8, 17);
+		information_panel.add(sample_information);
+		information_dialog = new JDialog(frame);
+		information_dialog.add(information_panel);
+				
 		frame = new JFrame("YFence Plotter");
 		WindowAdapter window_handler = new WindowAdapter()
 	    {
@@ -305,6 +341,10 @@ public class YFencePlotter
 
 		data_canvas = new PlotCanvas();
 		data_canvas.setSize(1000, 800);
+		MouseHandler mouse_handler = new MouseHandler();
+		data_canvas.addMouseListener(mouse_handler);
+		MouseMotionHandler mouse_motion_handler = new MouseMotionHandler();
+		data_canvas.addMouseMotionListener(mouse_motion_handler);
 		
 		int thumb_size        = 3;
 		int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
@@ -340,7 +380,155 @@ public class YFencePlotter
 		data_slider.setValue((int)position);
 
 		data_scrollbar_changing = false;
+	
+		for(int i = 0; i < 5; i++)
+		{
+			visible[i] = true;
+			transparent[i] = false;
+		}
 		
+		// A modeless dialog box that shows up if Format->Placement is selected.
+		JPanel placement_panel = new JPanel(new BorderLayout());
+		placement_canvas = new PlacementCanvas();
+		placement_canvas.setSize(100, 100);
+		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 101);
+		AdjustmentListener xstep_handler = new AdjustmentListener()
+		{
+			public void adjustmentValueChanged(AdjustmentEvent event)
+			{
+				int xstep = event.getValue();
+				normal_xstep = (double) xstep / 100;
+				if (event.getValueIsAdjusting() == false)
+				{
+					data_canvas.repaint();
+					placement_canvas.repaint();
+				}
+			}
+		};
+		xstep_scrollbar.addAdjustmentListener(xstep_handler);
+		value = (int)(100. * normal_xstep);
+		xstep_scrollbar.setValue(value);
+		JScrollBar ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 101);
+		AdjustmentListener ystep_handler = new AdjustmentListener()
+		{
+			public void adjustmentValueChanged(AdjustmentEvent event)
+			{
+				int ystep = 100 - event.getValue();
+				normal_ystep = (double) ystep / 100;
+				if (event.getValueIsAdjusting() == false)
+				{
+					data_canvas.repaint();
+					placement_canvas.repaint();
+				}
+			}
+		};
+		ystep_scrollbar.addAdjustmentListener(ystep_handler);
+		value = (int)(100. * (1 - normal_ystep));
+		ystep_scrollbar.setValue(value);
+
+		placement_panel.add(placement_canvas, BorderLayout.CENTER);
+		placement_panel.add(xstep_scrollbar, BorderLayout.SOUTH);
+		placement_panel.add(ystep_scrollbar, BorderLayout.EAST);
+
+		placement_dialog = new JDialog(frame, "Placement");
+		placement_dialog.add(placement_panel);
+
+		
+		
+		
+		
+		
+		JMenu     settings_menu  = new JMenu("Settings");
+		
+		JMenuItem place_item = new JMenuItem("Placement");
+		ActionListener placement_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				//x += 830;
+				y += 95;
+
+				if (y < 0)
+					y = 0;
+
+				placement_dialog.setLocation(x, y);
+				placement_dialog.pack();
+				placement_dialog.setVisible(true);
+			}
+		};
+		place_item.addActionListener(placement_handler);
+		settings_menu.add(place_item);
+		
+		JPanel sensor_panel = new JPanel(new GridLayout(1, 5));
+		for (int i = 0; i < 5; i++)
+		{
+			sensor_canvas[i] = new SensorCanvas(i);
+			sensor_canvas[i].setSize(20, 20);
+			SensorCanvasMouseHandler sensor_canvas_mouse_handler = new SensorCanvasMouseHandler(i);
+			sensor_canvas[i].addMouseListener(sensor_canvas_mouse_handler);
+			sensor_panel.add(sensor_canvas[i]);
+		}
+		sensor_dialog = new JDialog(frame, "Sensors");
+		sensor_dialog.add(sensor_panel);
+		
+		JMenuItem sensor_item = new JMenuItem("Sensor");
+		ActionListener sensor_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				//x += 830;
+				y += 95;
+
+				if (y < 0)
+					y = 0;
+
+				sensor_dialog.setLocation(x, y);
+				sensor_dialog.pack();
+				sensor_dialog.setVisible(true);
+			}
+		};
+		sensor_item.addActionListener(sensor_handler);
+		settings_menu.add(sensor_item);
+		
+		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
+		ActionListener view_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(reverse_view == true)
+				{
+            		reverse_view = false;
+					item.setState(false);
+					placement_canvas.repaint();
+				}
+				else
+				{
+					reverse_view = true;
+					item.setState(true);
+					placement_canvas.repaint();
+				}
+		        data_canvas.repaint();
+            }   	
+		};
+		view_item.addActionListener(view_handler);
+		if(reverse_view)
+			view_item.setState(true);
+		settings_menu.add(view_item);
+		
+		
+		
+		JMenuBar menu_bar = new JMenuBar();
+		menu_bar.add(settings_menu);
+		frame.setJMenuBar(menu_bar);
 		frame.getContentPane().add(data_panel, BorderLayout.CENTER);
 		frame.pack();
 		frame.setLocation(400, 200);
@@ -349,20 +537,24 @@ public class YFencePlotter
 	class PlotCanvas extends Canvas
 	{
 		ArrayList data_array;
-		int       left_margin        = 70;
-		int       right_margin       = 20;
-		int       top_margin         = 10;
-		int       bottom_margin      = 70;
+		ArrayList relative_data_array;
+		
+		
 		int       number_of_segments = 5;
 		
 		PlotCanvas()
 		{
 			// We can just do this once and save the garbage collector some work.
+			// The data array is what we use to construct the graph,
+			// and the relative data array is the information we display in the graph.
 			data_array = new ArrayList();
+			relative_data_array = new ArrayList();
 			for(int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList data_list = new ArrayList();
 				data_array.add(data_list);
+				ArrayList relative_data_list = new ArrayList(); 
+				relative_data_array.add(relative_data_list); 
 			}
 		}
 		
@@ -371,6 +563,19 @@ public class YFencePlotter
 			Rectangle  visible_area = g.getClipBounds();
 			int        xdim         = (int) visible_area.getWidth();
 			int        ydim         = (int) visible_area.getHeight();
+			
+			double    clipped_area     = xdim * ydim;
+			Dimension canvas_dimension = this.getSize();
+			double    canvas_xdim      = canvas_dimension.getWidth();
+			double    canvas_ydim      = canvas_dimension.getHeight();
+			double    entire_area      = canvas_xdim * canvas_ydim;
+			
+			if(clipped_area != entire_area)
+			{
+				if(buffered_image != null)
+					g.drawImage(buffered_image, 0, 0, null);
+				return;
+			} 
 			
 			// Reallocate the memory every time because the canvas might get resized.
 			pixel_data = new ArrayList[ydim][xdim];
@@ -383,15 +588,16 @@ public class YFencePlotter
 			{
 				ArrayList data_list = (ArrayList)data_array.get(i);
 				data_list.clear();
+				ArrayList relative_data_list = (ArrayList)relative_data_array.get(i);
+				relative_data_list.clear();
 			}
 			
-			BufferedImage buffered_image  = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
+			buffered_image  = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
 			Graphics2D    graphics_buffer = (Graphics2D) buffered_image.getGraphics();
 			graphics_buffer.setColor(java.awt.Color.WHITE);
 			graphics_buffer.fillRect(0, 0, xdim, ydim);
-			
-			
 			FontMetrics font_metrics = graphics_buffer.getFontMetrics();
+			
 			// This doesn't change so we can just set it once.
 			// We also use string_width which varies.
 			int string_height        = font_metrics.getAscent();
@@ -400,7 +606,7 @@ public class YFencePlotter
 			double data_location  = data_offset * data_length;
 			int    start_location = (int)data_location;
 			int    start_index    = (int)index.get(start_location);
-			data_location         += data_range * data_length;
+			data_location        += data_range * data_length;
 			int    stop_location  = (int)data_location;
 			int    stop_index     = (int)index.get(stop_location);
 			double seg_min        = Double.MAX_VALUE;
@@ -408,12 +614,33 @@ public class YFencePlotter
 			double seg_xmin       = Double.MAX_VALUE;
 			double seg_xmax       = 0;
 			
+			// Find out which flight line(s) the data is located in;
+			int[][] line_array = ObjectMapper.getUnclippedLineArray();
+			for(int i = 0; i < line_array.length; i++)
+			{
+			    if(start_index < line_array[i][1])	
+			    {
+			        start_flight_line = i;
+			        break;
+			    }
+			}
+			for(int i = 0; i < line_array.length; i++)
+			{
+			    if(stop_index < line_array[i][0])	
+			    {
+			        stop_flight_line = i - 1;
+			        break;
+			    }
+			}
+			//System.out.println("Start flight line is " + start_flight_line);
+			//System.out.println("Stop flight line is " + stop_flight_line);
+			
 			for(int i = start_index; i < stop_index; i++)
 			{
 				Sample sample = (Sample) data.get(i);
 				int j = i % 5;
 			    ArrayList data_list = (ArrayList)data_array.get(j);
-			    data_list.add(sample);
+			    data_list.add(sample); 
 				if (seg_min > sample.intensity)
 					seg_min = sample.intensity;
 				if (seg_max < sample.intensity)
@@ -422,6 +649,11 @@ public class YFencePlotter
 					seg_xmin = sample.y;
 				if(seg_xmax < sample.y)
 					seg_xmax = sample.y;
+				
+				//Save the unadjusted data in a parallel data structure.
+				sample = (Sample) relative_data.get(i);
+			    ArrayList relative_data_list = (ArrayList)relative_data_array.get(j);
+			    relative_data_list.add(sample);
 			}
 			
 			double max_xstep         = (xdim - (left_margin + right_margin)) / number_of_segments;
@@ -489,7 +721,6 @@ public class YFencePlotter
 			            current_position += current_position_increment;
 			            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
 		            }
-		            
 		            current_position         = b2;
 	                current_range            = b1 - b2;
 				    number_of_units          = (int) (current_range / (2 * (string_height)));
@@ -700,13 +931,6 @@ public class YFencePlotter
 				ArrayList plot_list = new ArrayList();
 				for(int j = 0; j < data_list.size(); j++)
 				{
-					// We probably want to save pixel data here,
-					// but since we can't test whether its working
-					// until we have graphs, we'll just start
-					// constructing the graph.  Recall that
-					// the data we are working with has both
-					// an adjusted y and intensity value, so we
-					// would get something from relative_data.
 					Sample sample = (Sample)data_list.get(j);
 					Point2D.Double point = new Point2D.Double();
 					point.x              = sample.y;
@@ -722,8 +946,12 @@ public class YFencePlotter
 			for (int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList data_list       = (ArrayList)data_array.get(i);
+				ArrayList relative_data_list = (ArrayList)relative_data_array.get(i);
+				
+				
 				Sample    previous_sample = (Sample)data_list.get(0);
 				polygon_zero_crossing[i]  = false;
+				
 				for(int j = 1; j < data_list.size(); j++)
 				{
 				    Sample current_sample = (Sample)data_list.get(j);
@@ -731,6 +959,7 @@ public class YFencePlotter
 				    (previous_sample.intensity >= 0 && current_sample.intensity <= 0))
 				    {
 				    	polygon_zero_crossing[i]  = true;	
+				    	break;
 				    }
 				}
 				
@@ -799,7 +1028,123 @@ public class YFencePlotter
 					y[m] = (int) current_y;
 
 					m++;
+					
+					// Associate this point with sample information.
+					// Where endpoints overlap, there should be multiple samples.
+					ArrayList pixel_data_list = pixel_data[(int) current_y][(int) current_x];
+					Sample sample = (Sample)relative_data_list.get(k);
+					if (pixel_data_list.size() == 0)
+					{
+						//Sensor id
+						//Flight line
+						pixel_data_list.add(start_flight_line);
+						
+						//Sensor--could be # of segments - 1 in reverse view;
+						pixel_data_list.add(i);
+						
+						
+						pixel_data_list.add(sample);
+					} 
+					else
+					{
+						// Saving previous entries in cases where
+						// two points in the data map to one point in graph.
+						// Throwing out entries that were generated
+						// by a neighboring pixel.  For now we are just
+						// pulling out the most recent entry and the
+						// user has to check pixel information panel
+						// to see if they are getting information
+						// about the curve they want.
+						
+						ArrayList new_pixel_list = new ArrayList();
+						new_pixel_list.add(start_flight_line);
+						new_pixel_list.add(i);
+						
+						new_pixel_list.add(sample);
+						for (int p = 0; p < pixel_data_list.size(); p += 3)
+						{
+							int line = (int) pixel_data_list.get(p);
+							int sensor = (int) pixel_data_list.get(p + 1);
+
+							if(start_flight_line != line || i != sensor)
+							{
+								previous_sample = (Sample) pixel_data_list.get(p + 2);
+								new_pixel_list.add(line);
+								new_pixel_list.add(sensor);
+								new_pixel_list.add(previous_sample);
+							}
+						}
+						pixel_data[(int) current_y][(int) current_x] = new_pixel_list;
+					}
+					
+					// Assigning neighbor pixels if they are unassigned so that
+					// it isn't hard for the mouse to find an assigned pixel.
+					ArrayList pixel_list = pixel_data[(int) current_y - 1][(int) current_x];
+					if (pixel_list.size() == 0)
+					{
+						pixel_list.add(start_flight_line);
+						pixel_list.add(i);
+						pixel_list.add(sample);
+					}
+
+					pixel_list = pixel_data[(int) current_y - 1][(int) current_x - 1];
+					if (pixel_list.size() == 0)
+					{
+						pixel_list.add(start_flight_line);
+						pixel_list.add(i);
+						pixel_list.add(sample);
+					}
+
+					pixel_list = pixel_data[(int) current_y - 1][(int) current_x + 1];
+					if (pixel_list.size() == 0)
+					{
+						pixel_list.add(start_flight_line);
+						pixel_list.add(i);
+						pixel_list.add(sample);
+					}
+
+					pixel_list = pixel_data[(int) current_y][(int) current_x - 1];
+					if (pixel_list.size() == 0)
+					{
+						pixel_list.add(start_flight_line);
+						pixel_list.add(i);
+						pixel_list.add(sample);
+					}
+
+					pixel_list = pixel_data[(int) current_y][(int) current_x + 1];
+					if (pixel_list.size() == 0)
+					{
+						pixel_list.add(start_flight_line);
+						pixel_list.add(i);
+						pixel_list.add(sample);
+					}
+
+					pixel_list = pixel_data[(int) current_y + 1][(int) current_x];
+					if (pixel_list.size() == 0)
+					{
+						pixel_list.add(start_flight_line);
+						pixel_list.add(i);
+						pixel_list.add(sample);
+					}
+
+					pixel_list = pixel_data[(int) current_y + 1][(int) current_x - 1];
+					if (pixel_list.size() == 0)
+					{
+						pixel_list.add(start_flight_line);
+						pixel_list.add(i);
+						pixel_list.add(sample);
+					}
+
+					pixel_list = pixel_data[(int) current_y + 1][(int) current_x + 1];
+					if (pixel_list.size() == 0)
+					{
+						pixel_list.add(start_flight_line);
+						pixel_list.add(i);
+						pixel_list.add(sample);
+					}
 				}
+				
+				
 
 				double local_min = this_minimum_y;
 				local_min -= minimum_y;
@@ -830,14 +1175,26 @@ public class YFencePlotter
 				
 				
 				// Color y axis.
-				graphics_buffer.setColor(fill_color[i]);
-			    graphics_buffer.setStroke(new BasicStroke(3)); 
-			    graphics_buffer.drawLine(a1, (int)local_min, a1, (int)local_max);
+				if(reverse_view)
+				{
+					if(visible[number_of_segments - 1 -i])
+					{
+					    graphics_buffer.setColor(fill_color[number_of_segments - 1 -i]);
+				        graphics_buffer.setStroke(new BasicStroke(3)); 
+				        graphics_buffer.drawLine(a1, (int)local_min, a1, (int)local_max);
+					}	
+				}
+				else
+				{
+					if(visible[i])
+					{
+				    	graphics_buffer.setColor(fill_color[i]);
+			        	graphics_buffer.setStroke(new BasicStroke(3)); 
+			        	graphics_buffer.drawLine(a1, (int)local_min, a1, (int)local_max);
+					}
+				}
 			    
 			    polygon_min[i] = local_min;
-			    
-			   
-			    
 				java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
 				polygon[i]  = sensor_polygon;
 			}
@@ -862,54 +1219,117 @@ public class YFencePlotter
 				a2 += xaddend;
 				b2 -= yaddend;
        
-				graphics_buffer.setColor(fill_color[i]);
-			    graphics_buffer.fillPolygon(polygon[i]);
-			    graphics_buffer.setStroke(new BasicStroke(2));
-			    graphics_buffer.setColor(java.awt.Color.BLACK);
-			    graphics_buffer.drawPolygon(polygon[i]);
-			    
-			    // Anchor polygon to isometric grid.
-			    graphics_buffer.setColor(Color.DARK_GRAY);
-			    graphics_buffer.setStroke(new BasicStroke(1)); 
-			    graphics_buffer.drawLine(a2, (int)polygon_min[i], a2, b1);
-				
-				//if (minimum_y < 0  && maximum_y > 0  && polygon_zero_crossing[i] == true)
-			    if(polygon_zero_crossing[i]  || (xstep == max_xstep  || ystep == max_ystep))
+				// Draw polygon.
+				if(reverse_view)
 				{
-					ArrayList plot_list = (ArrayList) plot_data.get(i);
-					Point2D.Double first = (Point2D.Double) plot_list.get(0);
-					int plot_length = plot_list.size();
-					Point2D.Double last = (Point2D.Double) plot_list.get(plot_length - 1);
-					double x1 = first.getX();
-					double x2 = last.getX();
-					
-					x1 -= minimum_x;
-					x1 /= xrange;
-					x1 *= graph_xdim;
-					x1 += left_margin;
-					x1 += xaddend;
-
-					x2 -= minimum_x;
-					x2 /= xrange;
-					x2 *= graph_xdim;
-					x2 += left_margin;
-					x2 += xaddend;
-					
-					double zero_y = Math.abs(minimum_y);
-					zero_y /= yrange;
-					zero_y *= graph_ydim;
-					zero_y = (graph_ydim + y_remainder) - zero_y;
-					zero_y += top_margin + (number_of_segments - 1) * ystep;
-					zero_y -= yaddend;
-
-					float[] dash ={ 2f, 0f, 2f };
-					BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
-					graphics_buffer.setStroke(basic_stroke);
-					graphics_buffer.setColor(java.awt.Color.RED);
-					graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
-					graphics_buffer.setStroke(new BasicStroke(2));
+					graphics_buffer.setColor(fill_color[number_of_segments - 1 - i]);
+					if(!transparent[number_of_segments - 1 - i])
+				        graphics_buffer.fillPolygon(polygon[number_of_segments - 1 - i]);
+				    graphics_buffer.setStroke(new BasicStroke(2));
+				    graphics_buffer.setColor(java.awt.Color.BLACK);
+				    if(visible[number_of_segments - 1 - i])
+				        graphics_buffer.drawPolygon(polygon[number_of_segments - 1 - i]);
+				    
+				    // Anchor polygon to isometric grid.
+				    graphics_buffer.setColor(Color.DARK_GRAY);
+				    graphics_buffer.setStroke(new BasicStroke(1)); 
+				    if(visible[number_of_segments - 1 - i])
+				        graphics_buffer.drawLine(a2, (int)polygon_min[number_of_segments - 1 - i], a2, b1);	
+				}
+				else
+				{
+					graphics_buffer.setColor(fill_color[i]);
+					if(!transparent[i])
+				        graphics_buffer.fillPolygon(polygon[i]);
+				    graphics_buffer.setStroke(new BasicStroke(2));
+				    graphics_buffer.setColor(java.awt.Color.BLACK);
+				    if(visible[i])
+				        graphics_buffer.drawPolygon(polygon[i]);
+				    
+				    // Anchor polygon to isometric grid.
+				    graphics_buffer.setColor(Color.DARK_GRAY);
+				    graphics_buffer.setStroke(new BasicStroke(1)); 
+				    if(visible[i])
+				        graphics_buffer.drawLine(a2, (int)polygon_min[i], a2, b1);
+				}
+				if(reverse_view)
+				{
+					if((polygon_zero_crossing[number_of_segments - 1 - i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[number_of_segments - 1 - i])
+					{
+						ArrayList plot_list = (ArrayList) plot_data.get(number_of_segments - 1 - i);
+						Point2D.Double first = (Point2D.Double) plot_list.get(0);
+						int plot_length = plot_list.size();
+						Point2D.Double last = (Point2D.Double) plot_list.get(plot_length - 1);
+						double x1 = first.getX();
+						double x2 = last.getX();
 						
-				}	
+						x1 -= minimum_x;
+						x1 /= xrange;
+						x1 *= graph_xdim;
+						x1 += left_margin;
+						x1 += xaddend;
+
+						x2 -= minimum_x;
+						x2 /= xrange;
+						x2 *= graph_xdim;
+						x2 += left_margin;
+						x2 += xaddend;
+						
+						double zero_y = Math.abs(minimum_y);
+						zero_y /= yrange;
+						zero_y *= graph_ydim;
+						zero_y = (graph_ydim + y_remainder) - zero_y;
+						zero_y += top_margin + (number_of_segments - 1) * ystep;
+						zero_y -= yaddend;
+
+						float[] dash ={ 2f, 0f, 2f };
+						BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
+						graphics_buffer.setStroke(basic_stroke);
+						graphics_buffer.setColor(java.awt.Color.RED);
+						graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
+						graphics_buffer.setStroke(new BasicStroke(2));
+							
+					}	
+				}
+				else
+				{
+					if((polygon_zero_crossing[i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[i])
+					{
+						ArrayList plot_list = (ArrayList) plot_data.get(i);
+						Point2D.Double first = (Point2D.Double) plot_list.get(0);
+						int plot_length = plot_list.size();
+						Point2D.Double last = (Point2D.Double) plot_list.get(plot_length - 1);
+						double x1 = first.getX();
+						double x2 = last.getX();
+						
+						x1 -= minimum_x;
+						x1 /= xrange;
+						x1 *= graph_xdim;
+						x1 += left_margin;
+						x1 += xaddend;
+
+						x2 -= minimum_x;
+						x2 /= xrange;
+						x2 *= graph_xdim;
+						x2 += left_margin;
+						x2 += xaddend;
+						
+						double zero_y = Math.abs(minimum_y);
+						zero_y /= yrange;
+						zero_y *= graph_ydim;
+						zero_y = (graph_ydim + y_remainder) - zero_y;
+						zero_y += top_margin + (number_of_segments - 1) * ystep;
+						zero_y -= yaddend;
+
+						float[] dash ={ 2f, 0f, 2f };
+						BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
+						graphics_buffer.setStroke(basic_stroke);
+						graphics_buffer.setColor(java.awt.Color.RED);
+						graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
+						graphics_buffer.setStroke(new BasicStroke(2));
+							
+					}
+				}
 			}
 			
 			// Add numbers and labels.
@@ -941,7 +1361,7 @@ public class YFencePlotter
 			    //Create a top on the frame around each graph to help evaluate relative y dimensions accurately.
 			    if(raster_overlay)
 			    {
-			        if(i != number_of_segments - 1)
+			        if(i != number_of_segments - 1 && visible[i])
 			        {
 			    	    //Side--seems like it just gets in the way.
 		                //graphics_buffer.drawLine(a1, b1, a2, b1); 
@@ -1099,16 +1519,6 @@ public class YFencePlotter
 						normal_start = 1 - data_range;
 					}
 		
-					// If you set the lower value to a value more
-					// than the upper value, or the upper value
-					// to a value less than the lower value,
-					// we get an incorrect result.
-					// This manifests as a rangeslider 
-					// with one thumb and zero extent, or
-					// a range larger than intended.
-					// Maybe one of the reasons it's not in the regular API.
-					// If we figure out which way we're moving the slider
-					// range we can avoid that problem.
 					boolean moving_down = true;
 					if(normal_start >  data_offset)
 						moving_down = false;
@@ -1135,6 +1545,312 @@ public class YFencePlotter
 		}
 	}
 	
+	class MouseHandler extends MouseAdapter
+	{
+		boolean persistent_sample_information = false;
+
+		public void mouseClicked(MouseEvent event)
+		{
+			int button = event.getButton();
+			if (button == 3)
+			{
+				if (persistent_sample_information == false)
+					persistent_sample_information = true;
+				else
+					persistent_sample_information = false;
+			}
+		}
+
+		public void mousePressed(MouseEvent event)
+		{
+			int button = event.getButton();
+
+			if (button == 1)
+			{
+				Point location_point = frame.getLocation();
+				int frame_x = (int) location_point.getX();
+				frame_x += 830;
+				int frame_y = (int) location_point.getY();
+
+				information_dialog.setLocation(frame_x, frame_y);
+				information_dialog.pack();
+				information_dialog.setVisible(true);
+			}
+		}
+
+		public void mouseReleased(MouseEvent event)
+		{
+			int button = event.getButton();
+			if (button == 1 && persistent_sample_information == false)
+				information_dialog.setVisible(false);
+		}
+	}
+
+	class MouseMotionHandler extends MouseMotionAdapter
+	{
+		public void mouseDragged(MouseEvent event)
+		{
+			int x = event.getX();
+			int y = event.getY();
+
+			sample_information.setText("");
+			// Blank information panel when a pixel is traversed that is not associated with data.
+			if (pixel_data != null)
+			{
+				int xdim = pixel_data[0].length;
+				int ydim = pixel_data.length;
+
+				if (x > left_margin && x < xdim - right_margin && y > top_margin && y < ydim - bottom_margin)
+				{
+					int current_line, current_sensor;
+					double current_intensity, current_x, current_y;
+					ArrayList sample_list = pixel_data[y][x];
+					int size = sample_list.size();
+					outer: if (size == 0)
+					{
+						sample_list = pixel_data[y - 1][x];
+						size = sample_list.size();
+						if (size != 0)
+							break outer;
+						sample_list = pixel_data[y + 1][x];
+						size = sample_list.size();
+						if (size != 0)
+							break outer;
+						sample_list = pixel_data[y][x - 1];
+						size = sample_list.size();
+						if (size != 0)
+							break outer;
+						sample_list = pixel_data[y][x + 1];
+						size = sample_list.size();
+						if (size != 0)
+							break outer;
+						sample_list = pixel_data[y - 1][x - 1];
+						size = sample_list.size();
+						if (size != 0)
+							break outer;
+						sample_list = pixel_data[y + 1][x - 1];
+						size = sample_list.size();
+						sample_list = pixel_data[y - 1][x + 1];
+						size = sample_list.size();
+						if (size != 0)
+							break outer;
+						sample_list = pixel_data[y + 1][x + 1];
+						size = sample_list.size();
+					}
+
+					if (size != 0)
+					{
+						current_line = (int) sample_list.get(0);
+						current_sensor = (int) sample_list.get(1);
+						Sample sample = (Sample) sample_list.get(2);
+						current_intensity = sample.intensity;
+						current_x = sample.x;
+						current_y = sample.y;
+
+						String information_string = new String("  Line:         " + current_line + "\n");
+						sample_information.append(information_string);
+						information_string = new String("  Sensor:     " + current_sensor + "\n");
+						sample_information.append(information_string);
+						String number_string = String.format("%,.2f", current_intensity);
+						information_string = new String("  Intensity:   " + number_string + "\n");
+						sample_information.append(information_string);
+
+						number_string = String.format("%,.2f", current_x);
+						information_string = new String("  Relative x: " + number_string + "\n");
+						sample_information.append(information_string);
+						number_string = String.format("%,.2f", current_y);
+						information_string = new String("  Relative y: " + number_string + "\n");
+						sample_information.append(information_string);
+
+						number_string = String.format("%,.2f", (current_x + global_xmin));
+						information_string = new String("  Absolute x: " + number_string + "\n");
+						sample_information.append(information_string);
+						number_string = String.format("%,.2f", (current_y + global_ymin));
+						information_string = new String("  Absolute y: " + number_string + "\n");
+						sample_information.append(information_string);
+					}
+				}
+			}
+		}
+	}
+	
+	class PlacementCanvas extends Canvas
+	{
+		int top_margin    = 2;
+		int bottom_margin = 4;
+		int left_margin   = 4;
+		int right_margin  = 2;
+		public void paint(Graphics g)
+		{
+			Rectangle visible_area = g.getClipBounds();
+			int xdim = (int) visible_area.getWidth();
+			int ydim = (int) visible_area.getHeight();
+			Graphics2D g2 = (Graphics2D) g;
+			Font current_font = g2.getFont();
+			FontMetrics font_metrics = g2.getFontMetrics(current_font);
+			g2.setColor(java.awt.Color.WHITE);
+			g2.fillRect(0, 0, xdim, ydim);
+
+			int number_of_segments = 5;
+			// System.out.println("number of segments is " + number_of_segments);
+
+			double max_xstep = xdim / number_of_segments;
+			int xstep = (int) (max_xstep * normal_xstep);
+			// System.out.println("Xstep is " + xstep);
+
+			int graph_xdim = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
+
+			// Separate graphs instead of butting them.
+			if (xstep == max_xstep)
+			{
+				graph_xdim -= 2;
+			}
+
+			double max_ystep = ydim / number_of_segments;
+			int ystep = (int) (max_ystep * normal_ystep);
+			int graph_ydim = ydim - (top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
+
+			if (ystep == max_ystep)
+			{
+				graph_ydim -= 2;
+			}
+
+			Rectangle[] rectangle = new Rectangle[number_of_segments];
+
+			for (int i = 0; i < number_of_segments; i++)
+			{
+				int a1 = left_margin;
+				int b1 = ydim - bottom_margin;
+				int a2 = a1 + graph_xdim;
+				int b2 = b1 - graph_ydim;
+
+				int xaddend = i * xstep;
+				int yaddend = i * ystep;
+				a1 += xaddend;
+				b1 -= yaddend;
+				a2 += xaddend;
+				b2 -= yaddend;
+
+				rectangle[i] = new Rectangle(a2, b2, graph_xdim, graph_ydim);
+			}
+
+			for (int i = (number_of_segments - 1); i >= 0; i--)
+			{
+				int a1 = 0;
+				int b1 = ydim;
+				int a2 = a1 + graph_xdim;
+				int b2 = b1 - graph_ydim;
+
+				int xaddend = i * xstep;
+				int yaddend = i * ystep;
+				a1 += xaddend;
+				b1 -= yaddend;
+				a2 += xaddend;
+				b2 -= yaddend;
+				if (visible[i])
+				{
+					if (!reverse_view)
+					{
+						if (!transparent[i])
+						{
+							g2.setColor(fill_color[i]);
+							g2.fillRect(a1, b2, graph_xdim, graph_ydim);
+						}
+						g2.setColor(Color.BLACK);
+						g2.drawRect(a1, b2, graph_xdim, graph_ydim);
+					} 
+					else
+					{
+						if (!transparent[i])
+						{
+							g2.setColor(fill_color[(number_of_segments - 1) - i]);
+							g2.fillRect(a1, b2, graph_xdim, graph_ydim);
+						}
+						g2.setColor(Color.BLACK);
+						g2.drawRect(a1, b2, graph_xdim, graph_ydim);
+					}
+				}
+			}
+		}
+	}
+    
+	class SensorCanvas extends Canvas
+	{
+		int index;
+		SensorCanvas(int index)
+		{
+			this.index = index;
+		}
+
+		public void paint(Graphics g)
+		{
+			Rectangle visible_area = g.getClipBounds();
+			int xdim = (int) visible_area.getWidth();
+			int ydim = (int) visible_area.getHeight();
+			Graphics2D g2 = (Graphics2D) g;
+
+			int state = sensor_state[index];
+			if (state == 0)
+			{
+				g2.setColor(fill_color[index]);
+				g2.fillRect(0, 0, xdim, ydim);
+				g2.setColor(java.awt.Color.BLACK);
+				g2.setStroke(new BasicStroke(3));
+				g2.drawRect(0, 0, xdim, ydim);
+			} 
+			else if (state == 1)
+			{
+				g2.setColor(java.awt.Color.WHITE);
+				g2.fillRect(0, 0, xdim, ydim);
+				g2.setColor(java.awt.Color.BLACK);
+				g2.setStroke(new BasicStroke(3));
+				g2.drawRect(0, 0, xdim, ydim);
+			} 
+			else if (state == 2)
+			{
+				g2.setColor(java.awt.Color.WHITE);
+				g2.fillRect(0, 0, xdim, ydim);
+			}
+		}
+	}
+
+	class SensorCanvasMouseHandler extends MouseAdapter
+	{
+		int index;
+		SensorCanvasMouseHandler(int index)
+		{
+			this.index = index;
+		}
+
+		public void mouseClicked(MouseEvent event)
+		{
+			int button = event.getButton();
+			if (button == 1)
+			{
+				if (sensor_state[index] == 2)
+				{
+					sensor_state[index] = 0;
+					visible[index] = true;
+					transparent[index] = false;
+				} 
+				else
+				{
+					sensor_state[index]++;
+					if (sensor_state[index] == 1)
+					{
+						visible[index] = true;
+						transparent[index] = true;
+					} 
+					else
+						visible[index] = false;
+				}
+				sensor_canvas[index].repaint();
+				data_canvas.repaint();
+				placement_canvas.repaint();
+			} 
+		}
+	}
+
 	public double getDistance(double x, double y, double x_origin, double y_origin)
 	{
 	    double distance  = Math.sqrt((x - x_origin) * (x - x_origin) + (y - y_origin) * (y - y_origin));
