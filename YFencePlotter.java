@@ -38,7 +38,8 @@ public class YFencePlotter
 	int                stop_flight_line  = 0;
 	
 	boolean            raster_overlay       = false;
-	boolean            reverse_view            = false;
+	boolean            reverse_view         = false;
+	int                smooth               = 0;
 	
 	
 	Canvas[]           sensor_canvas = new SensorCanvas[10];
@@ -46,9 +47,10 @@ public class YFencePlotter
 	boolean[]          visible       = new boolean[5];
 	boolean[]          transparent   = new boolean[5];
 	
-	public JDialog information_dialog;
-	public JDialog placement_dialog;
-	public JDialog sensor_dialog;
+	public JDialog     information_dialog;
+	public JDialog     placement_dialog;
+	public JDialog     sensor_dialog;
+	public JDialog     smooth_dialog;
 	
 	public PlacementCanvas placement_canvas;
 	
@@ -371,13 +373,13 @@ public class YFencePlotter
         int    value;
         
         position = slider_resolution * data_offset;
-        value = (int) position;
-		data_slider.setUpperValue((int)position);
+        value = (int)position;
+		data_slider.setValue((int)position);
 		
 		position = slider_resolution * data_offset + slider_resolution * data_range;
-		value = (int)position;
+		value = (int) position;
+	    data_slider.setUpperValue((int)position);
 		
-		data_slider.setValue((int)position);
 
 		data_scrollbar_changing = false;
 	
@@ -475,7 +477,7 @@ public class YFencePlotter
 		sensor_dialog = new JDialog(frame, "Sensors");
 		sensor_dialog.add(sensor_panel);
 		
-		JMenuItem sensor_item = new JMenuItem("Sensor");
+		JMenuItem sensor_item = new JMenuItem("Sensors");
 		ActionListener sensor_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -524,7 +526,43 @@ public class YFencePlotter
 			view_item.setState(true);
 		settings_menu.add(view_item);
 		
-		
+		// A modeless dialog box that shows up if Settings->Smoothing is selected.
+		JPanel  smooth_panel  = new JPanel(new BorderLayout());
+		JSlider smooth_slider = new JSlider(0, 100, 0);
+		ChangeListener smooth_slider_handler = new ChangeListener()
+		{
+			public void stateChanged(ChangeEvent e)
+			{
+				JSlider slider = (JSlider) e.getSource();
+				if (slider.getValueIsAdjusting() == false)
+				{
+					int value = slider.getValue();
+					smooth = value;
+				    data_canvas.repaint();
+				}
+			}
+		};
+		smooth_slider.addChangeListener(smooth_slider_handler);
+		smooth_panel.add(smooth_slider, BorderLayout.CENTER);
+		smooth_dialog = new JDialog(frame, "Smoothing");
+		smooth_dialog.add(smooth_panel);
+		JMenuItem smoothing_item = new JMenuItem("Smoothing");
+		ActionListener smooth_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+				x += 830;
+				y += 640;
+				smooth_dialog.setLocation(x, y);
+				smooth_dialog.pack();
+				smooth_dialog.setVisible(true);
+			}
+		};
+		smoothing_item.addActionListener(smooth_handler);
+		settings_menu.add(smoothing_item);
 		
 		JMenuBar menu_bar = new JMenuBar();
 		menu_bar.add(settings_menu);
@@ -707,7 +745,13 @@ public class YFencePlotter
 				graphics_buffer.setColor(java.awt.Color.BLACK);
 			    graphics_buffer.setStroke(new BasicStroke(1));
 			    current_position = a1;
-			    int string_width = font_metrics.stringWidth("77.7");
+			    String width_string;
+			    if(maximum_x > 10)
+			        width_string = String.format("%.1f", maximum_x);
+			    else
+			    	width_string = String.format("%.2f", maximum_x);
+			    	
+			    int string_width = font_metrics.stringWidth(width_string);
 			    int    number_of_units            = (int) (graph_xdim / (string_width + 6));  
 		        double current_position_increment = graph_xdim;
 		        current_position_increment        /= number_of_units;
@@ -937,12 +981,56 @@ public class YFencePlotter
 					point.y              = sample.intensity;
 					plot_list.add(point);
 				}
-				plot_data.add(plot_list);
+				
+				if(smooth == 0)
+				    plot_data.add(plot_list);
+				else
+				{
+					int plot_length = plot_list.size();
+					double x[] = new double[plot_length];
+					double y[] = new double[plot_length];
+					for (int j = 0; j < plot_length; j++)
+					{
+						Point2D.Double point = (Point2D.Double) plot_list.get(j);
+						x[j] = point.getX();
+						y[j] = point.getY();
+					}
+					double[] smooth_x = smooth(x, smooth);
+					double[] smooth_y = smooth(y, smooth);
+
+					Point2D.Double start_point = (Point2D.Double) plot_list.get(0);
+					Point2D.Double end_point = (Point2D.Double) plot_list.get(plot_length - 1);
+					plot_list.clear();
+
+					plot_length = smooth_x.length;
+					plot_list.add(start_point);
+					for (int j = 0; j < plot_length; j++)
+					{
+						Point2D.Double smooth_point = new Point2D.Double(smooth_x[j], smooth_y[j]);
+						plot_list.add(smooth_point);
+					}
+					plot_list.add(end_point);
+					plot_data.add(plot_list);
+					int length = data_list.size();
+					Sample sample = (Sample) data_list.get(length - 1);
+
+					// Add a duplicate sample so the lengths of the plot list and sample_list are
+					// the same.
+					Sample extra_sample = new Sample();
+					extra_sample.intensity = sample.intensity;
+					extra_sample.x = sample.x;
+					extra_sample.y = sample.y;
+					data_list.add(extra_sample);
+					//sample_data.add(sample_list);
+				}
 			}
 			
-			Polygon[] polygon              = new Polygon[number_of_segments];
+			Polygon[] polygon               = new Polygon[number_of_segments];
 			boolean[] polygon_zero_crossing = new boolean[number_of_segments];
 			double[]  polygon_min           = new double[number_of_segments];
+			double[]  polygon_max           = new double[number_of_segments];
+			
+			
 			for (int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList data_list       = (ArrayList)data_array.get(i);
@@ -978,7 +1066,11 @@ public class YFencePlotter
 				a2 += xaddend;
 				b2 -= yaddend;
 
-				ArrayList segment = (ArrayList)plot_data.get(i);
+				ArrayList segment;
+				if(reverse_view)
+				    segment = (ArrayList)plot_data.get(i);
+				else
+					segment = (ArrayList)plot_data.get(number_of_segments - 1 - i);
 
 				int n   = segment.size() + 3;
 				int[] x = new int[n];
@@ -1032,7 +1124,12 @@ public class YFencePlotter
 					// Associate this point with sample information.
 					// Where endpoints overlap, there should be multiple samples.
 					ArrayList pixel_data_list = pixel_data[(int) current_y][(int) current_x];
-					Sample sample = (Sample)relative_data_list.get(k);
+					Sample sample;
+					if(k < relative_data_list.size())
+					    sample = (Sample)relative_data_list.get(k);
+					else
+						sample = (Sample)relative_data_list.get(relative_data_list.size() - 1);
+						
 					if (pixel_data_list.size() == 0)
 					{
 						//Sensor id
@@ -1041,8 +1138,6 @@ public class YFencePlotter
 						
 						//Sensor--could be # of segments - 1 in reverse view;
 						pixel_data_list.add(i);
-						
-						
 						pixel_data_list.add(sample);
 					} 
 					else
@@ -1144,8 +1239,6 @@ public class YFencePlotter
 					}
 				}
 				
-				
-
 				double local_min = this_minimum_y;
 				local_min -= minimum_y;
 				local_min /= yrange;
@@ -1177,11 +1270,12 @@ public class YFencePlotter
 				// Color y axis.
 				if(reverse_view)
 				{
-					if(visible[number_of_segments - 1 -i])
+					if(visible[number_of_segments - 1 - i])
 					{
-					    graphics_buffer.setColor(fill_color[number_of_segments - 1 -i]);
+					    graphics_buffer.setColor(fill_color[number_of_segments - 1 - i]);
 				        graphics_buffer.setStroke(new BasicStroke(3)); 
 				        graphics_buffer.drawLine(a1, (int)local_min, a1, (int)local_max);
+				        
 					}	
 				}
 				else
@@ -1195,9 +1289,14 @@ public class YFencePlotter
 				}
 			    
 			    polygon_min[i] = local_min;
+			    polygon_max[i] = local_max;
 				java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
 				polygon[i]  = sensor_polygon;
 			}
+			
+			
+			
+			
 			
 			double xrange = maximum_x - minimum_x;
 			double yrange = maximum_y - minimum_y;
@@ -1219,22 +1318,23 @@ public class YFencePlotter
 				a2 += xaddend;
 				b2 -= yaddend;
        
+				
 				// Draw polygon.
 				if(reverse_view)
 				{
 					graphics_buffer.setColor(fill_color[number_of_segments - 1 - i]);
 					if(!transparent[number_of_segments - 1 - i])
-				        graphics_buffer.fillPolygon(polygon[number_of_segments - 1 - i]);
-				    graphics_buffer.setStroke(new BasicStroke(2));
+				        graphics_buffer.fillPolygon(polygon[i]);
+					graphics_buffer.setStroke(new BasicStroke(2));
 				    graphics_buffer.setColor(java.awt.Color.BLACK);
 				    if(visible[number_of_segments - 1 - i])
-				        graphics_buffer.drawPolygon(polygon[number_of_segments - 1 - i]);
+				        graphics_buffer.drawPolygon(polygon[i]);
 				    
 				    // Anchor polygon to isometric grid.
 				    graphics_buffer.setColor(Color.DARK_GRAY);
 				    graphics_buffer.setStroke(new BasicStroke(1)); 
 				    if(visible[number_of_segments - 1 - i])
-				        graphics_buffer.drawLine(a2, (int)polygon_min[number_of_segments - 1 - i], a2, b1);	
+				        graphics_buffer.drawLine(a2, (int)polygon_min[i], a2, b1);
 				}
 				else
 				{
@@ -1252,9 +1352,11 @@ public class YFencePlotter
 				    if(visible[i])
 				        graphics_buffer.drawLine(a2, (int)polygon_min[i], a2, b1);
 				}
+				
+				
 				if(reverse_view)
 				{
-					if((polygon_zero_crossing[number_of_segments - 1 - i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[number_of_segments - 1 - i])
+					if((polygon_zero_crossing[i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[number_of_segments - 1 - i])
 					{
 						ArrayList plot_list = (ArrayList) plot_data.get(number_of_segments - 1 - i);
 						Point2D.Double first = (Point2D.Double) plot_list.get(0);
@@ -1293,7 +1395,7 @@ public class YFencePlotter
 				}
 				else
 				{
-					if((polygon_zero_crossing[i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[i])
+					if((polygon_zero_crossing[number_of_segments - 1 - i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[i])
 					{
 						ArrayList plot_list = (ArrayList) plot_data.get(i);
 						Point2D.Double first = (Point2D.Double) plot_list.get(0);
@@ -1378,18 +1480,23 @@ public class YFencePlotter
 			 
 			    current_value    = 0;
 			    current_position = a1;
-			    int string_width = font_metrics.stringWidth("77.7");
+			    String width_string;
+			    if(maximum_x > 10)
+			      width_string = String.format("%.1f", maximum_x);
+			    else
+			    	width_string = String.format("%.2f", maximum_x);
+			    	
+			    int string_width = font_metrics.stringWidth(width_string);
 			    xrange           = maximum_x - minimum_x;
 		        int    number_of_units            = (int) (graph_xdim / (string_width + 6));
 		        double current_position_increment = graph_xdim;
 		        current_position_increment        /= number_of_units;
 		        
 		        String position_string;
-		        if(xrange < 1.)
+		        if(maximum_x > 10)
 		            position_string = String.format("%,.1f", current_value);
 		        else
-		        	position_string = String.format("%,.1f", current_value);
-		        
+		        	position_string = String.format("%,.2f", current_value);
 		        if(i == 0 || (xstep == max_xstep && ystep == 0) )
 		        {
 		        	// Hanging locations on frontmost graph or all the graphs if they are laid out in a row.
@@ -1399,10 +1506,10 @@ public class YFencePlotter
 		            {
 			            current_value += current_value_increment;
 			            current_position += current_position_increment;
-			            if(xrange < 1.)
+			            if(maximum_x > 10)
 			                position_string = String.format("%,.1f", current_value);
 			            else
-			            	position_string = String.format("%,.1f", current_value);
+			            	position_string = String.format("%,.2f", current_value);
 			            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
 		            }
 		        }
@@ -1851,6 +1958,25 @@ public class YFencePlotter
 		}
 	}
 
+	public double[] smooth(double[] source, int iterations)
+	{
+		int dst_length = source.length - 1;
+		double[] src = source;
+		double[] dst = new double[dst_length];
+		while (dst_length >= source.length - iterations)
+		{
+			for (int i = 0; i < dst_length; i++)
+			{
+				dst[i] = (src[i] + src[i + 1]) / 2;
+			}
+			src = dst;
+			dst_length--;
+			if (dst_length >= source.length - iterations)
+				dst = new double[dst_length];
+		}
+		return (dst);
+	}
+	
 	public double getDistance(double x, double y, double x_origin, double y_origin)
 	{
 	    double distance  = Math.sqrt((x - x_origin) * (x - x_origin) + (y - y_origin) * (y - y_origin));
