@@ -31,20 +31,24 @@ public class XFencePlotter
     boolean tick_marks     = false;
     boolean raster_overlay = false;
 	boolean relative_mode  = true;
-    boolean west_view      = false;
+    boolean reverse_view      = false;
     boolean data_scaled    = false;
     boolean data_clipped   = false;
     boolean color_key      = true;
-    boolean show_id        = true;
+    boolean show_id        = false;
     double  scale_factor   = 1.;
-    double  normal_xstep   = 0.5;
-	double  normal_ystep   = 0.5;
+    double  normal_xstep   = 1;
+	double  normal_ystep   = 0;
 	double  sort_location  = 0.5;
 	double  xlocation      = 0.5;
 	double  ylocation      = 0.5;	
     double  minimum_y      = 0;
     double  maximum_y      = 0;
     int     smooth         = 0;
+    
+    //Used by XFencePlotter in constructor
+    boolean   config_file_exists = false;
+    ArrayList sensor_id          = new ArrayList();
     
 	ArrayList     data        = new ArrayList();
 	ArrayList     sensor_data = new ArrayList();
@@ -141,8 +145,6 @@ public class XFencePlotter
 	boolean[]    transparent   = new boolean[10];
 	Color[]      outline_color = new Color[10];
 	Color[]      fill_color    = new Color[10];
-	
-	
 	public static void main(String[] args)
 	{
 		if(args.length != 1)
@@ -198,6 +200,173 @@ public class XFencePlotter
 		File file = new File(filename);
 		if (file.exists())
 		{
+			// Get the current directory and see if it contains a config file.
+			StringTokenizer tokenizer = new StringTokenizer(filename, "/");
+		    String current_directory = new String("");
+			String directory         = new String("");
+			while(tokenizer.hasMoreTokens())
+			{
+			    directory = new String(current_directory);
+				String  next_string = tokenizer.nextToken();
+				current_directory   = new String(current_directory + next_string + "/");
+			}
+			String config_filename = new String(directory + "xfp.cfg");
+			File config_file = new File(config_filename);
+			if(config_file.exists())
+			{
+				//System.out.println("Loading config file.");
+				config_file_exists = true;
+				try
+				{
+					int            number_of_lines = 0;
+				    BufferedReader config_reader   = new BufferedReader(new InputStreamReader(new FileInputStream(config_file)));
+				    
+				    String line;
+				    StringTokenizer config_tokenizer;
+				    
+				    // Get line sensor pairs.
+				    line                 = config_reader.readLine();
+				    config_tokenizer     = new StringTokenizer(line);
+				    int number_of_tokens = config_tokenizer.countTokens();
+				    String token         = config_tokenizer.nextToken();
+				    number_of_tokens--;
+				    for(int i = 0; i < number_of_tokens; i++)
+				    {
+				    	token = config_tokenizer.nextToken();
+				    	// Cannot instantiate arrays of non-primitive types statically,
+				    	// so we have to save the id and assign it later.
+				    	sensor_id.add(token);
+				    }
+				    
+				    // Get and set visibility.
+				    line = config_reader.readLine();
+				    config_tokenizer = new StringTokenizer(line);
+				    number_of_tokens = config_tokenizer.countTokens();
+				    token = config_tokenizer.nextToken();
+				    number_of_tokens--;
+				    for(int i = 0; i < number_of_tokens; i++)
+				    {
+				    	token = config_tokenizer.nextToken();
+				    	if(token.equals("true"))
+				    		visible[i] = true;
+				    	else
+				    		visible[i] = false;
+				    }
+				    
+				    // Get and set transparency.
+				    line = config_reader.readLine();
+				    config_tokenizer = new StringTokenizer(line);
+				    number_of_tokens = config_tokenizer.countTokens();
+				    token = config_tokenizer.nextToken();
+				    number_of_tokens--;
+				    for(int i = 0; i < number_of_tokens; i++)
+				    {
+				    	token = config_tokenizer.nextToken();
+				    	if(token.equals("true"))
+				    		transparent[i] = true;
+				    	else
+				    		transparent[i] = false;
+				    }
+				    
+				    // Skip line.
+				    line = config_reader.readLine();
+				    
+				    while(line != null)
+				    {
+				        line             = config_reader.readLine();
+				        if(line != null)
+				        {
+				            config_tokenizer = new StringTokenizer(line);
+				            String key       = config_tokenizer.nextToken();
+				            String value     = config_tokenizer.nextToken();
+				            if(key.equals("Offset"))
+				    	        offset = Double.valueOf(value);
+				            else if(key.equals("Range")) 
+				        	    range = Double.valueOf(value);
+				            else if(key.equals("ReverseView")) 
+					        {
+					        	if(value.equals("true"))
+					        		reverse_view = true;
+					        	else
+					        		reverse_view = false;
+					        }
+				            else if(key.equals("TickMarks")) 
+					        {
+					        	if(value.equals("true"))
+					        		tick_marks = true;
+					        	else
+					        		tick_marks = false;
+					        }
+				            else if(key.equals("RelativeMode")) 
+					        {
+					        	if(value.equals("true"))
+					        		relative_mode = true;
+					        	else
+					        		relative_mode = false;
+					        }
+				            else if(key.equals("RasterOverlay")) 
+					        {
+					        	if(value.equals("true"))
+					        		raster_overlay = true;
+					        	else
+					        		raster_overlay = false;
+					        }
+				            else if(key.equals("Autoscale")) 
+					        {
+					        	if(value.equals("true"))
+					        		autoscale = true;
+					        	else
+					        		autoscale = false;
+					        } 
+				            else if(key.equals("Smooth")) 
+				        	    smooth = Integer.parseInt(value);
+				            else if(key.equals("XStep"))
+					    	    normal_xstep = Double.valueOf(value);
+					        else if(key.equals("YStep")) 
+					        	normal_ystep = Double.valueOf(value);
+					        else if(key.equals("SortLocation")) 
+					        	sort_location = Double.valueOf(value); 
+					        else if(key.equals("XLocation"))
+					    	    xlocation = Double.valueOf(value);
+					        else if(key.equals("YLocation")) 
+					        	ylocation = Double.valueOf(value);
+					        else if(key.equals("Scaling")) 
+					        {
+					        	if(value.equals("true"))
+					        		data_scaled = true;
+					        	else
+					        		data_scaled = false;
+					        } 
+					        else if(key.equals("ScaleFactor")) 
+					        	scale_factor = Double.valueOf(value);
+					        else if(key.equals("Scaling")) 
+					        {
+					        	if(value.equals("true"))
+					        		data_scaled = true;
+					        	else
+					        		data_scaled = false;
+					        } 
+				            else if(key.equals("Clipping")) 
+					        {
+					        	if(value.equals("true"))
+					        		data_clipped = true;
+					        	else
+					        		data_clipped = false;
+					        } 
+				            else if(key.equals("Maximum")) 
+					        	maximum_y = Double.valueOf(value);
+				            else if(key.equals("Minimum")) 
+					        	minimum_y = Double.valueOf(value);
+				        }
+				    }
+				    config_reader.close();
+				}
+				catch(Exception e)
+				{
+					System.out.println(e.toString());
+				}
+			}
+			
 			ArrayList original_data = new ArrayList();
 			global_xmin = Double.MAX_VALUE;
 			global_xmax = Double.MIN_VALUE;
@@ -317,10 +486,10 @@ public class XFencePlotter
 	            	output.write("XStep\t\t\t" + String.format("%,.2f", normal_xstep) + "\n");
 	            	output.write("YStep\t\t\t" + String.format("%,.2f", normal_ystep) + "\n");
 	            
-	            	if(west_view)
-	            		output.write("WestView\t\ttrue\n");
+	            	if(reverse_view)
+	            		output.write("ReverseView\t\ttrue\n");
 	            	else
-	            		output.write("WestView\t\tfalse\n");
+	            		output.write("ReverseView\t\tfalse\n");
 	            	if(tick_marks)
 	            		output.write("TickMarks\t\ttrue\n");
 	            	else
@@ -415,8 +584,33 @@ public class XFencePlotter
 			sensor_state[i] = 0;
 			sensor[i].setHorizontalAlignment(JTextField.CENTER);
 			sensor_panel.add(sensor[i]);
-			visible[i]     = true;
-			transparent[i] = false;
+			
+			if(!config_file_exists)  
+			{
+				//Default for visibility and transparency.
+			    visible[i]     = true;
+			    transparent[i] = false;
+			}
+			else
+			{
+				// Config file exists so we should have sensor ids.
+				if(i < sensor_id.size())
+				{
+				    String line_sensor = (String)sensor_id.get(i);
+				    sensor[i].setText(line_sensor);
+				    if(visible[i] == true && transparent[i] == false)
+				    	sensor_state[i] = 0;
+				    else if(visible[i] == true && transparent[i] == true)
+					    sensor_state[i] = 1;
+				    else
+				    	sensor_state[i] = 2;
+				}
+				else // There may be less than 10 sensor_ids.
+				{
+					sensor[i].setText("");
+					sensor_state[i] = 2;
+				}
+			}
 			ActionListener sensor_handler = new ActionListener()
 			{
 				public void actionPerformed(ActionEvent e)
@@ -427,32 +621,38 @@ public class XFencePlotter
 			sensor[i].addActionListener(sensor_handler);
 		}
 
-		for (int i = 0; i < 5; i++)
+		if(!config_file_exists)
 		{
-			if (init_line % 2 == 1)
+			// Initialize sensor ids using init_line
+			for (int i = 0; i < 5; i++)
 			{
-				String line_sensor = new String(init_line + ":" + i);
-				sensor[i].setText(line_sensor);
-			} 
-			else
-			{
-				String line_sensor = new String(init_line + ":" + (4 - i));
-				sensor[i].setText(line_sensor);
+				if (init_line % 2 == 1)
+				{
+					String line_sensor = new String(init_line + ":" + i);
+					sensor[i].setText(line_sensor);
+				} 
+				else
+				{
+					String line_sensor = new String(init_line + ":" + (4 - i));
+					sensor[i].setText(line_sensor);
+				}
 			}
+		    for (int i = 0; i < 5; i++)
+		    {
+		    	
+			    if((init_line + 1) % 2 == 1)
+			    {
+				    String line_sensor = new String((init_line + 1) + ":" + i);
+				    sensor[i + 5].setText(line_sensor);
+			    } 
+			    else
+			    {
+				    String line_sensor = new String((init_line + 1) + ":" + (4 - i));
+				    sensor[i + 5].setText(line_sensor);
+			    }
+		    }
 		}
-		for (int i = 0; i < 5; i++)
-		{
-	        if((init_line + 1) % 2 == 1)
-			{
-			    String line_sensor = new String((init_line + 1) + ":" + i);
-				sensor[i + 5].setText(line_sensor);
-			} 
-			else
-			{
-				String line_sensor = new String((init_line + 1) + ":" + (4 - i));
-				sensor[i + 5].setText(line_sensor);
-			}
-		}
+		
 		for (int i = 0; i < 10; i++)
 		{
 			sensor_canvas[i] = new SensorCanvas(i);
@@ -463,7 +663,13 @@ public class XFencePlotter
 		
 		lower_bound = new JTextField();
 		upper_bound = new JTextField();
-		
+		if(config_file_exists)
+		{
+			String lower_bound_string = String.format("%.4f", minimum_y);
+			String upper_bound_string = String.format("%.4f", maximum_y);
+			lower_bound.setText(lower_bound_string);
+			upper_bound.setText(upper_bound_string); 
+		}
 		JMenuBar menu_bar = new JMenuBar();
 
 		JMenu     file_menu  = new JMenu("File");
@@ -551,21 +757,21 @@ public class XFencePlotter
 		};
 		sort_item.addActionListener(sort_handler);
 
-		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("West View");
+		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
 		ActionListener view_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e) 
             {
             	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(west_view == true)
+            	if(reverse_view == true)
 				{
-            		west_view = false;
+            		reverse_view = false;
 					item.setState(false);
 					placement_canvas.repaint();
 				}
 				else
 				{
-					west_view = true;
+					reverse_view = true;
 					item.setState(true);
 					placement_canvas.repaint();
 				}
@@ -573,7 +779,7 @@ public class XFencePlotter
             }   	
 		};
 		view_item.addActionListener(view_handler);
-		if(west_view)
+		if(reverse_view)
 			view_item.setState(true);
         
 		JCheckBoxMenuItem number_mode_item = new JCheckBoxMenuItem("Relative Mode");
@@ -618,6 +824,8 @@ public class XFencePlotter
         });
 		
         JCheckBoxMenuItem overlay_item = new JCheckBoxMenuItem("Raster Overlay");
+        if(raster_overlay == true)
+        	overlay_item.setState(true);	
         overlay_item.addActionListener(new ActionListener() 
         {
             public void actionPerformed(ActionEvent e) 
@@ -1265,6 +1473,8 @@ public class XFencePlotter
 			double    canvas_xdim      = canvas_dimension.getWidth();
 			double    canvas_ydim      = canvas_dimension.getHeight();
 			double    entire_area      = canvas_xdim * canvas_ydim;
+			int       x_remainder      = 0;
+			int       y_remainder      = 0;
 
 			if(clipped_area != entire_area)
 			{
@@ -1292,23 +1502,26 @@ public class XFencePlotter
 					double max_xstep         = (xdim - (left_margin + right_margin)) / number_of_segments;
 					int    xstep             = (int) (max_xstep * normal_xstep);
 					int   graph_xdim         = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
-
-					// So that graphs are not butted together.
-					if (xstep == max_xstep)
-					{
-						graph_xdim -= number_of_segments;
-					}
-
 					double max_ystep = (ydim - (top_margin + bottom_margin)) / number_of_segments;
 					int    ystep = (int) (max_ystep * normal_ystep);
 					int    graph_ydim = ydim - (top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
 
-					// This doesn't seem to work in the y dimension, although it seems to work in the x.
-					// Need to make some extra adjustment.
-					/*
-					if(ystep == max_ystep)
-					    graph_ydim -= number_of_segments;
-					*/
+					// So that graphs are not butted together.
+					if(xstep == max_xstep && ystep == 0)
+					{
+						graph_xdim -= 20;
+						x_remainder = 20;
+					}
+					else
+						x_remainder = 0;
+
+					if(ystep == max_ystep && xstep == 0)
+					{
+					    graph_ydim -= 20;
+					    y_remainder = 20;
+					}
+					else
+						y_remainder = 0;
 					
 
 					double minimum_x = offset;
@@ -1321,16 +1534,6 @@ public class XFencePlotter
 						minimum_y = Double.valueOf(bound_string);
 						bound_string = upper_bound.getText();
 						maximum_y = Double.valueOf(bound_string);
-						
-						// As a convenience to get graphs with -+ 5 intervals.
-						// Reduces the resolution of the graph.	
-						if(tick_marks)
-						{
-						    if(minimum_y % 5 != 0)
-						        minimum_y -= 5 + minimum_y % 5;
-						    if(maximum_y % 5 != 0)
-						        maximum_y += 5 - maximum_y % 5;
-						}
 					} 
 					else
 					{
@@ -1338,25 +1541,11 @@ public class XFencePlotter
 						{
 							minimum_y = line_min;
 							maximum_y = line_max;
-							if(tick_marks)
-							{
-							    if(minimum_y % 5 != 0)
-							        minimum_y -= 5 + line_min % 5;
-							    if(maximum_y % 5 != 0)
-							        maximum_y += 5 - line_max % 5;
-							}
 						} 
 						else
 						{
 							minimum_y = seg_min;
 							maximum_y = seg_max;
-							if(tick_marks)
-							{
-							    if(minimum_y % 5 != 0)
-							        minimum_y -= 5 + seg_min % 5;
-							    if(maximum_y % 5 != 0)
-							        maximum_y += 5 - seg_max % 5;
-							}
 						}
 					}
                     
@@ -1390,253 +1579,207 @@ public class XFencePlotter
 						double current_value           = maximum_y;
 						double current_intensity_range = maximum_y - minimum_y;
 						
-						if(tick_marks)
-						{
-						    graphics_buffer.setColor(java.awt.Color.BLACK);
-						    graphics_buffer.setStroke(new BasicStroke(2));
-						    graphics_buffer.drawLine((int) a1, (int) b1, (int) a1, (int) b2);
-						    graphics_buffer.drawLine((int) a1, (int) b1, (int) a2, (int)b1);
-						
-						    int number_of_units            = (int) (current_intensity_range / 5);
-						    double current_increment       = current_range / number_of_units;
-						    double current_value_increment = 5.;
-						    current_position               = b2;
-						
-						    int string_width = font_metrics.stringWidth("777"); 
-						    for(int j = 0; j < number_of_units; j++)
-						    {
-							    graphics_buffer.drawLine((int) a1, (int) current_position, (int) a1 - 10, (int) current_position);
-							    String intensity_string = String.format("%,.0f", current_value);
-							    if(j % 5 == 0)
-							        graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
-							    current_position += current_increment;
-							    current_value -= current_value_increment;
-						    }
-						    String intensity_string = String.format("%,.0f", current_value);
-						    graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
-						    graphics_buffer.drawLine((int) a1, (int) current_position, (int) a1 - 10, (int) current_position);
-						    
-						    current_position = a1;
-						    current_value    = offset;
-						    String position_string;
-						    graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
-						    if (relative_mode)
-						    {
-							    string_width    = font_metrics.stringWidth("77.7");
-						        position_string = String.format("%,.1f", current_value);
-						        number_of_units = (int) (graph_xdim / (string_width * 2));
-						    }
-						    else
-						    {
-							    string_width    = font_metrics.stringWidth("7,777,777");
-							    position_string = String.format("%,.0f", current_value + global_ymin);	
-							    number_of_units = (int) (graph_xdim / (string_width * 1.5));
-						    }
-						    graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, b1 + string_height + 10);
-						
-						    current_value_increment = range / number_of_units;
-						    double current_position_increment = graph_xdim;
-						    current_position_increment /= number_of_units;
-						    for(int j = 0; j < number_of_units; j++)
-						    {
-							    current_value    += current_value_increment;
-							    current_position += current_position_increment;
-							    if (relative_mode)
-							        position_string = String.format("%,.1f", current_value);
-							    else
-								    position_string = String.format("%,.0f", current_value + global_ymin);	
-							    graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
-							    if(i == 0)
-							        graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, b1 + string_height + 10);
-							    if(j == number_of_units - 1)
-					            {
-					            	ArrayList sensor_list;
-					            	if(west_view)
-					            	    sensor_list = (ArrayList) sensor_data.get(((number_of_segments - 1) - i) + 4);
-					            	else
-					            		sensor_list = (ArrayList) sensor_data.get(i + 4);      	
-					            	int line   = (int)sensor_list.get(0);
-					            	int sensor = (int)sensor_list.get(1);
-					            	
-									position_string = new String(line + ":" + sensor);
-									graphics_buffer.drawString(position_string, (int) current_position + 6,  b1);
-					            }
-						    } 
+						graphics_buffer.setColor(java.awt.Color.BLACK);
+					    graphics_buffer.setStroke(new BasicStroke(1));
+					    
+                        current_position = a1;
+					    int string_width = 0;
+				        if(relative_mode)
+				            string_width = font_metrics.stringWidth("77.7");
+				        else
+					        string_width    = font_metrics.stringWidth("7,777,777");
+				        int    number_of_units            = (int) (graph_xdim / (string_width + 4));  
+				        double current_position_increment = graph_xdim;
+				        current_position_increment        /= number_of_units;
+				        
+				        if(i == 0 || (xstep == max_xstep && ystep == 0))
+				        {
+				        	//Put down lines on the frontmost graph where we can hang location information.
+				            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10); 
+				            for(int j = 0; j < number_of_units; j++)
+				            {
+					            current_position += current_position_increment;
+					            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
+				            }
+				        }
+				        else
+				        {
+				        	if(ystep != 0)
+				        	{
+				        	    graphics_buffer.drawLine((int) current_position, b1 + y_remainder, (int) current_position - xstep, b1 + ystep); 
+				        	    for(int j = 0; j < number_of_units; j++)
+				        	    {
+				        	    	current_position += current_position_increment;
+				        		    graphics_buffer.drawLine((int) current_position, b1 + y_remainder, (int) current_position - xstep, b1 + ystep);
+				        		    // At the end of a graph, put down a line where we can hang a line id or location information.
+				        		    // It also helps define the isometric space.
+				        		    if(j == number_of_units - 1)
+				        		    	graphics_buffer.drawLine((int) current_position, b1 + y_remainder, (int) current_position, b1 + 10);  	
+				        	    }
+				            }
+				        }	
+                        current_position         = b2;
+                        current_range            = b1 - b2;
+					    number_of_units          = (int) (current_range / (2 * (string_height)));
+					    double current_increment = current_range / number_of_units;
+					    
+					    if(i == 0)
+					    {
+					    	graphics_buffer.setColor(Color.BLACK);
+					    	graphics_buffer.setStroke(new BasicStroke(2));
+					    	graphics_buffer.drawLine(a1, b1, a1, b2);
+					    	
+					    	graphics_buffer.setStroke(new BasicStroke(1));
+					    	graphics_buffer.setColor(new Color(196, 196, 196));
+					    	graphics_buffer.drawLine(a1, b1, a2, b1);
+				            for(int j = 0; j < number_of_units; j++)
+				            {
+				            	graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
+					            current_position += current_increment;
+				            }
+				            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
+				            if(xstep == 0 && ystep == 0  || xstep == 0 && ystep == max_ystep)
+				            {
+				            	current_position = b2;
+					    	    for(int j = 0; j < number_of_units; j++)
+				                {
+				    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+					                current_position += current_increment;
+				                }
+					    	    current_position  = a1;
+					    	    number_of_units   = (int)(graph_xdim / (string_width + 4));  
+					    	    current_increment = graph_xdim;
+					    	    current_increment /= number_of_units;
+					    	    // Creating grid on rear of data space on frontmost graph panel.
+					    	    for(int j = 0; j < number_of_units; j++)
+				                {
+				    			    graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
+				    			    current_position += current_increment;
+				    			}	
+					    	    graphics_buffer.drawLine((int)a2, b1, (int)a2, b2);
+					    	    
+					    	    graphics_buffer.drawLine(a1, b1, a2, b1); 
+				            }
 					    }
-						else  // no tick marks
-						{
-							graphics_buffer.setColor(java.awt.Color.BLACK);
-						    graphics_buffer.setStroke(new BasicStroke(1));
-						    
-                            current_position = a1;
-						    int string_width = 0;
-					        if(relative_mode)
-					            string_width = font_metrics.stringWidth("77.7");
-					        else
-						        string_width    = font_metrics.stringWidth("7,777,777");
-					        int    number_of_units            = (int) (graph_xdim / (string_width + 4));  
-					        double current_position_increment = graph_xdim;
-					        current_position_increment        /= number_of_units;
-					        
-					        if(i == 0)
-					        {
-					        	//Put down lines on the frontmost graph where we can hang location information.
-					            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10); 
-					            for(int j = 0; j < number_of_units; j++)
-					            {
-						            current_position += current_position_increment;
-						            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
-					            }
-					        }
-					        else
-					        {
-					        	if(ystep != 0)
-					        	{
-					        	    graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep); 
-					        	    for(int j = 0; j < number_of_units; j++)
-					        	    {
-					        	    	current_position += current_position_increment;
-					        		    graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep);
-					        		    // At the end of a graph, put down a line where we can hang a line id or location information.
-					        		    if(j == number_of_units - 1)
-					        		    	graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);  	
-					        	    }
-					            }
-					        }	
-                            current_position         = b2;
-                            current_range            = b1 - b2;
-    					    number_of_units          = (int) (current_range / (2 * (string_height)));
-    					    double current_increment = current_range / number_of_units;
-    					    
-						    if(i == 0)
-						    {
-						    	graphics_buffer.setColor(Color.BLACK);
-						    	graphics_buffer.setStroke(new BasicStroke(2));
-						    	graphics_buffer.drawLine(a1, b1, a1, b2);
-						    	
-						    	graphics_buffer.setStroke(new BasicStroke(1));
-						    	graphics_buffer.setColor(new Color(196, 196, 196));
-						    	graphics_buffer.drawLine(a1, b1, a2, b1);
-					            for(int j = 0; j < number_of_units; j++)
-					            {
-					            	graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
-						            current_position += current_increment;
-					            }
-					            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
-					            if(xstep == 0 && ystep == 0)
-					            {
-					            	current_position = b2;
-						    	    for(int j = 0; j < number_of_units; j++)
-					                {
-					    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
-						                current_position += current_increment;
-					                }
-						    	    current_position  = a1;
-						    	    number_of_units   = (int)(graph_xdim / (string_width + 4));  
-						    	    current_increment = graph_xdim;
-						    	    current_increment /= number_of_units;
-						    	    // Creating grid on rear of data space on frontmost graph panel.
-						    	    for(int j = 0; j < number_of_units; j++)
-					                {
-					    			    graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
-					    			    current_position += current_increment;
-					    			}	
-						    	    graphics_buffer.drawLine((int)a2, b1, (int)a2, b2);
-						    	    
-						    	    graphics_buffer.drawLine(a1, b1, a2, b1); 
-					            }
-						    }
-						    else
-						    {
-						    	if(ystep != 0)
-						    	{
-						    		graphics_buffer.setColor(Color.BLACK);
-						    		graphics_buffer.setStroke(new BasicStroke(2));
-						    		graphics_buffer.drawLine(a1, b1, a1, b2);
-							    	graphics_buffer.setColor(new Color(196, 196, 196));
-							    	graphics_buffer.setStroke(new BasicStroke(1));
-						    		for(int j = 0; j < number_of_units; j++)
-						            {
-						    			graphics_buffer.drawLine(a1, (int)current_position, a1 - xstep, (int)current_position + ystep);
-							            current_position += current_increment;
-						            }
-						    		graphics_buffer.drawLine(a1, (int)current_position, a1 - xstep, (int)current_position + ystep);
-						    	}
-						    	if(ystep == max_ystep)
-						    	{
-						    		graphics_buffer.setColor(new Color(196, 196, 196));
-						    		graphics_buffer.setStroke(new BasicStroke(1));
-						    		current_position = b2;
-						    	    for(int j = 0; j < number_of_units; j++)
-					                {
-					    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
-						                current_position += current_increment;
-					                }	
-						    	}
-						    	graphics_buffer.setColor(new Color(196, 196, 196));
-					    	    graphics_buffer.setStroke(new BasicStroke(1));
-					    	    graphics_buffer.drawLine(a1, b1, a2, b1);
-					    	    
-					    	    
-					    	    if(xstep == max_xstep && ystep == 0)
-					    	        graphics_buffer.drawLine(a1, b1, a1, b2);
-					    	    
-						    }
-						    
-						    if(xstep > (max_xstep - 2)  && ystep > (max_ystep - 2))
+					    else
+					    {
+					    	if(ystep != 0)
 					    	{
-					    		
-					    		graphics_buffer.drawLine(a1, b1, a2, b1); 
-						    	graphics_buffer.drawLine(a1, b2, a2, b2);
-						    	graphics_buffer.drawLine(a2, b1, a2, b2);
-						    	    
-						    	current_position = b2;
-						    	for(int j = 0; j < number_of_units; j++)
+					    		graphics_buffer.setColor(Color.BLACK);
+					    		graphics_buffer.setStroke(new BasicStroke(2));
+					    		graphics_buffer.drawLine(a1, b1, a1, b2);
+						    	graphics_buffer.setColor(new Color(196, 196, 196));
+						    	graphics_buffer.setStroke(new BasicStroke(1));
+					    		for(int j = 0; j < number_of_units; j++)
 					            {
-					    			graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+					    			graphics_buffer.drawLine(a1, (int)current_position, a1 - xstep, (int)current_position + ystep);
 						            current_position += current_increment;
 					            }
-						    	current_position  = a1;
-						    	number_of_units   = (int)(graph_xdim / (string_width + 4));  
-						    	current_increment = graph_xdim;
-						    	current_increment /= number_of_units;
-						    	for(int j = 0; j < number_of_units; j++)
-					            {
-					    			graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
-					    			current_position += current_increment;
-					    	    }	
+					    		graphics_buffer.drawLine(a1, (int)current_position, a1 - xstep, (int)current_position + ystep);
 					    	}
-						    
-						    if(i == number_of_segments - 1)
-						    {
-						    	graphics_buffer.setColor(new Color(196, 196, 196));
-					    	    graphics_buffer.setStroke(new BasicStroke(1));
-					    	    graphics_buffer.drawLine(a1, b1, a2, b1);
-						    	if(!(xstep == max_xstep && ystep == 0) || xstep == 0)
-						    	{
-						    	    graphics_buffer.drawLine(a1, b1, a2, b1); 
-						    	    graphics_buffer.drawLine(a1, b2, a2, b2);
-						    	    graphics_buffer.drawLine(a2, b1, a2, b2);
-						    	    
-						    	    current_position = b2;
-						    	    for(int j = 0; j < number_of_units; j++)
-					                {
-					    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
-						                current_position += current_increment;
-					                }
-						    	    current_position  = a1;
-						    	    number_of_units   = (int)(graph_xdim / (string_width + 4));  
-						    	    current_increment = graph_xdim;
-						    	    current_increment /= number_of_units;
-						    	    // Creating grid on rear of data space.
-						    	    for(int j = 0; j < number_of_units; j++)
-					                {
-					    			    graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
-					    			    current_position += current_increment;
-					    			}
-						    	}
+					    	if(ystep == max_ystep)
+					    	{
+					    		graphics_buffer.setColor(new Color(196, 196, 196));
+					    		graphics_buffer.setStroke(new BasicStroke(1));
+					    		current_position = b2;
+					    	    for(int j = 0; j < number_of_units; j++)
+				                {
+				    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+					                current_position += current_increment;
+				                }	
+					    	}
+					    	graphics_buffer.setColor(new Color(196, 196, 196));
+				    	    graphics_buffer.setStroke(new BasicStroke(1));
+				    	    graphics_buffer.drawLine(a1, b1, a2, b1);
+				    	    
+				    	    
+				    	    if(xstep == max_xstep && ystep == 0)
+				    	        graphics_buffer.drawLine(a1, b1, a1, b2);
+				    	    
+					    }
+					    
+					    if(xstep > (max_xstep - 2)  && ystep > (max_ystep - 2))
+				    	{
+				    		graphics_buffer.drawLine(a1, b1, a2, b1); 
+					    	graphics_buffer.drawLine(a1, b2, a2, b2);
+					    	graphics_buffer.drawLine(a2, b1, a2, b2);
+					    	    
+					    	current_position = b2;
+					    	for(int j = 0; j < number_of_units; j++)
+				            {
+				    			graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+					            current_position += current_increment;
+				            }
+					    	current_position  = a1;
+					    	number_of_units   = (int)(graph_xdim / (string_width + 4));  
+					    	current_increment = graph_xdim;
+					    	current_increment /= number_of_units;
+					    	for(int j = 0; j < number_of_units; j++)
+				            {
+				    			graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
+				    			current_position += current_increment;
+				    	    }	
+				    	}
+					    
+					    
+					    if(i == number_of_segments - 1 && (ystep != max_ystep || xstep != max_xstep))
+					    {
+					    	graphics_buffer.setColor(new Color(196, 196, 196));
+				    	    graphics_buffer.setStroke(new BasicStroke(1));
+				    	    graphics_buffer.drawLine(a1, b1, a2, b1);
+					    	if(!(xstep == max_xstep && ystep == 0) || xstep == 0)
+					    	{
+					    		// Creating grid on rear of data space.
+					    	    graphics_buffer.drawLine(a1, b1, a2, b1); 
+					    	    graphics_buffer.drawLine(a1, b2, a2, b2);
+					    	    graphics_buffer.drawLine(a2, b1, a2, b2);
+					    	    
+					    	    current_position = b2;
+					    	    for(int j = 0; j < number_of_units; j++)
+				                {
+				    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+					                current_position += current_increment;
+				                }
+					    	    current_position  = a1;
+					    	    number_of_units   = (int)(graph_xdim / (string_width + 4));  
+					    	    current_increment = graph_xdim;
+					    	    current_increment /= number_of_units;
+					    	    
+					    	    
+					    	    for(int j = 0; j < number_of_units; j++)
+				                {
+				    			    graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
+				    			    current_position += current_increment;
+				    			}
 						    }
+						    
 						}
+					    
+					    if((xstep == max_xstep && ystep == 0))
+			            {
+					    	graphics_buffer.setColor(new Color(196, 196, 196));
+				    	    graphics_buffer.setStroke(new BasicStroke(1));
+			            	current_position = b2;
+				    	    for(int j = 0; j < number_of_units; j++)
+			                {
+			    			    graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
+				                current_position += current_increment;
+			                }
+				    	    current_position  = a1;
+				    	    number_of_units   = (int)(graph_xdim / (string_width + 6));  
+				    	    current_increment = graph_xdim;
+				    	    current_increment /= number_of_units;
+				    	    // Creating grid on rear of data space on frontmost graph panel.
+				    	    for(int j = 0; j < number_of_units; j++)
+			                {
+			    			    graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
+			    			    current_position += current_increment;
+			    			}	
+				    	    graphics_buffer.drawLine((int)a2, b1, (int)a2, b2);
+				    	    
+				    	    graphics_buffer.drawLine(a1, b1, a2, b1); 
+			            }
+					    
 						// If plots directly overlap, we only need one set of axes.
 						if (ystep == 0 && xstep == 0)
 							break;
@@ -1761,7 +1904,7 @@ public class XFencePlotter
 						ArrayList sensor_list;
 						int current_line;
 						int current_sensor;
-						if (!west_view)
+						if (!reverse_view)
 						{
 							sensor_list    = (ArrayList) sensor_data.get(i + 4);
 							current_line   = (int) sensor_list.get(0);
@@ -1809,7 +1952,7 @@ public class XFencePlotter
 							current_y -= minimum_y;
 							current_y /= yrange;
 							current_y *= graph_ydim;
-							current_y = graph_ydim - current_y;
+							current_y = (graph_ydim + y_remainder) - current_y;
 							current_y += top_margin + (number_of_segments - 1) * ystep;
 							current_y -= yaddend;
 							
@@ -1932,7 +2075,7 @@ public class XFencePlotter
 						local_min -= minimum_y;
 						local_min /= yrange;
 						local_min *= graph_ydim;
-						local_min = graph_ydim - local_min;
+						local_min = (graph_ydim + y_remainder) - local_min;
 						local_min+= top_margin + (number_of_segments - 1) * ystep;
 						local_min -= yaddend;
 						
@@ -1940,7 +2083,7 @@ public class XFencePlotter
 						local_max -= minimum_y;
 						local_max /= yrange;
 						local_max *= graph_ydim;
-						local_max  = graph_ydim - local_max;
+						local_max  = (graph_ydim + y_remainder) - local_max;
 						local_max += top_margin + (number_of_segments - 1) * ystep;
 						local_max -= yaddend;
 						
@@ -1959,7 +2102,7 @@ public class XFencePlotter
 					    graphics_buffer.drawLine(a2, (int)local_min, a2, b1);
 					    
 						//graphics_buffer.setColor(Color.RED);
-					    if(west_view)
+					    if(reverse_view)
 					    	graphics_buffer.setColor(fill_color[number_of_segments - 1 - i]);
 					    else
 					    	graphics_buffer.setColor(fill_color[i]);
@@ -1986,7 +2129,7 @@ public class XFencePlotter
 						a2 += xaddend;
 						b2 -= yaddend;
                
-						if(west_view)
+						if(reverse_view)
 						{
 						    if (visible[(number_of_segments - 1) - i] == true)
 						    {
@@ -2026,7 +2169,7 @@ public class XFencePlotter
 
 								zero_y /= yrange;
 								zero_y *= graph_ydim;
-								zero_y = graph_ydim - zero_y;
+								zero_y = (graph_ydim + y_remainder) - zero_y;
 								zero_y += top_margin + (number_of_segments - 1) * ystep;
 								zero_y -= yaddend;
 
@@ -2097,7 +2240,7 @@ public class XFencePlotter
 					// Previously we were drawing directly to the display when adding labels and numbers
 					// because the fonts looked better than the buffered fonts, but the convenience of having
 					// the entire graph buffered as far as save, print, and partial repaints is concerned 
-					// is such that we are that sacrificing aesthic consideration.
+					// is such that we are sacrificing that aesthic consideration.
 					
 					graphics_buffer.setColor(java.awt.Color.BLACK);
 					double current_value    = offset;
@@ -2109,109 +2252,95 @@ public class XFencePlotter
 					
 					String position_string;
 				    int    string_width;
-					if(!tick_marks)
-					{
-						for(int i = 0; i < number_of_segments; i++)
+				    for(int i = 0; i < number_of_segments; i++)
+				    {
+					    a1 = left_margin;
+					    b1 = ydim - bottom_margin;
+
+					    a2 = a1 + graph_xdim;
+					    b2 = b1 - graph_ydim;
+
+					    int xaddend = i * xstep;
+					    int yaddend = i * ystep;
+
+					    a1 += xaddend;
+					    b1 -= yaddend;
+
+					    a2 += xaddend;
+					    b2 -= yaddend;
+					    
+					    //Create a top on the frame around each graph to help evaluate relative y dimensions accurately.
+					    if(raster_overlay)
 					    {
-						    a1 = left_margin;
-						    b1 = ydim - bottom_margin;
-
-						    a2 = a1 + graph_xdim;
-						    b2 = b1 - graph_ydim;
-
-						    int xaddend = i * xstep;
-						    int yaddend = i * ystep;
-
-						    a1 += xaddend;
-						    b1 -= yaddend;
-
-						    a2 += xaddend;
-						    b2 -= yaddend;
-						    
-						    //Create a top on the frame around each graph to help evaluate relative y dimensions accurately.
-						    if(raster_overlay)
-						    {
-						        if(i != number_of_segments - 1)
-						        {
-						    	    //Side--seems like it just gets in the way.
-					                //graphics_buffer.drawLine(a1, b1, a2, b1); 
-						    	    if(ystep != 0)
-						    	    {
-						    	    	//graphics_buffer.setColor(Color.GRAY);
-						    	    	graphics_buffer.setColor(new Color(196, 196, 196));
-							    	    graphics_buffer.setStroke(new BasicStroke(1));
-				    	                graphics_buffer.drawLine(a1, b2, a2, b2);
-				    	                graphics_buffer.drawLine(a2, b2, a2 + xstep, b2 - ystep);
-				    	                graphics_buffer.setColor(Color.BLACK);
-						    	    }
-						        }
-						    }
-						    current_value    = offset;
-						    current_position = a1;
-						    
-					        if (relative_mode)
+					        if(i != number_of_segments - 1)
 					        {
-					            string_width = font_metrics.stringWidth("77.7");
-					            position_string = String.format("%,.0f", current_value);
-					        }
-					        else
-					        {
-						        string_width    = font_metrics.stringWidth("7,777,777");
-						        position_string = String.format("%,.0f", current_value + global_ymin);
-					        }
-					        int    number_of_units            = (int) (graph_xdim / (string_width + 4));
-					        double current_position_increment = graph_xdim;
-					        current_position_increment        /= number_of_units;
-					        if(i == 0)
-					        {
-					        	// Hanging numbers on frontmost xaxis.
-					        	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
-					            double current_value_increment = range / number_of_units;
-					            for(int j = 0; j < number_of_units; j++)
-					            {
-						            current_value += current_value_increment;
-						            current_position += current_position_increment;
-						            if(relative_mode)
-						                position_string = String.format("%,.0f", current_value);
-						            else
-							            position_string = String.format("%,.0f", current_value + global_ymin);	
-						            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
-					            }
-					        }
-					        else
-					        {
-					        	// Keeping this here in case we decide we want to hang numbers on more than one x-axis.
-					        	// Line positions show where strings would go.
-					        	if(ystep != 0)
-					        	{
-					        	    //graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep); 
-					        	    for(int j = 0; j < number_of_units; j++)
-					        	    {
-					        	    	current_position += current_position_increment;
-					        		    //graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep);
-					        	    }
-					            }
+					    	    //Side--seems like it just gets in the way.
+				                //graphics_buffer.drawLine(a1, b1, a2, b1); 
+					    	    if(ystep != 0)
+					    	    {
+					    	    	//graphics_buffer.setColor(Color.GRAY);
+					    	    	graphics_buffer.setColor(new Color(196, 196, 196));
+						    	    graphics_buffer.setStroke(new BasicStroke(1));
+			    	                graphics_buffer.drawLine(a1, b2, a2, b2);
+			    	                graphics_buffer.drawLine(a2, b2, a2 + xstep, b2 - ystep);
+			    	                graphics_buffer.setColor(Color.BLACK);
+					    	    }
 					        }
 					    }
-					}
+					    current_value    = offset;
+					    current_position = a1;
+					    
+				        if (relative_mode)
+				        {
+				            string_width = font_metrics.stringWidth("77.7");
+				            position_string = String.format("%,.0f", current_value);
+				        }
+				        else
+				        {
+					        string_width    = font_metrics.stringWidth("7,777,777");
+					        position_string = String.format("%,.0f", current_value + global_ymin);
+				        }
+				        int    number_of_units            = (int) (graph_xdim / (string_width + 4));
+				        double current_position_increment = graph_xdim;
+				        current_position_increment        /= number_of_units;
+				        if(i == 0  || (xstep == max_xstep && ystep == 0))
+				        {
+				        	// Hanging numbers on frontmost xaxis.
+				        	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
+				            double current_value_increment = range / number_of_units;
+				            for(int j = 0; j < number_of_units; j++)
+				            {
+					            current_value += current_value_increment;
+					            current_position += current_position_increment;
+					            if(relative_mode)
+					                position_string = String.format("%,.0f", current_value);
+					            else
+						            position_string = String.format("%,.0f", current_value + global_ymin);	
+					            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
+				            }
+				        }
+				        
+				        if(i == 0 || (xstep == 0 && ystep == max_ystep))
+				        {
+				        	
+				        }
+				    }
 					
 					position_string = new String("meters");
 					string_width = font_metrics.stringWidth(position_string);
 					graphics_buffer.drawString(position_string, left_margin + (xdim - right_margin - left_margin) / 2 - string_width / 2, ydim - bottom_margin / 4);
                     
 					// Placing numbers on the intensity axis.
-					if(!tick_marks)
+					double current_intensity_range = maximum_y - minimum_y;
+					double current_range = b1 - b2;
+					int number_of_units = (int) (current_range / (2 * string_height));
+					double current_increment = current_range / number_of_units;
+					double current_value_increment = current_intensity_range / number_of_units;
+					current_position = b2;
+					String intensity_string = String.format("%,.0f", current_value);
+					string_width = font_metrics.stringWidth(intensity_string);
+					for(int i = 0; i < number_of_segments; i++)
 					{
-					    double current_intensity_range = maximum_y - minimum_y;
-					    double current_range = b1 - b2;
-					    int number_of_units = (int) (current_range / (2 * string_height));
-					    double current_increment = current_range / number_of_units;
-					    double current_value_increment = current_intensity_range / number_of_units;
-					    current_position = b2;
-					    String intensity_string = String.format("%,.0f", current_value);
-					    string_width = font_metrics.stringWidth(intensity_string);
-					    for(int i = 0; i < number_of_segments; i++)
-					    {
 						    a1 = left_margin;
 						    b1 = ydim - bottom_margin;
 
@@ -2230,7 +2359,7 @@ public class XFencePlotter
 						    current_value = maximum_y;
 						    current_position = b2;
 						    
-						    if(i == 0)
+						    if(i == 0  || (xstep == 0 && ystep == max_ystep))
 						    {
 					            for(int j = 0; j < number_of_units; j++)
 					            {
@@ -2244,7 +2373,7 @@ public class XFencePlotter
 						            {
 										
 										ArrayList sensor_list;
-						            	if(west_view)
+						            	if(reverse_view)
 						            	    sensor_list = (ArrayList) sensor_data.get(((number_of_segments - 1) - i) + 4);
 						            	else
 						            		sensor_list = (ArrayList) sensor_data.get(i + 4);      	
@@ -2271,7 +2400,7 @@ public class XFencePlotter
 							            if(j == number_of_units - 1)
 							            {
 							            	ArrayList sensor_list;
-							            	if(west_view)
+							            	if(reverse_view)
 							            	    sensor_list = (ArrayList) sensor_data.get(((number_of_segments - 1) - i) + 4);
 							            	else
 							            		sensor_list = (ArrayList) sensor_data.get(i + 4);      	
@@ -2298,13 +2427,12 @@ public class XFencePlotter
 											String line_id = new String(line + ":" + sensor);
 											if(show_id)
 											    graphics_buffer.drawString(line_id, a2 + 6, (int) current_position + ( 3 * string_height / 4));
-							            }
-						            }
-						    	}
-						    }
-					    }
+							          }
+						         }
+						     }
+						}
 					}
-					String intensity_string = new String("nT");
+					intensity_string = new String("nT");
 					string_width = font_metrics.stringWidth(intensity_string);
 					graphics_buffer.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
 				}
@@ -3123,7 +3251,7 @@ public class XFencePlotter
 									String id = (String)sensor_id.get(i);
 									print_buffer.setColor(Color.BLACK);
 									print_buffer.drawString(id, x, y);
-									if(west_view)
+									if(reverse_view)
 										print_buffer.setColor(fill_color[number_of_segments - 1 - i]);	
 									else
 										print_buffer.setColor(fill_color[i]);
@@ -3179,7 +3307,7 @@ public class XFencePlotter
 									String id = (String)sensor_id.get(i);
 									print_buffer.setColor(Color.BLACK);
 									print_buffer.drawString(id, x, y);
-									if(west_view)
+									if(reverse_view)
 										print_buffer.setColor(fill_color[number_of_segments - 1 - i]);	
 									else
 										print_buffer.setColor(fill_color[i]);
@@ -3962,7 +4090,7 @@ public class XFencePlotter
 				b2 -= yaddend;
 				if (visible[i])
 				{
-					if (!west_view)
+					if (!reverse_view)
 					{
 						if (!transparent[i])
 						{
@@ -5001,7 +5129,7 @@ public class XFencePlotter
 				ArrayList sensor_list;
 				int current_line;
 				int current_sensor;
-				if (!west_view)
+				if (!reverse_view)
 				{
 					sensor_list    = (ArrayList) sensor_data.get(i + 4);
 					current_line   = (int) sensor_list.get(0);
@@ -5091,7 +5219,7 @@ public class XFencePlotter
 			    graphics_buffer.setStroke(new BasicStroke(1));
 			    graphics_buffer.drawLine(a2, (int)local_min, a2, b1);
 			    
-			    if(west_view)
+			    if(reverse_view)
 			    	graphics_buffer.setColor(fill_color[number_of_segments - 1 - i]);
 			    else
 			    	graphics_buffer.setColor(fill_color[i]);
@@ -5118,7 +5246,7 @@ public class XFencePlotter
 				a2 += xaddend;
 				b2 -= yaddend;
        
-				if(west_view)
+				if(reverse_view)
 				{
 				    if (visible[(number_of_segments - 1) - i] == true)
 				    {
