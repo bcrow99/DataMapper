@@ -1136,8 +1136,14 @@ public class YFencePlotter
 						//Flight line
 						pixel_data_list.add(start_flight_line);
 						
-						//Sensor--could be # of segments - 1 in reverse view;
-						pixel_data_list.add(i);
+						if(reverse_view)
+						{
+							pixel_data_list.add(5 - 1 - i);   	
+						}
+						else
+						{
+						    pixel_data_list.add(i);
+						}
 						pixel_data_list.add(sample);
 					} 
 					else
