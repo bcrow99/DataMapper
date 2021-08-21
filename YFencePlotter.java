@@ -39,6 +39,7 @@ public class YFencePlotter
 	
 	boolean            raster_overlay       = false;
 	boolean            reverse_view         = false;
+	boolean            persistent_data      = false;
 	int                smooth               = 0;
 	
 	
@@ -389,7 +390,37 @@ public class YFencePlotter
 			transparent[i] = false;
 		}
 		
-		// A modeless dialog box that shows up if Format->Placement is selected.
+       JMenu     settings_menu  = new JMenu("Settings");
+		
+		// A modeless dialog box that shows up if Settings->Data is selected.
+		information_panel = new JPanel(new BorderLayout());
+		sample_information = new JTextArea(8, 17);
+		information_panel.add(sample_information);
+		information_dialog = new JDialog(frame);
+		information_dialog.add(information_panel);		
+		JMenuItem data_item = new JMenuItem("Data");
+		ActionListener data_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+				
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				information_dialog.setLocation(x, y);
+				information_dialog.pack();
+				information_dialog.setVisible(true);
+			}
+		};
+		data_item.addActionListener(data_handler);
+		settings_menu.add(data_item);
+		
+		
+		// A modeless dialog box that shows up if Settings->Placement is selected.
 		JPanel placement_panel = new JPanel(new BorderLayout());
 		placement_canvas = new PlacementCanvas();
 		placement_canvas.setSize(100, 100);
@@ -434,13 +465,6 @@ public class YFencePlotter
 
 		placement_dialog = new JDialog(frame, "Placement");
 		placement_dialog.add(placement_panel);
-
-		
-		
-		
-		
-		
-		JMenu     settings_menu  = new JMenu("Settings");
 		
 		JMenuItem place_item = new JMenuItem("Placement");
 		ActionListener placement_handler = new ActionListener()
@@ -451,11 +475,12 @@ public class YFencePlotter
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
 
-				//x += 830;
-				y += 95;
-
-				if (y < 0)
-					y = 0;
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				
+				y += 200;
 
 				placement_dialog.setLocation(x, y);
 				placement_dialog.pack();
@@ -486,11 +511,12 @@ public class YFencePlotter
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
 
-				//x += 830;
-				y += 95;
-
-				if (y < 0)
-					y = 0;
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				
+				y += 400;
 
 				sensor_dialog.setLocation(x, y);
 				sensor_dialog.pack();
@@ -500,31 +526,6 @@ public class YFencePlotter
 		sensor_item.addActionListener(sensor_handler);
 		settings_menu.add(sensor_item);
 		
-		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
-		ActionListener view_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(reverse_view == true)
-				{
-            		reverse_view = false;
-					item.setState(false);
-					placement_canvas.repaint();
-				}
-				else
-				{
-					reverse_view = true;
-					item.setState(true);
-					placement_canvas.repaint();
-				}
-		        data_canvas.repaint();
-            }   	
-		};
-		view_item.addActionListener(view_handler);
-		if(reverse_view)
-			view_item.setState(true);
-		settings_menu.add(view_item);
 		
 		// A modeless dialog box that shows up if Settings->Smoothing is selected.
 		JPanel  smooth_panel  = new JPanel(new BorderLayout());
@@ -554,8 +555,10 @@ public class YFencePlotter
 				Point location_point = frame.getLocation();
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
-				x += 830;
-				y += 640;
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				x += canvas_xdim;
+				y += 500;		
 				smooth_dialog.setLocation(x, y);
 				smooth_dialog.pack();
 				smooth_dialog.setVisible(true);
@@ -563,7 +566,58 @@ public class YFencePlotter
 		};
 		smoothing_item.addActionListener(smooth_handler);
 		settings_menu.add(smoothing_item);
+				
+		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
+		ActionListener view_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(reverse_view == true)
+				{
+            		reverse_view = false;
+					item.setState(false);
+					placement_canvas.repaint();
+				}
+				else
+				{
+					reverse_view = true;
+					item.setState(true);
+					placement_canvas.repaint();
+				}
+		        data_canvas.repaint();
+            }   	
+		};
+		view_item.addActionListener(view_handler);
+		if(reverse_view)
+			view_item.setState(true);
+		settings_menu.add(view_item);
 		
+		JCheckBoxMenuItem overlay_item = new JCheckBoxMenuItem("Raster Overlay");
+		ActionListener overlay_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(raster_overlay == true)
+				{
+            		raster_overlay = false;
+					item.setState(false);
+					placement_canvas.repaint();
+				}
+				else
+				{
+					raster_overlay = true;
+					item.setState(true);
+					placement_canvas.repaint();
+				}
+		        data_canvas.repaint();
+            }   	
+		};
+		overlay_item.addActionListener(overlay_handler);
+		if(raster_overlay)
+			overlay_item.setState(true);
+		settings_menu.add(overlay_item);
 		JMenuBar menu_bar = new JMenuBar();
 		menu_bar.add(settings_menu);
 		frame.setJMenuBar(menu_bar);
@@ -1660,129 +1714,104 @@ public class YFencePlotter
 	
 	class MouseHandler extends MouseAdapter
 	{
-		boolean persistent_sample_information = false;
-
 		public void mouseClicked(MouseEvent event)
 		{
 			int button = event.getButton();
 			if (button == 3)
 			{
-				if (persistent_sample_information == false)
-					persistent_sample_information = true;
+				if (persistent_data == false)
+					persistent_data = true;
 				else
-					persistent_sample_information = false;
+					persistent_data = false;
 			}
-		}
-
-		public void mousePressed(MouseEvent event)
-		{
-			int button = event.getButton();
-
-			if (button == 1)
-			{
-				Point location_point = frame.getLocation();
-				int frame_x = (int) location_point.getX();
-				frame_x += 830;
-				int frame_y = (int) location_point.getY();
-
-				information_dialog.setLocation(frame_x, frame_y);
-				information_dialog.pack();
-				information_dialog.setVisible(true);
-			}
-		}
-
-		public void mouseReleased(MouseEvent event)
-		{
-			int button = event.getButton();
-			if (button == 1 && persistent_sample_information == false)
-				information_dialog.setVisible(false);
 		}
 	}
 
 	class MouseMotionHandler extends MouseMotionAdapter
 	{
-		public void mouseDragged(MouseEvent event)
+		public void mouseMoved(MouseEvent event)
 		{
+			if(persistent_data || pixel_data == null)
+				return;
+			
 			int x = event.getX();
 			int y = event.getY();
+			int xdim = pixel_data[0].length;
+			int ydim = pixel_data.length;
 
-			sample_information.setText("");
-			// Blank information panel when a pixel is traversed that is not associated with data.
-			if (pixel_data != null)
+			if (x > left_margin && x < xdim - right_margin && y > top_margin && y < ydim - bottom_margin)
 			{
-				int xdim = pixel_data[0].length;
-				int ydim = pixel_data.length;
-
-				if (x > left_margin && x < xdim - right_margin && y > top_margin && y < ydim - bottom_margin)
+				int current_line, current_sensor;
+				double current_intensity, current_x, current_y;
+				ArrayList sample_list = pixel_data[y][x];
+				int size = sample_list.size();
+				outer: if (size == 0)
 				{
-					int current_line, current_sensor;
-					double current_intensity, current_x, current_y;
-					ArrayList sample_list = pixel_data[y][x];
-					int size = sample_list.size();
-					outer: if (size == 0)
-					{
-						sample_list = pixel_data[y - 1][x];
-						size = sample_list.size();
-						if (size != 0)
-							break outer;
-						sample_list = pixel_data[y + 1][x];
-						size = sample_list.size();
-						if (size != 0)
-							break outer;
-						sample_list = pixel_data[y][x - 1];
-						size = sample_list.size();
-						if (size != 0)
-							break outer;
-						sample_list = pixel_data[y][x + 1];
-						size = sample_list.size();
-						if (size != 0)
-							break outer;
-						sample_list = pixel_data[y - 1][x - 1];
-						size = sample_list.size();
-						if (size != 0)
-							break outer;
-						sample_list = pixel_data[y + 1][x - 1];
-						size = sample_list.size();
-						sample_list = pixel_data[y - 1][x + 1];
-						size = sample_list.size();
-						if (size != 0)
-							break outer;
-						sample_list = pixel_data[y + 1][x + 1];
-						size = sample_list.size();
-					}
-
+					sample_list = pixel_data[y - 1][x];
+					size = sample_list.size();
 					if (size != 0)
-					{
-						current_line = (int) sample_list.get(0);
-						current_sensor = (int) sample_list.get(1);
-						Sample sample = (Sample) sample_list.get(2);
-						current_intensity = sample.intensity;
-						current_x = sample.x;
-						current_y = sample.y;
-
-						String information_string = new String("  Line:         " + current_line + "\n");
-						sample_information.append(information_string);
-						information_string = new String("  Sensor:     " + current_sensor + "\n");
-						sample_information.append(information_string);
-						String number_string = String.format("%,.2f", current_intensity);
-						information_string = new String("  Intensity:   " + number_string + "\n");
-						sample_information.append(information_string);
-
-						number_string = String.format("%,.2f", current_x);
-						information_string = new String("  Relative x: " + number_string + "\n");
-						sample_information.append(information_string);
-						number_string = String.format("%,.2f", current_y);
-						information_string = new String("  Relative y: " + number_string + "\n");
-						sample_information.append(information_string);
-
-						number_string = String.format("%,.2f", (current_x + global_xmin));
-						information_string = new String("  Absolute x: " + number_string + "\n");
-						sample_information.append(information_string);
-						number_string = String.format("%,.2f", (current_y + global_ymin));
-						information_string = new String("  Absolute y: " + number_string + "\n");
-						sample_information.append(information_string);
-					}
+						break outer;
+					sample_list = pixel_data[y + 1][x];
+					size = sample_list.size();
+					if (size != 0)
+						break outer;
+					sample_list = pixel_data[y][x - 1];
+					size = sample_list.size();
+					if (size != 0)
+						break outer;
+					sample_list = pixel_data[y][x + 1];
+					size = sample_list.size();
+					if (size != 0)
+					break outer;
+					sample_list = pixel_data[y - 1][x - 1];
+					size = sample_list.size();
+					if (size != 0)
+						break outer;
+					sample_list = pixel_data[y + 1][x - 1];
+					size = sample_list.size();
+					sample_list = pixel_data[y - 1][x + 1];
+					size = sample_list.size();
+					if (size != 0)
+						break outer;
+					sample_list = pixel_data[y + 1][x + 1];
+					size = sample_list.size();
 				}
+
+				if (size != 0)
+				{
+					//sample_information.setText("");
+					current_line = (int) sample_list.get(0);
+					current_sensor = (int) sample_list.get(1);
+					Sample sample = (Sample) sample_list.get(2);
+					current_intensity = sample.intensity;
+					current_x = sample.x;
+					current_y = sample.y;
+
+					String information_string = new String("  Line:         " + current_line + "\n");
+					sample_information.append(information_string);
+					information_string = new String("  Sensor:     " + current_sensor + "\n");
+					sample_information.append(information_string);
+					String number_string = String.format("%,.2f", current_intensity);
+					information_string = new String("  Intensity:   " + number_string + "\n");
+					sample_information.append(information_string);
+
+					number_string = String.format("%,.2f", current_x);
+					information_string = new String("  Relative x: " + number_string + "\n");
+					sample_information.append(information_string);
+					number_string = String.format("%,.2f", current_y);
+					information_string = new String("  Relative y: " + number_string + "\n");
+					sample_information.append(information_string);
+
+					number_string = String.format("%,.2f", (current_x + global_xmin));
+					information_string = new String("  Absolute x: " + number_string + "\n");
+					sample_information.append(information_string);
+					number_string = String.format("%,.2f", (current_y + global_ymin));
+					information_string = new String("  Absolute y: " + number_string + "\n");
+					sample_information.append(information_string);
+				}
+				else
+					// Blank information panel when a pixel is traversed that is not associated with data.
+					sample_information.setText("");
 			}
 		}
 	}
