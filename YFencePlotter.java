@@ -9,6 +9,7 @@ import javax.imageio.*;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.*;
+
 import java.lang.*;
 
 public class YFencePlotter
@@ -17,6 +18,7 @@ public class YFencePlotter
 	public JScrollBar  data_scrollbar;
 	public RangeSlider data_slider;
 	public JFrame      frame;
+	public LocationCanvas location_canvas;
 	public boolean     data_scrollbar_changing, data_slider_changing;
 	public double      global_xmin, global_xmax, global_ymin, global_ymax, global_intensity_min, global_intensity_max;
 	public int         slider_resolution    = 2640;
@@ -30,28 +32,33 @@ public class YFencePlotter
 	public double      data_range           = .0005;
 	public double      normal_xstep         = .5;
 	public double      normal_ystep         = .5;
+	public double      xlocation            = .5;
+	public double      ylocation            = .5;	
 	public int         x_remainder          = 0;
 	public int         y_remainder          = 0;
 	ArrayList[][]      pixel_data;
 	
-	int                start_flight_line = 0;
-	int                stop_flight_line  = 0;
+	int                start_flight_line    = 0;
+	int                stop_flight_line     = 0;
 	
 	boolean            raster_overlay       = false;
 	boolean            reverse_view         = false;
 	boolean            persistent_data      = false;
+	boolean            show_id              = true;
+	boolean            relative_mode        = false;
 	int                smooth               = 0;
 	
 	
-	Canvas[]           sensor_canvas = new SensorCanvas[10];
-	int[]              sensor_state  = new int[10];
-	boolean[]          visible       = new boolean[5];
-	boolean[]          transparent   = new boolean[5];
+	Canvas[]           sensor_canvas        = new SensorCanvas[10];
+	int[]              sensor_state         = new int[10];
+	boolean[]          visible              = new boolean[5];
+	boolean[]          transparent          = new boolean[5];
 	
 	public JDialog     information_dialog;
 	public JDialog     placement_dialog;
 	public JDialog     sensor_dialog;
 	public JDialog     smooth_dialog;
+	public JDialog     location_dialog;
 	
 	public PlacementCanvas placement_canvas;
 	
@@ -59,7 +66,7 @@ public class YFencePlotter
 	JTextArea sample_information;
 	
 	int       left_margin        = 70;
-	int       right_margin       = 20;
+	int       right_margin       = 40;
 	int       top_margin         = 10;
 	int       bottom_margin      = 70;
 	
@@ -566,7 +573,77 @@ public class YFencePlotter
 		};
 		smoothing_item.addActionListener(smooth_handler);
 		settings_menu.add(smoothing_item);
+		
+		// A modeless dialog box that shows up if Settings->Location is selected.
+		JPanel location_panel = new JPanel(new BorderLayout());
+		JPanel location_canvas_panel = new JPanel(new BorderLayout());
+		location_canvas = new LocationCanvas();
+		location_canvas.setSize(240, 360);
+		
+		JScrollBar xlocation_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 2001);
+		AdjustmentListener xlocation_handler = new AdjustmentListener()
+		{
+		    public void adjustmentValueChanged(AdjustmentEvent event)
+			{
+			    int location = event.getValue();
+			    xlocation = (double)location;
+			    xlocation /= 2000.;
+				if(location_canvas != null)
+				    location_canvas.repaint();
+			}
+		};		
+		xlocation_scrollbar.addAdjustmentListener(xlocation_handler);
+		value = (int)(xlocation * 2000.);
+		xlocation_scrollbar.setValue(value);
+		
+		JScrollBar ylocation_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 2001);
+		AdjustmentListener ylocation_handler = new AdjustmentListener()
+		{
+		    public void adjustmentValueChanged(AdjustmentEvent event)
+			{
+			    int location = event.getValue();
+			    location     = 2000 - location;
+			    ylocation    = (double)location;
+			    ylocation    /= 2000.;
+				if(location_canvas != null)
+				    location_canvas.repaint();
+			}
+		};		
+		ylocation_scrollbar.addAdjustmentListener(ylocation_handler);
+		value = (int)(2000. - ylocation * 2000.);
+		ylocation_scrollbar.setValue(value);
+		
+		location_canvas_panel.add(location_canvas, BorderLayout.CENTER);
+		location_canvas_panel.add(xlocation_scrollbar, BorderLayout.SOUTH);
+		location_canvas_panel.add(ylocation_scrollbar, BorderLayout.EAST);
+		location_dialog = new JDialog(frame, "Location");
+		location_dialog.add(location_canvas_panel);
+		
+		JMenuItem location_item = new JMenuItem("Location");
+		ActionListener location_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
 				
+				x += canvas_xdim;
+				
+				y += 200;
+
+				location_dialog.setLocation(x, y);
+				location_dialog.pack();
+				location_dialog.setVisible(true);
+			}
+		};
+		location_item.addActionListener(location_handler);
+		settings_menu.add(location_item);
+		
+		
 		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
 		ActionListener view_handler = new ActionListener()
 		{
@@ -618,6 +695,31 @@ public class YFencePlotter
 		if(raster_overlay)
 			overlay_item.setState(true);
 		settings_menu.add(overlay_item);
+		
+		JCheckBoxMenuItem mode_item = new JCheckBoxMenuItem("Relative Mode");
+		ActionListener mode_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(relative_mode == true)
+				{
+            		relative_mode = false;
+					item.setState(false);
+				}
+				else
+				{
+					relative_mode = true;
+					item.setState(true);
+				}
+		        data_canvas.repaint();
+            }   	
+		};
+		mode_item.addActionListener(mode_handler);
+		if(relative_mode)
+			mode_item.setState(true);
+		settings_menu.add(mode_item);
+		
 		JMenuBar menu_bar = new JMenuBar();
 		menu_bar.add(settings_menu);
 		frame.setJMenuBar(menu_bar);
@@ -796,6 +898,25 @@ public class YFencePlotter
 				double current_range    = b1 - b2;
 				double current_position = b2;
 			
+				if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_xstep  && i != (number_of_segments - 1))
+				{
+					double zero_y = Math.abs(minimum_y);
+					zero_y /= maximum_y - minimum_y;
+					zero_y *= graph_ydim;
+					zero_y = (graph_ydim + y_remainder) - zero_y;
+					zero_y += top_margin + (number_of_segments - 1) * ystep;
+					zero_y -= yaddend;
+
+					float[] dash ={ 2f, 0f, 2f };
+					BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
+					graphics_buffer.setStroke(basic_stroke);
+					graphics_buffer.setColor(java.awt.Color.RED);
+					graphics_buffer.drawLine((int) a1, (int) zero_y, (int) a1 + xstep, (int) zero_y - ystep);
+					graphics_buffer.setStroke(new BasicStroke(2));	
+				}
+				
+				
+				
 				graphics_buffer.setColor(java.awt.Color.BLACK);
 			    graphics_buffer.setStroke(new BasicStroke(1));
 			    current_position = a1;
@@ -836,6 +957,28 @@ public class YFencePlotter
 			            current_position += current_increment;
 		            }
 		            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
+		            if(ystep != 0  && show_id)
+		            {
+		            	graphics_buffer.setColor(Color.BLACK);
+		            	String line_id = new String("foo");
+		            	
+		            	if(!reverse_view)
+		            	{
+        		    	    if(start_flight_line == stop_flight_line)
+        		    	        line_id = new String(start_flight_line + ":" + i);
+        		    	    else
+        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);
+		            	}
+		            	else
+		            	{
+		            		if(start_flight_line == stop_flight_line)
+        		    	        line_id = new String(start_flight_line + ":" + (4 - i));
+        		    	    else
+        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + (4 - i));	
+		            	}
+					    graphics_buffer.drawString(line_id, a2 + 10, (int) current_position + ( 3 * string_height / 4));
+					    graphics_buffer.setColor(new Color(196, 196, 196));
+		            }
 		            if((xstep == 0 && ystep == 0) || (xstep == 0 && ystep == max_ystep) || (xstep == max_xstep && ystep == 0) || (xstep == max_xstep && ystep == max_ystep))
 		            {
 		            	current_position = b2;
@@ -886,7 +1029,27 @@ public class YFencePlotter
 		        		    // At the end of a graph, put down a line where we can hang a line id or location information.
 		        		    // It also helps define the isometric space.
 		        		    if(j == number_of_units - 1 && xstep != 0)
-		        		    	graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);  	
+		        		    {
+		        		    	graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10); 
+		        		    	String line_id = new String("foo");
+		        		    	if(!reverse_view)
+		        		    	{
+		        		    	    if(start_flight_line == stop_flight_line)
+		        		    	        line_id = new String(start_flight_line + ":" + i);
+		        		    	    else
+		        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);
+		        		    	}
+		        		    	else
+		        		    	{
+		        		    		if(start_flight_line == stop_flight_line)
+		        		    	        line_id = new String(start_flight_line + ":" + (4 - i));
+		        		    	    else
+		        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + (4 - i));	
+		        		    	}
+								if(show_id)
+								    graphics_buffer.drawString(line_id,  (int) current_position + 10, b1 + 10);
+								    //graphics_buffer.drawString(line_id,  (int) current_position + 10, b1 + 10 + ( 3 * string_height / 4));  
+		        		    }
 		        	    }
 		            }
 		        	
@@ -1553,10 +1716,20 @@ public class YFencePlotter
 		        current_position_increment        /= number_of_units;
 		        
 		        String position_string;
-		        if(maximum_x > 10)
-		            position_string = String.format("%,.1f", current_value);
+		        if(relative_mode)
+		        {
+		            if(maximum_x > 10)
+		                position_string = String.format("%,.1f", current_value);
+		            else
+		        	    position_string = String.format("%,.2f", current_value);
+		        }
 		        else
-		        	position_string = String.format("%,.2f", current_value);
+		        {
+		        	if(maximum_x  + minimum_x > 10)
+		                position_string = String.format("%,.1f", current_value + minimum_x);
+		            else
+		        	    position_string = String.format("%,.2f", current_value + minimum_x);	
+		        }
 		        if(i == 0 || (xstep == max_xstep && ystep == 0) )
 		        {
 		        	// Hanging locations on frontmost graph or all the graphs if they are laid out in a row.
@@ -1566,10 +1739,20 @@ public class YFencePlotter
 		            {
 			            current_value += current_value_increment;
 			            current_position += current_position_increment;
-			            if(maximum_x > 10)
-			                position_string = String.format("%,.1f", current_value);
+			            if(relative_mode)
+			            {
+			                if(maximum_x > 10)
+			                    position_string = String.format("%,.1f", current_value);
+			                else
+			            	    position_string = String.format("%,.2f", current_value);
+			            }
 			            else
-			            	position_string = String.format("%,.2f", current_value);
+			            {
+			            	if(maximum_x + minimum_x > 10)
+			                    position_string = String.format("%,.1f", current_value + minimum_x);
+			                else
+			            	    position_string = String.format("%,.2f", current_value + minimum_x);	
+			            }
 			            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
 		            }
 		        }
@@ -1915,7 +2098,69 @@ public class YFencePlotter
 			}
 		}
 	}
-    
+	
+	
+	class LocationCanvas extends Canvas
+	{
+		public void paint(Graphics g)
+		{
+			Rectangle visible_area = g.getClipBounds();
+
+			int xdim = (int) visible_area.getWidth();
+			int ydim = (int) visible_area.getHeight();
+			
+			double xrange = global_xmax - global_xmin;
+			double yrange = global_ymax - global_ymin;
+			
+			double xfactor = (double)xdim / xrange;
+			double yfactor = (double)ydim / yrange;
+
+			int number_of_segments = 5;
+			
+			
+			
+			Image buffered_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
+			Graphics2D graphics_buffer = (Graphics2D) buffered_image.getGraphics();
+			Font current_font = graphics_buffer.getFont();
+			FontMetrics font_metrics = graphics_buffer.getFontMetrics(current_font);
+			graphics_buffer.setColor(java.awt.Color.WHITE);
+			graphics_buffer.fillRect(0, 0, xdim, ydim);
+			//graphics_buffer.setColor(java.awt.Color.BLACK);
+			
+			
+		    double [][] location_array = ObjectMapper.getObjectLocationArray();
+			int length = location_array.length;
+			graphics_buffer.setColor(java.awt.Color.RED);
+			
+			for(int i = 0; i < length; i++)
+			{
+				double x = location_array[i][0];
+				double y = location_array[i][1];
+				x -= global_xmin;
+				y -= global_ymin;
+				x *= xfactor;
+				y *= yfactor;
+				y = ydim - y;
+				
+				graphics_buffer.fillOval((int)(x - 1), (int)(y - 1), 3, 3);
+				// If we want targent numbers.
+				//String object_string = Integer.toString(i + 1); 
+				//graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
+			}
+			
+			int current_xlocation       = (int)(xlocation * (xdim - 1));
+			int current_ylocation       = (int)(ylocation * (ydim - 1));
+			current_ylocation           = ydim - current_ylocation;
+			
+			graphics_buffer.setColor(java.awt.Color.BLUE);
+	    	graphics_buffer.setStroke(new BasicStroke(1));
+			graphics_buffer.drawLine(0, current_ylocation, xdim - 1, current_ylocation);
+			graphics_buffer.drawLine(current_xlocation, 0, current_xlocation, ydim - 1);
+			
+			g.drawImage(buffered_image, 0, 0, null);
+		}
+	}
+	
 	class SensorCanvas extends Canvas
 	{
 		int index;
