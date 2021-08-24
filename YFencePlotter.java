@@ -46,6 +46,7 @@ public class YFencePlotter
 	boolean            persistent_data      = false;
 	boolean            show_id              = true;
 	boolean            relative_mode        = false;
+	boolean            location_changing    = false;
 	int                smooth               = 0;
 	
 	
@@ -190,12 +191,16 @@ public class YFencePlotter
 					}
 				}
 				reader.close();
+				
+				
 				for(int i = 0; i < original_data.size(); i++)
 				{
 					Sample sample = (Sample) original_data.get(i);
-					sample.x -= global_xmin;
-					sample.y -= global_ymin;
-					relative_data.add(sample);
+					Sample new_sample = new Sample();
+					new_sample.x = sample.x - global_xmin;
+					new_sample.y = sample.y - global_ymin;
+					new_sample.intensity = sample.intensity;
+					relative_data.add(new_sample);
 				}
 				
 				Sample previous_sample = (Sample)relative_data.get(2);
@@ -305,6 +310,18 @@ public class YFencePlotter
 				    Sample sample = (Sample)relative_data.get(i);
 				    sample.y      = total_distance;
 				    data.add(sample);
+				}
+				
+				// We're corrupting the relative data somehow when we construct the unwound data set.
+				relative_data.clear();
+				for(int i = 0; i < original_data.size(); i++)
+				{
+					Sample sample = (Sample) original_data.get(i);
+					Sample new_sample = new Sample();
+					new_sample.x = sample.x - global_xmin;
+					new_sample.y = sample.y - global_ymin;
+					new_sample.intensity = sample.intensity;
+					relative_data.add(new_sample);
 				}
 			} 
 			catch (Exception e)
@@ -588,6 +605,7 @@ public class YFencePlotter
 			    int location = event.getValue();
 			    xlocation = (double)location;
 			    xlocation /= 2000.;
+			    location_changing = event.getValueIsAdjusting();
 				if(location_canvas != null)
 				    location_canvas.repaint();
 			}
@@ -605,6 +623,7 @@ public class YFencePlotter
 			    location     = 2000 - location;
 			    ylocation    = (double)location;
 			    ylocation    /= 2000.;
+			    location_changing = event.getValueIsAdjusting();
 				if(location_canvas != null)
 				    location_canvas.repaint();
 			}
@@ -1836,6 +1855,7 @@ public class YFencePlotter
 					data_scrollbar.setValue((int)scrollbar_position);
 					data_slider_changing = false;
 					data_canvas.repaint();
+					location_canvas.repaint();
 				}
 			}
 		}
@@ -1890,6 +1910,7 @@ public class YFencePlotter
 					}
 					data_scrollbar_changing = false;
 					data_canvas.repaint();
+					location_canvas.repaint();
 				}
 			}
 		}
@@ -1962,7 +1983,7 @@ public class YFencePlotter
 
 				if (size != 0)
 				{
-					//sample_information.setText("");
+					sample_information.setText("");
 					current_line = (int) sample_list.get(0);
 					current_sensor = (int) sample_list.get(1);
 					Sample sample = (Sample) sample_list.get(2);
@@ -2099,7 +2120,6 @@ public class YFencePlotter
 		}
 	}
 	
-	
 	class LocationCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -2112,12 +2132,12 @@ public class YFencePlotter
 			double xrange = global_xmax - global_xmin;
 			double yrange = global_ymax - global_ymin;
 			
-			double xfactor = (double)xdim / xrange;
-			double yfactor = (double)ydim / yrange;
+			double xfactor = (double)xdim;
+			xfactor       /=  xrange;
+			double yfactor = (double)ydim;
+			yfactor       /= yrange;
 
 			int number_of_segments = 5;
-			
-			
 			
 			Image buffered_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
 			Graphics2D graphics_buffer = (Graphics2D) buffered_image.getGraphics();
@@ -2125,8 +2145,45 @@ public class YFencePlotter
 			FontMetrics font_metrics = graphics_buffer.getFontMetrics(current_font);
 			graphics_buffer.setColor(java.awt.Color.WHITE);
 			graphics_buffer.fillRect(0, 0, xdim, ydim);
-			//graphics_buffer.setColor(java.awt.Color.BLACK);
 			
+			double data_location  = data_offset * data_length;
+			int    start_location = (int)data_location;
+			int    start_index    = (int)index.get(start_location);
+			
+			data_location        += data_range * data_length;
+			int    stop_location  = (int)data_location;
+			int    stop_index     = (int)index.get(stop_location);
+			
+			Sample sample = (Sample) relative_data.get(2);
+			
+			int previous_x = (int)(sample.x * xfactor);
+		    int previous_y = (int)(sample.y * yfactor);
+		    previous_y     = ydim - previous_y;
+		    
+		    for(int i = 7; i < relative_data.size(); i += 5)
+		    {
+		    	sample = (Sample) relative_data.get(i); 
+		    	if(i >= start_index && i < stop_index)
+		    	{
+		    		graphics_buffer.setColor(java.awt.Color.GREEN);
+		    	    graphics_buffer.setStroke(new BasicStroke(5));
+		    	}
+		    	else
+		    	{
+		    		graphics_buffer.setColor(java.awt.Color.BLACK);
+		    		graphics_buffer.setStroke(new BasicStroke(1));
+		    	}
+			    
+			    int current_x = (int)(sample.x * xfactor);	
+				int current_y = (int)(sample.y * yfactor);
+				
+				current_y     = ydim - current_y;
+				
+			    graphics_buffer.drawLine(previous_x,  previous_y, current_x, current_y);
+			    previous_x = current_x;
+			    previous_y = current_y;
+		    }
+
 			
 		    double [][] location_array = ObjectMapper.getObjectLocationArray();
 			int length = location_array.length;
@@ -2157,6 +2214,32 @@ public class YFencePlotter
 			graphics_buffer.drawLine(0, current_ylocation, xdim - 1, current_ylocation);
 			graphics_buffer.drawLine(current_xlocation, 0, current_xlocation, ydim - 1);
 			
+			if(!location_changing)
+			{
+			    double normalized_x = xrange;
+			    normalized_x       *= xlocation;
+			    String xstring, ystring;
+			    xstring = String.format("%,.2f", normalized_x);
+			    double normalized_y = yrange;
+			    normalized_y       *= ylocation;
+			    ystring = String.format("%,.2f", normalized_y);
+			    String location_string = new String("x = " + xstring + ", y = " + ystring);
+			    int string_width       = font_metrics.stringWidth(location_string);
+			    int string_height      = font_metrics.getAscent();
+			
+			    if(current_xlocation > xdim / 2)
+				    current_xlocation -= string_width + 3; 
+			    else
+				    current_xlocation += 3; 
+			    if(current_ylocation < ydim / 2)
+				    current_ylocation += string_height + 1;
+			    else
+				    current_ylocation -= 3;
+			    graphics_buffer.setColor(java.awt.Color.WHITE);
+			    graphics_buffer.fillRect(current_xlocation, current_ylocation  - string_height + 1, string_width, string_height);
+			    graphics_buffer.setColor(java.awt.Color.BLACK);
+			    graphics_buffer.drawString(location_string, current_xlocation, current_ylocation); 
+			}
 			g.drawImage(buffered_image, 0, 0, null);
 		}
 	}
