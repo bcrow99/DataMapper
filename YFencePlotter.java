@@ -55,6 +55,7 @@ public class YFencePlotter
 	boolean[]          visible              = new boolean[5];
 	boolean[]          transparent          = new boolean[5];
 	
+	public JDialog     save_dialog;
 	public JDialog     information_dialog;
 	public JDialog     placement_dialog;
 	public JDialog     sensor_dialog;
@@ -414,15 +415,20 @@ public class YFencePlotter
 			transparent[i] = false;
 		}
 		
-       JMenu     settings_menu  = new JMenu("Settings");
+		JMenu     file_menu      = new JMenu("File");
+		JMenuItem save_item      = new JMenuItem("Save");
+		SaveHandler  save_handler = new SaveHandler();
+		save_item.addActionListener(save_handler);
+		file_menu.add(save_item);
 		
-		// A modeless dialog box that shows up if Settings->Data is selected.
+		JMenu     format_menu  = new JMenu("Format");
+		// A modeless dialog box that shows up if Format->Show Data is selected.
 		information_panel = new JPanel(new BorderLayout());
 		sample_information = new JTextArea(8, 17);
 		information_panel.add(sample_information);
 		information_dialog = new JDialog(frame);
 		information_dialog.add(information_panel);		
-		JMenuItem data_item = new JMenuItem("Data");
+		JMenuItem data_item = new JMenuItem("Show Data");
 		ActionListener data_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -430,10 +436,10 @@ public class YFencePlotter
 				Point location_point = frame.getLocation();
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
-				
+						
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
-				
+						
 				x += canvas_xdim;
 				information_dialog.setLocation(x, y);
 				information_dialog.pack();
@@ -441,7 +447,7 @@ public class YFencePlotter
 			}
 		};
 		data_item.addActionListener(data_handler);
-		settings_menu.add(data_item);
+		format_menu.add(data_item);
 		
 		
 		// A modeless dialog box that shows up if Settings->Placement is selected.
@@ -512,7 +518,8 @@ public class YFencePlotter
 			}
 		};
 		place_item.addActionListener(placement_handler);
-		settings_menu.add(place_item);
+		format_menu.add(place_item);
+				
 		
 		JPanel sensor_panel = new JPanel(new GridLayout(1, 5));
 		for (int i = 0; i < 5; i++)
@@ -548,10 +555,12 @@ public class YFencePlotter
 			}
 		};
 		sensor_item.addActionListener(sensor_handler);
-		settings_menu.add(sensor_item);
+		format_menu.add(sensor_item);
+				
 		
-		
-		// A modeless dialog box that shows up if Settings->Smoothing is selected.
+		JMenu     adjustment_menu  = new JMenu("Adjustments");
+        
+		// A modeless dialog box that shows up if Adjustments->Smoothing is selected.
 		JPanel  smooth_panel  = new JPanel(new BorderLayout());
 		JSlider smooth_slider = new JSlider(0, 100, 0);
 		ChangeListener smooth_slider_handler = new ChangeListener()
@@ -589,8 +598,9 @@ public class YFencePlotter
 			}
 		};
 		smoothing_item.addActionListener(smooth_handler);
-		settings_menu.add(smoothing_item);
+		adjustment_menu.add(smoothing_item);
 		
+		JMenu     location_menu  = new JMenu("Location");
 		// A modeless dialog box that shows up if Settings->Location is selected.
 		JPanel location_panel = new JPanel(new BorderLayout());
 		JPanel location_canvas_panel = new JPanel(new BorderLayout());
@@ -638,7 +648,7 @@ public class YFencePlotter
 		location_dialog = new JDialog(frame, "Location");
 		location_dialog.add(location_canvas_panel);
 		
-		JMenuItem location_item = new JMenuItem("Location");
+		JMenuItem location_item = new JMenuItem("Show Map");
 		ActionListener location_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -660,8 +670,17 @@ public class YFencePlotter
 			}
 		};
 		location_item.addActionListener(location_handler);
-		settings_menu.add(location_item);
+		location_menu.add(location_item);
+				
 		
+		JMenu     settings_menu  = new JMenu("Settings");
+		
+
+
+		
+
+		
+
 		
 		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
 		ActionListener view_handler = new ActionListener()
@@ -740,6 +759,10 @@ public class YFencePlotter
 		settings_menu.add(mode_item);
 		
 		JMenuBar menu_bar = new JMenuBar();
+		menu_bar.add(file_menu);
+		menu_bar.add(format_menu);
+		menu_bar.add(adjustment_menu);
+		menu_bar.add(location_menu);
 		menu_bar.add(settings_menu);
 		frame.setJMenuBar(menu_bar);
 		frame.getContentPane().add(data_panel, BorderLayout.CENTER);
@@ -931,6 +954,7 @@ public class YFencePlotter
 					graphics_buffer.setStroke(basic_stroke);
 					graphics_buffer.setColor(java.awt.Color.RED);
 					graphics_buffer.drawLine((int) a1, (int) zero_y, (int) a1 + xstep, (int) zero_y - ystep);
+					//graphics_buffer.drawLine((int) a2, (int) zero_y, (int) a2 + xstep, (int) zero_y - ystep);
 					graphics_buffer.setStroke(new BasicStroke(2));	
 				}
 				
@@ -1135,8 +1159,7 @@ public class YFencePlotter
 			    	{
 			    		graphics_buffer.drawLine(a1, b1, a2, b1); 
 				    	graphics_buffer.drawLine(a1, b2, a2, b2);
-				    	graphics_buffer.drawLine(a2, b1, a2, b2);
-				    	    
+				    	graphics_buffer.drawLine(a2, b1, a2, b2);   
 				    	current_position = b2;
 				    	for(int j = 0; j < number_of_units; j++)
 			            {
@@ -1250,14 +1273,13 @@ public class YFencePlotter
 					int length = data_list.size();
 					Sample sample = (Sample) data_list.get(length - 1);
 
-					// Add a duplicate sample so the lengths of the plot list and sample_list are
+					// Add a duplicate sample so the lengths of the plot list and data_list are
 					// the same.
 					Sample extra_sample = new Sample();
 					extra_sample.intensity = sample.intensity;
 					extra_sample.x = sample.x;
 					extra_sample.y = sample.y;
 					data_list.add(extra_sample);
-					//sample_data.add(sample_list);
 				}
 			}
 			
@@ -1536,10 +1558,6 @@ public class YFencePlotter
 				polygon[i]  = sensor_polygon;
 			}
 			
-			
-			
-			
-			
 			double xrange = maximum_x - minimum_x;
 			double yrange = maximum_y - minimum_y;
 			
@@ -1637,7 +1655,9 @@ public class YFencePlotter
 				}
 				else
 				{
-					if((polygon_zero_crossing[number_of_segments - 1 - i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[i])
+					//if((polygon_zero_crossing[number_of_segments - 1 - i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[i])
+					//if((xstep == max_xstep  || ystep == max_ystep) && visible[i])
+					if(visible[i])
 					{
 						ArrayList plot_list = (ArrayList) plot_data.get(i);
 						Point2D.Double first = (Point2D.Double) plot_list.get(0);
@@ -1719,6 +1739,27 @@ public class YFencePlotter
 			    	    }
 			        }
 			    }
+			    
+			    if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_xstep  && i != (number_of_segments - 1))
+				{
+					double zero_y = Math.abs(minimum_y);
+					zero_y /= maximum_y - minimum_y;
+					zero_y *= graph_ydim;
+					zero_y = (graph_ydim + y_remainder) - zero_y;
+					zero_y += top_margin + (number_of_segments - 1) * ystep;
+					zero_y -= yaddend;
+
+					float[] dash ={ 2f, 0f, 2f };
+					BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
+					graphics_buffer.setStroke(basic_stroke);
+					graphics_buffer.setColor(java.awt.Color.RED);
+					//graphics_buffer.drawLine((int) a1, (int) zero_y, (int) a1 + xstep, (int) zero_y - ystep);
+					graphics_buffer.drawLine((int) a2, (int) zero_y, (int) a2 + xstep, (int) zero_y - ystep);
+					graphics_buffer.setStroke(new BasicStroke(1));
+					graphics_buffer.setColor(new Color(196, 196, 196));
+					graphics_buffer.drawLine((int) a2, (int) zero_y, (int) a2, (int) b1);
+					graphics_buffer.setColor(Color.BLACK);
+				}
 			 
 			    current_value    = 0;
 			    current_position = a1;
@@ -2284,6 +2325,120 @@ public class YFencePlotter
 		}
 	}
 
+	class SaveHandler implements ActionListener
+	{
+		public void actionPerformed(ActionEvent ev)
+		{
+			FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
+			file_dialog.setVisible(true);
+			String filename = file_dialog.getFile();
+			if (filename != "")
+			{
+				String current_directory = file_dialog.getDirectory();
+				StringTokenizer filename_tokenizer = new StringTokenizer(filename, ".");
+				int number_of_tokens = filename_tokenizer.countTokens();
+				if(number_of_tokens != 2)
+				{
+					System.out.println("Filename requires .txt or .png extension.");
+					return;
+				}
+				String name = filename_tokenizer.nextToken();
+				String extension = filename_tokenizer.nextToken();
+				if(!extension.equals("txt") && !extension.equals("png"))
+				{
+					System.out.println("Filename requires .txt or .fp or .png extension.");
+					return;	
+				}
+				
+				if(extension.equals("txt"))
+				{
+					System.out.println("Writing text file.");
+					try (PrintWriter output = new PrintWriter(current_directory + filename))
+				    {
+					    double data_location  = data_offset * data_length;
+					    int    start_location = (int)data_location;
+					    int    start_index    = (int)index.get(start_location);
+					
+					    data_location        += data_range * data_length;
+					    int    stop_location  = (int)data_location;
+					    int    stop_index     = (int)index.get(stop_location);
+					
+					    for(int i = start_index; i < stop_index; i += 5)
+					    {
+						    for(int j = i; j < i + 5; j++)
+						    {
+						        Sample sample    = (Sample)relative_data.get(j);
+						        String xlocation = String.format("%.2f", sample.x);
+						        String ylocation = String.format("%.2f", sample.y);
+						        String intensity = String.format("%.2f", sample.intensity);
+						    }
+						    output.println();
+					    } 	
+					    output.close();
+					} 
+				    catch (Exception ex)
+				    {
+					    System.out.println(ex.toString());
+				    }
+				}
+			    else if(extension.equals("png"))
+				{	
+					int  image_xdim   = buffered_image.getWidth();
+					int  image_ydim   = buffered_image.getHeight();
+					BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
+					Graphics2D    print_buffer = (Graphics2D) print_image.getGraphics(); 
+					FontMetrics   font_metrics = print_buffer.getFontMetrics();
+					print_buffer.drawImage(buffered_image, 0, 0,  null);	
+								
+					// Add label.
+					/*
+					String        graph_label   = graph_input.getText();
+					FontMetrics   font_metrics  = print_buffer.getFontMetrics();
+					int           string_height = font_metrics.getAscent();
+				    int           margin        = 10;
+					if(!graph_label.equals(""))
+					{
+					    print_buffer.setColor(Color.BLACK);
+						int         string_width  = font_metrics.stringWidth(graph_label);
+						print_buffer.drawString(graph_label, image_xdim - string_width - margin, margin + string_height);
+					}
+					*/
+								
+					// Add color key.
+					/*
+					int string_height = font_metrics.getAscent();
+					print_buffer.setStroke(new BasicStroke(3));
+					for(int i = 0; i < 5; i++)
+					{
+						String sensor_id = new String("foo");
+						if(stop_flight_line != start_flight_line)
+							sensor_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);
+						else
+							sensor_id = new String(start_flight_line + ":" + i);
+						int    string_width = font_metrics.stringWidth(sensor_id);
+						int x = image_xdim - right_margin - 3 * string_width;
+						int y = image_ydim - (2 * i * string_height) + string_height;
+						print_buffer.setColor(Color.BLACK);
+						print_buffer.drawString(sensor_id, x, y);
+						print_buffer.setColor(fill_color[i]);
+						print_buffer.fillRect(x + 2 * string_width, y - string_height, string_width, string_height);
+					}
+					*/
+					
+					try 
+			        {  
+			            ImageIO.write(print_image, "png", new File(current_directory + filename)); 
+			        } 
+			        catch(IOException e) 
+			        {  
+			            e.printStackTrace(); 
+			        } 
+			         
+				}
+			}
+		}
+	}
+	
 	class SensorCanvasMouseHandler extends MouseAdapter
 	{
 		int index;
