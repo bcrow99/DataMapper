@@ -8,15 +8,14 @@ import java.util.*;
 import javax.imageio.*;
 import javax.swing.*;
 import javax.swing.event.*;
-import javax.swing.table.*;
-
-import java.lang.*;
 
 public class YFencePlotter
 {
-	public Canvas      data_canvas;
+	public PlotCanvas  data_canvas;
 	public JScrollBar  data_scrollbar;
 	public RangeSlider data_slider;
+	public RangeSlider dynamic_range_slider;
+	public DynamicRangeCanvas dynamic_range_canvas;
 	public JFrame      frame;
 	public LocationCanvas location_canvas;
 	public boolean     data_scrollbar_changing, data_slider_changing;
@@ -40,6 +39,8 @@ public class YFencePlotter
 	
 	int                start_flight_line    = 0;
 	int                stop_flight_line     = 0;
+	int                start_index          = 0;
+	int                stop_index           = 0;
 	
 	boolean            raster_overlay       = false;
 	boolean            reverse_view         = false;
@@ -47,7 +48,20 @@ public class YFencePlotter
 	boolean            show_id              = true;
 	boolean            relative_mode        = false;
 	boolean            location_changing    = false;
+	boolean            data_scaled          = false;
+	boolean            data_clipped         = false;
+	boolean            dynamic_slider_changing = false;
+	boolean            dynamic_button_changing = false;
+	
+	
+	
+	
+	
+	
+	
+	
 	int                smooth               = 0;
+	double             scale_factor         = 1.;
 	
 	
 	Canvas[]           sensor_canvas        = new SensorCanvas[10];
@@ -60,19 +74,21 @@ public class YFencePlotter
 	public JDialog     placement_dialog;
 	public JDialog     sensor_dialog;
 	public JDialog     smooth_dialog;
+	public JDialog     scale_dialog;
 	public JDialog     location_dialog;
+	public JDialog     dynamic_range_dialog;
 	
 	public PlacementCanvas placement_canvas;
 	
-	// Updated by MouseMotionHandler
-	JTextArea sample_information;
+	public JTextArea   sample_information;
+	public JTextField  graph_lable;
+	public JTextField  lower_bound;
+	public JTextField  upper_bound;
 	
 	int       left_margin        = 70;
 	int       right_margin       = 40;
 	int       top_margin         = 10;
 	int       bottom_margin      = 70;
-	
-	
 	
 	BufferedImage buffered_image;
 	
@@ -600,6 +616,258 @@ public class YFencePlotter
 		smoothing_item.addActionListener(smooth_handler);
 		adjustment_menu.add(smoothing_item);
 		
+		// A modeless dialog box that shows up if Adjustments->Scaling is selected.
+		JPanel scale_panel = new JPanel(new BorderLayout());
+	
+		JSlider factor_slider = new JSlider(0, 200, 0);
+		ChangeListener factor_handler = new ChangeListener()
+		{
+			public void stateChanged(ChangeEvent e)
+			{
+				JSlider slider = (JSlider) e.getSource();
+				if (slider.getValueIsAdjusting() == false)
+				{
+					int value = factor_slider.getValue();
+					
+					if(value == 0)
+						data_scaled = false;
+					else
+						data_scaled = true;
+					scale_factor = (double) value / 100 + 1.;
+					data_canvas.repaint();
+				}
+			}
+		};
+		factor_slider.addChangeListener(factor_handler);
+		scale_panel.add(factor_slider, BorderLayout.CENTER);
+		scale_dialog = new JDialog(frame, "Scale Factor");
+		scale_dialog.add(scale_panel);
+		
+		JMenuItem scaling_item = new JMenuItem("Scaling");
+		ActionListener scale_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				x += canvas_xdim;
+				y += 600;		
+				scale_dialog.setLocation(x, y);
+				scale_dialog.pack();
+				scale_dialog.setVisible(true);
+			}
+		};
+		scaling_item.addActionListener(scale_handler);
+		adjustment_menu.add(scaling_item);		
+		
+		// A modeless dialog box that shows up if Settings->Dynamic Range is selected.
+		lower_bound = new JTextField();
+		upper_bound = new JTextField();
+		lower_bound.setHorizontalAlignment(JTextField.CENTER);
+		upper_bound.setHorizontalAlignment(JTextField.CENTER);
+		JPanel bounds_panel = new JPanel(new GridLayout(2, 2));
+		bounds_panel.add(lower_bound);
+		bounds_panel.add(upper_bound);
+		bounds_panel.add(new JLabel("Lower", JLabel.CENTER));
+		bounds_panel.add(new JLabel("Upper", JLabel.CENTER));
+		JPanel bounds_button_panel = new JPanel(new GridLayout(1, 2));
+		JButton adjust_bounds_button = new JButton("Adjust");
+		JButton reset_bounds_button = new JButton("Reset");
+		bounds_button_panel.add(adjust_bounds_button);
+		
+		
+		ActionListener adjust_range_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String bound_string = lower_bound.getText();
+				double min          = Double.valueOf(bound_string);
+				bound_string        = upper_bound.getText();
+				double max          = Double.valueOf(bound_string);
+				
+				
+				double data_location  = data_offset * data_length;
+				int    start_location = (int)data_location;
+				int    start_index    = (int)index.get(start_location);
+				       data_location += data_range * data_length;
+				int    stop_location  = (int)data_location;
+				int    stop_index     = (int)index.get(stop_location);
+				double global_min     = Double.MAX_VALUE;
+				double global_max     = -Double.MAX_VALUE;
+				
+				for(int i = start_index; i < stop_index; i++)
+				{
+					Sample sample = (Sample)data.get(i);
+					if(sample.intensity < global_min)
+						global_min = sample.intensity;
+					if(sample.intensity > global_max)
+						global_max = sample.intensity;
+				}
+			
+				
+				if(min == global_min && max == global_max)
+					return;
+				
+				
+				data_clipped = true;
+				
+				double intensity_min = 0;
+				double intensity_max = 0;
+				if(global_min < min)
+					intensity_min = global_min;
+				else
+					intensity_min = min;
+				if(global_max > max)
+					intensity_max = global_max;
+				else
+					intensity_max = max;
+				
+				dynamic_range_canvas.repaint();
+				dynamic_button_changing = true;
+				double current_range = intensity_max - intensity_min;
+				
+				System.out.println("Current range is " + current_range);
+				int min_value = 0;
+				int max_value = 0;
+				
+				
+				System.out.println("The global minimum is " + global_min);
+				System.out.println("The global maximum is " + global_max);
+				
+				
+				System.out.println("The clipped minimum is " + min);
+				System.out.println("The clipped maximum is " + max);
+
+				if(min > global_min)
+				{
+					min_value = (int) ((min - global_min) / current_range * 100);
+				    if(max < global_max)
+				    	max_value = (int) ((max - global_min) / current_range * 100);	
+				    else
+				    	max_value = (int) ((global_max - global_min) / current_range * 100);    
+				}
+				else
+				{
+					min_value = (int) ((global_min - min) / current_range * 100);
+					if(max < global_max)
+				    	max_value = (int) ((max - min) / current_range * 100);	
+				    else
+				    	max_value = (int) ((global_max - min) / current_range * 100);
+				}
+				System.out.println("Min value is " + min_value);
+				System.out.println("Max value is " + max_value);
+				dynamic_range_slider.setValue(min_value);
+				//dynamic_range_slider.setUpperValue(max_value);
+				dynamic_button_changing = false;	
+				data_canvas.repaint();
+			}
+		};
+		adjust_bounds_button.addActionListener(adjust_range_handler);
+		bounds_button_panel.add(reset_bounds_button);
+		ActionListener reset_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				
+				double data_location  = data_offset * data_length;
+				int    start_location = (int)data_location;
+				int    start_index    = (int)index.get(start_location);
+				       data_location += data_range * data_length;
+				int    stop_location  = (int)data_location;
+				int    stop_index     = (int)index.get(stop_location);
+				double global_min     = Double.MAX_VALUE;
+				double global_max     = -Double.MAX_VALUE;
+				
+				for(int i = start_index; i < stop_index; i++)
+				{
+					Sample sample = (Sample)data.get(i);
+					if(sample.intensity < global_min)
+						global_min = sample.intensity;
+					if(sample.intensity > global_max)
+						global_max = sample.intensity;
+				}
+				String lower_bound_string = String.format("%,.2f", global_min);
+				String upper_bound_string = String.format("%,.2f", global_max);
+				lower_bound.setText(lower_bound_string);
+				upper_bound.setText(upper_bound_string);
+				dynamic_button_changing = true;
+				dynamic_range_slider.setValue(0);
+				dynamic_range_slider.setUpperValue(100);
+				dynamic_button_changing = false;
+				data_clipped = false;
+				dynamic_range_canvas.repaint();
+				data_canvas.repaint();
+			}
+		};
+		reset_bounds_button.addActionListener(reset_handler);
+		JPanel dynamic_range_button_panel = new JPanel(new BorderLayout());
+		dynamic_range_button_panel.add(bounds_panel, BorderLayout.CENTER);
+		dynamic_range_button_panel.add(bounds_button_panel, BorderLayout.SOUTH);
+		dynamic_range_slider = new RangeSlider();
+		dynamic_range_slider.setOrientation(JSlider.VERTICAL);
+		dynamic_range_slider.setMinimum(0);
+		dynamic_range_slider.setMaximum(100);
+		dynamic_range_slider.setValue(0);
+		dynamic_range_slider.setUpperValue(100);
+		DynamicRangeSliderHandler dynamic_range_slider_handler = new DynamicRangeSliderHandler();
+		dynamic_range_slider.addChangeListener(dynamic_range_slider_handler);
+		dynamic_range_canvas = new DynamicRangeCanvas();
+		dynamic_range_canvas.setSize(100, 520);
+		JPanel dynamic_range_canvas_panel = new JPanel(new BorderLayout());
+		dynamic_range_canvas_panel.add(dynamic_range_slider, BorderLayout.WEST);
+		dynamic_range_canvas_panel.add(dynamic_range_canvas, BorderLayout.CENTER);
+		JPanel dynamic_range_panel = new JPanel(new BorderLayout());
+		dynamic_range_panel.add(dynamic_range_canvas_panel, BorderLayout.CENTER);
+		dynamic_range_panel.add(dynamic_range_button_panel, BorderLayout.SOUTH);
+		dynamic_range_dialog = new JDialog(frame);
+		dynamic_range_dialog.add(dynamic_range_panel);
+		
+		JMenuItem dynamic_range_item = new JMenuItem("Dynamic Range");
+		ActionListener dynamic_range_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x -= 150;
+				y += 35;
+                
+				double data_location  = data_offset * data_length;
+				int    start_location = (int)data_location;
+				int    start_index    = (int)index.get(start_location);
+				       data_location += data_range * data_length;
+				int    stop_location  = (int)data_location;
+				int    stop_index     = (int)index.get(stop_location);
+				double global_min     = Double.MAX_VALUE;
+				double global_max     = -Double.MAX_VALUE;
+				
+				for(int i = start_index; i < stop_index; i++)
+				{
+					Sample sample = (Sample)data.get(i);
+					if(sample.intensity < global_min)
+						global_min = sample.intensity;
+					if(sample.intensity > global_max)
+						global_max = sample.intensity;
+				}
+				
+                if(!data_clipped)
+                {
+                	lower_bound.setText(String.format("%.2f", global_min));
+				    upper_bound.setText(String.format("%.2f", global_max));
+                }
+				dynamic_range_dialog.setLocation(x, y);
+				dynamic_range_dialog.pack();
+				dynamic_range_dialog.setVisible(true);
+			}
+		};
+		dynamic_range_item.addActionListener(dynamic_range_handler);
+		adjustment_menu.add(dynamic_range_item);	
+		
 		JMenu     location_menu  = new JMenu("Location");
 		// A modeless dialog box that shows up if Settings->Location is selected.
 		JPanel location_panel = new JPanel(new BorderLayout());
@@ -923,6 +1191,20 @@ public class YFencePlotter
 			double minimum_x = seg_xmin;
 			double maximum_x = seg_xmax;
 			
+			if(data_clipped == true)
+			{
+				String bound_string = lower_bound.getText();
+				minimum_y = Double.valueOf(bound_string);
+				bound_string = upper_bound.getText();
+				maximum_y = Double.valueOf(bound_string);
+			} 
+			
+			if(data_scaled)
+			{
+				minimum_y /= scale_factor;
+				maximum_y /= scale_factor;
+			}
+			
 			// Layout the isometric space.
 			for (int i = 0; i < number_of_segments; i++)
 			{
@@ -1238,6 +1520,11 @@ public class YFencePlotter
 					Point2D.Double point = new Point2D.Double();
 					point.x              = sample.y;
 					point.y              = sample.intensity;
+					point.y *= scale_factor;
+					if (point.y < minimum_y)
+						point.y = minimum_y;
+					else if (point.y > maximum_y)
+						point.y = maximum_y;
 					plot_list.add(point);
 				}
 				
@@ -1616,7 +1903,9 @@ public class YFencePlotter
 				
 				if(reverse_view)
 				{
-					if((polygon_zero_crossing[i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[number_of_segments - 1 - i])
+					
+					//if((polygon_zero_crossing[i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[number_of_segments - 1 - i])
+					if(visible[number_of_segments - 1 - i])
 					{
 						ArrayList plot_list = (ArrayList) plot_data.get(number_of_segments - 1 - i);
 						Point2D.Double first = (Point2D.Double) plot_list.get(0);
@@ -2476,6 +2765,248 @@ public class YFencePlotter
 		}
 	}
 
+	class DynamicRangeCanvas extends Canvas
+	{
+		public void paint(Graphics g)
+		{
+			Rectangle visible_area = g.getClipBounds();
+
+			int xdim = (int) visible_area.getWidth();
+			int ydim = (int) visible_area.getHeight();
+
+			Graphics2D graphics = (Graphics2D) g;
+			Font current_font = graphics.getFont();
+			FontMetrics font_metrics = graphics.getFontMetrics(current_font);
+			int string_height = font_metrics.getAscent();
+
+			graphics.setColor(java.awt.Color.WHITE);
+			graphics.fillRect(0, 0, xdim, ydim);
+
+			
+			int top_margin = 5;
+			int bottom_margin = 5;
+			int graph_ydim = ydim - (top_margin + bottom_margin);
+			graphics.setColor(java.awt.Color.BLACK);
+			graphics.setStroke(new BasicStroke(2));
+			graphics.drawLine(xdim / 2, top_margin, xdim / 2, ydim - bottom_margin);
+			graphics.drawLine(xdim / 2 - 10, top_margin, xdim / 2, top_margin);
+			graphics.drawLine(xdim / 2 - 10, ydim - bottom_margin, xdim / 2, ydim - bottom_margin);
+
+			double min = 0;
+			double max = 0;
+			
+			double data_location  = data_offset * data_length;
+			int    start_location = (int)data_location;
+			int    start_index    = (int)index.get(start_location);
+			       data_location += data_range * data_length;
+			int    stop_location  = (int)data_location;
+			int    stop_index     = (int)index.get(stop_location);
+			double global_min     = Double.MAX_VALUE;
+			double global_max     = -Double.MAX_VALUE;
+			
+			for(int i = start_index; i < stop_index; i++)
+			{
+				Sample sample = (Sample)data.get(i);
+				if(sample.intensity < global_min)
+					global_min = sample.intensity;
+				if(sample.intensity > global_max)
+					global_max = sample.intensity;
+			}
+			
+			double current_range = 0;
+			if(data_clipped)
+			{
+				String lower_bound_string = lower_bound.getText();
+				String upper_bound_string = upper_bound.getText();
+				min = Double.valueOf(lower_bound_string);
+				max = Double.valueOf(upper_bound_string);
+				
+				String intensity_string = new String("foo");
+				if(max > global_max)
+					intensity_string = String.format("%,.2f", max);
+				else
+					intensity_string = String.format("%,.2f", global_max);
+				int string_width = font_metrics.stringWidth(intensity_string);
+				graphics.drawString(intensity_string, xdim / 2 - (string_width + 15), top_margin + string_height / 2);	
+					
+				if(min < global_min)
+					intensity_string = String.format("%,.2f", min);
+				else
+					intensity_string = String.format("%,.2f", global_min);
+				string_width = font_metrics.stringWidth(intensity_string);
+				graphics.drawString(intensity_string, xdim / 2 - (string_width + 15), ydim - bottom_margin);	
+					
+				current_range = 0;
+				if(min < global_min)
+				{
+					if(max > global_max)
+					    current_range = max - min;
+					else
+					    current_range = global_max - min;
+				}
+				else
+				{
+					if(max > global_max)
+					    current_range = max - global_min;
+					else
+					    current_range = global_max - global_min;   	
+				}
+					
+				if(min > global_min)
+				{
+					double min_delta = global_min - min;
+					min_delta /= current_range;
+					double delta = min_delta * graph_ydim;
+					graphics.drawLine(xdim / 2, ydim - ((int) -delta + bottom_margin), xdim / 2 + 10, ydim - ((int) -delta + bottom_margin));
+					intensity_string = String.format("%,.2f", min);
+					graphics.drawString(intensity_string, xdim / 2 + 15, ydim - ((int) -delta + bottom_margin));		
+				}
+				else if(min < global_min)
+				{
+					double min_delta = min - global_min;
+					min_delta /= current_range;
+					double delta = min_delta * graph_ydim;
+					graphics.drawLine(xdim / 2, ydim - ((int) -delta + bottom_margin), xdim / 2 + 10, ydim - ((int) -delta + bottom_margin));
+					intensity_string = String.format("%,.2f", global_min);
+				    graphics.drawString(intensity_string, xdim / 2 + 15, ydim - ((int) -delta + bottom_margin));	 	
+				}
+				else if(min == global_min) 
+				{
+					graphics.drawLine(xdim / 2 + 10, ydim - bottom_margin, xdim / 2, ydim - bottom_margin);	
+				}
+					
+				if(max < global_max)
+				{
+					double max_delta = global_max - max;
+					max_delta       /= current_range;
+					double delta     = max_delta * graph_ydim;
+					graphics.drawLine(xdim / 2, top_margin + (int) delta, xdim / 2 + 10, top_margin + (int) delta);
+					intensity_string = String.format("%,.2f", max);
+					graphics.drawString(intensity_string, xdim / 2 + 15, top_margin + (int) delta);		
+				}
+				else if(max > global_max)
+				{
+					double max_delta = max - global_max;
+					max_delta       /= current_range;
+					double delta     = max_delta * graph_ydim;
+					graphics.drawLine(xdim / 2, top_margin + (int) delta, xdim / 2 + 10, top_margin + (int) delta);
+					intensity_string = String.format("%,.2f", global_max);
+					graphics.drawString(intensity_string, xdim / 2 + 15, top_margin + (int) delta);		
+				}
+				else if(max == global_max)
+				{
+					graphics.drawLine(xdim / 2 + 10, top_margin, xdim / 2, top_margin);	
+				}
+					
+				if(min < 0  || global_min < 0)
+				{
+					current_range = 0;
+					if(min < global_min)
+					{
+						if(max > global_max)
+						    current_range = max - min;
+						else
+						    current_range = global_max - min;
+					}
+					else
+					{
+						if(max > global_max)
+						    current_range = max - global_min;
+						else
+						    current_range = global_max - global_min;   	
+					}
+						
+					double zero_point = 0;
+					if(max > global_max)
+						zero_point = max / current_range;
+					else
+						zero_point = global_max / current_range;
+					zero_point *= graph_ydim;
+					graphics.setColor(java.awt.Color.RED);
+					graphics.drawLine(xdim / 2 - 10, top_margin + (int) zero_point, xdim / 2, top_margin + (int) zero_point);
+					graphics.setColor(java.awt.Color.BLACK);
+				}
+			}
+			else
+			{
+				min = global_min;
+				max = global_max;
+				current_range = max - min; 
+				String intensity_string = String.format("%,.2f", max);
+				int string_width = font_metrics.stringWidth(intensity_string);
+				graphics.drawString(intensity_string, xdim / 2 - (string_width + 15), top_margin + string_height / 2);
+				intensity_string = String.format("%,.2f", min);
+				string_width = font_metrics.stringWidth(intensity_string);
+				graphics.drawString(intensity_string, xdim / 2 - (string_width + 15), ydim - bottom_margin);
+				if (min < 0)
+				{
+					double zero_point = max / current_range;
+					zero_point *= graph_ydim;
+					graphics.setColor(java.awt.Color.RED);
+					graphics.drawLine(xdim / 2 - 10, top_margin + (int) zero_point, xdim / 2, top_margin + (int) zero_point);
+					graphics.setColor(java.awt.Color.BLACK);
+				}
+			} 
+		}
+	}
+	
+	class DynamicRangeSliderHandler implements ChangeListener
+	{
+		public void stateChanged(ChangeEvent e)
+		{
+			RangeSlider slider = (RangeSlider) e.getSource();
+			int lower = slider.getValue();
+			int upper = slider.getUpperValue();
+			if (dynamic_button_changing == false)
+			{
+				double data_location  = data_offset * data_length;
+				int    start_location = (int)data_location;
+				int    start_index    = (int)index.get(start_location);
+				       data_location += data_range * data_length;
+				int    stop_location  = (int)data_location;
+				int    stop_index     = (int)index.get(stop_location);
+				double global_min     = Double.MAX_VALUE;
+				double global_max     = -Double.MAX_VALUE;
+				
+				for(int i = start_index; i < stop_index; i++)
+				{
+					Sample sample = (Sample)data.get(i);
+					if(sample.intensity < global_min)
+						global_min = sample.intensity;
+					if(sample.intensity > global_max)
+						global_max = sample.intensity;
+				}
+				
+				double min = global_min;
+				double max = global_max;
+				if(data_clipped)
+				{
+				    String lower_value = lower_bound.getText();
+				    min = Double.valueOf(lower_value);
+				    String upper_value = upper_bound.getText();
+				    max = Double.valueOf(upper_value); 
+				    if(min > global_min)
+				    	min = global_min;
+				    if(max < global_max)
+				    	max = global_max;
+				}
+				
+				double current_range      = max - min;
+				//System.out.println("Current range is " + current_range);
+				
+				double fraction           = (double) lower / 100;
+				double lower_value        = (fraction * current_range) + min;
+				String lower_bound_string = String.format("%,.2f", lower_value);
+				fraction                  = (double) upper / 100;
+				double upper_value        = (fraction * current_range) + min;
+				String upper_bound_string = String.format("%,.2f", upper_value);
+				lower_bound.setText(lower_bound_string);
+				upper_bound.setText(upper_bound_string);
+			}
+		}
+	}
+	
+	
 	public double[] smooth(double[] source, int iterations)
 	{
 		int dst_length = source.length - 1;
