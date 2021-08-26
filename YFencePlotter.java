@@ -20,6 +20,7 @@ public class YFencePlotter
 	public LocationCanvas location_canvas;
 	public boolean     data_scrollbar_changing, data_slider_changing;
 	public double      global_xmin, global_xmax, global_ymin, global_ymax, global_intensity_min, global_intensity_max;
+	public double      clipped_min, clipped_max;
 	public int         slider_resolution    = 2640;
 	public int         scrollbar_resolution = 2640;
 	public int         data_length          = 2640;
@@ -46,6 +47,8 @@ public class YFencePlotter
 	boolean            reverse_view         = false;
 	boolean            persistent_data      = false;
 	boolean            show_id              = true;
+	boolean            show_label           = false;
+	boolean            color_key            = false;
 	boolean            relative_mode        = false;
 	boolean            location_changing    = false;
 	boolean            data_scaled          = false;
@@ -54,7 +57,7 @@ public class YFencePlotter
 	boolean            dynamic_button_changing = false;
 	
 	
-	
+	String             graph_label = new String("");
 	
 	
 	
@@ -77,6 +80,9 @@ public class YFencePlotter
 	public JDialog     scale_dialog;
 	public JDialog     location_dialog;
 	public JDialog     dynamic_range_dialog;
+	public JDialog     label_dialog;
+	
+	
 	
 	public PlacementCanvas placement_canvas;
 	
@@ -87,7 +93,7 @@ public class YFencePlotter
 	
 	int       left_margin        = 70;
 	int       right_margin       = 40;
-	int       top_margin         = 10;
+	int       top_margin         = 30;
 	int       bottom_margin      = 70;
 	
 	BufferedImage buffered_image;
@@ -466,7 +472,7 @@ public class YFencePlotter
 		format_menu.add(data_item);
 		
 		
-		// A modeless dialog box that shows up if Settings->Placement is selected.
+		// A modeless dialog box that shows up if Format->Placement is selected.
 		JPanel placement_panel = new JPanel(new BorderLayout());
 		placement_canvas = new PlacementCanvas();
 		placement_canvas.setSize(100, 100);
@@ -573,7 +579,47 @@ public class YFencePlotter
 		sensor_item.addActionListener(sensor_handler);
 		format_menu.add(sensor_item);
 				
+		JPanel     label_panel = new JPanel(new BorderLayout());
+		JTextField label_input = new JTextField();
+		label_input.setHorizontalAlignment(JTextField.CENTER);
+		label_input.setText("");
+		ActionListener label_input_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+			    graph_label = label_input.getText();
+			    //System.out.println("Graph label is now " + graph_label);
+			    data_canvas.repaint();
+			}
+		};
+        label_input.addActionListener(label_input_handler);
+		label_panel.add(label_input);		
+		label_dialog = new JDialog(frame, "Graph Label");
+		label_dialog.add(label_panel);
 		
+		JMenuItem label_item = new JMenuItem("Graph Label");
+		ActionListener label_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				
+				y += 400;
+
+				label_dialog.setLocation(x, y);
+				label_dialog.pack();
+				label_dialog.setVisible(true);
+			}
+		};
+		label_item.addActionListener(label_handler);
+		format_menu.add(label_item);
 		JMenu     adjustment_menu  = new JMenu("Adjustments");
         
 		// A modeless dialog box that shows up if Adjustments->Smoothing is selected.
@@ -707,60 +753,67 @@ public class YFencePlotter
 						global_max = sample.intensity;
 				}
 			
+				//Since we're limiting min and max to two decimal places,
+				//we have to do the same thing to our global min/max to
+				//make our logic work.
+				String global_max_string = String.format("%.2f", global_max);
+				double adjusted_global_max = Double.valueOf(global_max_string);
+				String global_min_string = String.format("%.2f", global_min);
+				double adjusted_global_min = Double.valueOf(global_min_string);
 				
-				if(min == global_min && max == global_max)
+				if(min == adjusted_global_min && max == adjusted_global_max)
 					return;
 				
 				
 				data_clipped = true;
 				
-				double intensity_min = 0;
-				double intensity_max = 0;
-				if(global_min < min)
-					intensity_min = global_min;
-				else
-					intensity_min = min;
-				if(global_max > max)
-					intensity_max = global_max;
-				else
+				double intensity_min = adjusted_global_min;
+				if(min < intensity_min)
+					intensity_min = min;	
+				double intensity_max = adjusted_global_max;
+				if(max > intensity_max)
 					intensity_max = max;
 				
 				dynamic_range_canvas.repaint();
 				dynamic_button_changing = true;
 				double current_range = intensity_max - intensity_min;
-				
-				System.out.println("Current range is " + current_range);
+				//System.out.println("Current range is " + current_range);
 				int min_value = 0;
-				int max_value = 0;
+				int max_value = 100;
 				
+				clipped_min = intensity_min;
+				clipped_max = intensity_max;
 				
-				System.out.println("The global minimum is " + global_min);
-				System.out.println("The global maximum is " + global_max);
-				
-				
-				System.out.println("The clipped minimum is " + min);
-				System.out.println("The clipped maximum is " + max);
-
-				if(min > global_min)
+				if(min > intensity_min)
 				{
-					min_value = (int) ((min - global_min) / current_range * 100);
-				    if(max < global_max)
-				    	max_value = (int) ((max - global_min) / current_range * 100);	
-				    else
-				    	max_value = (int) ((global_max - global_min) / current_range * 100);    
+					min -= intensity_min;
+					min *= 100;
+					min /= current_range;
+				    min_value = (int) min;
+				    if(min_value < 0)
+				    	min_value = - min_value;	
 				}
-				else
+				
+				if(max < intensity_max)
 				{
-					min_value = (int) ((global_min - min) / current_range * 100);
-					if(max < global_max)
-				    	max_value = (int) ((max - min) / current_range * 100);	
-				    else
-				    	max_value = (int) ((global_max - min) / current_range * 100);
+					max -= intensity_min;
+					max *= 100;
+					max /= current_range;
+				    max_value = (int) max;
+				    if(max_value < 0)
+				    	max_value = - max_value;	
 				}
-				System.out.println("Min value is " + min_value);
-				System.out.println("Max value is " + max_value);
+				
+				int previous_min_value = dynamic_range_slider.getValue();	
 				dynamic_range_slider.setValue(min_value);
-				//dynamic_range_slider.setUpperValue(max_value);
+				//System.out.println("Previous min value was " + previous_min_value);
+				//System.out.println("Current min value is " + min_value);
+				
+				int previous_max_value = dynamic_range_slider.getUpperValue();	
+				dynamic_range_slider.setUpperValue(max_value);
+				//System.out.println("Previous max value was " + previous_max_value);
+				//System.out.println("Current max value is " + max_value);
+				
 				dynamic_button_changing = false;	
 				data_canvas.repaint();
 			}
@@ -860,6 +913,7 @@ public class YFencePlotter
                 	lower_bound.setText(String.format("%.2f", global_min));
 				    upper_bound.setText(String.format("%.2f", global_max));
                 }
+                
 				dynamic_range_dialog.setLocation(x, y);
 				dynamic_range_dialog.pack();
 				dynamic_range_dialog.setVisible(true);
@@ -1025,6 +1079,54 @@ public class YFencePlotter
 		if(relative_mode)
 			mode_item.setState(true);
 		settings_menu.add(mode_item);
+		
+		JCheckBoxMenuItem show_label_item = new JCheckBoxMenuItem("Show Label");
+		ActionListener show_label_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(show_label == true)
+				{
+            		show_label = false;
+					item.setState(false);
+				}
+				else
+				{
+					show_label = true;
+					item.setState(true);
+				}
+		        data_canvas.repaint();
+            }   	
+		};
+		show_label_item.addActionListener(show_label_handler);
+		if(show_label)
+			show_label_item.setState(true);
+		settings_menu.add(show_label_item);
+		
+		JCheckBoxMenuItem show_id_item = new JCheckBoxMenuItem("Show ID");
+		ActionListener show_id_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(show_id == true)
+				{
+            		show_id = false;
+					item.setState(false);
+				}
+				else
+				{
+					show_id = true;
+					item.setState(true);
+				}
+		        data_canvas.repaint();
+            }   	
+		};
+		show_id_item.addActionListener(show_id_handler);
+		if(show_id)
+			show_id_item.setState(true);
+		settings_menu.add(show_id_item);
 		
 		JMenuBar menu_bar = new JMenuBar();
 		menu_bar.add(file_menu);
@@ -1240,8 +1342,6 @@ public class YFencePlotter
 					graphics_buffer.setStroke(new BasicStroke(2));	
 				}
 				
-				
-				
 				graphics_buffer.setColor(java.awt.Color.BLACK);
 			    graphics_buffer.setStroke(new BasicStroke(1));
 			    current_position = a1;
@@ -1282,6 +1382,7 @@ public class YFencePlotter
 			            current_position += current_increment;
 		            }
 		            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
+		            
 		            if(ystep != 0  && show_id)
 		            {
 		            	graphics_buffer.setColor(Color.BLACK);
@@ -1344,7 +1445,8 @@ public class YFencePlotter
 			            }
 		            }
 		        	
-		        	if(ystep != 0)
+		        	//if(ystep != 0)
+		        	if(!(ystep == 0 && xstep == 0))
 		        	{
 		        		graphics_buffer.drawLine((int) current_position, b1 + y_remainder, (int) current_position - xstep, b1 + ystep);
 		        	    for(int j = 0; j < number_of_units; j++)
@@ -1353,7 +1455,7 @@ public class YFencePlotter
 		        		    graphics_buffer.drawLine((int) current_position, b1 + y_remainder, (int) current_position - xstep, b1 + ystep);
 		        		    // At the end of a graph, put down a line where we can hang a line id or location information.
 		        		    // It also helps define the isometric space.
-		        		    if(j == number_of_units - 1 && xstep != 0)
+		        		    if(j == number_of_units - 1)
 		        		    {
 		        		    	graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10); 
 		        		    	String line_id = new String("foo");
@@ -1373,7 +1475,6 @@ public class YFencePlotter
 		        		    	}
 								if(show_id)
 								    graphics_buffer.drawString(line_id,  (int) current_position + 10, b1 + 10);
-								    //graphics_buffer.drawString(line_id,  (int) current_position + 10, b1 + 10 + ( 3 * string_height / 4));  
 		        		    }
 		        	    }
 		            }
@@ -1807,11 +1908,13 @@ public class YFencePlotter
 				local_max -= yaddend;
 				
 				x[m] = a2;
-				y[m] = (int)local_min;
+				//y[m] = (int)local_min;
+				y[m] = b1;
 				m++;
 
 				x[m] = a1;
-				y[m] = (int)local_min;
+				//y[m] = (int)local_min;
+				y[m] = b1;
 				m++;
 				
 				x[m] = a1;
@@ -2143,6 +2246,12 @@ public class YFencePlotter
 		    String intensity_string = new String("nT");
 			string_width = font_metrics.stringWidth(intensity_string);
 			graphics_buffer.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
+			
+			if(show_label && !graph_label.equals(""))
+			{
+				string_width = font_metrics.stringWidth(graph_label); 
+				graphics_buffer.drawString(graph_label, xdim / 2 - string_width / 2, top_margin - string_height);
+			}
 			
 			g.drawImage(buffered_image, 0, 0, null);
 		}
@@ -2821,38 +2930,48 @@ public class YFencePlotter
 				min = Double.valueOf(lower_bound_string);
 				max = Double.valueOf(upper_bound_string);
 				
+				//Since we're limiting min and max to two decimal places,
+				//we have to do the same thing to our global min/max to
+				//make our logic work.
+				String global_max_string = String.format("%.2f", global_max);
+				double adjusted_global_max = Double.valueOf(global_max_string);
+				String global_min_string = String.format("%.2f", global_min);
+				double adjusted_global_min = Double.valueOf(global_min_string);
+				
+				
 				String intensity_string = new String("foo");
-				if(max > global_max)
+				if(max > adjusted_global_max)
 					intensity_string = String.format("%,.2f", max);
 				else
-					intensity_string = String.format("%,.2f", global_max);
+					intensity_string = String.format("%,.2f", adjusted_global_max);
 				int string_width = font_metrics.stringWidth(intensity_string);
-				graphics.drawString(intensity_string, xdim / 2 - (string_width + 15), top_margin + string_height / 2);	
+				//graphics.drawString(intensity_string, xdim / 2 - (string_width + 15), top_margin + string_height / 2);	
+				graphics.drawString(intensity_string, xdim / 2 - (string_width + 15), top_margin + string_height);
 					
-				if(min < global_min)
+				if(min < adjusted_global_min)
 					intensity_string = String.format("%,.2f", min);
 				else
-					intensity_string = String.format("%,.2f", global_min);
+					intensity_string = String.format("%,.2f", adjusted_global_min);
 				string_width = font_metrics.stringWidth(intensity_string);
 				graphics.drawString(intensity_string, xdim / 2 - (string_width + 15), ydim - bottom_margin);	
 					
 				current_range = 0;
-				if(min < global_min)
+				if(min <= adjusted_global_min)
 				{
-					if(max > global_max)
+					if(max > adjusted_global_max)
 					    current_range = max - min;
 					else
 					    current_range = global_max - min;
 				}
 				else
 				{
-					if(max > global_max)
+					if(max > adjusted_global_max)
 					    current_range = max - global_min;
 					else
 					    current_range = global_max - global_min;   	
 				}
 					
-				if(min > global_min)
+				if(min > adjusted_global_min)
 				{
 					double min_delta = global_min - min;
 					min_delta /= current_range;
@@ -2861,21 +2980,21 @@ public class YFencePlotter
 					intensity_string = String.format("%,.2f", min);
 					graphics.drawString(intensity_string, xdim / 2 + 15, ydim - ((int) -delta + bottom_margin));		
 				}
-				else if(min < global_min)
+				else if(min < adjusted_global_min)
 				{
 					double min_delta = min - global_min;
 					min_delta /= current_range;
 					double delta = min_delta * graph_ydim;
 					graphics.drawLine(xdim / 2, ydim - ((int) -delta + bottom_margin), xdim / 2 + 10, ydim - ((int) -delta + bottom_margin));
-					intensity_string = String.format("%,.2f", global_min);
+					intensity_string = String.format("%,.2f", adjusted_global_min);
 				    graphics.drawString(intensity_string, xdim / 2 + 15, ydim - ((int) -delta + bottom_margin));	 	
 				}
-				else if(min == global_min) 
+				else if(min == adjusted_global_min) 
 				{
 					graphics.drawLine(xdim / 2 + 10, ydim - bottom_margin, xdim / 2, ydim - bottom_margin);	
 				}
 					
-				if(max < global_max)
+				if(max < adjusted_global_max)
 				{
 					double max_delta = global_max - max;
 					max_delta       /= current_range;
@@ -2884,40 +3003,40 @@ public class YFencePlotter
 					intensity_string = String.format("%,.2f", max);
 					graphics.drawString(intensity_string, xdim / 2 + 15, top_margin + (int) delta);		
 				}
-				else if(max > global_max)
+				else if(max > adjusted_global_max)
 				{
 					double max_delta = max - global_max;
 					max_delta       /= current_range;
 					double delta     = max_delta * graph_ydim;
 					graphics.drawLine(xdim / 2, top_margin + (int) delta, xdim / 2 + 10, top_margin + (int) delta);
 					intensity_string = String.format("%,.2f", global_max);
-					graphics.drawString(intensity_string, xdim / 2 + 15, top_margin + (int) delta);		
+					graphics.drawString(intensity_string, xdim / 2 + 15, top_margin + (int) delta);
 				}
-				else if(max == global_max)
+				else if(max == adjusted_global_max)
 				{
 					graphics.drawLine(xdim / 2 + 10, top_margin, xdim / 2, top_margin);	
 				}
 					
-				if(min < 0  || global_min < 0)
+				if(min < 0  || adjusted_global_min < 0)
 				{
 					current_range = 0;
-					if(min < global_min)
+					if(min < adjusted_global_min)
 					{
-						if(max > global_max)
+						if(max > adjusted_global_max)
 						    current_range = max - min;
 						else
 						    current_range = global_max - min;
 					}
 					else
 					{
-						if(max > global_max)
+						if(max > adjusted_global_max)
 						    current_range = max - global_min;
 						else
 						    current_range = global_max - global_min;   	
 					}
 						
 					double zero_point = 0;
-					if(max > global_max)
+					if(max > adjusted_global_max)
 						zero_point = max / current_range;
 					else
 						zero_point = global_max / current_range;
@@ -2977,30 +3096,29 @@ public class YFencePlotter
 						global_max = sample.intensity;
 				}
 				
+				String adjusted_global_min_string = String.format("%.2f", global_min);
+				double adjusted_global_min        = Double.valueOf(adjusted_global_min_string);
+				String adjusted_global_max_string = String.format("%.2f", global_max);
+				double adjusted_global_max        = Double.valueOf(adjusted_global_max_string);
 				double min = global_min;
 				double max = global_max;
+				
 				if(data_clipped)
 				{
-				    String lower_value = lower_bound.getText();
-				    min = Double.valueOf(lower_value);
-				    String upper_value = upper_bound.getText();
-				    max = Double.valueOf(upper_value); 
-				    if(min > global_min)
-				    	min = global_min;
-				    if(max < global_max)
-				    	max = global_max;
+				    min = clipped_min;
+				    max = clipped_max;
 				}
 				
 				double current_range      = max - min;
-				//System.out.println("Current range is " + current_range);
 				
 				double fraction           = (double) lower / 100;
 				double lower_value        = (fraction * current_range) + min;
 				String lower_bound_string = String.format("%,.2f", lower_value);
+				lower_bound.setText(lower_bound_string);
+				
 				fraction                  = (double) upper / 100;
 				double upper_value        = (fraction * current_range) + min;
 				String upper_bound_string = String.format("%,.2f", upper_value);
-				lower_bound.setText(lower_bound_string);
 				upper_bound.setText(upper_bound_string);
 			}
 		}
