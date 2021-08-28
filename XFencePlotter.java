@@ -31,7 +31,7 @@ public class XFencePlotter
     boolean tick_marks     = false;
     boolean raster_overlay = false;
 	boolean relative_mode  = true;
-    boolean reverse_view      = false;
+    boolean reverse_view   = false;
     boolean data_scaled    = false;
     boolean data_clipped   = false;
     boolean color_key      = true;
@@ -427,6 +427,8 @@ public class XFencePlotter
 					}
 				}
 				reader.close();
+				//System.out.println("Global xmin is " + global_xmin);
+				//System.out.println("Global ymin is " + global_ymin);
 				for (int i = 0; i < original_data.size(); i++)
 				{
 					Sample sample = (Sample) original_data.get(i);
@@ -1579,6 +1581,24 @@ public class XFencePlotter
 						double current_value           = maximum_y;
 						double current_intensity_range = maximum_y - minimum_y;
 						
+
+						if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_xstep && i != number_of_segments - 1)
+						{
+							double zero_y = Math.abs(minimum_y);
+							zero_y /= maximum_y - minimum_y;
+							zero_y *= graph_ydim;
+							zero_y = (graph_ydim + y_remainder) - zero_y;
+							zero_y += top_margin + (number_of_segments - 1) * ystep;
+							zero_y -= yaddend;
+
+							float[] dash ={ 2f, 0f, 2f };
+							BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
+							graphics_buffer.setStroke(basic_stroke);
+							graphics_buffer.setColor(java.awt.Color.RED);
+							graphics_buffer.drawLine((int) a1, (int) zero_y, (int) a1 + xstep, (int) zero_y - ystep);
+							graphics_buffer.setStroke(new BasicStroke(2));	
+						}
+						
 						graphics_buffer.setColor(java.awt.Color.BLACK);
 					    graphics_buffer.setStroke(new BasicStroke(1));
 					    
@@ -2088,11 +2108,13 @@ public class XFencePlotter
 						local_max -= yaddend;
 						
 						x[m] = a2;
-						y[m] = (int)local_min;
+						//y[m] = (int)local_min;
+						y[m] = b1;
 						m++;
 
 						x[m] = a1;
-						y[m] = (int)local_min;
+						//y[m] = (int)local_min;
+						y[m] = b1;
 						m++;
 						
 						x[m] = a1;
@@ -2177,7 +2199,8 @@ public class XFencePlotter
 								BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
 								graphics_buffer.setStroke(basic_stroke);
 								graphics_buffer.setColor(java.awt.Color.RED);
-								graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
+								//graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
+								graphics_buffer.drawLine((int) a1, (int) zero_y, (int) a2, (int) zero_y);
 								graphics_buffer.setStroke(new BasicStroke(2));
 							}
 						}
@@ -2287,6 +2310,28 @@ public class XFencePlotter
 					    	    }
 					        }
 					    }
+					    
+					    if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_xstep  && i != (number_of_segments - 1))
+						{
+							double zero_y = Math.abs(minimum_y);
+							zero_y /= maximum_y - minimum_y;
+							zero_y *= graph_ydim;
+							zero_y = (graph_ydim + y_remainder) - zero_y;
+							zero_y += top_margin + (number_of_segments - 1) * ystep;
+							zero_y -= yaddend;
+
+							float[] dash ={ 2f, 0f, 2f };
+							BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
+							graphics_buffer.setStroke(basic_stroke);
+							graphics_buffer.setColor(java.awt.Color.RED);
+							graphics_buffer.drawLine((int) a2, (int) zero_y, (int) a2 + xstep, (int) zero_y - ystep);
+							graphics_buffer.setStroke(new BasicStroke(1));
+							graphics_buffer.setColor(new Color(196, 196, 196));
+							graphics_buffer.drawLine((int) a2, (int) zero_y, (int) a2, (int) b1);
+							graphics_buffer.setColor(Color.BLACK);
+						}
+					    
+					    
 					    current_value    = offset;
 					    current_position = a1;
 					    
