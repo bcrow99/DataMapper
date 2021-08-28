@@ -29,7 +29,7 @@ public class YFencePlotter
 	public ArrayList   data                 = new ArrayList();
 	public ArrayList   index                = new ArrayList();
 	public double      data_offset          = .0;
-	public double      data_range           = .0005;
+	public double      data_range           = .002;
 	public double      normal_xstep         = .5;
 	public double      normal_ystep         = .5;
 	public double      xlocation            = .5;
@@ -92,7 +92,7 @@ public class YFencePlotter
 	public JTextField  upper_bound;
 	
 	int       left_margin        = 70;
-	int       right_margin       = 40;
+	int       right_margin       = 70;
 	int       top_margin         = 30;
 	int       bottom_margin      = 70;
 	
@@ -279,10 +279,13 @@ public class YFencePlotter
 					double current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
 					Sample adjusted_sample  = previous_set;
 					adjusted_sample.y       = total_distance - axis;
+					/*
 					if(current_distance > axis)
 					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
 					else if(current_distance < axis)
-						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   	
+						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;
+					*/   
+					adjusted_sample.intensity = current_set.intensity;
 					data.add(adjusted_sample);
 					
 					previous_set     = (Sample) relative_data.get(i - 6);
@@ -290,12 +293,16 @@ public class YFencePlotter
 					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
 					adjusted_sample  = previous_set;
 					adjusted_sample.y       = total_distance - axis;
+					/*
 					if(current_distance > axis)
 					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
 					else if(current_distance < axis)
-						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   	
+						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   
+					*/	
+					adjusted_sample.intensity = current_set.intensity;
 					data.add(adjusted_sample);
 					
+					// Center sensor
 					previous_set      = (Sample) relative_data.get(i - 5);
 					adjusted_sample   = previous_set;
 					adjusted_sample.y = total_distance - axis;
@@ -306,10 +313,13 @@ public class YFencePlotter
 					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
 					adjusted_sample  = previous_set;
 					adjusted_sample.y       = total_distance - axis;
+					/*
 					if(current_distance > axis)
 					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
 					else if(current_distance < axis)
-						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   	
+						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;  
+					*/
+					adjusted_sample.intensity = current_set.intensity;
 					data.add(adjusted_sample);
 					
 					previous_set     = (Sample) relative_data.get(i - 4);
@@ -317,10 +327,13 @@ public class YFencePlotter
 					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
 					adjusted_sample  = previous_set;
 					adjusted_sample.y       = total_distance - axis;
+					/*
 					if(current_distance > axis)
 					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
 					else if(current_distance < axis)
-						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   	
+						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity; 
+					*/
+					adjusted_sample.intensity = current_set.intensity;
 					data.add(adjusted_sample);
 					previous_index = i - 2;
 					previous_sample = sample;
@@ -1128,6 +1141,30 @@ public class YFencePlotter
 			show_id_item.setState(true);
 		settings_menu.add(show_id_item);
 		
+		JCheckBoxMenuItem color_key_item = new JCheckBoxMenuItem("Color Key");
+		ActionListener color_key_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(color_key == true)
+				{
+            		color_key = false;
+					item.setState(false);
+				}
+				else
+				{
+					color_key = true;
+					item.setState(true);
+				}
+		        data_canvas.repaint();
+            }   	
+		};
+		color_key_item.addActionListener(color_key_handler);
+		if(color_key)
+			color_key_item.setState(true);
+		settings_menu.add(color_key_item);
+		
 		JMenuBar menu_bar = new JMenuBar();
 		menu_bar.add(file_menu);
 		menu_bar.add(format_menu);
@@ -1444,8 +1481,6 @@ public class YFencePlotter
 				            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
 			            }
 		            }
-		        	
-		        	//if(ystep != 0)
 		        	if(!(ystep == 0 && xstep == 0))
 		        	{
 		        		graphics_buffer.drawLine((int) current_position, b1 + y_remainder, (int) current_position - xstep, b1 + ystep);
@@ -2253,6 +2288,25 @@ public class YFencePlotter
 				graphics_buffer.drawString(graph_label, xdim / 2 - string_width / 2, top_margin - string_height);
 			}
 			
+			if(color_key)
+			{
+				graphics_buffer.setStroke(new BasicStroke(3));
+				for(int i = 0; i < 5; i++)
+				{
+					String sensor_id = new String("foo");
+					if(stop_flight_line != start_flight_line)
+						sensor_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);
+					else
+						sensor_id = new String(start_flight_line + ":" + i);
+					string_width = font_metrics.stringWidth(sensor_id);
+					int x = xdim - (3 * string_width + 10);
+					int y = ydim - (2 * i * string_height) - bottom_margin;
+					graphics_buffer.setColor(Color.BLACK);
+					graphics_buffer.drawString(sensor_id, x, y);
+					graphics_buffer.setColor(fill_color[i]);
+					graphics_buffer.fillRect(x + 2 * string_width, y - string_height, string_width, string_height);
+				}
+			}
 			g.drawImage(buffered_image, 0, 0, null);
 		}
 	}
@@ -3123,7 +3177,6 @@ public class YFencePlotter
 			}
 		}
 	}
-	
 	
 	public double[] smooth(double[] source, int iterations)
 	{
