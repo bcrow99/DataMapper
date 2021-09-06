@@ -53,18 +53,18 @@ public class YFencePlotter
 	boolean            location_changing    = false;
 	boolean            data_scaled          = false;
 	boolean            data_clipped         = false;
+	boolean            config_file_exists   = false;
+	boolean            interpolation        = false;
 	boolean            dynamic_slider_changing = false;
 	boolean            dynamic_button_changing = false;
 	
 	
 	String             graph_label = new String("");
 	
-	
-	
-	
-	
 	int                smooth               = 0;
 	double             scale_factor         = 1.;
+	double             minimum_y            = 0;
+	double             maximum_y            = 0;
 	
 	
 	Canvas[]           sensor_canvas        = new SensorCanvas[10];
@@ -81,6 +81,7 @@ public class YFencePlotter
 	public JDialog     location_dialog;
 	public JDialog     dynamic_range_dialog;
 	public JDialog     label_dialog;
+	public JDialog     range_dialog;
 	
 	
 	
@@ -142,6 +143,135 @@ public class YFencePlotter
 		File file = new File(filename);
 		if (file.exists())
 		{
+			// Get the current directory and see if it contains a config file.
+			StringTokenizer tokenizer = new StringTokenizer(filename, "/");
+			String current_directory = new String("");
+			String directory         = new String("");
+			while(tokenizer.hasMoreTokens())
+			{
+				directory = new String(current_directory);
+				String  next_string = tokenizer.nextToken();
+				current_directory   = new String(current_directory + next_string + "/");
+			}
+			String config_filename = new String(directory + "yfp.cfg");
+			File config_file = new File(config_filename);
+			if(config_file.exists())
+			{
+			    //System.out.println("Loading config file.");
+				config_file_exists = true;
+				try
+				{
+			        BufferedReader config_reader   = new BufferedReader(new InputStreamReader(new FileInputStream(config_file)));
+					String line;
+					StringTokenizer config_tokenizer;
+					line = config_reader.readLine();  // Sensor id's--we already know they're 0-4.		    
+					line = config_reader.readLine();  // Visibiltiy
+					config_tokenizer = new StringTokenizer(line);
+					int number_of_tokens = config_tokenizer.countTokens();
+					String token = config_tokenizer.nextToken();
+					number_of_tokens--;
+					for(int i = 0; i < number_of_tokens; i++)
+					{
+					    token = config_tokenizer.nextToken();
+						if(token.equals("true"))
+						    visible[i] = true;
+						else
+							visible[i] = false;
+					}
+				    line = config_reader.readLine();  // Transparency
+				    config_tokenizer = new StringTokenizer(line);
+				    number_of_tokens = config_tokenizer.countTokens();
+				    token = config_tokenizer.nextToken();
+				    number_of_tokens--;
+				    for(int i = 0; i < number_of_tokens; i++)
+				    {
+				    	token = config_tokenizer.nextToken();
+				    	if(token.equals("true"))
+				    		transparent[i] = true;
+				    	else
+				    		transparent[i] = false;
+				    }		    
+				    line = config_reader.readLine(); // Skip line.
+				    while(line != null)
+				    {
+				        line             = config_reader.readLine();
+				        if(line != null)
+				        {
+				            config_tokenizer = new StringTokenizer(line);
+				            String key       = config_tokenizer.nextToken();
+				            String value     = config_tokenizer.nextToken();
+				            if(key.equals("Offset"))
+				    	        data_offset = Double.valueOf(value);
+				            else if(key.equals("Range")) 
+				        	    data_range = Double.valueOf(value);
+				            else if(key.equals("ReverseView")) 
+					        {
+					        	if(value.equals("true"))
+					        		reverse_view = true;
+					        	else
+					        		reverse_view = false;
+					        }
+				            else if(key.equals("RelativeMode")) 
+					        {
+					        	if(value.equals("true"))
+					        		relative_mode = true;
+					        	else
+					        		relative_mode = false;
+					        }
+				            else if(key.equals("RasterOverlay")) 
+					        {
+					        	if(value.equals("true"))
+					        		raster_overlay = true;
+					        	else
+					        		raster_overlay = false;
+					        }
+				            else if(key.equals("Smooth")) 
+				        	    smooth = Integer.parseInt(value);
+				            else if(key.equals("XStep"))
+					    	    normal_xstep = Double.valueOf(value);
+					        else if(key.equals("YStep")) 
+					        	normal_ystep = Double.valueOf(value);
+					        else if(key.equals("XLocation"))
+					    	    xlocation = Double.valueOf(value);
+					        else if(key.equals("YLocation")) 
+					        	ylocation = Double.valueOf(value);
+					        else if(key.equals("Scaling")) 
+					        {
+					        	if(value.equals("true"))
+					        		data_scaled = true;
+					        	else
+					        		data_scaled = false;
+					        } 
+					        else if(key.equals("ScaleFactor")) 
+					        	scale_factor = Double.valueOf(value);
+					        else if(key.equals("Scaling")) 
+					        {
+					        	if(value.equals("true"))
+					        		data_scaled = true;
+					        	else
+					        		data_scaled = false;
+					        } 
+				            else if(key.equals("Clipping")) 
+					        {
+					        	if(value.equals("true"))
+					        		data_clipped = true;
+					        	else
+					        		data_clipped = false;
+					        } 
+				            else if(key.equals("Maximum")) 
+					        	maximum_y = Double.valueOf(value);
+				            else if(key.equals("Minimum")) 
+					        	minimum_y = Double.valueOf(value);
+				        }
+				    }
+					config_reader.close();   
+				}
+				catch(Exception e)
+				{
+								System.out.println(e.toString());
+				}
+			}
+			
 			ArrayList original_data = new ArrayList();
 			global_xmin          = Double.MAX_VALUE;
 			global_xmax          = 0;
@@ -264,100 +394,124 @@ public class YFencePlotter
 				_index = relative_data.size() - 1;
 				index.add(_index);
 				
-				data   = new ArrayList();
-				previous_sample = (Sample)relative_data.get(2);
-				int previous_index = 0;
+				data           = new ArrayList();
 				total_distance = 0;
+				
+				
+				for(int i = 0; i < 5; i++)
+				{
+					Sample sample          = (Sample) relative_data.get(i);
+				    Sample adjusted_sample = new Sample(sample.x, total_distance, sample.intensity);
+				    data.add(adjusted_sample);
+				}
+				
+				
+				
 				for(int i = 7; i < relative_data.size(); i += 5)
 				{
-					Sample sample   = (Sample) relative_data.get(i);	
-					double axis     = getDistance(sample.x, sample.y, previous_sample.x, previous_sample.y);
-					total_distance += axis;
+					Sample current_sample   = (Sample) relative_data.get(i);
+					previous_sample         = (Sample) relative_data.get(i - 5);
+					double axis             = getDistance(current_sample.x, current_sample.y, previous_sample.x, previous_sample.y);
+					total_distance          += axis;
+					
+					
 					
 					Sample previous_set     = (Sample) relative_data.get(i - 7);
 					Sample current_set      = (Sample) relative_data.get(i - 2);
 					double current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
-					Sample adjusted_sample  = previous_set;
-					adjusted_sample.y       = total_distance - axis;
-					/*
-					if(current_distance > axis)
-					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
-					else if(current_distance < axis)
-						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;
-					*/   
-					adjusted_sample.intensity = current_set.intensity;
+					Sample adjusted_sample  = new Sample(current_set.x, total_distance, current_set.intensity);
+
+					if(interpolation)
+					{
+						if(current_distance > axis)
+						    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity; 
+						else if(current_distance < axis)
+						{
+							if(i + 3 < relative_data.size())
+							{
+								Sample next_set      = (Sample) relative_data.get(i + 3);
+								double difference    = axis - current_distance;
+							    double next_distance = getDistance(current_set.x, current_set.y, next_set.x, next_set.y);
+							    adjusted_sample.intensity = (difference / next_distance) * next_set.intensity + (next_distance - difference) / next_distance * current_set.intensity; 
+							}
+						}
+					}
+					
 					data.add(adjusted_sample);
 					
 					previous_set     = (Sample) relative_data.get(i - 6);
 					current_set      = (Sample) relative_data.get(i - 1);
 					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
-					adjusted_sample  = previous_set;
-					adjusted_sample.y       = total_distance - axis;
-					/*
-					if(current_distance > axis)
-					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
-					else if(current_distance < axis)
-						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;   
-					*/	
-					adjusted_sample.intensity = current_set.intensity;
+					adjusted_sample  = new Sample(current_set.x, total_distance, current_set.intensity);
+					
+					if(interpolation)
+					{
+						if(current_distance > axis)
+						    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity; 
+						else if(current_distance < axis)
+						{
+							if(i + 4 < relative_data.size())
+							{
+							    Sample next_set      = (Sample) relative_data.get(i + 4);
+							    double difference    = axis - current_distance;
+							    double next_distance = getDistance(current_set.x, current_set.y, next_set.x, next_set.y);
+							    adjusted_sample.intensity = (difference / next_distance) * next_set.intensity + (next_distance - difference)/next_distance * current_set.intensity; 
+							}
+						}
+					}
+					
 					data.add(adjusted_sample);
 					
 					// Center sensor
-					previous_set      = (Sample) relative_data.get(i - 5);
-					adjusted_sample   = previous_set;
-					adjusted_sample.y = total_distance - axis;
+					current_set      = (Sample) relative_data.get(i);
+					adjusted_sample  =  new Sample(current_set.x, total_distance, current_set.intensity);
 					data.add(adjusted_sample);
 					
 					previous_set     = (Sample) relative_data.get(i - 4);
 					current_set      = (Sample) relative_data.get(i + 1);
 					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
-					adjusted_sample  = previous_set;
-					adjusted_sample.y       = total_distance - axis;
-					/*
-					if(current_distance > axis)
-					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
-					else if(current_distance < axis)
-						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity;  
-					*/
-					adjusted_sample.intensity = current_set.intensity;
+					adjusted_sample  = new Sample(current_set.x, total_distance, current_set.intensity);
+
+					if(interpolation)
+					{
+						if(current_distance > axis)
+						    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity; 
+						else if(current_distance < axis)
+						{
+							if(i + 6 < relative_data.size())
+							{
+								Sample next_set      = (Sample) relative_data.get(i + 6);
+								double difference    = axis - current_distance;
+							    double next_distance = getDistance(current_set.x, current_set.y, next_set.x, next_set.y);
+							    adjusted_sample.intensity = (difference / next_distance) * next_set.intensity + (next_distance - difference)/next_distance * current_set.intensity; 
+							}
+						}
+					}
+					
 					data.add(adjusted_sample);
 					
-					previous_set     = (Sample) relative_data.get(i - 4);
-					current_set      = (Sample) relative_data.get(i + 1);
+					previous_set     = (Sample) relative_data.get(i - 3);
+					current_set      = (Sample) relative_data.get(i + 2);
 					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
-					adjusted_sample  = previous_set;
-					adjusted_sample.y       = total_distance - axis;
-					/*
-					if(current_distance > axis)
-					    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity;    
-					else if(current_distance < axis)
-						adjusted_sample.intensity = ((axis - current_distance) / axis) * current_set.intensity + (current_distance / axis) * previous_set.intensity; 
-					*/
-					adjusted_sample.intensity = current_set.intensity;
+					adjusted_sample  = new Sample(current_set.x, total_distance, current_set.intensity);
+					
+					if(interpolation)
+					{
+						if(current_distance > axis)
+						    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity; 
+						else if(current_distance < axis)
+						{
+							if(i + 7 < relative_data.size())
+							{
+								Sample next_set      = (Sample) relative_data.get(i + 7);
+								double difference    = axis - current_distance;
+							    double next_distance = getDistance(current_set.x, current_set.y, next_set.x, next_set.y);
+							    adjusted_sample.intensity = (difference / next_distance) * next_set.intensity + (next_distance - difference)/next_distance * current_set.intensity; 
+							}
+						}
+					}
+					
 					data.add(adjusted_sample);
-					previous_index = i - 2;
-					previous_sample = sample;
-				}
-				
-				// Add last set of adjusted data.
-				for(int i = previous_index; i < previous_index + 5; i++)
-				{
-					// Not bothering to adjust intensity for 4 samples out of 400000+
-				    Sample sample = (Sample)relative_data.get(i);
-				    sample.y      = total_distance;
-				    data.add(sample);
-				}
-				
-				// We're corrupting the relative data somehow when we construct the unwound data set.
-				relative_data.clear();
-				for(int i = 0; i < original_data.size(); i++)
-				{
-					Sample sample = (Sample) original_data.get(i);
-					Sample new_sample = new Sample();
-					new_sample.x = sample.x - global_xmin;
-					new_sample.y = sample.y - global_ymin;
-					new_sample.intensity = sample.intensity;
-					relative_data.add(new_sample);
 				}
 			} 
 			catch (Exception e)
@@ -370,7 +524,7 @@ public class YFencePlotter
 			System.out.println("File not found.");
 			System.exit(0);
 		}
-
+		
 		
 		// A modeless dialog box that shows up if the mouse is dragged on the canvas.
 		JPanel information_panel = new JPanel(new BorderLayout());
@@ -384,18 +538,68 @@ public class YFencePlotter
 	    {
 	        public void windowClosing(WindowEvent event)
 	        {
-	        	try
-	            {
-	            	PrintWriter output  = new PrintWriter("yfp.cfg");	
-	            	String      string  = new String("foo");
-	            	output.write(string);
-	            	output.close();	
-	            }
-	        	catch(Exception e)
 	        	{
-	        		System.out.println(e.toString());
-	        	}
-	            System.exit(0);
+		        	try
+		            {
+		            	PrintWriter output  = new PrintWriter("yfp.cfg");	
+		            	
+		            	String _id           = new String("");
+		            	String _visible     = new String("");
+		            	String _transparent = new String("");
+		            	for(int i = 0; i < 5; i++)
+		            	{
+		            	    _id = new String(_id + i + "\t\t");
+		            	    if(visible[i])
+		            	    	_visible = new String(_visible + "true\t");
+		            	    else
+		            	    	_visible = new String(_visible + "false\t");
+		            	    if(transparent[i])
+		            	    	_transparent = new String(_transparent + "true\t");
+		            	    else
+		            	    	_transparent = new String(_transparent + "false\t");	  
+		            	}
+		            	output.write("SensorID\t" + _id + "\n");
+		            	output.write("Visible\t\t" + _visible + "\n");
+		            	output.write("Transparent\t" + _transparent + "\n\n");
+		            	output.write("Offset\t\t\t" + String.format("%,.4f", data_offset) + "\n");
+		            	output.write("Range\t\t\t" + String.format("%,.4f", data_range) + "\n");
+		            	output.write("XLocation\t\t" + String.format("%,.4f", xlocation) + "\n");
+		            	output.write("YLocation\t\t" + String.format("%,.4f", ylocation) + "\n");
+		            	output.write("XStep\t\t\t" + String.format("%,.2f", normal_xstep) + "\n");
+		            	output.write("YStep\t\t\t" + String.format("%,.2f", normal_ystep) + "\n");
+		            
+		            	if(reverse_view)
+		            		output.write("ReverseView\t\ttrue\n");
+		            	else
+		            		output.write("ReverseView\t\tfalse\n");
+		            	if(relative_mode)
+		            		output.write("RelativeMode\ttrue\n");
+		            	else
+		            		output.write("RelativeMode\tfalse\n");
+		            	if(raster_overlay)
+		            		output.write("RasterOverlay\ttrue\n");
+		            	else
+		            		output.write("RasterOverlay\tfalse\n");
+		            	if(data_scaled)
+		            		output.write("Scaling\t\t\ttrue\n");
+		            	else
+		            		output.write("Scaling\t\t\tfalse\n");
+		            	output.write("ScaleFactor\t\t" + String.format("%,.2f", scale_factor) + "\n");
+		            	if(data_clipped)
+		            		output.write("Clipping\t\ttrue\n");
+		            	else
+		            		output.write("Clipping\t\tfalse\n");
+		            	output.write("Maximum\t\t\t" + String.format("%,.2f", maximum_y) + "\n");
+		            	output.write("Minimum\t\t\t" + String.format("%,.2f", minimum_y) + "\n");
+		            	output.write("Smooth\t\t\t" + smooth + "\n");
+		            	output.close();	
+		            }
+		        	catch(Exception e)
+		        	{
+		        		System.out.println(e.toString());
+		        	}
+		            System.exit(0);
+		        }    	
 	        }
 	    };
 	    frame.addWindowListener(window_handler);
@@ -633,6 +837,59 @@ public class YFencePlotter
 		};
 		label_item.addActionListener(label_handler);
 		format_menu.add(label_item);
+		
+		
+		JPanel     range_panel = new JPanel(new BorderLayout());
+		JTextField range_input = new JTextField();
+		range_input.setHorizontalAlignment(JTextField.CENTER);
+		range_input.setText("");
+		ActionListener range_input_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+			    String input = range_input.getText();
+			    double range = Double.valueOf(input);
+			    data_range = range / data_length;
+			    data_scrollbar_changing = true;
+			    int upper_value = (int) ((data_offset + data_range) * slider_resolution);
+			    data_slider.setUpperValue(upper_value);
+			    data_scrollbar_changing = false;
+			    data_slider_changing = true;
+			    int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+			    data_scrollbar.setValue((int)scrollbar_position);
+				data_slider_changing = false;
+			    data_canvas.repaint();
+			}
+		};
+        range_input.addActionListener(range_input_handler);
+        range_panel.add(range_input);		
+        range_dialog = new JDialog(frame, "Range");
+        range_dialog.add(range_panel);
+		
+		JMenuItem range_item = new JMenuItem("Set Range");
+		ActionListener range_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				
+				y += 400;
+
+				range_dialog.setLocation(x, y);
+				range_dialog.pack();
+				range_dialog.setVisible(true);
+			}
+		};
+		range_item.addActionListener(range_handler);
+		format_menu.add(range_item);
+		
 		JMenu     adjustment_menu  = new JMenu("Adjustments");
         
 		// A modeless dialog box that shows up if Adjustments->Smoothing is selected.
@@ -1165,6 +1422,153 @@ public class YFencePlotter
 			color_key_item.setState(true);
 		settings_menu.add(color_key_item);
 		
+		JCheckBoxMenuItem interpolate_item = new JCheckBoxMenuItem("Interpolate");
+		ActionListener interpolate_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(interpolation == true)
+				{
+            		interpolation = false;
+					item.setState(false);
+				}
+				else
+				{
+					interpolation = true;
+					item.setState(true);
+				}
+            	
+            	data.clear();
+                double total_distance = 0;
+				
+				
+				for(int i = 0; i < 5; i++)
+				{
+					Sample sample          = (Sample) relative_data.get(i);
+				    Sample adjusted_sample = new Sample(sample.x, total_distance, sample.intensity);
+				    data.add(adjusted_sample);
+				}
+				
+				
+				
+				for(int i = 7; i < relative_data.size(); i += 5)
+				{
+					Sample current_sample   = (Sample) relative_data.get(i);
+					Sample previous_sample         = (Sample) relative_data.get(i - 5);
+					double axis             = getDistance(current_sample.x, current_sample.y, previous_sample.x, previous_sample.y);
+					total_distance          += axis;
+					
+					
+					
+					Sample previous_set     = (Sample) relative_data.get(i - 7);
+					Sample current_set      = (Sample) relative_data.get(i - 2);
+					double current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
+					Sample adjusted_sample  = new Sample(current_sample.x, total_distance, current_sample.intensity);
+
+					if(interpolation)
+					{
+						if(current_distance > axis)
+						    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity; 
+						else if(current_distance < axis)
+						{
+							if(i + 3 < relative_data.size())
+							{
+								Sample next_set      = (Sample) relative_data.get(i + 3);
+								double difference    = axis - current_distance;
+							    double next_distance = getDistance(current_set.x, current_set.y, next_set.x, next_set.y);
+							    adjusted_sample.intensity = (difference / next_distance) * next_set.intensity + (next_distance - difference) / next_distance * current_set.intensity; 
+							}
+						}
+					}
+					
+					data.add(adjusted_sample);
+					
+					previous_set     = (Sample) relative_data.get(i - 6);
+					current_set      = (Sample) relative_data.get(i - 1);
+					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
+					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
+					adjusted_sample  = new Sample(current_sample.x, total_distance, current_sample.intensity);
+					
+					if(interpolation)
+					{
+						if(current_distance > axis)
+						    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity; 
+						else if(current_distance < axis)
+						{
+							if(i + 4 < relative_data.size())
+							{
+							    Sample next_set      = (Sample) relative_data.get(i + 4);
+							    double difference    = axis - current_distance;
+							    double next_distance = getDistance(current_set.x, current_set.y, next_set.x, next_set.y);
+							    adjusted_sample.intensity = (difference / next_distance) * next_set.intensity + (next_distance - difference)/next_distance * current_set.intensity; 
+							}
+						}
+					}
+					
+					data.add(adjusted_sample);
+					
+					// Center sensor
+					current_set      = (Sample) relative_data.get(i);
+					adjusted_sample   = previous_set;
+					adjusted_sample.y = total_distance - axis;
+					data.add(adjusted_sample);
+					
+					previous_set     = (Sample) relative_data.get(i - 4);
+					current_set      = (Sample) relative_data.get(i + 1);
+					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
+					adjusted_sample  = new Sample(current_sample.x, total_distance, current_sample.intensity);
+
+					if(interpolation)
+					{
+						if(current_distance > axis)
+						    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity; 
+						else if(current_distance < axis)
+						{
+							if(i + 6 < relative_data.size())
+							{
+								Sample next_set      = (Sample) relative_data.get(i + 6);
+								double difference    = axis - current_distance;
+							    double next_distance = getDistance(current_set.x, current_set.y, next_set.x, next_set.y);
+							    adjusted_sample.intensity = (difference / next_distance) * next_set.intensity + (next_distance - difference)/next_distance * current_set.intensity; 
+							}
+						}
+					}
+					
+					data.add(adjusted_sample);
+					
+					previous_set     = (Sample) relative_data.get(i - 4);
+					current_set      = (Sample) relative_data.get(i + 1);
+					current_distance =  getDistance(current_set.x, current_set.y, previous_set.x, previous_set.y);
+					adjusted_sample  = new Sample(current_sample.x, total_distance, current_sample.intensity);
+					
+					if(interpolation)
+					{
+						if(current_distance > axis)
+						    adjusted_sample.intensity = ((current_distance - axis) / current_distance) * current_set.intensity + (axis / current_distance) * previous_set.intensity; 
+						else if(current_distance < axis)
+						{
+							if(i + 7 < relative_data.size())
+							{
+								Sample next_set      = (Sample) relative_data.get(i + 7);
+								double difference    = axis - current_distance;
+							    double next_distance = getDistance(current_set.x, current_set.y, next_set.x, next_set.y);
+							    adjusted_sample.intensity = (difference / next_distance) * next_set.intensity + (next_distance - difference)/next_distance * current_set.intensity; 
+							}
+						}
+					}
+					
+					data.add(adjusted_sample);
+				}
+            		        
+            	data_canvas.repaint();
+            }   	
+		};
+		interpolate_item.addActionListener(interpolate_handler);
+		if(interpolation)
+			interpolate_item.setState(true);
+		settings_menu.add(interpolate_item);
+		
 		JMenuBar menu_bar = new JMenuBar();
 		menu_bar.add(file_menu);
 		menu_bar.add(format_menu);
@@ -1325,8 +1729,8 @@ public class YFencePlotter
 			else
 				y_remainder = 0;
 			
-			double minimum_y = seg_min;
-			double maximum_y = seg_max;
+			minimum_y = seg_min;
+			maximum_y = seg_max;
 			double minimum_x = seg_xmin;
 			double maximum_x = seg_xmax;
 			
@@ -1506,7 +1910,7 @@ public class YFencePlotter
 		        		    		if(start_flight_line == stop_flight_line)
 		        		    	        line_id = new String(start_flight_line + ":" + (4 - i));
 		        		    	    else
-		        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + (4 - i));	
+		        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + (4 -i));	
 		        		    	}
 								if(show_id)
 								    graphics_buffer.drawString(line_id,  (int) current_position + 10, b1 + 10);
@@ -1749,9 +2153,9 @@ public class YFencePlotter
 
 				ArrayList segment;
 				if(reverse_view)
-				    segment = (ArrayList)plot_data.get(i);
+				    segment = (ArrayList)plot_data.get(4 - i);
 				else
-					segment = (ArrayList)plot_data.get(number_of_segments - 1 - i);
+					segment = (ArrayList)plot_data.get(i);
 
 				int n   = segment.size() + 3;
 				int[] x = new int[n];
@@ -1819,7 +2223,7 @@ public class YFencePlotter
 						
 						if(reverse_view)
 						{
-							pixel_data_list.add(5 - 1 - i);   	
+							pixel_data_list.add(4 - i);   	
 						}
 						else
 						{
@@ -2007,18 +2411,18 @@ public class YFencePlotter
 				// Draw polygon.
 				if(reverse_view)
 				{
-					graphics_buffer.setColor(fill_color[number_of_segments - 1 - i]);
-					if(!transparent[number_of_segments - 1 - i])
+					graphics_buffer.setColor(fill_color[4 - i]);
+					if(!transparent[4 - i])
 				        graphics_buffer.fillPolygon(polygon[i]);
 					graphics_buffer.setStroke(new BasicStroke(2));
 				    graphics_buffer.setColor(java.awt.Color.BLACK);
-				    if(visible[number_of_segments - 1 - i])
+				    if(visible[4 - i])
 				        graphics_buffer.drawPolygon(polygon[i]);
 				    
 				    // Anchor polygon to isometric grid.
 				    graphics_buffer.setColor(Color.DARK_GRAY);
 				    graphics_buffer.setStroke(new BasicStroke(1)); 
-				    if(visible[number_of_segments - 1 - i])
+				    if(visible[4 - i])
 				        graphics_buffer.drawLine(a2, (int)polygon_min[i], a2, b1);
 				}
 				else
@@ -2680,7 +3084,7 @@ public class YFencePlotter
 			
 		    double [][] location_array = ObjectMapper.getObjectLocationArray();
 			int length = location_array.length;
-			graphics_buffer.setColor(java.awt.Color.RED);
+			
 			
 			for(int i = 0; i < length; i++)
 			{
@@ -2691,11 +3095,12 @@ public class YFencePlotter
 				x *= xfactor;
 				y *= yfactor;
 				y = ydim - y;
-				
+				graphics_buffer.setColor(java.awt.Color.RED);
 				graphics_buffer.fillOval((int)(x - 1), (int)(y - 1), 3, 3);
-				// If we want targent numbers.
-				//String object_string = Integer.toString(i + 1); 
-				//graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
+				// If we want target numbers.
+				graphics_buffer.setColor(java.awt.Color.BLACK);
+				String object_string = Integer.toString(i + 1); 
+				graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
 			}
 			
 			int current_xlocation       = (int)(xlocation * (xdim - 1));
