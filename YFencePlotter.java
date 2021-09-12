@@ -55,9 +55,20 @@ public class YFencePlotter
 	boolean            data_clipped         = false;
 	boolean            config_file_exists   = false;
 	boolean            interpolation        = false;
+	
 	boolean            dynamic_slider_changing = false;
 	boolean            dynamic_button_changing = false;
 	
+	boolean            append_data          = false;
+	int                append_line          = 0;
+	int                append_sensor        = 0;
+	double             append_x             = 0;
+	double             append_y             = 0;
+	double             append_intensity     = 0;
+	double             append_x_abs         = 0;
+	double             append_y_abs         = 0;
+	int                append_x_position    = 0;
+	int                append_y_position    = 0;
 	
 	String             graph_label = new String("");
 	
@@ -88,7 +99,7 @@ public class YFencePlotter
 	public PlacementCanvas placement_canvas;
 	
 	public JTextArea   sample_information;
-	public JTextField  graph_lable;
+	
 	public JTextField  lower_bound;
 	public JTextField  upper_bound;
 	
@@ -153,6 +164,7 @@ public class YFencePlotter
 				String  next_string = tokenizer.nextToken();
 				current_directory   = new String(current_directory + next_string + "/");
 			}
+			
 			String config_filename = new String(directory + "yfp.cfg");
 			File config_file = new File(config_filename);
 			if(config_file.exists())
@@ -268,9 +280,10 @@ public class YFencePlotter
 				}
 				catch(Exception e)
 				{
-								System.out.println(e.toString());
+					System.out.println(e.toString());
 				}
 			}
+			
 			
 			ArrayList original_data = new ArrayList();
 			global_xmin          = Double.MAX_VALUE;
@@ -532,6 +545,7 @@ public class YFencePlotter
 		information_panel.add(sample_information);
 		information_dialog = new JDialog(frame);
 		information_dialog.add(information_panel);
+		
 				
 		frame = new JFrame("YFence Plotter");
 		WindowAdapter window_handler = new WindowAdapter()
@@ -606,6 +620,29 @@ public class YFencePlotter
 		Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
 		frame.setCursor(cursor);
 
+		
+		// A modeless dialog box that shows up if Settings->Dynamic Range is selected.
+		lower_bound = new JTextField();
+		upper_bound = new JTextField();
+		lower_bound.setHorizontalAlignment(JTextField.CENTER);
+		upper_bound.setHorizontalAlignment(JTextField.CENTER);
+		
+		String lower_string = String.format("%.2f", minimum_y);
+		String upper_string = String.format("%.2f", maximum_y);
+		lower_bound.setText(lower_string);
+		upper_bound.setText(upper_string);
+		
+		JPanel bounds_panel = new JPanel(new GridLayout(2, 2));
+		bounds_panel.add(lower_bound);
+		bounds_panel.add(upper_bound);
+		bounds_panel.add(new JLabel("Lower", JLabel.CENTER));
+		bounds_panel.add(new JLabel("Upper", JLabel.CENTER));
+		JPanel bounds_button_panel = new JPanel(new GridLayout(1, 2));
+		JButton adjust_bounds_button = new JButton("Adjust");
+		JButton reset_bounds_button = new JButton("Reset");
+		bounds_button_panel.add(adjust_bounds_button);
+		
+		
 		data_canvas = new PlotCanvas();
 		data_canvas.setSize(1000, 800);
 		MouseHandler mouse_handler = new MouseHandler();
@@ -637,14 +674,15 @@ public class YFencePlotter
         double position;
         int    value;
         
-        position = slider_resolution * data_offset;
-        value = (int)position;
-		data_slider.setValue((int)position);
+       
 		
 		position = slider_resolution * data_offset + slider_resolution * data_range;
 		value = (int) position;
 	    data_slider.setUpperValue((int)position);
 		
+	    position = slider_resolution * data_offset;
+        value = (int)position;
+		data_slider.setValue((int)position);
 
 		data_scrollbar_changing = false;
 	
@@ -661,6 +699,7 @@ public class YFencePlotter
 		file_menu.add(save_item);
 		
 		JMenu     format_menu  = new JMenu("Format");
+		
 		// A modeless dialog box that shows up if Format->Show Data is selected.
 		information_panel = new JPanel(new BorderLayout());
 		sample_information = new JTextArea(8, 17);
@@ -797,7 +836,7 @@ public class YFencePlotter
 		format_menu.add(sensor_item);
 				
 		JPanel     label_panel = new JPanel(new BorderLayout());
-		JTextField label_input = new JTextField();
+		JTextField label_input = new JTextField(30);
 		label_input.setHorizontalAlignment(JTextField.CENTER);
 		label_input.setText("");
 		ActionListener label_input_handler = new ActionListener()
@@ -813,6 +852,14 @@ public class YFencePlotter
 		label_panel.add(label_input);		
 		label_dialog = new JDialog(frame, "Graph Label");
 		label_dialog.add(label_panel);
+		label_dialog.addWindowListener(new WindowAdapter() 
+		{
+		  public void windowClosing(WindowEvent e)
+		  {
+		    data_canvas.repaint();
+		  }
+		});
+		
 		
 		JMenuItem label_item = new JMenuItem("Graph Label");
 		ActionListener label_handler = new ActionListener()
@@ -979,22 +1026,7 @@ public class YFencePlotter
 		scaling_item.addActionListener(scale_handler);
 		adjustment_menu.add(scaling_item);		
 		
-		// A modeless dialog box that shows up if Settings->Dynamic Range is selected.
-		lower_bound = new JTextField();
-		upper_bound = new JTextField();
-		lower_bound.setHorizontalAlignment(JTextField.CENTER);
-		upper_bound.setHorizontalAlignment(JTextField.CENTER);
-		JPanel bounds_panel = new JPanel(new GridLayout(2, 2));
-		bounds_panel.add(lower_bound);
-		bounds_panel.add(upper_bound);
-		bounds_panel.add(new JLabel("Lower", JLabel.CENTER));
-		bounds_panel.add(new JLabel("Upper", JLabel.CENTER));
-		JPanel bounds_button_panel = new JPanel(new GridLayout(1, 2));
-		JButton adjust_bounds_button = new JButton("Adjust");
-		JButton reset_bounds_button = new JButton("Reset");
-		bounds_button_panel.add(adjust_bounds_button);
-		
-		
+	
 		ActionListener adjust_range_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -1264,16 +1296,8 @@ public class YFencePlotter
 		location_item.addActionListener(location_handler);
 		location_menu.add(location_item);
 				
-		
 		JMenu     settings_menu  = new JMenu("Settings");
-		
 
-
-		
-
-		
-
-		
 		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
 		ActionListener view_handler = new ActionListener()
 		{
@@ -1291,6 +1315,78 @@ public class YFencePlotter
 					reverse_view = true;
 					item.setState(true);
 					placement_canvas.repaint();
+				}
+            	if(append_data)
+				{
+					Dimension canvas_dimension = data_canvas.getSize();
+					int       canvas_xdim      = (int)canvas_dimension.getWidth();
+					int       canvas_ydim      = (int)canvas_dimension.getHeight();
+					
+					double    max_xstep        = (canvas_xdim - (left_margin + right_margin)) / 5;
+					int       xstep            = (int) (max_xstep * normal_xstep);
+					
+					double    max_ystep        = (canvas_ydim - (top_margin + bottom_margin)) / 5;
+					int       ystep            = (int) (max_ystep * normal_ystep);
+					
+					int delta_x = 0;
+					int delta_y = 0;
+					
+					
+					if(append_sensor == 0)
+					{
+						if(reverse_view)
+						{
+						    delta_x =  4 * xstep;
+						    delta_y = -4 * ystep;
+						}
+						else
+						{
+							delta_x = -4 * xstep;
+							delta_y =  4 * ystep;
+						}
+					}
+					else if(append_sensor == 4)
+					{
+						if(reverse_view)
+						{
+						    delta_x = -4 * xstep;
+						    delta_y =  4 * ystep;
+						}
+						else
+						{
+							delta_x =  4 * xstep;
+							delta_y = -4 * ystep;
+						}	
+					}
+					else if(append_sensor == 1)
+					{
+						if(reverse_view)
+						{
+						    delta_x =  2 * xstep;
+						    delta_y = -2 * ystep;
+						}
+						else
+						{
+							delta_x = -2 * xstep;
+							delta_y =  2 * ystep;
+						}    
+					}
+					else if(append_sensor == 3)
+					{
+						if(reverse_view)
+						{
+						    delta_x = -2 * xstep;
+						    delta_y =  2 * ystep;
+						}
+						else
+						{
+							delta_x =  2 * xstep;
+							delta_y = -2 * ystep;
+						}    	
+					}
+					
+					append_x_position += delta_x;
+				    append_y_position += delta_y;
 				}
 		        data_canvas.repaint();
             }   	
@@ -1350,30 +1446,6 @@ public class YFencePlotter
 			mode_item.setState(true);
 		settings_menu.add(mode_item);
 		
-		JCheckBoxMenuItem show_label_item = new JCheckBoxMenuItem("Show Label");
-		ActionListener show_label_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(show_label == true)
-				{
-            		show_label = false;
-					item.setState(false);
-				}
-				else
-				{
-					show_label = true;
-					item.setState(true);
-				}
-		        data_canvas.repaint();
-            }   	
-		};
-		show_label_item.addActionListener(show_label_handler);
-		if(show_label)
-			show_label_item.setState(true);
-		settings_menu.add(show_label_item);
-		
 		JCheckBoxMenuItem show_id_item = new JCheckBoxMenuItem("Show ID");
 		ActionListener show_id_handler = new ActionListener()
 		{
@@ -1397,6 +1469,30 @@ public class YFencePlotter
 		if(show_id)
 			show_id_item.setState(true);
 		settings_menu.add(show_id_item);
+		
+		JCheckBoxMenuItem append_data_item = new JCheckBoxMenuItem("Append Data");
+		ActionListener append_data_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(append_data == true)
+				{
+            		append_data = false;
+					item.setState(false);
+				}
+				else
+				{
+					append_data = true;
+					item.setState(true);
+				}
+		        data_canvas.repaint();
+            }   	
+		};
+		append_data_item.addActionListener(append_data_handler);
+		if(append_data)
+			append_data_item.setState(true);
+		settings_menu.add(append_data_item);
 		
 		JCheckBoxMenuItem color_key_item = new JCheckBoxMenuItem("Color Key");
 		ActionListener color_key_handler = new ActionListener()
@@ -1737,9 +1833,11 @@ public class YFencePlotter
 			if(data_clipped == true)
 			{
 				String bound_string = lower_bound.getText();
-				minimum_y = Double.valueOf(bound_string);
+				if(!bound_string.equals(""))
+				    minimum_y = Double.valueOf(bound_string);
 				bound_string = upper_bound.getText();
-				maximum_y = Double.valueOf(bound_string);
+				if(!bound_string.equals(""))
+				    maximum_y = Double.valueOf(bound_string);
 			} 
 			
 			if(data_scaled)
@@ -1779,7 +1877,6 @@ public class YFencePlotter
 					graphics_buffer.setStroke(basic_stroke);
 					graphics_buffer.setColor(java.awt.Color.RED);
 					graphics_buffer.drawLine((int) a1, (int) zero_y, (int) a1 + xstep, (int) zero_y - ystep);
-					//graphics_buffer.drawLine((int) a2, (int) zero_y, (int) a2 + xstep, (int) zero_y - ystep);
 					graphics_buffer.setStroke(new BasicStroke(2));	
 				}
 				
@@ -2118,9 +2215,18 @@ public class YFencePlotter
 			
 			for (int i = 0; i < number_of_segments; i++)
 			{
-				ArrayList data_list       = (ArrayList)data_array.get(i);
-				ArrayList relative_data_list = (ArrayList)relative_data_array.get(i);
-				
+				ArrayList data_list;
+				ArrayList relative_data_list;
+				if(reverse_view)
+				{
+					data_list       = (ArrayList)data_array.get(number_of_segments - 1 - i);
+				    relative_data_list = (ArrayList)relative_data_array.get(number_of_segments - 1 - i);	
+				}
+				else
+				{
+				    data_list       = (ArrayList)data_array.get(i);
+				    relative_data_list = (ArrayList)relative_data_array.get(i);
+				}
 				
 				Sample    previous_sample = (Sample)data_list.get(0);
 				polygon_zero_crossing[i]  = false;
@@ -2156,6 +2262,7 @@ public class YFencePlotter
 				    segment = (ArrayList)plot_data.get(4 - i);
 				else
 					segment = (ArrayList)plot_data.get(i);
+				
 
 				int n   = segment.size() + 3;
 				int[] x = new int[n];
@@ -2210,6 +2317,7 @@ public class YFencePlotter
 					// Where endpoints overlap, there should be multiple samples.
 					ArrayList pixel_data_list = pixel_data[(int) current_y][(int) current_x];
 					Sample sample;
+					
 					if(k < relative_data_list.size())
 					    sample = (Sample)relative_data_list.get(k);
 					else
@@ -2229,6 +2337,9 @@ public class YFencePlotter
 						{
 						    pixel_data_list.add(i);
 						}
+						
+						
+						//pixel_data_list.add(i);
 						pixel_data_list.add(sample);
 					} 
 					else
@@ -2244,7 +2355,17 @@ public class YFencePlotter
 						
 						ArrayList new_pixel_list = new ArrayList();
 						new_pixel_list.add(start_flight_line);
-						new_pixel_list.add(i);
+						
+						if(reverse_view)
+						{
+							new_pixel_list.add(4 - i);   	
+						}
+						else
+						{
+							new_pixel_list.add(i);
+						}
+						
+						//new_pixel_list.add(i);
 						
 						new_pixel_list.add(sample);
 						for (int p = 0; p < pixel_data_list.size(); p += 3)
@@ -2266,10 +2387,15 @@ public class YFencePlotter
 					// Assigning neighbor pixels if they are unassigned so that
 					// it isn't hard for the mouse to find an assigned pixel.
 					ArrayList pixel_list = pixel_data[(int) current_y - 1][(int) current_x];
+					int j = i;
+					if(reverse_view)
+						j = 4 - i;
+							
 					if (pixel_list.size() == 0)
 					{
 						pixel_list.add(start_flight_line);
-						pixel_list.add(i);
+						
+						pixel_list.add(j);
 						pixel_list.add(sample);
 					}
 
@@ -2277,7 +2403,7 @@ public class YFencePlotter
 					if (pixel_list.size() == 0)
 					{
 						pixel_list.add(start_flight_line);
-						pixel_list.add(i);
+						pixel_list.add(j);
 						pixel_list.add(sample);
 					}
 
@@ -2285,7 +2411,7 @@ public class YFencePlotter
 					if (pixel_list.size() == 0)
 					{
 						pixel_list.add(start_flight_line);
-						pixel_list.add(i);
+						pixel_list.add(j);
 						pixel_list.add(sample);
 					}
 
@@ -2293,7 +2419,7 @@ public class YFencePlotter
 					if (pixel_list.size() == 0)
 					{
 						pixel_list.add(start_flight_line);
-						pixel_list.add(i);
+						pixel_list.add(j);
 						pixel_list.add(sample);
 					}
 
@@ -2301,7 +2427,7 @@ public class YFencePlotter
 					if (pixel_list.size() == 0)
 					{
 						pixel_list.add(start_flight_line);
-						pixel_list.add(i);
+						pixel_list.add(j);
 						pixel_list.add(sample);
 					}
 
@@ -2309,7 +2435,7 @@ public class YFencePlotter
 					if (pixel_list.size() == 0)
 					{
 						pixel_list.add(start_flight_line);
-						pixel_list.add(i);
+						pixel_list.add(j);
 						pixel_list.add(sample);
 					}
 
@@ -2317,7 +2443,7 @@ public class YFencePlotter
 					if (pixel_list.size() == 0)
 					{
 						pixel_list.add(start_flight_line);
-						pixel_list.add(i);
+						pixel_list.add(j);
 						pixel_list.add(sample);
 					}
 
@@ -2325,7 +2451,7 @@ public class YFencePlotter
 					if (pixel_list.size() == 0)
 					{
 						pixel_list.add(start_flight_line);
-						pixel_list.add(i);
+						pixel_list.add(j);
 						pixel_list.add(sample);
 					}
 				}
@@ -2686,10 +2812,10 @@ public class YFencePlotter
 			string_width = font_metrics.stringWidth(intensity_string);
 			graphics_buffer.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
 			
-			if(show_label && !graph_label.equals(""))
+			if(!graph_label.equals(""))
 			{
 				string_width = font_metrics.stringWidth(graph_label); 
-				graphics_buffer.drawString(graph_label, xdim / 2 - string_width / 2, top_margin - string_height);
+				graphics_buffer.drawString(graph_label, xdim / 2 - string_width / 2, top_margin - 5);
 			}
 			
 			if(color_key)
@@ -2704,13 +2830,56 @@ public class YFencePlotter
 						sensor_id = new String(start_flight_line + ":" + i);
 					string_width = font_metrics.stringWidth(sensor_id);
 					int x = xdim - (3 * string_width + 10);
-					int y = ydim - (2 * i * string_height) - bottom_margin;
+					//int y = ydim - (2 * i * string_height) - bottom_margin;
+					int y = ydim - (2 * i * string_height) - 5;
 					graphics_buffer.setColor(Color.BLACK);
 					graphics_buffer.drawString(sensor_id, x, y);
 					graphics_buffer.setColor(fill_color[i]);
 					graphics_buffer.fillRect(x + 2 * string_width, y - string_height, string_width, string_height);
 				}
 			}
+			
+			if(append_data)
+			{
+				graphics_buffer.setColor(Color.RED);
+				graphics_buffer.drawOval((int)append_x_position - 2, (int)append_y_position - 2, 5, 5);
+				graphics_buffer.fillOval((int)append_x_position - 2, (int)append_y_position - 2, 5, 5);
+				graphics_buffer.setColor(Color.BLACK);
+				
+				int current_y = string_height + 2;
+				int current_x = 2;
+				String information_string = new String("  Line:         " + append_line);
+				graphics_buffer.drawString(information_string, current_x, current_y);
+				
+				current_y += string_height + 2;
+				information_string = new String("  Sensor:     " + append_sensor);
+				graphics_buffer.drawString(information_string, current_x, current_y);
+				
+				current_y += string_height + 2;
+				information_string = new String("  Intensity:   " + append_intensity + "\n");	
+				graphics_buffer.drawString(information_string, current_x, current_y);
+				
+				current_y           += string_height + 2;
+				String number_string = String.format("%,.2f", append_x);
+				information_string   = new String("  Relative x: " + number_string);
+				graphics_buffer.drawString(information_string, current_x, current_y);
+				
+				current_y           += string_height + 2;
+				number_string        = String.format("%,.2f", append_y);
+				information_string   = new String("  Relative y: " + number_string);
+				graphics_buffer.drawString(information_string, current_x, current_y);
+				
+				current_y           += string_height + 2;
+				number_string = String.format("%,.2f", append_x_abs);
+				information_string   = new String("  Absolute x: " + number_string);
+				graphics_buffer.drawString(information_string, current_x, current_y);
+				
+				current_y           += string_height + 2;
+				number_string        = String.format("%,.2f", append_y_abs);
+				information_string   = new String("  Absolute y: " + number_string);
+				graphics_buffer.drawString(information_string, current_x, current_y);
+			}
+			
 			g.drawImage(buffered_image, 0, 0, null);
 		}
 	}
@@ -2887,6 +3056,16 @@ public class YFencePlotter
 					current_intensity = sample.intensity;
 					current_x = sample.x;
 					current_y = sample.y;
+					
+					append_line       = current_line;
+					append_sensor     = current_sensor;
+					append_intensity  = current_intensity;
+					append_x          = current_x;
+					append_y          = current_y;
+					append_x_abs      = current_x + global_xmin;
+					append_y_abs      = current_y + global_ymin;
+					append_x_position = x;
+					append_y_position = y;
 
 					String information_string = new String("  Line:         " + current_line + "\n");
 					sample_information.append(information_string);
@@ -3247,41 +3426,6 @@ public class YFencePlotter
 					FontMetrics   font_metrics = print_buffer.getFontMetrics();
 					print_buffer.drawImage(buffered_image, 0, 0,  null);	
 								
-					// Add label.
-					/*
-					String        graph_label   = graph_input.getText();
-					FontMetrics   font_metrics  = print_buffer.getFontMetrics();
-					int           string_height = font_metrics.getAscent();
-				    int           margin        = 10;
-					if(!graph_label.equals(""))
-					{
-					    print_buffer.setColor(Color.BLACK);
-						int         string_width  = font_metrics.stringWidth(graph_label);
-						print_buffer.drawString(graph_label, image_xdim - string_width - margin, margin + string_height);
-					}
-					*/
-								
-					// Add color key.
-					/*
-					int string_height = font_metrics.getAscent();
-					print_buffer.setStroke(new BasicStroke(3));
-					for(int i = 0; i < 5; i++)
-					{
-						String sensor_id = new String("foo");
-						if(stop_flight_line != start_flight_line)
-							sensor_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);
-						else
-							sensor_id = new String(start_flight_line + ":" + i);
-						int    string_width = font_metrics.stringWidth(sensor_id);
-						int x = image_xdim - right_margin - 3 * string_width;
-						int y = image_ydim - (2 * i * string_height) + string_height;
-						print_buffer.setColor(Color.BLACK);
-						print_buffer.drawString(sensor_id, x, y);
-						print_buffer.setColor(fill_color[i]);
-						print_buffer.fillRect(x + 2 * string_width, y - string_height, string_width, string_height);
-					}
-					*/
-					
 					try 
 			        {  
 			            ImageIO.write(print_image, "png", new File(current_directory + filename)); 
@@ -3385,9 +3529,16 @@ public class YFencePlotter
 			if(data_clipped)
 			{
 				String lower_bound_string = lower_bound.getText();
+				if(!lower_bound_string.equals(""))
+					min = Double.valueOf(lower_bound_string);
+				else
+					min = minimum_y;
+				
 				String upper_bound_string = upper_bound.getText();
-				min = Double.valueOf(lower_bound_string);
-				max = Double.valueOf(upper_bound_string);
+				if(!upper_bound_string.equals(""))
+				    max = Double.valueOf(upper_bound_string);
+				else
+					max = maximum_y;
 				
 				//Since we're limiting min and max to two decimal places,
 				//we have to do the same thing to our global min/max to
@@ -3559,8 +3710,8 @@ public class YFencePlotter
 				double adjusted_global_min        = Double.valueOf(adjusted_global_min_string);
 				String adjusted_global_max_string = String.format("%.2f", global_max);
 				double adjusted_global_max        = Double.valueOf(adjusted_global_max_string);
-				double min = global_min;
-				double max = global_max;
+				double min                        = global_min;
+				double max                        = global_max;
 				
 				if(data_clipped)
 				{
