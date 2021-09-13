@@ -28,28 +28,39 @@ public class XFencePlotter
 	double  range          = 60;
 	int     init_line      = 9;
 	boolean autoscale      = false;
-    boolean tick_marks     = false;
+   
     boolean raster_overlay = false;
+    boolean persistent_data = false;
 	boolean relative_mode  = true;
     boolean reverse_view   = false;
     boolean data_scaled    = false;
     boolean data_clipped   = false;
     boolean color_key      = true;
-    boolean show_id        = false;
+    boolean show_id        = true;
+    boolean show_label     = true;
     double  scale_factor   = 1.;
-    double  normal_xstep   = 1;
-	double  normal_ystep   = 0;
+    double  normal_xstep   = 0.5;
+	double  normal_ystep   = 0.5;
 	double  sort_location  = 0.5;
 	double  xlocation      = 0.5;
 	double  ylocation      = 0.5;	
     double  minimum_y      = 0;
     double  maximum_y      = 0;
     int     smooth         = 0;
+    boolean config_file_exists = false;
     
-    //Used by XFencePlotter in constructor
-    boolean   config_file_exists = false;
-    ArrayList sensor_id          = new ArrayList();
-    
+    boolean            append_data          = false;
+	int                append_line          = 0;
+	int                append_sensor        = 0;
+	double             append_x             = 0;
+	double             append_y             = 0;
+	double             append_intensity     = 0;
+	double             append_x_abs         = 0;
+	double             append_y_abs         = 0;
+	int                append_x_position    = 0;
+	int                append_y_position    = 0;
+
+    ArrayList     sensor_id   = new ArrayList();
 	ArrayList     data        = new ArrayList();
 	ArrayList     sensor_data = new ArrayList();
 	ArrayList     xlist       = new ArrayList();
@@ -210,7 +221,7 @@ public class XFencePlotter
 				String  next_string = tokenizer.nextToken();
 				current_directory   = new String(current_directory + next_string + "/");
 			}
-			String config_filename = new String(directory + "xfp.cfg");
+			String config_filename = new String(directory + "zfp.cfg");
 			File config_file = new File(config_filename);
 			if(config_file.exists())
 			{
@@ -218,7 +229,6 @@ public class XFencePlotter
 				config_file_exists = true;
 				try
 				{
-					int            number_of_lines = 0;
 				    BufferedReader config_reader   = new BufferedReader(new InputStreamReader(new FileInputStream(config_file)));
 				    
 				    String line;
@@ -290,13 +300,6 @@ public class XFencePlotter
 					        	else
 					        		reverse_view = false;
 					        }
-				            else if(key.equals("TickMarks")) 
-					        {
-					        	if(value.equals("true"))
-					        		tick_marks = true;
-					        	else
-					        		tick_marks = false;
-					        }
 				            else if(key.equals("RelativeMode")) 
 					        {
 					        	if(value.equals("true"))
@@ -317,6 +320,13 @@ public class XFencePlotter
 					        		autoscale = true;
 					        	else
 					        		autoscale = false;
+					        } 
+				            else if(key.equals("ColorKey")) 
+					        {
+					        	if(value.equals("true"))
+					        		color_key = true;
+					        	else
+					        		color_key = false;
 					        } 
 				            else if(key.equals("Smooth")) 
 				        	    smooth = Integer.parseInt(value);
@@ -427,8 +437,7 @@ public class XFencePlotter
 					}
 				}
 				reader.close();
-				//System.out.println("Global xmin is " + global_xmin);
-				//System.out.println("Global ymin is " + global_ymin);
+				
 				for (int i = 0; i < original_data.size(); i++)
 				{
 					Sample sample = (Sample) original_data.get(i);
@@ -455,7 +464,7 @@ public class XFencePlotter
 	        {
 	        	try
 	            {
-	            	PrintWriter output  = new PrintWriter("xfp.cfg");	
+	            	PrintWriter output  = new PrintWriter("zfp.cfg");	
 	            	String id           = new String("");
 	            	String _visible     = new String("");
 	            	String _transparent = new String("");
@@ -492,10 +501,6 @@ public class XFencePlotter
 	            		output.write("ReverseView\t\ttrue\n");
 	            	else
 	            		output.write("ReverseView\t\tfalse\n");
-	            	if(tick_marks)
-	            		output.write("TickMarks\t\ttrue\n");
-	            	else
-	            		output.write("TickMarks\t\tfalse\n");
 	            	if(relative_mode)
 	            		output.write("RelativeMode\ttrue\n");
 	            	else
@@ -508,6 +513,10 @@ public class XFencePlotter
 	            		output.write("Autoscale\t\ttrue\n");
 	            	else
 	            		output.write("Autoscale\t\tfalse\n");
+	            	if(color_key)
+	            		output.write("ColorKey\t\ttrue\n");
+	            	else
+	            		output.write("ColorKey\t\tfalse\n");
 	            	if(data_scaled)
 	            		output.write("Scaling\t\t\ttrue\n");
 	            	else
@@ -530,7 +539,7 @@ public class XFencePlotter
 	        }
 	    };
 	    frame.addWindowListener(window_handler);
-	    //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	    
 		line_canvas = new LineCanvas();
 		line_canvas.setSize(900, 700);
 		MouseHandler mouse_handler = new MouseHandler();
@@ -718,6 +727,34 @@ public class XFencePlotter
 		file_menu.add(save_item);
 
 		JMenu format_menu = new JMenu("Format");
+		
+		// A modeless dialog box that shows up if Format->Show Data is selected.
+		JPanel information_panel = new JPanel(new BorderLayout());
+		sample_information = new JTextArea(8, 17);
+		information_panel.add(sample_information);
+		information_dialog = new JDialog(frame);
+		information_dialog.add(information_panel);		
+		JMenuItem data_item = new JMenuItem("Show Data");
+		ActionListener data_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+						
+				Dimension canvas_dimension = line_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+						
+				x += canvas_xdim;
+				information_dialog.setLocation(x, y);
+				information_dialog.pack();
+				information_dialog.setVisible(true);
+			}
+		};
+		data_item.addActionListener(data_handler);
+		format_menu.add(data_item);
+		
 		JMenuItem place_item = new JMenuItem("Placement");
 		ActionListener placement_handler = new ActionListener()
 		{
@@ -759,102 +796,31 @@ public class XFencePlotter
 		};
 		sort_item.addActionListener(sort_handler);
 
-		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
-		ActionListener view_handler = new ActionListener()
+		
+		JMenuItem label_item  = new JMenuItem("Graph Label");
+		ActionListener label_handler = new ActionListener()
 		{
-			public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(reverse_view == true)
-				{
-            		reverse_view = false;
-					item.setState(false);
-					placement_canvas.repaint();
-				}
-				else
-				{
-					reverse_view = true;
-					item.setState(true);
-					placement_canvas.repaint();
-				}
-		        line_canvas.repaint();
-            }   	
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+
+				graph_dialog.setLocation(x, y);
+				graph_dialog.pack();
+				graph_dialog.setVisible(true);
+			}
 		};
-		view_item.addActionListener(view_handler);
-		if(reverse_view)
-			view_item.setState(true);
-        
-		JCheckBoxMenuItem number_mode_item = new JCheckBoxMenuItem("Relative Mode");
-		number_mode_item.setState(true);
-		number_mode_item.addActionListener(new ActionListener() 
-        {
-            public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(relative_mode == true)
-				{
-            		relative_mode = false;
-					item.setState(false);
-				}
-				else
-				{
-					relative_mode = true;
-					item.setState(true);
-				}
-		        line_canvas.repaint();
-            }
-        });
+		label_item.addActionListener(label_handler);
 		
-        JCheckBoxMenuItem tick_mark_item = new JCheckBoxMenuItem("Tick Marks");
-        tick_mark_item.addActionListener(new ActionListener() 
-        {
-            public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(tick_marks == true)
-				{
-					tick_marks = false;
-					item.setState(false);
-				}
-				else
-				{
-					tick_marks = true;
-					item.setState(true);
-				}
-		        line_canvas.repaint();
-            }
-        });
-		
-        JCheckBoxMenuItem overlay_item = new JCheckBoxMenuItem("Raster Overlay");
-        if(raster_overlay == true)
-        	overlay_item.setState(true);	
-        overlay_item.addActionListener(new ActionListener() 
-        {
-            public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(raster_overlay == true)
-				{
-					raster_overlay = false;
-					item.setState(false);
-				}
-				else
-				{
-					raster_overlay = true;
-					item.setState(true);
-				}
-		        line_canvas.repaint();
-            }
-        });
 		
 		format_menu.add(place_item);
 		format_menu.add(sort_item);
-		format_menu.add(view_item);
-		format_menu.add(number_mode_item);
-		format_menu.add(tick_mark_item);
-		format_menu.add(overlay_item);
+		format_menu.add(label_item);
 
-		JMenu settings_menu = new JMenu("Settings");
+		JMenu adjustments_menu = new JMenu("Adjustments");
 
 		JMenuItem scaling_item = new JMenuItem("Scaling");
 		ActionListener scale_handler = new ActionListener()
@@ -874,6 +840,24 @@ public class XFencePlotter
 			}
 		};
 		scaling_item.addActionListener(scale_handler);
+		
+		JMenuItem smoothing_item = new JMenuItem("Smoothing");
+		ActionListener smooth_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+				x += 830;
+				y += 640;
+				smooth_dialog.setLocation(x, y);
+				smooth_dialog.pack();
+				smooth_dialog.setVisible(true);
+			}
+		};
+		smoothing_item.addActionListener(smooth_handler);
+		
 
 		JMenuItem dynamic_range_item = new JMenuItem("Dynamic Range");
 		ActionListener dynamic_range_handler = new ActionListener()
@@ -915,24 +899,13 @@ public class XFencePlotter
 		};
 		dynamic_range_item.addActionListener(dynamic_range_handler);
 
-		JMenuItem smoothing_item = new JMenuItem("Smoothing");
-		ActionListener smooth_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-				x += 830;
-				y += 640;
-				smooth_dialog.setLocation(x, y);
-				smooth_dialog.pack();
-				smooth_dialog.setVisible(true);
-			}
-		};
-		smoothing_item.addActionListener(smooth_handler);
+		adjustments_menu.add(smoothing_item);
+		adjustments_menu.add(scaling_item);
+		adjustments_menu.add(dynamic_range_item);
 		
-		JMenuItem location_item = new JMenuItem("Location");
+		
+		JMenu     location_menu  = new JMenu("Location");
+		JMenuItem location_item = new JMenuItem("Show Map");
 		ActionListener location_handler = new ActionListener()
 		{
 		    public void actionPerformed(ActionEvent e)
@@ -948,6 +921,7 @@ public class XFencePlotter
 		    }
 		};
 		location_item.addActionListener(location_handler);
+		
 		
 		JMenuItem segment_image_item = new JMenuItem("Show Segment Image");
 		ActionListener segment_image_handler = new ActionListener()
@@ -983,23 +957,173 @@ public class XFencePlotter
 		};
 		line_image_item.addActionListener(line_image_handler);
 		
-		JMenuItem graph_item  = new JMenuItem("Graph Label");
-		ActionListener graph_handler = new ActionListener()
+		location_menu.add(location_item);
+		location_menu.add(segment_image_item);
+		location_menu.add(line_image_item);
+		
+		JMenu settings_menu = new JMenu("Settings");
+		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
+		ActionListener view_handler = new ActionListener()
 		{
-			public void actionPerformed(ActionEvent e)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-
-				graph_dialog.setLocation(x, y);
-				graph_dialog.pack();
-				graph_dialog.setVisible(true);
-			}
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(reverse_view == true)
+				{
+            		reverse_view = false;
+					item.setState(false);
+					placement_canvas.repaint();
+				}
+				else
+				{
+					reverse_view = true;
+					item.setState(true);
+					placement_canvas.repaint();
+				}
+            	if(append_data)
+				{
+					Dimension canvas_dimension = line_canvas.getSize();
+					int       canvas_xdim      = (int)canvas_dimension.getWidth();
+					int       canvas_ydim      = (int)canvas_dimension.getHeight();
+					
+					double    max_xstep        = (canvas_xdim - (left_margin + right_margin)) / 5;
+					int       xstep            = (int) (max_xstep * normal_xstep);
+					
+					double    max_ystep        = (canvas_ydim - (top_margin + bottom_margin)) / 5;
+					int       ystep            = (int) (max_ystep * normal_ystep);
+					
+					int delta_x = 0;
+					int delta_y = 0;
+					
+					
+					if(append_sensor == 0)
+					{
+						if(reverse_view)
+						{
+						    delta_x =  4 * xstep;
+						    delta_y = -4 * ystep;
+						}
+						else
+						{
+							delta_x = -4 * xstep;
+							delta_y =  4 * ystep;
+						}
+					}
+					else if(append_sensor == 4)
+					{
+						if(reverse_view)
+						{
+						    delta_x = -4 * xstep;
+						    delta_y =  4 * ystep;
+						}
+						else
+						{
+							delta_x =  4 * xstep;
+							delta_y = -4 * ystep;
+						}	
+					}
+					else if(append_sensor == 1)
+					{
+						if(reverse_view)
+						{
+						    delta_x =  2 * xstep;
+						    delta_y = -2 * ystep;
+						}
+						else
+						{
+							delta_x = -2 * xstep;
+							delta_y =  2 * ystep;
+						}    
+					}
+					else if(append_sensor == 3)
+					{
+						if(reverse_view)
+						{
+						    delta_x = -2 * xstep;
+						    delta_y =  2 * ystep;
+						}
+						else
+						{
+							delta_x =  2 * xstep;
+							delta_y = -2 * ystep;
+						}    	
+					}
+					
+					append_x_position += delta_x;
+				    append_y_position += delta_y;
+				}
+		        line_canvas.repaint();
+            }   	
 		};
-		graph_item.addActionListener(graph_handler);
+		view_item.addActionListener(view_handler);
+		if(reverse_view)
+			view_item.setState(true);
+        
+		JCheckBoxMenuItem number_mode_item = new JCheckBoxMenuItem("Relative Mode");
+		number_mode_item.setState(true);
+		number_mode_item.addActionListener(new ActionListener() 
+        {
+            public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(relative_mode == true)
+				{
+            		relative_mode = false;
+					item.setState(false);
+				}
+				else
+				{
+					relative_mode = true;
+					item.setState(true);
+				}
+		        line_canvas.repaint();
+            }
+        });
+		
+        JCheckBoxMenuItem overlay_item = new JCheckBoxMenuItem("Raster Overlay");
+        if(raster_overlay == true)
+        	overlay_item.setState(true);	
+        overlay_item.addActionListener(new ActionListener() 
+        {
+            public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(raster_overlay == true)
+				{
+					raster_overlay = false;
+					item.setState(false);
+				}
+				else
+				{
+					raster_overlay = true;
+					item.setState(true);
+				}
+		        line_canvas.repaint();
+            }
+        });
+		
+        JCheckBoxMenuItem append_data_item = new JCheckBoxMenuItem("Append Data");
+		ActionListener append_data_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(append_data == true)
+				{
+            		append_data = false;
+					item.setState(false);
+				}
+				else
+				{
+					append_data = true;
+					item.setState(true);
+				}
+		        line_canvas.repaint();
+            }   	
+		};
+		append_data_item.addActionListener(append_data_handler);
+		if(append_data)
+			append_data_item.setState(true);
 		
 		JCheckBoxMenuItem color_key_item = new JCheckBoxMenuItem("Color Key");
 		ActionListener key_handler = new ActionListener()
@@ -1011,11 +1135,13 @@ public class XFencePlotter
 				{
             		color_key = false;
 					item.setState(false);
+					line_canvas.repaint();;
 				}
 				else
 				{
 					color_key = true;
 					item.setState(true);
+					line_canvas.repaint();
 				}
             }   	
 		};
@@ -1025,17 +1151,44 @@ public class XFencePlotter
 		else
 			color_key_item.setState(false);
 		
-		settings_menu.add(scaling_item);
-		settings_menu.add(dynamic_range_item);
-		settings_menu.add(smoothing_item);
-		settings_menu.add(location_item);
-		settings_menu.add(segment_image_item);
-		settings_menu.add(line_image_item);
-		settings_menu.add(graph_item);
+		JCheckBoxMenuItem show_id_item = new JCheckBoxMenuItem("Show ID");
+		ActionListener show_id_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(show_id == true)
+				{
+            		show_id = false;
+					item.setState(false);
+				}
+				else
+				{
+					show_id = true;
+					item.setState(true);
+				}
+		        line_canvas.repaint();
+            }   	
+		};
+		show_id_item.addActionListener(show_id_handler);
+		if(show_id)
+			show_id_item.setState(true);
+		
+		
+		settings_menu.add(view_item);
+		settings_menu.add(overlay_item);
+		settings_menu.add(number_mode_item);
+		settings_menu.add(show_id_item);
+		settings_menu.add(append_data_item);
 		settings_menu.add(color_key_item);
 		
+		
+		
+	
 		menu_bar.add(file_menu);
 		menu_bar.add(format_menu);
+		menu_bar.add(adjustments_menu);
+		menu_bar.add(location_menu);
 		menu_bar.add(settings_menu);
 
 		// A modeless dialog box that shows up if File->Load is selected.
@@ -1145,7 +1298,7 @@ public class XFencePlotter
 		segment_image_dialog = new JDialog(frame);
 		segment_image_dialog.add(segment_image_scrollpane);
 		
-		// A modeless dialog box that shows up if Settings->Show Segment Image is selected.
+		// A modeless dialog box that shows up if Settings->Show Line Image is selected.
 		line_image_canvas = new LineImageCanvas();
 		line_image_canvas.setSize(line_image_xdim, line_image_ydim);
 		
@@ -1436,20 +1589,21 @@ public class XFencePlotter
 
 		// A modeless dialog box that shows up if Settings->Graph Label is selected.
 		JPanel graph_panel = new JPanel(new BorderLayout());
-		graph_input        = new JTextField();
+		graph_input        = new JTextField(30);
 		graph_input.setHorizontalAlignment(JTextField.CENTER);
         graph_input.setText("");
 		graph_panel.add(graph_input);
 		graph_dialog = new JDialog(frame, "Label");
 		graph_dialog.add(graph_panel, BorderLayout.CENTER);
+		graph_dialog.addWindowListener(new WindowAdapter() 
+		{
+		  public void windowClosing(WindowEvent e)
+		  {
+		    line_canvas.repaint();
+		  }
+		});
 		
-		// A modeless dialog box that shows up if the mouse is dragged on the canvas.
-		JPanel information_panel = new JPanel(new BorderLayout());
-		sample_information = new JTextArea(8, 17);
-		information_panel.add(sample_information);
-		information_dialog = new JDialog(frame);
-		information_dialog.add(information_panel);
-		
+	
 		frame.setJMenuBar(menu_bar);
 
 		// Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
@@ -2161,6 +2315,7 @@ public class XFencePlotter
 								    graphics_buffer.fillPolygon(polygon[i]);
 							    }
 							    graphics_buffer.setColor(java.awt.Color.BLACK);
+							    graphics_buffer.setStroke(new BasicStroke(2));
 							    //graphics_buffer.setColor(outline_color[(number_of_segments - 1) - i]);
 								graphics_buffer.drawPolygon(polygon[i]);
 							}
@@ -2173,23 +2328,8 @@ public class XFencePlotter
 								int plot_length = plot_list.size();
 								Point2D.Double last = (Point2D.Double) plot_list.get(plot_length - 1);
 
-								double x1 = first.getX();
-								double x2 = last.getX();
 								double zero_y = Math.abs(minimum_y);
-
-								x1 -= minimum_x;
-								x1 /= xrange;
-								x1 *= graph_xdim;
-								x1 += left_margin;
-								x1 += xaddend;
-
-								x2 -= minimum_x;
-								x2 /= xrange;
-								x2 *= graph_xdim;
-								x2 += left_margin;
-								x2 += xaddend;
-
-								zero_y /= yrange;
+								zero_y /= maximum_y - minimum_y;
 								zero_y *= graph_ydim;
 								zero_y = (graph_ydim + y_remainder) - zero_y;
 								zero_y += top_margin + (number_of_segments - 1) * ystep;
@@ -2199,7 +2339,6 @@ public class XFencePlotter
 								BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
 								graphics_buffer.setStroke(basic_stroke);
 								graphics_buffer.setColor(java.awt.Color.RED);
-								//graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
 								graphics_buffer.drawLine((int) a1, (int) zero_y, (int) a2, (int) zero_y);
 								graphics_buffer.setStroke(new BasicStroke(2));
 							}
@@ -2214,7 +2353,6 @@ public class XFencePlotter
 								    graphics_buffer.fillPolygon(polygon[i]);
 							    }
 							    graphics_buffer.setColor(java.awt.Color.BLACK);
-							    //graphics_buffer.setColor(outline_color[i]);
 							    graphics_buffer.setStroke(new BasicStroke(2));
 								graphics_buffer.drawPolygon(polygon[i]);
 							}
@@ -2227,26 +2365,10 @@ public class XFencePlotter
 								int plot_length = plot_list.size();
 								Point2D.Double last = (Point2D.Double) plot_list.get(plot_length - 1);
 
-								double x1 = first.getX();
-								double x2 = last.getX();
 								double zero_y = Math.abs(minimum_y);
-
-								x1 -= minimum_x;
-								x1 /= xrange;
-								x1 *= graph_xdim;
-								x1 += left_margin;
-								x1 += xaddend;
-
-								x2 -= minimum_x;
-								x2 /= xrange;
-								x2 *= graph_xdim;
-								x2 += left_margin;
-								x2 += xaddend;
-
-								zero_y /= yrange;
+								zero_y /=  maximum_y - minimum_y;
 								zero_y *= graph_ydim;
-								
-								zero_y = graph_ydim - zero_y;
+								zero_y = (graph_ydim + y_remainder) - zero_y;
 								zero_y += top_margin + (number_of_segments - 1) * ystep;
 								zero_y -= yaddend;
 
@@ -2254,16 +2376,11 @@ public class XFencePlotter
 								BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
 								graphics_buffer.setStroke(basic_stroke);
 								graphics_buffer.setColor(java.awt.Color.RED);
-								graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
+								graphics_buffer.drawLine((int) a1, (int) zero_y, (int) a2, (int) zero_y);
 								graphics_buffer.setStroke(new BasicStroke(2));
 							}	
 						}
 					}
-					
-					// Previously we were drawing directly to the display when adding labels and numbers
-					// because the fonts looked better than the buffered fonts, but the convenience of having
-					// the entire graph buffered as far as save, print, and partial repaints is concerned 
-					// is such that we are sacrificing that aesthic consideration.
 					
 					graphics_buffer.setColor(java.awt.Color.BLACK);
 					double current_value    = offset;
@@ -2311,12 +2428,14 @@ public class XFencePlotter
 					        }
 					    }
 					    
+					  
 					    if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_xstep  && i != (number_of_segments - 1))
 						{
 							double zero_y = Math.abs(minimum_y);
 							zero_y /= maximum_y - minimum_y;
 							zero_y *= graph_ydim;
 							zero_y = (graph_ydim + y_remainder) - zero_y;
+							
 							zero_y += top_margin + (number_of_segments - 1) * ystep;
 							zero_y -= yaddend;
 
@@ -2330,7 +2449,7 @@ public class XFencePlotter
 							graphics_buffer.drawLine((int) a2, (int) zero_y, (int) a2, (int) b1);
 							graphics_buffer.setColor(Color.BLACK);
 						}
-					    
+						
 					    
 					    current_value    = offset;
 					    current_position = a1;
@@ -2363,11 +2482,6 @@ public class XFencePlotter
 						            position_string = String.format("%,.0f", current_value + global_ymin);	
 					            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
 				            }
-				        }
-				        
-				        if(i == 0 || (xstep == 0 && ystep == max_ystep))
-				        {
-				        	
 				        }
 				    }
 					
@@ -2480,12 +2594,87 @@ public class XFencePlotter
 					intensity_string = new String("nT");
 					string_width = font_metrics.stringWidth(intensity_string);
 					graphics_buffer.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
+					
+					if(append_data)
+					{
+						graphics_buffer.setColor(Color.RED);
+						graphics_buffer.drawOval((int)append_x_position - 2, (int)append_y_position - 2, 5, 5);
+						graphics_buffer.fillOval((int)append_x_position - 2, (int)append_y_position - 2, 5, 5);
+						graphics_buffer.setColor(Color.BLACK);
+						
+						int current_y = string_height + 2;
+						int current_x = 2;
+						String information_string = new String("  Line:         " + append_line);
+						graphics_buffer.drawString(information_string, current_x, current_y);
+						
+						current_y += string_height + 2;
+						information_string = new String("  Sensor:     " + append_sensor);
+						graphics_buffer.drawString(information_string, current_x, current_y);
+						
+						current_y += string_height + 2;
+						information_string = new String("  Intensity:   " + append_intensity + "\n");	
+						graphics_buffer.drawString(information_string, current_x, current_y);
+						
+						current_y           += string_height + 2;
+						String number_string = String.format("%,.2f", append_x);
+						information_string   = new String("  Relative x: " + number_string);
+						graphics_buffer.drawString(information_string, current_x, current_y);
+						
+						current_y           += string_height + 2;
+						number_string        = String.format("%,.2f", append_y);
+						information_string   = new String("  Relative y: " + number_string);
+						graphics_buffer.drawString(information_string, current_x, current_y);
+						
+						current_y           += string_height + 2;
+						number_string = String.format("%,.2f", append_x_abs);
+						information_string   = new String("  Absolute x: " + number_string);
+						graphics_buffer.drawString(information_string, current_x, current_y);
+						
+						current_y           += string_height + 2;
+						number_string        = String.format("%,.2f", append_y_abs);
+						information_string   = new String("  Absolute y: " + number_string);
+						graphics_buffer.drawString(information_string, current_x, current_y);
+					}
+					
+					String graph_label = graph_input.getText();					
+					if(show_label && !graph_label.equals(""))
+					{
+						string_width = font_metrics.stringWidth(graph_label); 
+						graphics_buffer.drawString(graph_label, xdim / 2 - string_width / 2, top_margin - 5);
+					}
+					
+					if(color_key)
+					{
+						string_width  = font_metrics.stringWidth("xx:x");
+						ArrayList   sensor_id     = new ArrayList();
+						for(int i = 0; i < 10; i++)
+						{
+							String _sensor_id = sensor[i].getText();
+							if(!_sensor_id.equals(""))
+								sensor_id.add(_sensor_id);
+						}
+						number_of_segments = sensor_id.size();
+						
+						int x = xdim - 3 * string_width - 5;
+						int y = ydim - (2 * number_of_segments * string_height) + 5;
+						graphics_buffer.setStroke(new BasicStroke(3));
+						for(int i = 0; i < number_of_segments; i++)
+						{
+							String id = (String)sensor_id.get(i);
+							graphics_buffer.setColor(Color.BLACK);
+							graphics_buffer.drawString(id, x, y);
+							graphics_buffer.setColor(fill_color[i]);
+							graphics_buffer.fillRect(x + 2 * string_width, y - string_height, string_width, string_height);
+							y += 2 * string_height;
+						}
+					}
 				}
 				g.drawImage(buffered_image, 0, 0, null);
 			}
 		}
 	}
 
+	/*
 	class MouseHandler extends MouseAdapter
 	{
 		boolean persistent_sample_information = false;
@@ -2588,6 +2777,16 @@ public class XFencePlotter
 						current_intensity = sample.intensity;
 						current_x = sample.x;
 						current_y = sample.y;
+						
+						append_line       = current_line;
+						append_sensor     = current_sensor;
+						append_intensity  = current_intensity;
+						append_x          = current_x;
+						append_y          = current_y;
+						append_x_abs      = current_x + global_xmin;
+						append_y_abs      = current_y + global_ymin;
+						append_x_position = x;
+						append_y_position = y;
 
 						String information_string = new String("  Line:         " + current_line + "\n");
 						sample_information.append(information_string);
@@ -2612,6 +2811,120 @@ public class XFencePlotter
 						sample_information.append(information_string);
 					}
 				}
+			}
+		}
+	}*/
+	
+	class MouseHandler extends MouseAdapter
+	{
+		public void mouseClicked(MouseEvent event)
+		{
+			int button = event.getButton();
+			if (button == 3)
+			{
+				if (persistent_data == false)
+					persistent_data = true;
+				else
+					persistent_data = false;
+			}
+		}
+	}
+
+	class MouseMotionHandler extends MouseMotionAdapter
+	{
+		public void mouseMoved(MouseEvent event)
+		{
+			if(persistent_data || grid_data == null)
+				return;
+			
+			int x = event.getX();
+			int y = event.getY();
+			int xdim = grid_data[0].length;
+			int ydim = grid_data.length;
+
+			if (x > left_margin && x < xdim - right_margin && y > top_margin && y < ydim - bottom_margin)
+			{
+				int current_line, current_sensor;
+				double current_intensity, current_x, current_y;
+				ArrayList sample_list = grid_data[y][x];
+				int size = sample_list.size();
+				outer: if (size == 0)
+				{
+					sample_list = grid_data[y - 1][x];
+					size = sample_list.size();
+					if (size != 0)
+						break outer;
+					sample_list = grid_data[y + 1][x];
+					size = sample_list.size();
+					if (size != 0)
+						break outer;
+					sample_list = grid_data[y][x - 1];
+					size = sample_list.size();
+					if (size != 0)
+						break outer;
+					sample_list = grid_data[y][x + 1];
+					size = sample_list.size();
+					if (size != 0)
+					break outer;
+					sample_list = grid_data[y - 1][x - 1];
+					size = sample_list.size();
+					if (size != 0)
+						break outer;
+					sample_list = grid_data[y + 1][x - 1];
+					size = sample_list.size();
+					sample_list = grid_data[y - 1][x + 1];
+					size = sample_list.size();
+					if (size != 0)
+						break outer;
+					sample_list = grid_data[y + 1][x + 1];
+					size = sample_list.size();
+				}
+
+				if (size != 0)
+				{
+					sample_information.setText("");
+					current_line = (int) sample_list.get(0);
+					current_sensor = (int) sample_list.get(1);
+					Sample sample = (Sample) sample_list.get(2);
+					current_intensity = sample.intensity;
+					current_x = sample.x;
+					current_y = sample.y;
+					
+					append_line       = current_line;
+					append_sensor     = current_sensor;
+					append_intensity  = current_intensity;
+					append_x          = current_x;
+					append_y          = current_y;
+					append_x_abs      = current_x + global_xmin;
+					append_y_abs      = current_y + global_ymin;
+					append_x_position = x;
+					append_y_position = y;
+
+					String information_string = new String("  Line:         " + current_line + "\n");
+					sample_information.append(information_string);
+					information_string = new String("  Sensor:     " + current_sensor + "\n");
+					sample_information.append(information_string);
+					String number_string = String.format("%,.2f", current_intensity);
+					information_string = new String("  Intensity:   " + number_string + "\n");
+					sample_information.append(information_string);
+
+					number_string = String.format("%,.2f", current_x);
+					information_string = new String("  Relative x: " + number_string + "\n");
+					sample_information.append(information_string);
+					number_string = String.format("%,.2f", current_y);
+					information_string = new String("  Relative y: " + number_string + "\n");
+					sample_information.append(information_string);
+
+					number_string = String.format("%,.2f", (current_x + global_xmin));
+					information_string = new String("  Absolute x: " + number_string + "\n");
+					sample_information.append(information_string);
+					number_string = String.format("%,.2f", (current_y + global_ymin));
+					information_string = new String("  Absolute y: " + number_string + "\n");
+					sample_information.append(information_string);
+				}
+				else
+					// Blank information panel when a pixel is traversed that is not associated with data.
+					sample_information.setText("");
 			}
 		}
 	}
@@ -3135,51 +3448,52 @@ public class XFencePlotter
 					}
 					if(extension.equals("txt"))
 					{
+						// General purpose text file to use with gnuplot.
 						System.out.println("Writing text file.");
 					    try (PrintWriter output = new PrintWriter(current_directory + filename))
 					    {
 						    // The first 4 elements in the sensor data are local min, local max, global min,
 					        // and global max.
 					        // The rest are array lists of samples, with some information prepended.
-						double intensity_min = (double) sensor_data.get(0);
-						String intensity_min_string = String.format("%.2f", intensity_min);
-						for (int i = 4; i < size; i++)
-						{
-							// The first 4 elements are flight line, sensor, visibility, and transparency.
-							// The last two are yes/no strings.
-							ArrayList segment_list = (ArrayList) sensor_data.get(i);
-							int line = (int) segment_list.get(0);
-							int sensor = (int) segment_list.get(1);
+					    	double intensity_min = (double) sensor_data.get(0);
+							String intensity_min_string = String.format("%.2f", intensity_min);
+							for (int i = 4; i < size; i++)
+							{
+								// The first 4 elements are flight line, sensor, visibility, and transparency.
+								// The last two are yes/no strings.
+								ArrayList segment_list = (ArrayList) sensor_data.get(i);
+								int line = (int) segment_list.get(0);
+								int sensor = (int) segment_list.get(1);
 
-							output.println("#Sensor " + sensor + ", Line " + line);
+								output.println("#Sensor " + sensor + ", Line " + line);
 
-							double ideal_x = line * 2;
-							if (line % 2 == 0)
-							{
-								ideal_x += ((4 - sensor) * .5);
-							} else
-							{
-								ideal_x += sensor * .5;
+								double ideal_x = line * 2;
+								if (line % 2 == 0)
+								{
+									ideal_x += ((4 - sensor) * .5);
+								} else
+								{
+									ideal_x += sensor * .5;
+								}
+								// Keeping track of how much deviation there is in raster.
+								String ideal_string = String.format("%.2f", ideal_x);
+	                            
+								// Plot individual sensor curves.
+								String xstring, ystring;
+								for (int j = 4; j < segment_list.size(); j++)
+								{
+									Sample sample = (Sample) segment_list.get(j);
+									xstring = String.format("%.2f", sample.x);
+									ystring = String.format("%.2f", sample.y);
+									String intensity_string = String.format("%.2f", sample.intensity);
+									output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
+								}
+								
+								// Seperate this sensor curve from the next one with an extra line feed.
+								output.println();
+								output.println();
 							}
-							// Keeping track of how much deviation there is in raster.
-							String ideal_string = String.format("%.2f", ideal_x);
-                            
-							// Plot individual sensor curves.
-							String xstring, ystring;
-							for (int j = 4; j < segment_list.size(); j++)
-							{
-								Sample sample = (Sample) segment_list.get(j);
-								xstring = String.format("%.2f", sample.x);
-								ystring = String.format("%.2f", sample.y);
-								String intensity_string = String.format("%.2f", sample.intensity);
-								output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
-							}
-							
-							// Seperate this sensor curve from the next one with an extra line feed.
-							output.println();
-							output.println();
-						}
-						output.close();
+							output.close();
 					    } 
 					    catch (Exception ex)
 					    {
@@ -3188,6 +3502,7 @@ public class XFencePlotter
 				    }
 					else if(extension.equals("fp"))
 					{
+						// Special format to generate fence plots in gnuplot.
 						System.out.println("Writing fence plot file.");
 					    try (PrintWriter output = new PrintWriter(current_directory + filename))
 					    {
@@ -3251,154 +3566,19 @@ public class XFencePlotter
 				    }
 					else if(extension.equals("png"))
 					{
-						if(color_key)
-						{ 
-						    // If we want a color key and the graph
-							// already has ids, redraw with no ids.
-						    if(show_id)
-						    {
-						    	int           image_xdim   = buffered_image.getWidth();
-								int           image_ydim   = buffered_image.getHeight();
-								BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
-								ImageProducer producer     = new ImageProducer();
-								BufferedImage data_image   = producer.renderData();
-								Graphics2D    print_buffer = (Graphics2D) print_image.getGraphics(); 
-								print_buffer.drawImage(data_image, 0, 0,  null);
-								
-								// Add label.
-								String        graph_label   = graph_input.getText();
-								FontMetrics   font_metrics  = print_buffer.getFontMetrics();
-								int           string_height = font_metrics.getAscent();
-								int           margin        = 10;
-								if(!graph_label.equals(""))
-								{
-								    print_buffer.setColor(Color.BLACK);
-									int         string_width  = font_metrics.stringWidth(graph_label);
-									//print_buffer.drawString(graph_label, image_xdim - string_width - margin, margin + string_height);
-									print_buffer.drawString(graph_label, 10, 10 + string_height);
-								}
-								
-								// Add color key.
-								int         string_width  = font_metrics.stringWidth("xx:x");
-								ArrayList   sensor_id     = new ArrayList();
-								for(int i = 0; i < 10; i++)
-								{
-									String _sensor_id = sensor[i].getText();
-									if(!_sensor_id.equals(""));
-										sensor_id.add(_sensor_id);
-								}
-								int number_of_segments = sensor_id.size();
-								int x = image_xdim - margin - 3 * string_width;
-								int y = image_ydim - (2 * number_of_segments * string_height) + string_height;
-								print_buffer.setStroke(new BasicStroke(3));
-								for(int i = 0; i < number_of_segments; i++)
-								{
-									String id = (String)sensor_id.get(i);
-									print_buffer.setColor(Color.BLACK);
-									print_buffer.drawString(id, x, y);
-									if(reverse_view)
-										print_buffer.setColor(fill_color[number_of_segments - 1 - i]);	
-									else
-										print_buffer.setColor(fill_color[i]);
-									print_buffer.fillRect(x + 2 * string_width, y - string_height, string_width, string_height);
-									y += 2 * string_height;
-								}
-								
-								try 
-			        	        {  
-			        	            ImageIO.write(print_image, "png", new File(current_directory + filename)); 
-			        	        } 
-			        	        catch(IOException e) 
-			        	        {  
-			        	            e.printStackTrace(); 
-			        	        }  
-						    }
-						    else
-						    {
-						    	// We can use the working graph because it does not contain ids.
-						    	int           image_xdim   = buffered_image.getWidth();
-								int           image_ydim   = buffered_image.getHeight();
-								BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
-								Graphics2D    print_buffer = (Graphics2D) print_image.getGraphics(); 
-								print_buffer.drawImage(buffered_image, 0, 0,  null);	
-								
-								// Add label.
-								String        graph_label   = graph_input.getText();
-								FontMetrics   font_metrics  = print_buffer.getFontMetrics();
-								int           string_height = font_metrics.getAscent();
-								int           margin        = 10;
-								if(!graph_label.equals(""))
-								{
-								    print_buffer.setColor(Color.BLACK);
-									int         string_width  = font_metrics.stringWidth(graph_label);
-									print_buffer.drawString(graph_label, image_xdim - string_width - margin, margin + string_height);
-								}
-								
-								// Add color key.
-								int         string_width  = font_metrics.stringWidth("xx:x");
-								ArrayList   sensor_id     = new ArrayList();
-								for(int i = 0; i < 10; i++)
-								{
-									String _sensor_id = sensor[i].getText();
-									if(!_sensor_id.equals(""));
-										sensor_id.add(_sensor_id);
-								}
-								int number_of_segments = sensor_id.size();
-								int x = image_xdim - margin - 3 * string_width;
-								int y = image_ydim - (2 * number_of_segments * string_height) + string_height;
-								print_buffer.setStroke(new BasicStroke(3));
-								for(int i = 0; i < number_of_segments; i++)
-								{
-									String id = (String)sensor_id.get(i);
-									print_buffer.setColor(Color.BLACK);
-									print_buffer.drawString(id, x, y);
-									if(reverse_view)
-										print_buffer.setColor(fill_color[number_of_segments - 1 - i]);	
-									else
-										print_buffer.setColor(fill_color[i]);
-									print_buffer.fillRect(x + 2 * string_width, y - string_height, string_width, string_height);
-									y += 2 * string_height;
-								}
-								
-								try 
-			        	        {  
-			        	            ImageIO.write(print_image, "png", new File(current_directory + filename)); 
-			        	        } 
-			        	        catch(IOException e) 
-			        	        {  
-			        	            e.printStackTrace(); 
-			        	        }  
-						    }
-						}
-						else
-						{
-							int           image_xdim   = buffered_image.getWidth();
-							int           image_ydim   = buffered_image.getHeight();
-							BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
-							Graphics2D    print_buffer = (Graphics2D) print_image.getGraphics(); 
-							print_buffer.drawImage(buffered_image, 0, 0,  null);	
-							
-							// Add label.
-							String        graph_label   = graph_input.getText();
-							FontMetrics   font_metrics  = print_buffer.getFontMetrics();
-							int           string_height = font_metrics.getAscent();
-							int           margin        = 10;
-							if(!graph_label.equals(""))
-							{
-							    print_buffer.setColor(Color.BLACK);
-								int         string_width  = font_metrics.stringWidth(graph_label);
-								print_buffer.drawString(graph_label, image_xdim - string_width - margin, margin + string_height);
-							}
-							
-							try 
-		        	        {  
-		        	            ImageIO.write(print_image, "png", new File(current_directory + filename)); 
-		        	        } 
-		        	        catch(IOException e) 
-		        	        {  
-		        	            e.printStackTrace(); 
-		        	        }  
-						}
+						int           image_xdim   = buffered_image.getWidth();
+						int           image_ydim   = buffered_image.getHeight();
+						BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
+						Graphics2D    print_buffer = (Graphics2D) print_image.getGraphics(); 
+						print_buffer.drawImage(buffered_image, 0, 0,  null);	
+						try 
+	        	        {  
+	        	            ImageIO.write(print_image, "png", new File(current_directory + filename)); 
+	        	        } 
+	        	        catch(IOException e) 
+	        	        {  
+	        	            e.printStackTrace(); 
+	        	        }  
 					}
 				}
 			}
@@ -4055,6 +4235,8 @@ public class XFencePlotter
 				information_dialog.setVisible(false);
 		}
 	}
+	
+	
 	class PlacementCanvas extends Canvas
 	{
 		int top_margin    = 2;
@@ -4491,8 +4673,8 @@ public class XFencePlotter
 			    	}
 			    	else
 			    	{
-			    		graphics_buffer.setColor(java.awt.Color.BLACK);
-			    		graphics_buffer.setStroke(new BasicStroke(2));
+			    		graphics_buffer.setColor(java.awt.Color.GRAY);
+			    		graphics_buffer.setStroke(new BasicStroke(1));
 			    	}
 			    	int current_x = (int)(sample.x * xfactor);
 				    int current_y = (int)(sample.y * yfactor);
@@ -4503,8 +4685,8 @@ public class XFencePlotter
 			    }
 			    else
 			    {
-			    	graphics_buffer.setColor(java.awt.Color.BLACK);
-			    	graphics_buffer.setStroke(new BasicStroke(2));
+			    	graphics_buffer.setColor(java.awt.Color.GRAY);
+			    	graphics_buffer.setStroke(new BasicStroke(1));
 			    	int current_x = (int)(sample.x * xfactor);
 				    int current_y = (int)(sample.y * yfactor);
 				    current_y     = ydim - current_y;
@@ -4516,7 +4698,7 @@ public class XFencePlotter
 			
 		    double [][] location_array = ObjectMapper.getObjectLocationArray();
 			int length = location_array.length;
-			graphics_buffer.setColor(java.awt.Color.RED);
+			
 			
 			for(int i = 0; i < length; i++)
 			{
@@ -4527,11 +4709,12 @@ public class XFencePlotter
 				x *= xfactor;
 				y *= yfactor;
 				y = ydim - y;
-				
+				graphics_buffer.setColor(java.awt.Color.RED);
 				graphics_buffer.fillOval((int)(x - 1), (int)(y - 1), 3, 3);
 				// If we want targent numbers.
-				//String object_string = Integer.toString(i + 1); 
-				//graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
+				graphics_buffer.setColor(java.awt.Color.BLACK);
+				String object_string = Integer.toString(i + 1); 
+				graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
 			}
 			
 			int current_xlocation       = (int)(xlocation * (xdim - 1));
@@ -4823,710 +5006,6 @@ public class XFencePlotter
 				lower_bound.setText(lower_bound_string);
 				upper_bound.setText(upper_bound_string);
 			}
-		}
-	}
-	
-	class ImageProducer
-	{
-		public BufferedImage renderData()
-		{
-			int xdim = buffered_image.getWidth(); 
-			int ydim = buffered_image.getHeight(); 
-			
-			BufferedImage data_image     = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
-			Graphics2D    graphics_buffer = (Graphics2D) data_image.getGraphics();
-			graphics_buffer.setColor(java.awt.Color.WHITE);
-			graphics_buffer.fillRect(0, 0, xdim, ydim);
-			
-			int size               = sensor_data.size();
-			int number_of_segments = size - 4;
-			double seg_min         = (double) sensor_data.get(0);
-			double seg_max         = (double) sensor_data.get(1);
-			double line_min        = (double) sensor_data.get(2);
-			double line_max        = (double) sensor_data.get(3);
-			
-			double max_xstep = (xdim - (left_margin + right_margin)) / number_of_segments;
-			int    xstep     = (int) (max_xstep * normal_xstep);
-			int   graph_xdim = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
-
-			// So that graphs are not butted together.
-			if (xstep == max_xstep)
-				graph_xdim -= number_of_segments;
-			
-			double max_ystep  = (ydim - (top_margin + bottom_margin)) / number_of_segments;
-			int    ystep      = (int) (max_ystep * normal_ystep);
-			int    graph_ydim = ydim - (top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
-		
-			double minimum_x = offset;
-			double maximum_x = offset + range;
-			minimum_y        = 0;
-			maximum_y        = 0;
-			
-			if(data_clipped == true)
-			{
-				String bound_string = lower_bound.getText();
-				minimum_y           = Double.valueOf(bound_string);
-				bound_string        = upper_bound.getText();
-				maximum_y           = Double.valueOf(bound_string);
-			} 
-			else
-			{
-				if(!autoscale)
-				{
-					minimum_y = line_min;
-					maximum_y = line_max;
-				} 
-				else
-				{
-					minimum_y = seg_min;
-					maximum_y = seg_max;
-				}
-			}
-            
-			if(data_scaled)
-			{
-				minimum_y /= scale_factor;
-				maximum_y /= scale_factor;
-			}
-			
-			double      xrange        = range;
-			double      yrange        = maximum_y - minimum_y;
-			Font        current_font  = graphics_buffer.getFont();
-			FontMetrics font_metrics  = graphics_buffer.getFontMetrics(current_font);
-			int         string_height = font_metrics.getAscent();
-			
-			// Setup for isometric perspective.
-			for (int i = 0; i < number_of_segments; i++)
-			{
-				int a1 = left_margin;
-				int b1 = ydim - bottom_margin;
-				int a2 = a1 + graph_xdim;
-				int b2 = b1 - graph_ydim;
-				int xaddend = i * xstep;
-				int yaddend = i * ystep;
-				a1 += xaddend;
-				b1 -= yaddend;
-				a2 += xaddend;
-				b2 -= yaddend;
-                
-				double current_range           = b1 - b2;
-				double current_position        = b2;
-				double current_value           = maximum_y;
-				double current_intensity_range = maximum_y - minimum_y;
-			
-				graphics_buffer.setColor(java.awt.Color.BLACK);
-				graphics_buffer.setStroke(new BasicStroke(1));
-				    
-                current_position = a1;
-				int string_width = 0;
-			    if(relative_mode)
-			        string_width = font_metrics.stringWidth("77.7");
-			    else
-				    string_width    = font_metrics.stringWidth("7,777,777");
-			    int    number_of_units            = (int) (graph_xdim / (string_width + 4));  
-			    double current_position_increment = graph_xdim;
-			    current_position_increment        /= number_of_units;
-			        
-			    if(i == 0)
-			    {
-			    	graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10); 
-		            for(int j = 0; j < number_of_units; j++)
-		            {
-			            current_position += current_position_increment;
-			            graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);
-		            }	
-		            
-		            current_position         = b2;
-	                current_range            = b1 - b2;
-					number_of_units          = (int) (current_range / (2 * (string_height)));
-					double current_increment = current_range / number_of_units;	
-					graphics_buffer.setColor(Color.BLACK);
-				    graphics_buffer.setStroke(new BasicStroke(2));
-				    graphics_buffer.drawLine(a1, b1, a1, b2);
-				    	
-				    graphics_buffer.setStroke(new BasicStroke(1));
-				    graphics_buffer.setColor(new Color(196, 196, 196));
-				    graphics_buffer.drawLine(a1, b1, a2, b1);
-			        for(int j = 0; j < number_of_units; j++)
-			        {
-			            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
-				        current_position += current_increment;
-			        }
-			        graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
-			        
-			        if((xstep == 0 && ystep == 0) || (xstep == max_xstep && ystep == max_ystep))
-			        {
-			            current_position = b2;
-				    	for(int j = 0; j < number_of_units; j++)
-			            {
-			    			graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
-				            current_position += current_increment;
-			            }
-				    	current_position  = a1;
-				    	number_of_units   = (int)(graph_xdim / (string_width + 4));  
-				    	current_increment = graph_xdim;
-				    	current_increment /= number_of_units;
-				    	for(int j = 0; j < number_of_units; j++)
-			            {
-			    			graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
-			    			current_position += current_increment;
-			    	    }	
-				    	graphics_buffer.drawLine((int)a2, b1, (int)a2, b2);  
-				    	graphics_buffer.drawLine(a1, b1, a2, b1); 
-			        }
-			        // If plots directly overlap, we only need one set of axes.
-					if (ystep == 0 && xstep == 0)
-						break;
-			    }
-			    else
-			    {
-			        if(ystep != 0)
-			        {
-			        	graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep); 
-			        	for(int j = 0; j < number_of_units; j++)
-			        	{
-			        	    current_position += current_position_increment;
-			        		graphics_buffer.drawLine((int) current_position, b1, (int) current_position - xstep, b1 + ystep);
-			        		if(j == number_of_units - 1)
-			        		    graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10);  	
-			        	}
-			        }
-			        current_position         = b2;
-	                current_range            = b1 - b2;
-					number_of_units          = (int) (current_range / (2 * (string_height)));
-					double current_increment = current_range / number_of_units;	
-					if(ystep != 0)
-				    {
-				    	graphics_buffer.setColor(Color.BLACK);
-				    	graphics_buffer.setStroke(new BasicStroke(2));
-				    	graphics_buffer.drawLine(a1, b1, a1, b2);
-					    graphics_buffer.setColor(new Color(196, 196, 196));
-					    graphics_buffer.setStroke(new BasicStroke(1));
-				    	for(int j = 0; j < number_of_units; j++)
-				        {
-				    		graphics_buffer.drawLine(a1, (int)current_position, a1 - xstep, (int)current_position + ystep);
-					        current_position += current_increment;
-				        }
-				        graphics_buffer.drawLine(a1, (int)current_position, a1 - xstep, (int)current_position + ystep);
-				    }
-				    if(ystep == max_ystep)
-				    {
-				    	graphics_buffer.setColor(new Color(196, 196, 196));
-				    	graphics_buffer.setStroke(new BasicStroke(1));
-				    	current_position = b2;
-				    	for(int j = 0; j < number_of_units; j++)
-			            {
-			    			graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
-				            current_position += current_increment;
-			            }	
-				    }
-				    graphics_buffer.setColor(new Color(196, 196, 196));
-			    	graphics_buffer.setStroke(new BasicStroke(1));
-			    	if(ystep != 0)
-			    	    graphics_buffer.drawLine(a1, b1, a2, b1);
-			    	
-			    	
-			    	if(xstep > (max_xstep - 2)  && ystep > (max_ystep - 2))
-			    	{
-			    		
-			    		graphics_buffer.drawLine(a1, b1, a2, b1); 
-				    	graphics_buffer.drawLine(a1, b2, a2, b2);
-				    	graphics_buffer.drawLine(a2, b1, a2, b2);
-				    	    
-				    	current_position = b2;
-				    	for(int j = 0; j < number_of_units; j++)
-			            {
-			    			graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
-				            current_position += current_increment;
-			            }
-				    	current_position  = a1;
-				    	number_of_units   = (int)(graph_xdim / (string_width + 4));  
-				    	current_increment = graph_xdim;
-				    	current_increment /= number_of_units;
-				    	for(int j = 0; j < number_of_units; j++)
-			            {
-			    			graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
-			    			current_position += current_increment;
-			    	    }	
-			    	}
-			    	
-			    	if(i == number_of_segments - 1)
-					{
-				    	graphics_buffer.drawLine(a1, b1, a2, b1);
-					    if(!(xstep == max_xstep && ystep == 0) || xstep == 0)
-					    {
-					    	graphics_buffer.drawLine(a1, b1, a2, b1); 
-					    	graphics_buffer.drawLine(a1, b2, a2, b2);
-					    	graphics_buffer.drawLine(a2, b1, a2, b2);
-					    	    
-					    	current_position = b2;
-					    	for(int j = 0; j < number_of_units; j++)
-				            {
-				    			graphics_buffer.drawLine(a1, (int)current_position, a2, (int)current_position);
-					            current_position += current_increment;
-				            }
-					    	current_position  = a1;
-					    	number_of_units   = (int)(graph_xdim / (string_width + 4));  
-					    	current_increment = graph_xdim;
-					    	current_increment /= number_of_units;
-					    	for(int j = 0; j < number_of_units; j++)
-				            {
-				    			graphics_buffer.drawLine((int)current_position, b1, (int)current_position, b2);
-				    			current_position += current_increment;
-				    	    }
-					    }
-					}
-				}
-			}
-			
-			// Constructing and drawing polygons.
-			ArrayList plot_data = new ArrayList();
-			ArrayList sample_data = new ArrayList();
-
-			for (int i = 4; i < size; i++)
-			{
-				ArrayList sensor_list = (ArrayList) sensor_data.get(i);
-				int       length      = sensor_list.size();
-				ArrayList plot_list   = new ArrayList();
-				ArrayList sample_list = new ArrayList();
-
-				for (int j = 4; j < length; j++)
-				{
-					Sample sample = (Sample) sensor_list.get(j);
-					Point2D.Double point = new Point2D.Double();
-					point.x = sample.y;
-					point.y = sample.intensity;
-					point.y *= scale_factor;
-					if (point.y < minimum_y)
-						point.y = minimum_y;
-					else if (point.y > maximum_y)
-						point.y = maximum_y;
-					plot_list.add(point);
-					sample_list.add(sample);
-				}
-				int plot_length = plot_list.size();
-
-				if (smooth == 0)
-				{
-					plot_data.add(plot_list);
-					sample_data.add(sample_list);
-				} 
-				else
-				{
-					double x[] = new double[plot_length];
-					double y[] = new double[plot_length];
-					for (int j = 0; j < plot_length; j++)
-					{
-						Point2D.Double point = (Point2D.Double) plot_list.get(j);
-						x[j] = point.getX();
-						y[j] = point.getY();
-					}
-					double[] smooth_x = smooth(x, smooth);
-					double[] smooth_y = smooth(y, smooth);
-
-					Point2D.Double start_point = (Point2D.Double) plot_list.get(0);
-					Point2D.Double end_point = (Point2D.Double) plot_list.get(plot_length - 1);
-					plot_list.clear();
-
-					plot_length = smooth_x.length;
-					plot_list.add(start_point);
-					for (int j = 0; j < plot_length; j++)
-					{
-						Point2D.Double smooth_point = new Point2D.Double(smooth_x[j], smooth_y[j]);
-						plot_list.add(smooth_point);
-					}
-					plot_list.add(end_point);
-					plot_data.add(plot_list);
-					length = sample_list.size();
-					Sample sample = (Sample) sample_list.get(length - 1);
-
-					// Add a duplicate sample so the lengths of the plot list and sample_list are
-					// the same.
-					Sample extra_sample = new Sample();
-					extra_sample.intensity = sample.intensity;
-					extra_sample.x = sample.x;
-					extra_sample.y = sample.y;
-					sample_list.add(extra_sample);
-					sample_data.add(sample_list);
-				}
-			}
-
-			Polygon[] polygon = new Polygon[number_of_segments];
-			for (int i = number_of_segments - 1; i >= 0; i--)
-			{
-				int a1 = left_margin;
-				int b1 = ydim - bottom_margin;
-
-				int a2 = a1 + graph_xdim;
-				int b2 = b1 - graph_ydim;
-
-				int xaddend = i * xstep;
-				int yaddend = i * ystep;
-
-				a1 += xaddend;
-				b1 -= yaddend;
-
-				a2 += xaddend;
-				b2 -= yaddend;
-
-				ArrayList segment;
-				ArrayList sample_segment;
-				ArrayList sensor_list;
-				int current_line;
-				int current_sensor;
-				if (!reverse_view)
-				{
-					sensor_list    = (ArrayList) sensor_data.get(i + 4);
-					current_line   = (int) sensor_list.get(0);
-					current_sensor = (int) sensor_list.get(1);
-					segment        = (ArrayList) plot_data.get(i);
-					sample_segment = (ArrayList) sample_data.get(i);
-				} 
-				else
-				{
-					sensor_list    = (ArrayList) sensor_data.get((number_of_segments - 1) - i + 4);
-					current_line   = (int) sensor_list.get(0);
-					current_sensor = (int) sensor_list.get(1);
-					segment        = (ArrayList) plot_data.get((number_of_segments - 1) - i);
-					sample_segment = (ArrayList) sample_data.get((number_of_segments - 1) - i);
-				}
-
-				int n   = segment.size() + 3;
-				int[] x = new int[n];
-				int[] y = new int[n];
-				
-				int m = 0;
-                yrange = maximum_y - minimum_y;
-                xrange = range;
-                
-                double this_minimum_y = maximum_y;
-                double this_maximum_y = minimum_y;
-                double init_point     = 0;
-				for(int k = 0; k < segment.size(); k++)
-				{
-					Point2D.Double point = (Point2D.Double) segment.get(k);
-					Sample sample = (Sample) sample_segment.get(k);
-
-					double current_x = point.getX();
-					current_x -= minimum_x;
-					current_x /= xrange;
-					current_x *= graph_xdim;
-					current_x += left_margin;
-					current_x += xaddend;
-
-					double current_y = point.getY();
-					if(current_y < this_minimum_y)
-						this_minimum_y = current_y;	
-					if(current_y > this_maximum_y)
-						this_maximum_y = current_y;
-					current_y -= minimum_y;
-					current_y /= yrange;
-					current_y *= graph_ydim;
-					current_y = graph_ydim - current_y;
-					current_y += top_margin + (number_of_segments - 1) * ystep;
-					current_y -= yaddend;
-					
-					if(k == 0)
-						init_point = current_y;
-
-					x[m] = (int) current_x;
-					y[m] = (int) current_y;
-					m++;
-				}
-
-				double local_min = this_minimum_y;
-				local_min -= minimum_y;
-				local_min /= yrange;
-				local_min *= graph_ydim;
-				local_min = graph_ydim - local_min;
-				local_min+= top_margin + (number_of_segments - 1) * ystep;
-				local_min -= yaddend;
-				
-				double local_max = this_maximum_y;
-				local_max -= minimum_y;
-				local_max /= yrange;
-				local_max *= graph_ydim;
-				local_max  = graph_ydim - local_max;
-				local_max += top_margin + (number_of_segments - 1) * ystep;
-				local_max -= yaddend;
-				
-				x[m] = a2;
-				y[m] = (int)local_min;
-				m++;
-
-				x[m] = a1;
-				y[m] = (int)local_min;
-				m++;
-				
-				x[m] = a1;
-				y[m] = (int)init_point;
-				graphics_buffer.setColor(Color.BLACK);
-			    graphics_buffer.setStroke(new BasicStroke(1));
-			    graphics_buffer.drawLine(a2, (int)local_min, a2, b1);
-			    
-			    if(reverse_view)
-			    	graphics_buffer.setColor(fill_color[number_of_segments - 1 - i]);
-			    else
-			    	graphics_buffer.setColor(fill_color[i]);
-			    graphics_buffer.setStroke(new BasicStroke(3));
-			    graphics_buffer.drawLine(a1, (int)local_min, a1, (int)local_max);
-				java.awt.Polygon sensor_polygon = new Polygon(x, y, n);
-				polygon[i]  = sensor_polygon;
-			}
-			
-			for (int i = number_of_segments - 1; i >= 0; i--)
-			{
-				int a1 = left_margin;
-				int b1 = ydim - bottom_margin;
-
-				int a2 = a1 + graph_xdim;
-				int b2 = b1 - graph_ydim;
-
-				int xaddend = i * xstep;
-				int yaddend = i * ystep;
-
-				a1 += xaddend;
-				b1 -= yaddend;
-
-				a2 += xaddend;
-				b2 -= yaddend;
-       
-				if(reverse_view)
-				{
-				    if (visible[(number_of_segments - 1) - i] == true)
-				    {
-					    if (transparent[(number_of_segments - 1) - i] == false)
-					    {
-						    graphics_buffer.setColor(fill_color[(number_of_segments - 1) - i]);
-						    graphics_buffer.fillPolygon(polygon[i]);
-					    }
-					    graphics_buffer.setColor(java.awt.Color.BLACK);
-						graphics_buffer.drawPolygon(polygon[i]);
-					}
-					
-					if (minimum_y < 0 && visible[(number_of_segments - 1) - i] == true)
-					{
-						ArrayList plot_list = (ArrayList) plot_data.get((number_of_segments - 1) - i);
-
-						Point2D.Double first = (Point2D.Double) plot_list.get(0);
-						int plot_length = plot_list.size();
-						Point2D.Double last = (Point2D.Double) plot_list.get(plot_length - 1);
-
-						double x1 = first.getX();
-						double x2 = last.getX();
-						double zero_y = Math.abs(minimum_y);
-
-						x1 -= minimum_x;
-						x1 /= xrange;
-						x1 *= graph_xdim;
-						x1 += left_margin;
-						x1 += xaddend;
-
-						x2 -= minimum_x;
-						x2 /= xrange;
-						x2 *= graph_xdim;
-						x2 += left_margin;
-						x2 += xaddend;
-
-						zero_y /= yrange;
-						zero_y *= graph_ydim;
-						zero_y = graph_ydim - zero_y;
-						zero_y += top_margin + (number_of_segments - 1) * ystep;
-						zero_y -= yaddend;
-
-						float[] dash ={ 2f, 0f, 2f };
-						BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
-						graphics_buffer.setStroke(basic_stroke);
-						graphics_buffer.setColor(java.awt.Color.RED);
-						graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
-						graphics_buffer.setStroke(new BasicStroke(2));
-					}
-				}
-				else
-				{
-					if (visible[i] == true)
-				    {
-					    if (transparent[i] == false)
-					    {
-						    graphics_buffer.setColor(fill_color[i]);
-						    graphics_buffer.fillPolygon(polygon[i]);
-					    }
-					    graphics_buffer.setColor(java.awt.Color.BLACK);
-					    graphics_buffer.setStroke(new BasicStroke(2));
-						graphics_buffer.drawPolygon(polygon[i]);
-					}
-					
-					if (minimum_y < 0 && visible[i] == true)
-					{
-						ArrayList plot_list = (ArrayList) plot_data.get(i);
-
-						Point2D.Double first = (Point2D.Double) plot_list.get(0);
-						int plot_length = plot_list.size();
-						Point2D.Double last = (Point2D.Double) plot_list.get(plot_length - 1);
-
-						double x1 = first.getX();
-						double x2 = last.getX();
-						double zero_y = Math.abs(minimum_y);
-
-						x1 -= minimum_x;
-						x1 /= xrange;
-						x1 *= graph_xdim;
-						x1 += left_margin;
-						x1 += xaddend;
-
-						x2 -= minimum_x;
-						x2 /= xrange;
-						x2 *= graph_xdim;
-						x2 += left_margin;
-						x2 += xaddend;
-
-						zero_y /= yrange;
-						zero_y *= graph_ydim;
-						
-						zero_y = graph_ydim - zero_y;
-						zero_y += top_margin + (number_of_segments - 1) * ystep;
-						zero_y -= yaddend;
-
-						float[] dash ={ 2f, 0f, 2f };
-						BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
-						graphics_buffer.setStroke(basic_stroke);
-						graphics_buffer.setColor(java.awt.Color.RED);
-						graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
-						graphics_buffer.setStroke(new BasicStroke(2));
-					}	
-				}
-			}
-			
-			graphics_buffer.setColor(java.awt.Color.BLACK);
-			double current_value    = offset;
-			double current_position = left_margin;
-			int a1                  = left_margin;
-			int b1                  = ydim - bottom_margin;
-			int a2                  = a1 + graph_xdim;
-			int b2                  = b1 - graph_ydim;
-			
-			String position_string;
-		    int    string_width;
-			
-		    for(int i = 0; i < number_of_segments; i++)
-		    {
-			    a1 = left_margin;
-			    b1 = ydim - bottom_margin;
-
-			    a2 = a1 + graph_xdim;
-			    b2 = b1 - graph_ydim;
-
-			    int xaddend = i * xstep;
-			    int yaddend = i * ystep;
-
-			    a1 += xaddend;
-			    b1 -= yaddend;
-
-			    a2 += xaddend;
-			    b2 -= yaddend;
-			    
-			    //Create a top on the frame around each graph to help evaluate relative y dimensions accurately.
-			    if(raster_overlay)
-			    {
-			        if(i != number_of_segments - 1)
-			        {
-			    	    if(ystep != 0)
-			    	    {
-			    	    	graphics_buffer.setColor(new Color(196, 196, 196));
-				    	    graphics_buffer.setStroke(new BasicStroke(1));
-	    	                graphics_buffer.drawLine(a1, b2, a2, b2);
-	    	                graphics_buffer.drawLine(a2, b2, a2 + xstep, b2 - ystep);
-	    	                graphics_buffer.setColor(Color.BLACK);
-			    	    }
-			        }
-			    }
-			    current_value    = offset;
-			    current_position = a1;
-			    
-		        if (relative_mode)
-		        {
-		            string_width = font_metrics.stringWidth("77.7");
-		            position_string = String.format("%,.0f", current_value);
-		        }
-		        else
-		        {
-			        string_width    = font_metrics.stringWidth("7,777,777");
-			        position_string = String.format("%,.0f", current_value + global_ymin);
-		        }
-		        int    number_of_units            = (int) (graph_xdim / (string_width + 4));
-		        double current_position_increment = graph_xdim;
-		        current_position_increment        /= number_of_units;
-		        if(i == 0)
-		        {
-		        	// Hanging numbers on frontmost xaxis.
-		        	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
-		            double current_value_increment = range / number_of_units;
-		            for(int j = 0; j < number_of_units; j++)
-		            {
-			            current_value += current_value_increment;
-			            current_position += current_position_increment;
-			            if(relative_mode)
-			                position_string = String.format("%,.0f", current_value);
-			            else
-				            position_string = String.format("%,.0f", current_value + global_ymin);	
-			            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
-		            }
-		        }
-		    }	
-			
-			
-			position_string = new String("meters");
-			string_width = font_metrics.stringWidth(position_string);
-			graphics_buffer.drawString(position_string, left_margin + (xdim - right_margin - left_margin) / 2 - string_width / 2, ydim - bottom_margin / 4);
-            
-			// Placing numbers on the intensity axis.
-			double current_intensity_range = maximum_y - minimum_y;
-		    double current_range = b1 - b2;
-		    int number_of_units = (int) (current_range / (2 * string_height));
-		    double current_increment = current_range / number_of_units;
-		    double current_value_increment = current_intensity_range / number_of_units;
-		    current_position = b2;
-		    String intensity_string = String.format("%,.0f", current_value);
-		    string_width = font_metrics.stringWidth(intensity_string);
-		    for(int i = 0; i < number_of_segments; i++)
-		    {
-			    a1 = left_margin;
-			    b1 = ydim - bottom_margin;
-
-			    a2 = a1 + graph_xdim;
-			    b2 = b1 - graph_ydim;
-
-			    int xaddend = i * xstep;
-			    int yaddend = i * ystep;
-
-			    a1 += xaddend;
-			    b1 -= yaddend;
-
-			    a2 += xaddend;
-			    b2 -= yaddend;
-			    
-			    current_value = maximum_y;
-			    current_position = b2;
-			    
-			    if(i == 0)
-			    {
-		            for(int j = 0; j < number_of_units; j++)
-		            {
-			            intensity_string = String.format("%,.0f", current_value);
-			            string_width     = font_metrics.stringWidth(intensity_string);
-			            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
-			            current_position += current_increment;
-			            current_value    -= current_value_increment;
-		            }
-		            intensity_string = String.format("%,.0f", current_value);
-		            string_width = font_metrics.stringWidth(intensity_string);
-					graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
-			    }
-		    }     
-			intensity_string = new String("nT");
-			string_width = font_metrics.stringWidth(intensity_string);
-			graphics_buffer.drawString(intensity_string, string_width / 2, top_margin + (ydim - top_margin - bottom_margin) / 2);
-		    return(data_image);
 		}
 	}
 
