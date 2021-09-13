@@ -59,6 +59,7 @@ public class XFencePlotter
 	double             append_y_abs         = 0;
 	int                append_x_position    = 0;
 	int                append_y_position    = 0;
+	int                append_index         = 0;
 
     ArrayList     sensor_id   = new ArrayList();
 	ArrayList     data        = new ArrayList();
@@ -982,71 +983,86 @@ public class XFencePlotter
 				}
             	if(append_data)
 				{
+            		int number_of_segments = sensor_data.size() - 4;
 					Dimension canvas_dimension = line_canvas.getSize();
 					int       canvas_xdim      = (int)canvas_dimension.getWidth();
 					int       canvas_ydim      = (int)canvas_dimension.getHeight();
 					
-					double    max_xstep        = (canvas_xdim - (left_margin + right_margin)) / 5;
+					double    max_xstep        = (canvas_xdim - (left_margin + right_margin)) / number_of_segments;
 					int       xstep            = (int) (max_xstep * normal_xstep);
 					
-					double    max_ystep        = (canvas_ydim - (top_margin + bottom_margin)) / 5;
+					double    max_ystep        = (canvas_ydim - (top_margin + bottom_margin)) / number_of_segments;
 					int       ystep            = (int) (max_ystep * normal_ystep);
 					
 					int delta_x = 0;
 					int delta_y = 0;
-					
-					
-					if(append_sensor == 0)
+						
+					if(number_of_segments % 2 == 1)
 					{
-						if(reverse_view)
+						for(int i = 0; i < number_of_segments / 2; i++)
 						{
-						    delta_x =  4 * xstep;
-						    delta_y = -4 * ystep;
-						}
-						else
-						{
-							delta_x = -4 * xstep;
-							delta_y =  4 * ystep;
+							int k = (number_of_segments - 1) / (i + 1);
+							if(append_index == i)
+							{
+							    if(reverse_view)
+							    {
+							        delta_x =  k * xstep;
+							        delta_y = -k * ystep;
+							    }
+							    else
+							    {
+							    	delta_x = -k * xstep;
+							        delta_y =  k * ystep;   	
+							    }
+							}
+							else if(append_index == number_of_segments - 1 - i)
+							{
+								if(reverse_view)
+							    {
+							        delta_x = -k * xstep;
+							        delta_y =  k * ystep;
+							    }
+							    else
+							    {
+							    	delta_x =  k * xstep;
+							        delta_y = -k * ystep;   	
+							    }	
+							}
 						}
 					}
-					else if(append_sensor == 4)
+					else
 					{
-						if(reverse_view)
+						for(int i = 0; i < number_of_segments / 2; i++)
 						{
-						    delta_x = -4 * xstep;
-						    delta_y =  4 * ystep;
-						}
-						else
-						{
-							delta_x =  4 * xstep;
-							delta_y = -4 * ystep;
-						}	
-					}
-					else if(append_sensor == 1)
-					{
-						if(reverse_view)
-						{
-						    delta_x =  2 * xstep;
-						    delta_y = -2 * ystep;
-						}
-						else
-						{
-							delta_x = -2 * xstep;
-							delta_y =  2 * ystep;
-						}    
-					}
-					else if(append_sensor == 3)
-					{
-						if(reverse_view)
-						{
-						    delta_x = -2 * xstep;
-						    delta_y =  2 * ystep;
-						}
-						else
-						{
-							delta_x =  2 * xstep;
-							delta_y = -2 * ystep;
-						}    	
+							int k = number_of_segments - (2 * i) - 1;
+							if(append_index == i)
+							{
+							    if(reverse_view)
+							    {
+							        delta_x =  k * xstep;
+							        delta_y = -k * ystep;
+							    }
+							    else
+							    {
+							    	
+							    	delta_x = -k * xstep;
+							        delta_y =  k * ystep;  
+							    }
+							}
+							else if(append_index == number_of_segments - 1 - i)
+							{
+								if(reverse_view)
+							    {
+							        delta_x = -k * xstep;
+							        delta_y =  k * ystep;
+							    }
+							    else
+							    {
+							    	delta_x =  k * xstep;
+							        delta_y = -k * ystep;   
+							    }	
+							}
+						}        
 					}
 					
 					append_x_position += delta_x;
@@ -2899,6 +2915,18 @@ public class XFencePlotter
 					append_y_abs      = current_y + global_ymin;
 					append_x_position = x;
 					append_y_position = y;
+					
+					append_index = 0;
+					String append_id = new String(current_line + ":" + current_sensor);
+					
+					for(int i = 0; i < 10; i++)
+					{
+					    String this_id = sensor[i].getText();
+					    if(this_id.equals(append_id))
+					    	break;
+					    else
+					    	append_index++;
+					}
 
 					String information_string = new String("  Line:         " + current_line + "\n");
 					sample_information.append(information_string);
