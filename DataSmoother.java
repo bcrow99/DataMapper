@@ -140,9 +140,6 @@ public class DataSmoother
 				double axis             = getDistance(current_sample.x, current_sample.y, previous_sample.x, previous_sample.y);
 				total_distance         += axis;
 				
-				
-				
-				
 				current_sample          = (Sample) relative_data.get(i - 2);
 				Sample adjusted_sample  = new Sample(current_sample.x, total_distance, current_sample.intensity);
 				data.add(adjusted_sample);
@@ -204,9 +201,12 @@ public class DataSmoother
 				}
 			}
 			
+			ArrayList slope_data = new ArrayList();
+			
 			for(int i = 0; i < 5; i++)
 			{
-				ArrayList point_list  = (ArrayList)point_data.get(i);
+				ArrayList point_list = (ArrayList)point_data.get(i);
+				ArrayList slope_list = new ArrayList();
 				int size = point_list.size();
 				
 				double [] x = new double[size];
@@ -218,11 +218,58 @@ public class DataSmoother
 					y[j] = point.y;
 				}
 				double [] smooth_x = smooth(x, iterations);
-				double [] smooth_y = smooth(x, iterations);
-				System.out.println("Sensor " + i + " has " + smooth_x.length + " pieces of smoothed data");
+				double [] smooth_y = smooth(y, iterations);
+				//System.out.println("Sensor " + i + " has " + smooth_x.length + " pieces of smoothed data");
+				
+				double  start_position = smooth_x[0];
+				double  start_value    = smooth_y[0];
+				int     index          = 1;
+				double  current_length = 0;
+				int     length         = smooth_x.length;
+				double  difference     = 0;
+				boolean increasing    = false;
+				if(smooth_y[1] > smooth_y[0])
+					increasing = true;
+				while(index < length)
+				{
+					current_length = smooth_x[index] - start_position;
+					if(smooth_y[index] < start_value && increasing)
+					//if(current_length > 1.)
+					{
+						double [] slope_info = new double[4];
+						slope_info[0]  = start_position;
+						slope_info[1]  = start_value;
+						slope_info[2]  = smooth_x[index];
+						slope_info[3]  = smooth_y[index];  
+						start_position = smooth_x[index];
+						start_value    = smooth_y[index];
+						slope_list.add(slope_info);
+						increasing = false;
+					}	
+					else if(smooth_y[index] > start_value && !increasing)
+					{
+						double [] slope_info = new double[4];
+						slope_info[0]  = start_position;
+						slope_info[1]  = start_value;
+						slope_info[2]  = smooth_x[index];
+						slope_info[3]  = smooth_y[index];  
+						start_position = smooth_x[index];
+						start_value    = smooth_y[index];
+						slope_list.add(slope_info);
+						increasing = true;    	
+					}
+					index++;
+				}
+				slope_data.add(slope_list);
 			}
-			
-			
+			int number_of_lists = slope_data.size();
+			System.out.println("Number of lists is " + number_of_lists);
+			for(int i = 0; i < number_of_lists; i++)
+			{
+				ArrayList slope_list      = (ArrayList)slope_data.get(i);
+				int       number_of_entries = slope_list.size();
+				System.out.println("List " + i + " has " + number_of_entries + " entries.");
+			}
 		}
 		else
 		{
@@ -230,7 +277,6 @@ public class DataSmoother
 		}
 	}
 	
-
 	public double getDistance(double x, double y, double x_origin, double y_origin)
 	{
 	    double distance  = Math.sqrt((x - x_origin) * (x - x_origin) + (y - y_origin) * (y - y_origin));
