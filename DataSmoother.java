@@ -173,7 +173,7 @@ public class DataSmoother
 				int       k           = 0;
 			    for(int j = i; j < i + 5; j++)	
 			    {
-			    	Sample    sample      = (Sample)data.get(j);
+			    	Sample    sample      = (Sample)relative_data.get(j);
 			    	ArrayList sensor_list = (ArrayList)sensor_data.get(k++);
 			    	sensor_list.add(sample);
 			    }
@@ -194,80 +194,101 @@ public class DataSmoother
 				for(int j = 0; j < sample_list.size(); j++)
 				{
 					Sample sample        = (Sample)sample_list.get(j);
-					Point2D.Double point = new Point2D.Double();
-					point.x              = sample.y;
-					point.y              = sample.intensity;
+					
+					double point[] = new double[3];
+					
+					point[0]       = sample.x;
+					point[1]       = sample.y;
+					point[2]       = sample.intensity;
 					point_list.add(point);
 				}
 			}
 			
-			ArrayList slope_data = new ArrayList();
+			ArrayList segmented_data = new ArrayList();
 			
 			for(int i = 0; i < 5; i++)
 			{
 				ArrayList point_list = (ArrayList)point_data.get(i);
-				ArrayList slope_list = new ArrayList();
-				int size = point_list.size();
+				ArrayList segmented_list = new ArrayList();
+				int       size       = point_list.size();
 				
 				double [] x = new double[size];
 				double [] y = new double[size];
+				double [] z = new double[size];
 				for(int j = 0; j < size; j++)
 				{
-					Point2D.Double point = (Point2D.Double)point_list.get(j);
-					x[j] = point.x;
-					y[j] = point.y;
+					double[] point = (double[])point_list.get(j);
+					x[j] = point[0];
+					y[j] = point[1];
+					z[j] = point[2];
 				}
 				double [] smooth_x = smooth(x, iterations);
 				double [] smooth_y = smooth(y, iterations);
-				//System.out.println("Sensor " + i + " has " + smooth_x.length + " pieces of smoothed data");
+				double [] smooth_z = smooth(z, iterations);
 				
-				double  start_position = smooth_x[0];
-				double  start_value    = smooth_y[0];
+				double  start_value    = smooth_z[0];
 				int     index          = 1;
-				double  current_length = 0;
-				int     length         = smooth_x.length;
-				double  difference     = 0;
+				int     length         = smooth_z.length;
+				
 				boolean increasing    = false;
-				if(smooth_y[1] > smooth_y[0])
+				if(smooth_z[1] > smooth_z[0])
 					increasing = true;
+				
+				double [] initial_point = new double[3];
+				initial_point[0] = smooth_x[0];
+				initial_point[1] = smooth_y[0];
+				initial_point[2] = smooth_z[0];
+				
+				
+				// Add initial point to use as reference to calculate slope.
+				segmented_list.add(initial_point);
+				
 				while(index < length)
 				{
-					current_length = smooth_x[index] - start_position;
-					if(smooth_y[index] < start_value && increasing)
-					//if(current_length > 1.)
+					if(smooth_z[index] < (smooth_z[index - 1] - 1) && increasing)
 					{
-						double [] slope_info = new double[4];
-						slope_info[0]  = start_position;
-						slope_info[1]  = start_value;
-						slope_info[2]  = smooth_x[index];
-						slope_info[3]  = smooth_y[index];  
-						start_position = smooth_x[index];
-						start_value    = smooth_y[index];
-						slope_list.add(slope_info);
+						double [] point = new double[3];
+						point[0]        = smooth_x[index - 1];
+						point[1]        = smooth_y[index - 1];
+						point[2]        = smooth_z[index - 1];
+						segmented_list.add(point);
+						
+						
+						start_value    = smooth_z[index - 1];
 						increasing = false;
 					}	
-					else if(smooth_y[index] > start_value && !increasing)
+					else if(smooth_z[index] > (smooth_z[index - 1] + 1) && !increasing)
 					{
-						double [] slope_info = new double[4];
-						slope_info[0]  = start_position;
-						slope_info[1]  = start_value;
-						slope_info[2]  = smooth_x[index];
-						slope_info[3]  = smooth_y[index];  
-						start_position = smooth_x[index];
-						start_value    = smooth_y[index];
-						slope_list.add(slope_info);
+						double [] point = new double[3];
+						point[0]        = smooth_x[index - 1];
+						point[1]        = smooth_y[index - 1];
+						point[2]        = smooth_z[index - 1];
+						segmented_list.add(point);
+						
+						
+						start_value    = smooth_z[index - 1];
 						increasing = true;    	
 					}
+					// Add final point even if slope is not changing sign so it can serve as a reference.
+					else if(index == length - 1) 
+					{
+						double [] point = new double[3];
+						point[0]        = smooth_x[index - 1];
+						point[1]        = smooth_y[index - 1];
+						point[2]        = smooth_z[index - 1];
+						segmented_list.add(point);	
+					}
+						
 					index++;
 				}
-				slope_data.add(slope_list);
+				segmented_data.add(segmented_list);
 			}
-			int number_of_lists = slope_data.size();
+			int number_of_lists = segmented_data.size();
 			System.out.println("Number of lists is " + number_of_lists);
 			for(int i = 0; i < number_of_lists; i++)
 			{
-				ArrayList slope_list      = (ArrayList)slope_data.get(i);
-				int       number_of_entries = slope_list.size();
+				ArrayList segmented_list      = (ArrayList)segmented_data.get(i);
+				int       number_of_entries = segmented_list.size();
 				System.out.println("List " + i + " has " + number_of_entries + " entries.");
 			}
 		}
