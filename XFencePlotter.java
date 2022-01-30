@@ -39,7 +39,7 @@ public class XFencePlotter
     boolean color_key      = false;
     boolean show_id        = true;
     boolean show_label     = true;
-    boolean in_order       = false;
+    boolean in_order       = true;
     double  scale_factor   = 1.;
     double  normal_xstep   = 0.5;
 	double  normal_ystep   = 0.5;
@@ -218,7 +218,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3 of fence.");
+			System.out.println("This is version 3.1 of fence.");
 			try
 			{
 				try
@@ -395,12 +395,6 @@ public class XFencePlotter
 					    	    normal_xstep = Double.valueOf(value);
 					        else if(key.equals("YStep")) 
 					        	normal_ystep = Double.valueOf(value);
-					        else if(key.equals("SortLocation")) 
-					        	sort_location = Double.valueOf(value); 
-					        else if(key.equals("XLocation"))
-					    	    xlocation = Double.valueOf(value);
-					        else if(key.equals("YLocation")) 
-					        	ylocation = Double.valueOf(value);
 					        else if(key.equals("InOrder")) 
 					        {
 					        	if(value.equals("true"))
@@ -408,6 +402,12 @@ public class XFencePlotter
 					        	else
 					        		in_order = false;	
 					        }
+					        else if(key.equals("SortLocation")) 
+					        	sort_location = Double.valueOf(value); 
+					        else if(key.equals("XLocation"))
+					    	    xlocation = Double.valueOf(value);
+					        else if(key.equals("YLocation")) 
+					        	ylocation = Double.valueOf(value);
 					        else if(key.equals("Scaling")) 
 					        {
 					        	if(value.equals("true"))
@@ -537,7 +537,7 @@ public class XFencePlotter
 				{
 					System.out.println("Exception reading config file.");
 					//System.out.println(e.toString());
-					// Could reset defaults here.
+					// Could reset to defaults here.
 					config_file_exists = false;
 				}
 			}
@@ -653,8 +653,6 @@ public class XFencePlotter
 	            	output.write("Offset\t\t\t" + String.format("%,.4f", offset) + "\n");
 	            	output.write("Range\t\t\t" + String.format("%,.4f", range) + "\n");
 	            	output.write("SortLocation\t" + String.format("%,.3f", sort_location) + "\n");
-	            	
-	            	//Don't think we need this to start up program, but might be useful to know.
 	            	if(in_order)
 	            		output.write("InOrder\t\t\ttrue\n");
 	            	else
@@ -785,7 +783,6 @@ public class XFencePlotter
 		
 		RangeScrollbarHandler range_scrollbar_handler = new RangeScrollbarHandler();
 		range_scrollbar.addAdjustmentListener(range_scrollbar_handler);	
-		
 		
 		// Taking advantage of an implementation detail and setting a semaphore
 		// so the scrollbar handler doesn't do anything when starting up.
@@ -1067,6 +1064,7 @@ public class XFencePlotter
 				sort_dialog.setLocation(x, y);
 				sort_dialog.pack();
 				sort_dialog.setVisible(true);
+				order_canvas.repaint();
 			}
 		};
 		sort_item.addActionListener(sort_handler);
@@ -1563,6 +1561,8 @@ public class XFencePlotter
 
 		load_dialog = new JDialog(frame);
 		load_dialog.add(load_panel);
+		
+		
 
 		// A modeless dialog box that shows up if File->Load Config is selected.
 		JPanel load_config_panel = new JPanel(new GridLayout(2, 1));
@@ -1578,7 +1578,7 @@ public class XFencePlotter
 				String filename = load_config_input.getText();
 				
 				String suffix = new String(".cfg");
-				System.out.println("Loading " + filename + suffix);
+				System.out.println("Loading configuration from " + filename + suffix);
 				File config_file = new File(filename + suffix);
 				if(config_file.exists())
 				{
@@ -1802,6 +1802,13 @@ public class XFencePlotter
 						        	normal_ystep = Double.valueOf(value);
 						        else if(key.equals("SortLocation")) 
 						        	sort_location = Double.valueOf(value); 
+						        else if(key.equals("InOrder")) 
+						        {
+						        	if(value.equals("true"))
+						        		in_order = true;
+						        	else
+						        		in_order = false;	
+						        }
 						        else if(key.equals("XLocation"))
 						    	    xlocation = Double.valueOf(value);
 						        else if(key.equals("YLocation")) 
@@ -1905,12 +1912,28 @@ public class XFencePlotter
 					    config_reader.close();
 					    
 					    
-					    // We now have current setting for all parameters and can make the gui consistent.
+					    // We now have current settings for all parameters with dependencies and can make the gui consistent.
+					    // We already reset booleans without dependencies.
+					    
+					    
+					    // Alert user they might want to sort overlapping segments.
+					    if(!in_order)
+					    	System.out.println("The segments are out of order at location " + sort_location);
+					    
+					    // Reset placement scrollbars.
+					    int value = (int)(100. * normal_xstep);
+					    xstep_scrollbar.setValue(value);
+					    value = (int)(100. * (1 - normal_ystep));
+						ystep_scrollbar.setValue(value);
+					    
+						// Make the order canvas red or green to show if segments are in order.
+						// This does not work, maybe because the adjustment listener sets in_order.
+					    //order_canvas.repaint();
 					    
 					    // Reset scaling slider to current settings.  
 					    if(data_scaled)
 					    {
-					        int value = (int)((scale_factor - 1.) * 100.);	
+					        value = (int)((scale_factor - 1.) * 100.);	
 					        factor_slider.setValue(value);
 					    }
 					    // Make it consistent with boolean.
@@ -1927,9 +1950,6 @@ public class XFencePlotter
 		                	upper_bound.setText(String.format("%,.2f", maximum_y));	
 					    }
 					    
-					    // So placement dialog comes up right.
-					    xstep_scrollbar.setValue((int)normal_xstep * 100);
-					    ystep_scrollbar.setValue((int)normal_ystep * 100);
 					    
 					    // Reset scrollbar and slider to current settings. 
 					    double normal_range           = range / 60.;
@@ -1944,7 +1964,6 @@ public class XFencePlotter
 					    // We have to know the current state of the slider to reset it correctly;
 					    // This should be hidden in the implementation of the range slider but
 					    // we can deal with it.
-					    
 					    int slider_lower_value = range_slider.getValue();
 					    int slider_upper_value = range_slider.getUpperValue();
 					    
@@ -1969,15 +1988,13 @@ public class XFencePlotter
 					    
 					    range_scrollbar_changing = false;
 					    
-					    //Likewise with the scrollbar--setting semaphores to prevent oscillation.
+					    //Likewise with the scrollbar--setting semaphore to prevent oscillation.
 					    range_slider_changing = true;
 					    
 					    int scrollbar_value = (int)(normal_center_position * 2000.);
 					    range_scrollbar.setValue(scrollbar_value);
 					    
 					    range_slider_changing = false;
-					    
-					    System.out.println("Finished resetting parameters.");
 					    
 					    // If we change any parameter that affects what
 					    // data segment we're looking at, we need to
@@ -1987,11 +2004,16 @@ public class XFencePlotter
 					    // will repaint the data canvas.
 					    // Might want to check if we actually need to resegment
 					    // data and just call data_canvas.repaint().
-					    apply_item.doClick();  
+					    apply_item.doClick(); 
+					    
+					    
+						System.out.println("Finished resetting parameters.");
+						
 					}
 					catch(Exception e2)
 					{
-						// Could try loading standard config file.
+						// Could try loading standard config file instead of
+						// continuing with possible corrupted parameters.
 					    System.out.println("Exception reading config file.");
 					}
 				}
@@ -2013,8 +2035,143 @@ public class XFencePlotter
 		{
 			public void actionPerformed(ActionEvent e)
 			{
+				String suffix = new String(".cfg");
 				String filename = save_config_input.getText();
-				System.out.println("Saving to " + filename);
+				System.out.println("Saving configuration to " + filename + suffix);
+				
+				try
+	            {
+	            	PrintWriter output  = new PrintWriter(filename + suffix);	
+	            	String id           = new String("");
+	            	String _visible     = new String("");
+	            	String _transparent = new String("");
+	            	for(int i = 0; i < 10; i++)
+	            	{
+	            	    id = new String(id + sensor[i].getText() + "\t");
+	            	    if(visible[i])
+	            	    	_visible = new String(_visible + "true\t");
+	            	    else
+	            	    	_visible = new String(_visible + "false\t");
+	            	    if(transparent[i])
+	            	    	_transparent = new String(_transparent + "true\t");
+	            	    else
+	            	    	_transparent = new String(_transparent + "false\t");	  
+	            	}
+	            	output.write("SensorID\t" + id + "\n");
+	            	output.write("Visible\t\t" + _visible + "\n");
+	            	output.write("Transparent\t" + _transparent + "\n\n");
+	            	output.write("Offset\t\t\t" + String.format("%,.4f", offset) + "\n");
+	            	output.write("Range\t\t\t" + String.format("%,.4f", range) + "\n");
+	            	output.write("SortLocation\t" + String.format("%,.3f", sort_location) + "\n");
+	            	if(in_order)
+	            		output.write("InOrder\t\t\ttrue\n");
+	            	else
+	            		output.write("InOrder\t\t\tfalse\n");
+	                output.write("XLocation\t\t" + String.format("%,.4f", xlocation) + "\n");
+	            	output.write("YLocation\t\t" + String.format("%,.4f", ylocation) + "\n");
+	            	output.write("XStep\t\t\t" + String.format("%,.2f", normal_xstep) + "\n");
+	            	output.write("YStep\t\t\t" + String.format("%,.2f", normal_ystep) + "\n");
+	            
+	            	if(reverse_view)
+	            		output.write("ReverseView\t\ttrue\n");
+	            	else
+	            		output.write("ReverseView\t\tfalse\n");
+	            	if(relative_mode)
+	            		output.write("RelativeMode\ttrue\n");
+	            	else
+	            		output.write("RelativeMode\tfalse\n");
+	            	if(raster_overlay)
+	            		output.write("RasterOverlay\ttrue\n");
+	            	else
+	            		output.write("RasterOverlay\tfalse\n");
+	            	if(autoscale)
+	            		output.write("Autoscale\t\ttrue\n");
+	            	else
+	            		output.write("Autoscale\t\tfalse\n");
+	            	if(show_id)
+	            		output.write("ShowID\t\t\ttrue\n");
+	            	else
+	            		output.write("ShowID\t\t\tfalse\n");
+	            	if(color_key)
+	            		output.write("ColorKey\t\ttrue\n");
+	            	else
+	            		output.write("ColorKey\t\tfalse\n");
+	            	if(data_scaled)
+	            		output.write("Scaling\t\t\ttrue\n");
+	            	else
+	            		output.write("Scaling\t\t\tfalse\n");
+	            	output.write("ScaleFactor\t\t" + String.format("%,.2f", scale_factor) + "\n");
+	            	if(data_clipped)
+	            		output.write("Clipping\t\ttrue\n");
+	            	else
+	            		output.write("Clipping\t\tfalse\n");
+	            	output.write("Maximum\t\t\t" + String.format("%,.2f", maximum_y) + "\n");
+	            	output.write("Minimum\t\t\t" + String.format("%,.2f", minimum_y) + "\n");
+	            	output.write("Smooth\t\t\t" + smooth + "\n");
+	            	if(append_data)
+	            		output.write("AppendData\t\ttrue\n");
+	            	else
+	            		output.write("AppendData\t\tfalse\n");
+	            	output.write("AppendLine\t\t" + append_line + "\n");
+	            	output.write("AppendSensor\t" + append_sensor + "\n");
+	            	output.write("AppendX\t\t\t" + String.format("%,.2f", append_x) + "\n");
+	            	output.write("AppendY\t\t\t" + String.format("%,.2f", append_y) + "\n");
+	            	output.write("AppendIntensity\t" + String.format("%,.2f", append_intensity) + "\n");
+	            	
+	            	String decimal_string = String.format("%,.2f", append_x_abs);
+	            	output.write("AppendXAbs\t\t" + decimal_string.replaceAll(",", "") + "\n");
+	            	
+	            	decimal_string = String.format("%,.2f", append_y_abs);
+	            	output.write("AppendYAbs\t\t" + decimal_string.replaceAll(",", "") + "\n");
+	            	output.write("AppendXPosition\t" + append_x_position + "\n");
+	            	output.write("AppendYPosition\t" + append_y_position + "\n");
+	            	output.write("AppendIndex\t\t" + append_index + "\n");
+	            	
+	            	if(startpoint_set)
+	            		output.write("StartSet\t\ttrue\n");
+	            	else
+	            		output.write("StartSet\t\tfalse\n");
+	            	output.write("StartLine\t\t" + startpoint_line + "\n");
+	            	output.write("StartSensor\t\t" + startpoint_sensor + "\n");
+	            	output.write("StartX\t\t\t" + String.format("%,.2f", startpoint_x) + "\n");
+	            	output.write("StartY\t\t\t" + String.format("%,.2f", startpoint_y) + "\n");
+	            	output.write("StartIntensity\t" + String.format("%,.2f", startpoint_intensity) + "\n");
+	            	output.write("StartXPosition\t" + startpoint_x_position + "\n");
+	            	output.write("StartYPosition\t" + startpoint_y_position + "\n");
+	            	output.write("StartIndex\t\t" + startpoint_index + "\n");
+	            	
+	            	if(midpoint_set)
+	            		output.write("MidSet\t\t\ttrue\n");
+	            	else
+	            		output.write("MidSet\t\t\tfalse\n");
+	            	output.write("MidLine\t\t\t" + midpoint_line + "\n");
+	            	output.write("MidSensor\t\t" + midpoint_sensor + "\n");
+	            	output.write("MidX\t\t\t" + String.format("%,.2f", midpoint_x) + "\n");
+	            	output.write("MidY\t\t\t" + String.format("%,.2f", midpoint_y) + "\n");
+	            	output.write("MidIntensity\t" + String.format("%,.2f", midpoint_intensity) + "\n");
+	            	output.write("MidXPosition\t" + midpoint_x_position + "\n");
+	            	output.write("MidYPosition\t" + midpoint_y_position + "\n");
+	            	output.write("MidIndex\t\t" + midpoint_index + "\n");
+	            	
+	            	if(endpoint_set)
+	            		output.write("EndSet\t\t\ttrue\n");
+	            	else
+	            		output.write("EndSet\t\t\tfalse\n");
+	            	output.write("EndLine\t\t\t" + endpoint_line + "\n");
+	            	output.write("EndSensor\t\t" + endpoint_sensor + "\n");
+	            	output.write("EndX\t\t\t" + String.format("%,.2f", endpoint_x) + "\n");
+	            	output.write("EndY\t\t\t" + String.format("%,.2f", endpoint_y) + "\n");
+	            	output.write("EndIntensity\t" + String.format("%,.2f", endpoint_intensity) + "\n");
+	            	output.write("EndXPosition\t" + endpoint_x_position + "\n");
+	            	output.write("EndYPosition\t" + endpoint_y_position + "\n");
+	            	output.write("EndIndex\t\t" + endpoint_index + "\n");
+	            	
+	            	output.close();	
+	            }
+	        	catch(Exception e2)
+	        	{
+	        		System.out.println(e2.toString());
+	        	}
 			}
 		};
 		save_config_button.addActionListener(save_config_handler);
@@ -2371,6 +2528,8 @@ public class XFencePlotter
 		SortButtonHandler sort_button_handler = new SortButtonHandler();
 		sort_button.addActionListener(sort_button_handler);
 		order_panel.add(order_canvas);
+		if(!in_order)
+			System.out.println("Segments are out of order at location " + sort_location);
 		order_panel.add(sort_button);
 		sort_button_panel.add(order_scrollpane, BorderLayout.CENTER);
 		sort_button_panel.add(order_panel, BorderLayout.SOUTH);
