@@ -20,11 +20,13 @@ public class YFencePlotter
 	public LocationCanvas location_canvas;
 	public boolean     data_scrollbar_changing, data_slider_changing;
 	public double      global_xmin, global_xmax, global_ymin, global_ymax, global_intensity_min, global_intensity_max;
+	public double      seg_min, seg_max;
 	public double      clipped_min, clipped_max;
 	public int         slider_resolution    = 2640;
 	public int         scrollbar_resolution = 2640;
 	public int         data_length          = 2640;
 	public Color[]     fill_color           = new Color[10];
+	public Color[]     outline_color       = new Color[10];
 	public double[]    slope                = new double[5];
 	public ArrayList   relative_data        = new ArrayList();
 	public ArrayList   data                 = new ArrayList();
@@ -60,7 +62,6 @@ public class YFencePlotter
 	
 	boolean            dynamic_slider_changing = false;
 	boolean            dynamic_button_changing = false;
-	
 	
 	boolean            append_data          = false;
 	int                append_line          = 0;
@@ -128,13 +129,26 @@ public class YFencePlotter
 	public JDialog     dynamic_range_dialog;
 	public JDialog     label_dialog;
 	public JDialog     range_dialog;
-	
+	public JDialog     load_config_dialog;
+	public JDialog     save_config_dialog;
 	public PlacementCanvas placement_canvas;
 	
 	public JTextArea   sample_information;
 	public JTextArea   slope_output;
-	public JTextField  lower_bound;
-	public JTextField  upper_bound;
+	public JTextField  load_config_input;
+	public JTextField  save_config_input;
+	// Gui components that are fired by load handler.
+	public JCheckBoxMenuItem view_item;
+	public JCheckBoxMenuItem mode_item;
+	public JCheckBoxMenuItem overlay_item;
+	public JCheckBoxMenuItem show_id_item;
+	public JCheckBoxMenuItem color_key_item;
+	public JSlider           smooth_slider;
+	public JSlider           factor_slider;
+	public JScrollBar        xstep_scrollbar;
+	public JScrollBar        ystep_scrollbar;
+	public JTextField        lower_bound;
+	public JTextField        upper_bound;
 	
 	int       left_margin        = 70;
 	int       right_margin       = 70;
@@ -152,7 +166,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3 of wand.");
+			System.out.println("This is version 3.1 of wand.");
 			try
 			{
 				try
@@ -174,6 +188,17 @@ public class YFencePlotter
 	
 	public YFencePlotter(String filename)
 	{
+		outline_color[0] = new Color(0, 0, 0);
+		outline_color[1] = new Color(0, 0, 75);
+		outline_color[2] = new Color(0, 75, 0);
+		outline_color[3] = new Color(75, 0, 0);
+		outline_color[4] = new Color(0, 75, 75);
+		outline_color[5] = new Color(75, 0, 75);
+		outline_color[6] = new Color(75, 75, 0);
+		outline_color[7] = new Color(75, 75, 75);
+		outline_color[8] = new Color(75, 75, 150);
+		outline_color[9] = new Color(75, 150, 75);
+
 		fill_color[0]    = new Color(196, 196, 196);
 		fill_color[1]    = new Color(196, 196, 224);
 		fill_color[2]    = new Color(196, 224, 196);
@@ -607,7 +632,7 @@ public class YFencePlotter
 		}
 		
 		
-		// A modeless dialog box that shows up if the mouse is dragged on the canvas.
+		// A modeless dialog box where data shows up if the mouse is dragged on the canvas.
 		JPanel information_panel = new JPanel(new BorderLayout());
 		sample_information = new JTextArea(8, 17);
 		information_panel.add(sample_information);
@@ -752,7 +777,6 @@ public class YFencePlotter
 		Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
 		frame.setCursor(cursor);
 
-		
 		// A modeless dialog box that shows up if Settings->Dynamic Range is selected.
 		lower_bound = new JTextField();
 		upper_bound = new JTextField();
@@ -761,6 +785,9 @@ public class YFencePlotter
 		
 		String lower_string = String.format("%.2f", minimum_y);
 		String upper_string = String.format("%.2f", maximum_y);
+		
+		//System.out.println("Lower bound is " + lower_string);
+		//System.out.println("Upper bound is " + upper_string);
 		lower_bound.setText(lower_string);
 		upper_bound.setText(upper_string);
 		
@@ -773,7 +800,6 @@ public class YFencePlotter
 		JButton adjust_bounds_button = new JButton("Adjust");
 		JButton reset_bounds_button = new JButton("Reset");
 		bounds_button_panel.add(adjust_bounds_button);
-		
 		
 		data_canvas = new PlotCanvas();
 		data_canvas.setSize(1000, 800);
@@ -828,6 +854,45 @@ public class YFencePlotter
 		save_item.addActionListener(save_handler);
 		file_menu.add(save_item);
 		
+		JMenuItem load_config_item  = new JMenuItem("Load Config");
+		ActionListener load_config_dialog_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+
+				load_config_dialog.setLocation(x, y);
+				load_config_dialog.pack();
+				load_config_dialog.setVisible(true);
+			}
+		};
+		load_config_item.addActionListener(load_config_dialog_handler);
+		file_menu.add(load_config_item);
+		
+		
+		JMenuItem save_config_item  = new JMenuItem("Save Config");
+		ActionListener save_config_dialog_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+
+				save_config_dialog.setLocation(x, y);
+				save_config_dialog.pack();
+				save_config_dialog.setVisible(true);
+			}
+		};
+		save_config_item.addActionListener(save_config_dialog_handler);
+		file_menu.add(save_config_item);
+		
 		JMenu     format_menu  = new JMenu("Format");
 		
 		// A modeless dialog box that shows up if Format->Show Data is selected.
@@ -858,11 +923,525 @@ public class YFencePlotter
 		format_menu.add(data_item);
 		
 		
+		// A modeless dialog box that shows up if File->Load Config is selected.
+		JPanel load_config_panel = new JPanel(new GridLayout(2, 1));
+		load_config_input        = new JTextField(30);
+		load_config_input.setHorizontalAlignment(JTextField.CENTER);
+		load_config_input.setText("");
+		load_config_panel.add(load_config_input);
+		JButton load_config_button = new JButton("Load Config");
+		ActionListener load_config_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String filename = load_config_input.getText();
+				
+				String suffix = new String(".cfg");
+				System.out.println("Loading configuration from " + filename + suffix);
+				File config_file = new File(filename + suffix);
+				if(config_file.exists())
+				{
+					try
+					{
+						BufferedReader config_reader   = new BufferedReader(new InputStreamReader(new FileInputStream(config_file)));
+						String line;
+						StringTokenizer config_tokenizer;
+						line = config_reader.readLine();  // Sensor id's--we already know they're 0-4.		    
+						line = config_reader.readLine();  // Visibiltiy
+						config_tokenizer = new StringTokenizer(line);
+						int number_of_tokens = config_tokenizer.countTokens();
+						String token = config_tokenizer.nextToken();
+						number_of_tokens--;
+						for(int i = 0; i < number_of_tokens; i++)
+						{
+						    token = config_tokenizer.nextToken();
+							if(token.equals("true"))
+							    visible[i] = true;
+							else
+								visible[i] = false;
+						}
+					    line = config_reader.readLine();  // Transparency
+					    config_tokenizer = new StringTokenizer(line);
+					    number_of_tokens = config_tokenizer.countTokens();
+					    token = config_tokenizer.nextToken();
+					    number_of_tokens--;
+					    for(int i = 0; i < number_of_tokens; i++)
+					    {
+					        token = config_tokenizer.nextToken();
+							if(token.equals("true"))
+							     transparent[i] = true;
+							else
+							     transparent[i] = false;
+						}		    
+					   line = config_reader.readLine(); 
+					   while(line != null)
+					   {
+					        line = config_reader.readLine();
+					        if(line != null)
+					        {
+					            config_tokenizer = new StringTokenizer(line);
+					            String key       = config_tokenizer.nextToken();
+					            String value     = config_tokenizer.nextToken();
+					            
+					            // We have to adjust the scrollbar and slider
+					            // when these values change.
+					            // Will do that at the end when we have both
+					            // values.
+					            if(key.equals("Offset"))
+					    	        data_offset = Double.valueOf(value);
+					            else if(key.equals("Range")) 
+					        	    data_range = Double.valueOf(value);
+					            else if(key.equals("ReverseView")) 
+						        {
+						        	if(value.equals("true"))
+						        	{
+						        		// Instead of setting values directly,
+						        		// let gui components do it and 
+						        		//  keep gui state accurate.
+						        		if(!reverse_view)
+						        		{
+						        		    //reverse_view = true;
+						        			view_item.doClick();
+						        		}
+						        	}
+						        	else
+						        	{
+						        		if(reverse_view) 
+						        		{
+						        			//reverse_view = false;	
+						        			view_item.doClick();
+						        		}
+						        	}
+						        }
+					            else if(key.equals("RelativeMode")) 
+						        {
+						        	if(value.equals("true"))
+						        	{
+						        		if(!relative_mode)
+						        			mode_item.doClick();
+						        	}
+						        	else
+						        	{
+						        		if(relative_mode)
+						        			mode_item.doClick();	
+						        	}
+						        }
+					            else if(key.equals("RasterOverlay")) 
+						        {
+						        	if(value.equals("true"))
+						        	{
+						        		if(!raster_overlay)
+						        			overlay_item.doClick();
+						        	}
+						        	else
+						        	{
+						        		if(raster_overlay)
+						        			overlay_item.doClick();
+						        	}
+						        }
+					            else if(key.equals("ColorKey")) 
+						        {
+						        	if(value.equals("true"))
+						        	{
+						        		if(!color_key)
+						        			color_key_item.doClick();
+						        	}
+						        	else
+						        	{
+						        		if(color_key)
+						        			color_key_item.doClick();
+						        	}
+						        } 
+					            else if(key.equals("Smooth")) 
+					            {
+					        	    smooth = Integer.parseInt(value);
+					        	    smooth_slider.setValue(smooth);
+					            }
+					            // Need to reset gui but need current values
+					            // for both scaling and scale factor.
+					            // Process at end.
+					            else if(key.equals("Scaling")) 
+						        {
+						        	if(value.equals("true"))
+						        		data_scaled = true;
+						        	else
+						        		data_scaled = false;
+						        } 
+						        else if(key.equals("ScaleFactor")) 
+						        {
+						        	scale_factor = Double.valueOf(value);
+						        }
+					            // We need to reset the bounds text in the dynamic range dialog
+					            // if there is clipping.  Process at the end when we have
+					            // current max/min values.
+						        else if(key.equals("Clipping")) 
+						        {
+						        	if(value.equals("true"))
+						        		data_clipped = true;
+						        	else
+						        		data_clipped = false;
+						        } 
+					            else if(key.equals("Maximum")) 
+						        	maximum_y = Double.valueOf(value);
+					            else if(key.equals("Minimum")) 
+						        	minimum_y = Double.valueOf(value);
+					            else if(key.equals("XStep"))
+						    	    normal_xstep = Double.valueOf(value);
+						        else if(key.equals("YStep")) 
+						        	normal_ystep = Double.valueOf(value);
+						        else if(key.equals("XLocation"))
+						    	    xlocation = Double.valueOf(value);
+						        else if(key.equals("YLocation")) 
+						        	ylocation = Double.valueOf(value);
+					            else if(key.equals("AppendData")) 
+						        {
+						        	if(value.equals("true"))
+						        		append_data = true;
+						        	else
+						        		append_data = false;
+						        } 
+					            else if(key.equals("AppendLine")) 
+					            	append_line = Integer.parseInt(value);	
+					            else if(key.equals("AppendSensor")) 
+					            	append_sensor = Integer.parseInt(value);
+					            else if(key.equals("AppendX")) 
+						        	append_x = Double.valueOf(value);
+					            else if(key.equals("AppendY")) 
+						        	append_y = Double.valueOf(value);
+					            else if(key.equals("AppendXAbs")) 
+						        	append_x_abs = Double.valueOf(value);
+					            else if(key.equals("AppendYAbs")) 
+						        	append_y_abs = Double.valueOf(value);
+					            else if(key.equals("AppendXPosition")) 
+					            	append_x_position = Integer.parseInt(value);
+					            else if(key.equals("AppendYPosition")) 
+					            	append_y_position = Integer.parseInt(value);
+					            else if(key.equals("AppendIndex")) 
+					            	append_index = Integer.parseInt(value);
+					            else if(key.equals("StartSet")) 
+						        {
+						        	if(value.equals("true"))
+						        		startpoint_set = true;
+						        	else
+						        		startpoint_set = false;
+						        } 
+					            else if(key.equals("StartLine")) 
+					            	startpoint_line = Integer.parseInt(value);	
+					            else if(key.equals("StartSensor")) 
+					            	startpoint_sensor = Integer.parseInt(value);
+					            else if(key.equals("StartX")) 
+					            	startpoint_x = Double.valueOf(value);
+					            else if(key.equals("StartY")) 
+					            	startpoint_y = Double.valueOf(value);
+					            else if(key.equals("StartIntensity")) 
+					            	startpoint_intensity = Double.valueOf(value);
+					            else if(key.equals("StartXPosition")) 
+					            	startpoint_x_position = Integer.parseInt(value);
+					            else if(key.equals("StartYPosition")) 
+					            	startpoint_y_position = Integer.parseInt(value);
+					            else if(key.equals("StartIndex")) 
+					            	startpoint_index = Integer.parseInt(value);
+					            else if(key.equals("MidSet")) 
+						        {
+						        	if(value.equals("true"))
+						        		midpoint_set = true;
+						        	else
+						        		midpoint_set = false;
+						        } 
+					            else if(key.equals("MidLine")) 
+					            	midpoint_line = Integer.parseInt(value);	
+					            else if(key.equals("MidSensor")) 
+					            	midpoint_sensor = Integer.parseInt(value);
+					            else if(key.equals("MidX")) 
+					            	midpoint_x = Double.valueOf(value);
+					            else if(key.equals("MidY")) 
+					            	midpoint_y = Double.valueOf(value);
+					            else if(key.equals("MidIntensity")) 
+					            	midpoint_intensity = Double.valueOf(value);
+					            else if(key.equals("MidXPosition")) 
+					            	midpoint_x_position = Integer.parseInt(value);
+					            else if(key.equals("MidYPosition")) 
+					            	midpoint_y_position = Integer.parseInt(value);
+					            else if(key.equals("MidIndex")) 
+					            	midpoint_index = Integer.parseInt(value);
+					            else if(key.equals("EndSet")) 
+						        {
+						        	if(value.equals("true"))
+						        		endpoint_set = true;
+						        	else
+						        		endpoint_set = false;
+						        } 
+					            else if(key.equals("EndLine")) 
+					            	endpoint_line = Integer.parseInt(value);	
+					            else if(key.equals("EndSensor")) 
+					            	endpoint_sensor = Integer.parseInt(value);
+					            else if(key.equals("EndX")) 
+					            	endpoint_x = Double.valueOf(value);
+					            else if(key.equals("EndY")) 
+					            	endpoint_y = Double.valueOf(value);
+					            else if(key.equals("EndIntensity")) 
+					            	endpoint_intensity = Double.valueOf(value);
+					            else if(key.equals("EndXPosition")) 
+					            	endpoint_x_position = Integer.parseInt(value);
+					            else if(key.equals("EndYPosition")) 
+					            	endpoint_y_position = Integer.parseInt(value);
+					            else if(key.equals("EndIndex")) 
+					            	endpoint_index = Integer.parseInt(value);
+					        }
+					    }
+					    config_reader.close();
+					    
+					    
+					    // We now have current settings for all parameters with dependencies and can make the gui consistent.
+					    // We already reset booleans without dependencies.
+					    
+					    
+					    // Reset placement scrollbars.
+					    int value = (int)(100. * normal_xstep);
+					    xstep_scrollbar.setValue(value);
+					    value = (int)(100. * (1 - normal_ystep));
+						ystep_scrollbar.setValue(value);
+					    
+						// Make the order canvas red or green to show if segments are in order.
+						// This does not work, maybe because the adjustment listener sets in_order.
+					    //order_canvas.repaint();
+					    
+					    // Reset scaling slider to current settings.  
+					    if(data_scaled)
+					    {
+					        value = (int)((scale_factor - 1.) * 100.);	
+					        factor_slider.setValue(value);
+					    }
+					    // Make it consistent with boolean.
+					    else
+					    {
+					    	factor_slider.setValue(0);
+					    	scale_factor = 1.0;
+					    }
+					    
+					    // So dynamic range comes up right.
+					    
+					    if(data_clipped)
+					    {
+					    	lower_bound.setText(String.format("%,.2f", minimum_y));	
+		                	upper_bound.setText(String.format("%,.2f", maximum_y));	
+					    }
+					    
+					    // Reset scrollbar and slider to current settings. 
+					    
+					    // The slider will fire the scrollbar and ad infinitum, 
+					    // unless it knows it's being fired by the scrollar and not the user.
+					    data_slider_changing = true;
+					    int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+						data_scrollbar.setValue(scrollbar_position);
+						
+						
+						
+					    // We have to know the current state of the slider to reset it correctly;
+					    // This should be hidden in the implementation of the range slider but
+					    // we can deal with it.
+					    int current_lower_value = data_slider.getValue();
+					    int current_upper_value = data_slider.getUpperValue();
+					    
+					    
+					    data_scrollbar_changing = true;
+
+				        
+				        
+						double position = slider_resolution * data_offset + slider_resolution * data_range;
+						int upper_value = (int) position;
+					    
+					    position = slider_resolution * data_offset;
+				        int lower_value = (int)position;
+						
+				        if(current_upper_value > lower_value)
+				        {
+				        	data_slider.setValue(lower_value);
+					        data_slider.setUpperValue(upper_value);	
+				        }
+				        else
+				        {
+					        data_slider.setUpperValue(upper_value);	
+					        data_slider.setValue(lower_value);
+				        }
+
+						data_scrollbar_changing = false;
+					    
+						// Data canvas paint() function does data segmentation.
+					    data_canvas.repaint();
+					     
+						System.out.println("Finished resetting parameters.");
+						
+					}
+					catch(Exception e2)
+					{
+						// Could try loading standard config file instead of
+						// continuing with possible corrupted parameters.
+					    System.out.println("Exception reading config file.");
+					}
+				}
+			}
+		};
+		load_config_button.addActionListener(load_config_handler);
+		load_config_panel.add(load_config_button);
+		load_config_dialog = new JDialog(frame, "Load Config");
+		load_config_dialog.add(load_config_panel, BorderLayout.CENTER);		
+		
+		
+		
+		// A modeless dialog box that shows up if File->Save Config is selected.
+		JPanel save_config_panel = new JPanel(new GridLayout(2, 1));
+		save_config_input        = new JTextField(30);
+		save_config_input.setHorizontalAlignment(JTextField.CENTER);
+		save_config_input.setText("");
+		save_config_panel.add(save_config_input);
+		JButton save_config_button = new JButton("Save Config");
+		ActionListener save_config_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String suffix = new String(".cfg");
+				String filename = save_config_input.getText();
+				System.out.println("Saving configuration to " + filename + suffix);
+				
+				try
+	            {
+	            	PrintWriter output  = new PrintWriter(filename + suffix);	
+	            	String _id          = new String("");
+	            	String _visible     = new String("");
+	            	String _transparent = new String("");
+	            	String _show_id     = new String("");
+	            	for(int i = 0; i < 5; i++)
+	            	{
+	            	    _id = new String(_id + i + "\t\t");
+	            	    if(visible[i])
+	            	    	_visible = new String(_visible + "true\t");
+	            	    else
+	            	    	_visible = new String(_visible + "false\t");
+	            	    if(transparent[i])
+	            	    	_transparent = new String(_transparent + "true\t");
+	            	    else
+	            	    	_transparent = new String(_transparent + "false\t");	
+	            	}
+	            	output.write("SensorID\t" + _id + "\n");
+	            	output.write("Visible\t\t" + _visible + "\n");
+	            	output.write("Transparent\t" + _transparent + "\n\n");
+	            	output.write("Offset\t\t\t" + String.format("%,.4f", data_offset) + "\n");
+	            	output.write("Offset\t\t\t" + String.format("%,.4f", data_offset) + "\n");
+	            	output.write("Range\t\t\t" + String.format("%,.4f", data_range) + "\n");
+	                output.write("XLocation\t\t" + String.format("%,.4f", xlocation) + "\n");
+	            	output.write("YLocation\t\t" + String.format("%,.4f", ylocation) + "\n");
+	            	output.write("XStep\t\t\t" + String.format("%,.2f", normal_xstep) + "\n");
+	            	output.write("YStep\t\t\t" + String.format("%,.2f", normal_ystep) + "\n");
+	            
+	            	if(reverse_view)
+	            		output.write("ReverseView\t\ttrue\n");
+	            	else
+	            		output.write("ReverseView\t\tfalse\n");
+	            	if(relative_mode)
+	            		output.write("RelativeMode\ttrue\n");
+	            	else
+	            		output.write("RelativeMode\tfalse\n");
+	            	if(raster_overlay)
+	            		output.write("RasterOverlay\ttrue\n");
+	            	else
+	            		output.write("RasterOverlay\tfalse\n");
+	            	if(show_id)
+	            		output.write("ShowID\t\t\ttrue\n");
+	            	else
+	            		output.write("ShowID\t\t\tfalse\n");
+	            	if(color_key)
+	            		output.write("ColorKey\t\ttrue\n");
+	            	else
+	            		output.write("ColorKey\t\tfalse\n");
+	            	if(data_scaled)
+	            		output.write("Scaling\t\t\ttrue\n");
+	            	else
+	            		output.write("Scaling\t\t\tfalse\n");
+	            	output.write("ScaleFactor\t\t" + String.format("%,.2f", scale_factor) + "\n");
+	            	if(data_clipped)
+	            		output.write("Clipping\t\ttrue\n");
+	            	else
+	            		output.write("Clipping\t\tfalse\n");
+	            	output.write("Maximum\t\t\t" + String.format("%,.2f", maximum_y) + "\n");
+	            	output.write("Minimum\t\t\t" + String.format("%,.2f", minimum_y) + "\n");
+	            	output.write("Smooth\t\t\t" + smooth + "\n");
+	            	if(append_data)
+	            		output.write("AppendData\t\ttrue\n");
+	            	else
+	            		output.write("AppendData\t\tfalse\n");
+	            	output.write("AppendLine\t\t" + append_line + "\n");
+	            	output.write("AppendSensor\t" + append_sensor + "\n");
+	            	output.write("AppendX\t\t\t" + String.format("%,.2f", append_x) + "\n");
+	            	output.write("AppendY\t\t\t" + String.format("%,.2f", append_y) + "\n");
+	            	output.write("AppendIntensity\t" + String.format("%,.2f", append_intensity) + "\n");
+	            	
+	            	String decimal_string = String.format("%,.2f", append_x_abs);
+	            	output.write("AppendXAbs\t\t" + decimal_string.replaceAll(",", "") + "\n");
+	            	
+	            	decimal_string = String.format("%,.2f", append_y_abs);
+	            	output.write("AppendYAbs\t\t" + decimal_string.replaceAll(",", "") + "\n");
+	            	output.write("AppendXPosition\t" + append_x_position + "\n");
+	            	output.write("AppendYPosition\t" + append_y_position + "\n");
+	            	output.write("AppendIndex\t\t" + append_index + "\n");
+	            	
+	            	if(startpoint_set)
+	            		output.write("StartSet\t\ttrue\n");
+	            	else
+	            		output.write("StartSet\t\tfalse\n");
+	            	output.write("StartLine\t\t" + startpoint_line + "\n");
+	            	output.write("StartSensor\t\t" + startpoint_sensor + "\n");
+	            	output.write("StartX\t\t\t" + String.format("%,.2f", startpoint_x) + "\n");
+	            	output.write("StartY\t\t\t" + String.format("%,.2f", startpoint_y) + "\n");
+	            	output.write("StartIntensity\t" + String.format("%,.2f", startpoint_intensity) + "\n");
+	            	output.write("StartXPosition\t" + startpoint_x_position + "\n");
+	            	output.write("StartYPosition\t" + startpoint_y_position + "\n");
+	            	output.write("StartIndex\t\t" + startpoint_index + "\n");
+	            	
+	            	if(midpoint_set)
+	            		output.write("MidSet\t\t\ttrue\n");
+	            	else
+	            		output.write("MidSet\t\t\tfalse\n");
+	            	output.write("MidLine\t\t\t" + midpoint_line + "\n");
+	            	output.write("MidSensor\t\t" + midpoint_sensor + "\n");
+	            	output.write("MidX\t\t\t" + String.format("%,.2f", midpoint_x) + "\n");
+	            	output.write("MidY\t\t\t" + String.format("%,.2f", midpoint_y) + "\n");
+	            	output.write("MidIntensity\t" + String.format("%,.2f", midpoint_intensity) + "\n");
+	            	output.write("MidXPosition\t" + midpoint_x_position + "\n");
+	            	output.write("MidYPosition\t" + midpoint_y_position + "\n");
+	            	output.write("MidIndex\t\t" + midpoint_index + "\n");
+	            	
+	            	if(endpoint_set)
+	            		output.write("EndSet\t\t\ttrue\n");
+	            	else
+	            		output.write("EndSet\t\t\tfalse\n");
+	            	output.write("EndLine\t\t\t" + endpoint_line + "\n");
+	            	output.write("EndSensor\t\t" + endpoint_sensor + "\n");
+	            	output.write("EndX\t\t\t" + String.format("%,.2f", endpoint_x) + "\n");
+	            	output.write("EndY\t\t\t" + String.format("%,.2f", endpoint_y) + "\n");
+	            	output.write("EndIntensity\t" + String.format("%,.2f", endpoint_intensity) + "\n");
+	            	output.write("EndXPosition\t" + endpoint_x_position + "\n");
+	            	output.write("EndYPosition\t" + endpoint_y_position + "\n");
+	            	output.write("EndIndex\t\t" + endpoint_index + "\n");
+	            	
+	            	output.close();	
+	            }
+	        	catch(Exception e2)
+	        	{
+	        		System.out.println(e2.toString());
+	        	}
+			}
+		};
+		save_config_button.addActionListener(save_config_handler);
+		save_config_panel.add(save_config_button);
+		save_config_dialog = new JDialog(frame, "Save Config");
+		save_config_dialog.add(save_config_panel, BorderLayout.CENTER);
+		
 		// A modeless dialog box that shows up if Format->Placement is selected.
 		JPanel placement_panel = new JPanel(new BorderLayout());
 		placement_canvas = new PlacementCanvas();
 		placement_canvas.setSize(100, 100);
-		JScrollBar xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 101);
+		xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 101);
 		AdjustmentListener xstep_handler = new AdjustmentListener()
 		{
 			public void adjustmentValueChanged(AdjustmentEvent event)
@@ -879,7 +1458,7 @@ public class YFencePlotter
 		xstep_scrollbar.addAdjustmentListener(xstep_handler);
 		value = (int)(100. * normal_xstep);
 		xstep_scrollbar.setValue(value);
-		JScrollBar ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 101);
+		ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 101);
 		AdjustmentListener ystep_handler = new AdjustmentListener()
 		{
 			public void adjustmentValueChanged(AdjustmentEvent event)
@@ -1070,7 +1649,7 @@ public class YFencePlotter
         
 		// A modeless dialog box that shows up if Adjustments->Smoothing is selected.
 		JPanel  smooth_panel  = new JPanel(new BorderLayout());
-		JSlider smooth_slider = new JSlider(0, 100, 0);
+		smooth_slider = new JSlider(0, 100, smooth);
 		ChangeListener smooth_slider_handler = new ChangeListener()
 		{
 			public void stateChanged(ChangeEvent e)
@@ -1111,7 +1690,7 @@ public class YFencePlotter
 		// A modeless dialog box that shows up if Adjustments->Scaling is selected.
 		JPanel scale_panel = new JPanel(new BorderLayout());
 	
-		JSlider factor_slider = new JSlider(0, 200, 0);
+		factor_slider = new JSlider(0, 200, 0);
 		ChangeListener factor_handler = new ChangeListener()
 		{
 			public void stateChanged(ChangeEvent e)
@@ -1132,6 +1711,13 @@ public class YFencePlotter
 		};
 		factor_slider.addChangeListener(factor_handler);
 		scale_panel.add(factor_slider, BorderLayout.CENTER);
+		if(data_scaled)
+	    {
+	        value = (int)((scale_factor - 1.) * 100.);	
+	        factor_slider.setValue(value);
+	    }
+		else
+			scale_factor = 1.;
 		scale_dialog = new JDialog(frame, "Scale Factor");
 		scale_dialog.add(scale_panel);
 		
@@ -1155,7 +1741,6 @@ public class YFencePlotter
 		scaling_item.addActionListener(scale_handler);
 		adjustment_menu.add(scaling_item);		
 		
-	
 		ActionListener adjust_range_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -1165,56 +1750,24 @@ public class YFencePlotter
 				bound_string        = upper_bound.getText();
 				double max          = Double.valueOf(bound_string);
 				
-				
-				double data_location  = data_offset * data_length;
-				int    start_location = (int)data_location;
-				int    start_index    = (int)index.get(start_location);
-				       data_location += data_range * data_length;
-				int    stop_location  = (int)data_location;
-				int    stop_index     = (int)index.get(stop_location);
-				double global_min     = Double.MAX_VALUE;
-				double global_max     = -Double.MAX_VALUE;
-				
-				for(int i = start_index; i < stop_index; i++)
-				{
-					Sample sample = (Sample)data.get(i);
-					if(sample.intensity < global_min)
-						global_min = sample.intensity;
-					if(sample.intensity > global_max)
-						global_max = sample.intensity;
-				}
-			
-				//Since we're limiting min and max to two decimal places,
-				//we have to do the same thing to our global min/max to
-				//make our logic work.
-				String global_max_string = String.format("%.2f", global_max);
-				double adjusted_global_max = Double.valueOf(global_max_string);
-				String global_min_string = String.format("%.2f", global_min);
-				double adjusted_global_min = Double.valueOf(global_min_string);
-				
-				if(min == adjusted_global_min && max == adjusted_global_max)
-					return;
-				
-				
+				minimum_y = min;
+				maximum_y = max;
 				data_clipped = true;
+						
 				
-				double intensity_min = adjusted_global_min;
-				if(min < intensity_min)
-					intensity_min = min;	
-				double intensity_max = adjusted_global_max;
-				if(max > intensity_max)
-					intensity_max = max;
 				
 				dynamic_range_canvas.repaint();
 				dynamic_button_changing = true;
-				double current_range = intensity_max - intensity_min;
+				double current_range = max - min;
 				//System.out.println("Current range is " + current_range);
+				
+				
+				
 				int min_value = 0;
 				int max_value = 100;
 				
-				clipped_min = intensity_min;
-				clipped_max = intensity_max;
 				
+				/*
 				if(min > intensity_min)
 				{
 					min -= intensity_min;
@@ -1240,6 +1793,7 @@ public class YFencePlotter
 				
 				int previous_max_value = dynamic_range_slider.getUpperValue();	
 				dynamic_range_slider.setUpperValue(max_value);
+				*/
 				
 				dynamic_button_changing = false;	
 				data_canvas.repaint();
@@ -1251,26 +1805,9 @@ public class YFencePlotter
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				
-				double data_location  = data_offset * data_length;
-				int    start_location = (int)data_location;
-				int    start_index    = (int)index.get(start_location);
-				       data_location += data_range * data_length;
-				int    stop_location  = (int)data_location;
-				int    stop_index     = (int)index.get(stop_location);
-				double global_min     = Double.MAX_VALUE;
-				double global_max     = -Double.MAX_VALUE;
-				
-				for(int i = start_index; i < stop_index; i++)
-				{
-					Sample sample = (Sample)data.get(i);
-					if(sample.intensity < global_min)
-						global_min = sample.intensity;
-					if(sample.intensity > global_max)
-						global_max = sample.intensity;
-				}
-				String lower_bound_string = String.format("%,.2f", global_min);
-				String upper_bound_string = String.format("%,.2f", global_max);
+				String lower_bound_string = String.format("%,.2f", seg_min);
+				String upper_bound_string = String.format("%,.2f", seg_max);
+				data_clipped = false;
 				lower_bound.setText(lower_bound_string);
 				upper_bound.setText(upper_bound_string);
 				dynamic_button_changing = true;
@@ -1335,12 +1872,17 @@ public class YFencePlotter
 						global_max = sample.intensity;
 				}
 				
-                if(!data_clipped)
+				if(!data_clipped)
                 {
-                	lower_bound.setText(String.format("%.2f", global_min));
-				    upper_bound.setText(String.format("%.2f", global_max));
+					lower_bound.setText(String.format("%,.2f", global_min));
+					upper_bound.setText(String.format("%,.2f", global_max));
                 }
-                
+                else
+                {
+                	lower_bound.setText(String.format("%,.2f", minimum_y));	
+                	upper_bound.setText(String.format("%,.2f", maximum_y));
+                }
+               
 				dynamic_range_dialog.setLocation(x, y);
 				dynamic_range_dialog.pack();
 				dynamic_range_dialog.setVisible(true);
@@ -1706,7 +2248,7 @@ public class YFencePlotter
 				
 		JMenu     settings_menu  = new JMenu("Settings");
 
-		JCheckBoxMenuItem view_item = new JCheckBoxMenuItem("Reverse View");
+		view_item = new JCheckBoxMenuItem("Reverse View");
 		ActionListener view_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e) 
@@ -1804,7 +2346,7 @@ public class YFencePlotter
 			view_item.setState(true);
 		settings_menu.add(view_item);
 		
-		JCheckBoxMenuItem overlay_item = new JCheckBoxMenuItem("Raster Overlay");
+		overlay_item = new JCheckBoxMenuItem("Raster Overlay");
 		ActionListener overlay_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e) 
@@ -1830,7 +2372,7 @@ public class YFencePlotter
 			overlay_item.setState(true);
 		settings_menu.add(overlay_item);
 		
-		JCheckBoxMenuItem mode_item = new JCheckBoxMenuItem("Relative Mode");
+		mode_item = new JCheckBoxMenuItem("Relative Mode");
 		ActionListener mode_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e) 
@@ -1854,7 +2396,7 @@ public class YFencePlotter
 			mode_item.setState(true);
 		settings_menu.add(mode_item);
 		
-		JCheckBoxMenuItem show_id_item = new JCheckBoxMenuItem("Show ID");
+		show_id_item = new JCheckBoxMenuItem("Show ID");
 		ActionListener show_id_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e) 
@@ -1878,7 +2420,7 @@ public class YFencePlotter
 			show_id_item.setState(true);
 		settings_menu.add(show_id_item);
 		
-		JCheckBoxMenuItem color_key_item = new JCheckBoxMenuItem("Color Key");
+		color_key_item = new JCheckBoxMenuItem("Color Key");
 		ActionListener color_key_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e) 
@@ -1991,8 +2533,8 @@ public class YFencePlotter
 			data_location        += data_range * data_length;
 			int    stop_location  = (int)data_location;
 			int    stop_index     = (int)index.get(stop_location);
-			double seg_min        = Double.MAX_VALUE;
-			double seg_max        = -Double.MAX_VALUE;
+			seg_min        = Double.MAX_VALUE;
+			seg_max        = -Double.MAX_VALUE;
 			double seg_xmin       = Double.MAX_VALUE;
 			double seg_xmax       = 0;
 			
@@ -2036,6 +2578,7 @@ public class YFencePlotter
 			    relative_data_list.add(sample);
 			}
 			
+			//Not really helpful.
 			for(int i = 0; i < number_of_segments; i++)
 			{
 				 ArrayList data_list = (ArrayList)data_array.get(i);	
@@ -2074,11 +2617,18 @@ public class YFencePlotter
 			else
 				y_remainder = 0;
 			
-			minimum_y = seg_min;
-			maximum_y = seg_max;
+			//minimum_y = seg_min;
+			//maximum_y = seg_max;
 			double minimum_x = seg_xmin;
 			double maximum_x = seg_xmax;
 			
+			if(!data_clipped)
+			{
+				minimum_y = seg_min;
+				maximum_y = seg_max;
+			}
+			
+			/*
 			if(data_clipped == true)
 			{
 				String bound_string = lower_bound.getText();
@@ -2088,6 +2638,7 @@ public class YFencePlotter
 				if(!bound_string.equals(""))
 				    maximum_y = Double.valueOf(bound_string);
 			} 
+			*/
 			
 			if(data_scaled)
 			{
@@ -3110,18 +3661,18 @@ public class YFencePlotter
 				    for(int j = 0; j < number_of_units; j++)
 		            {
 				    	if(current_intensity_range > 20)
-					        intensity_string = String.format("%,.0f", current_value);
+					        intensity_string = String.format("%,.2f", current_value);
 					    else
-					    	intensity_string = String.format("%,.1f", current_value);
+					    	intensity_string = String.format("%,.2f", current_value);
 			            string_width     = font_metrics.stringWidth(intensity_string);
 			            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
 			            current_position += current_increment;
 			            current_value    -= current_value_increment;
 		            }
 				    if(current_intensity_range > 20)
-				        intensity_string = String.format("%,.0f", current_value);
+				        intensity_string = String.format("%,.2f", current_value);
 				    else
-				    	intensity_string = String.format("%,.1f", current_value);
+				    	intensity_string = String.format("%,.2f", current_value);
 		            string_width     = font_metrics.stringWidth(intensity_string);
 		            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));	
 		        }
@@ -3767,7 +4318,6 @@ public class YFencePlotter
 					System.out.println("Filename requires .txt or .fp or .png extension.");
 					return;	
 				}
-				
 				if(extension.equals("txt"))
 				{
 					System.out.println("Writing text file.");
@@ -3888,46 +4438,18 @@ public class YFencePlotter
 
 			double min = 0;
 			double max = 0;
-			
-			double data_location  = data_offset * data_length;
-			int    start_location = (int)data_location;
-			int    start_index    = (int)index.get(start_location);
-			       data_location += data_range * data_length;
-			int    stop_location  = (int)data_location;
-			int    stop_index     = (int)index.get(stop_location);
-			double global_min     = Double.MAX_VALUE;
-			double global_max     = -Double.MAX_VALUE;
-			
-			for(int i = start_index; i < stop_index; i++)
-			{
-				Sample sample = (Sample)data.get(i);
-				if(sample.intensity < global_min)
-					global_min = sample.intensity;
-				if(sample.intensity > global_max)
-					global_max = sample.intensity;
-			}
-			
 			double current_range = 0;
 			if(data_clipped)
 			{
-				String lower_bound_string = lower_bound.getText();
-				if(!lower_bound_string.equals(""))
-					min = Double.valueOf(lower_bound_string);
-				else
-					min = minimum_y;
-				
-				String upper_bound_string = upper_bound.getText();
-				if(!upper_bound_string.equals(""))
-				    max = Double.valueOf(upper_bound_string);
-				else
-					max = maximum_y;
+				min = minimum_y;
+			    max = maximum_y;
 				
 				//Since we're limiting min and max to two decimal places,
 				//we have to do the same thing to our global min/max to
 				//make our logic work.
-				String global_max_string = String.format("%.2f", global_max);
+				String global_max_string = String.format("%.2f", seg_max);
 				double adjusted_global_max = Double.valueOf(global_max_string);
-				String global_min_string = String.format("%.2f", global_min);
+				String global_min_string = String.format("%.2f", seg_min);
 				double adjusted_global_min = Double.valueOf(global_min_string);
 				
 				
@@ -3953,19 +4475,19 @@ public class YFencePlotter
 					if(max > adjusted_global_max)
 					    current_range = max - min;
 					else
-					    current_range = global_max - min;
+					    current_range = seg_max - min;
 				}
 				else
 				{
 					if(max > adjusted_global_max)
-					    current_range = max - global_min;
+					    current_range = max - seg_min;
 					else
-					    current_range = global_max - global_min;   	
+					    current_range = seg_max - seg_min;   	
 				}
 					
 				if(min > adjusted_global_min)
 				{
-					double min_delta = global_min - min;
+					double min_delta = seg_min - min;
 					min_delta /= current_range;
 					double delta = min_delta * graph_ydim;
 					graphics.drawLine(xdim / 2, ydim - ((int) -delta + bottom_margin), xdim / 2 + 10, ydim - ((int) -delta + bottom_margin));
@@ -3974,7 +4496,7 @@ public class YFencePlotter
 				}
 				else if(min < adjusted_global_min)
 				{
-					double min_delta = min - global_min;
+					double min_delta = min - seg_min;
 					min_delta /= current_range;
 					double delta = min_delta * graph_ydim;
 					graphics.drawLine(xdim / 2, ydim - ((int) -delta + bottom_margin), xdim / 2 + 10, ydim - ((int) -delta + bottom_margin));
@@ -3988,7 +4510,7 @@ public class YFencePlotter
 					
 				if(max < adjusted_global_max)
 				{
-					double max_delta = global_max - max;
+					double max_delta = seg_max - max;
 					max_delta       /= current_range;
 					double delta     = max_delta * graph_ydim;
 					graphics.drawLine(xdim / 2, top_margin + (int) delta, xdim / 2 + 10, top_margin + (int) delta);
@@ -3997,11 +4519,11 @@ public class YFencePlotter
 				}
 				else if(max > adjusted_global_max)
 				{
-					double max_delta = max - global_max;
+					double max_delta = max - seg_max;
 					max_delta       /= current_range;
 					double delta     = max_delta * graph_ydim;
 					graphics.drawLine(xdim / 2, top_margin + (int) delta, xdim / 2 + 10, top_margin + (int) delta);
-					intensity_string = String.format("%,.2f", global_max);
+					intensity_string = String.format("%,.2f", seg_max);
 					graphics.drawString(intensity_string, xdim / 2 + 15, top_margin + (int) delta);
 				}
 				else if(max == adjusted_global_max)
@@ -4017,21 +4539,21 @@ public class YFencePlotter
 						if(max > adjusted_global_max)
 						    current_range = max - min;
 						else
-						    current_range = global_max - min;
+						    current_range = seg_max - min;
 					}
 					else
 					{
 						if(max > adjusted_global_max)
-						    current_range = max - global_min;
+						    current_range = max - seg_min;
 						else
-						    current_range = global_max - global_min;   	
+						    current_range = seg_max - seg_min;   	
 					}
 						
 					double zero_point = 0;
 					if(max > adjusted_global_max)
 						zero_point = max / current_range;
 					else
-						zero_point = global_max / current_range;
+						zero_point = seg_max / current_range;
 					zero_point *= graph_ydim;
 					graphics.setColor(java.awt.Color.RED);
 					graphics.drawLine(xdim / 2 - 10, top_margin + (int) zero_point, xdim / 2, top_margin + (int) zero_point);
@@ -4040,8 +4562,8 @@ public class YFencePlotter
 			}
 			else
 			{
-				min = global_min;
-				max = global_max;
+				min = seg_min;
+				max = seg_max;
 				current_range = max - min; 
 				String intensity_string = String.format("%,.2f", max);
 				int string_width = font_metrics.stringWidth(intensity_string);
@@ -4068,37 +4590,20 @@ public class YFencePlotter
 			RangeSlider slider = (RangeSlider) e.getSource();
 			int lower = slider.getValue();
 			int upper = slider.getUpperValue();
+			double min = 0;
+			double max = 0;
+			
 			if (dynamic_button_changing == false)
 			{
-				double data_location  = data_offset * data_length;
-				int    start_location = (int)data_location;
-				int    start_index    = (int)index.get(start_location);
-				       data_location += data_range * data_length;
-				int    stop_location  = (int)data_location;
-				int    stop_index     = (int)index.get(stop_location);
-				double global_min     = Double.MAX_VALUE;
-				double global_max     = -Double.MAX_VALUE;
-				
-				for(int i = start_index; i < stop_index; i++)
-				{
-					Sample sample = (Sample)data.get(i);
-					if(sample.intensity < global_min)
-						global_min = sample.intensity;
-					if(sample.intensity > global_max)
-						global_max = sample.intensity;
-				}
-				
-				String adjusted_global_min_string = String.format("%.2f", global_min);
-				double adjusted_global_min        = Double.valueOf(adjusted_global_min_string);
-				String adjusted_global_max_string = String.format("%.2f", global_max);
-				double adjusted_global_max        = Double.valueOf(adjusted_global_max_string);
-				double min                        = global_min;
-				double max                        = global_max;
-				
 				if(data_clipped)
 				{
-				    min = clipped_min;
-				    max = clipped_max;
+				    min = minimum_y;
+				    max = maximum_y;
+				}
+				else
+				{
+					min = seg_min;
+				    max = seg_max;  	
 				}
 				
 				double current_range      = max - min;
