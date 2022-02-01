@@ -166,7 +166,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.1 of wand.");
+			System.out.println("This is version 3.2 of wand.");
 			try
 			{
 				try
@@ -436,6 +436,8 @@ public class YFencePlotter
 				            	endpoint_y_position = Integer.parseInt(value);
 				            else if(key.equals("EndIndex")) 
 				            	endpoint_index = Integer.parseInt(value);
+				            
+				            
 				        }
 				    }
 					config_reader.close();  
@@ -1235,8 +1237,6 @@ public class YFencePlotter
 					    int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
 						data_scrollbar.setValue(scrollbar_position);
 						
-						
-						
 					    // We have to know the current state of the slider to reset it correctly;
 					    // This should be hidden in the implementation of the range slider but
 					    // we can deal with it.
@@ -1246,8 +1246,6 @@ public class YFencePlotter
 					    
 					    data_scrollbar_changing = true;
 
-				        
-				        
 						double position = slider_resolution * data_offset + slider_resolution * data_range;
 						int upper_value = (int) position;
 					    
@@ -1753,24 +1751,18 @@ public class YFencePlotter
 				minimum_y = min;
 				maximum_y = max;
 				data_clipped = true;
-						
-				
-				
+			
 				dynamic_range_canvas.repaint();
 				dynamic_button_changing = true;
 				double current_range = max - min;
 				//System.out.println("Current range is " + current_range);
 				
-				
-				
 				int min_value = 0;
 				int max_value = 100;
 				
-				
-				/*
-				if(min > intensity_min)
+				if(min > seg_min)
 				{
-					min -= intensity_min;
+					min -= seg_min;
 					min *= 100;
 					min /= current_range;
 				    min_value = (int) min;
@@ -1778,9 +1770,9 @@ public class YFencePlotter
 				    	min_value = - min_value;	
 				}
 				
-				if(max < intensity_max)
+				if(max < seg_max)
 				{
-					max -= intensity_min;
+					max -= seg_min;
 					max *= 100;
 					max /= current_range;
 				    max_value = (int) max;
@@ -1788,17 +1780,17 @@ public class YFencePlotter
 				    	max_value = - max_value;	
 				}
 				
-				int previous_min_value = dynamic_range_slider.getValue();	
+				//int previous_min_value = dynamic_range_slider.getValue();	
 				dynamic_range_slider.setValue(min_value);
 				
-				int previous_max_value = dynamic_range_slider.getUpperValue();	
+				//int previous_max_value = dynamic_range_slider.getUpperValue();	
 				dynamic_range_slider.setUpperValue(max_value);
-				*/
 				
 				dynamic_button_changing = false;	
 				data_canvas.repaint();
 			}
 		};
+		
 		adjust_bounds_button.addActionListener(adjust_range_handler);
 		bounds_button_panel.add(reset_bounds_button);
 		ActionListener reset_handler = new ActionListener()
@@ -1808,6 +1800,10 @@ public class YFencePlotter
 				String lower_bound_string = String.format("%,.2f", seg_min);
 				String upper_bound_string = String.format("%,.2f", seg_max);
 				data_clipped = false;
+				
+				minimum_y = seg_min;
+				maximum_y = seg_max;
+				
 				lower_bound.setText(lower_bound_string);
 				upper_bound.setText(upper_bound_string);
 				dynamic_button_changing = true;
@@ -1853,29 +1849,11 @@ public class YFencePlotter
 
 				x -= 150;
 				y += 35;
-                
-				double data_location  = data_offset * data_length;
-				int    start_location = (int)data_location;
-				int    start_index    = (int)index.get(start_location);
-				       data_location += data_range * data_length;
-				int    stop_location  = (int)data_location;
-				int    stop_index     = (int)index.get(stop_location);
-				double global_min     = Double.MAX_VALUE;
-				double global_max     = -Double.MAX_VALUE;
-				
-				for(int i = start_index; i < stop_index; i++)
-				{
-					Sample sample = (Sample)data.get(i);
-					if(sample.intensity < global_min)
-						global_min = sample.intensity;
-					if(sample.intensity > global_max)
-						global_max = sample.intensity;
-				}
 				
 				if(!data_clipped)
                 {
-					lower_bound.setText(String.format("%,.2f", global_min));
-					upper_bound.setText(String.format("%,.2f", global_max));
+					lower_bound.setText(String.format("%,.2f", seg_min));
+					upper_bound.setText(String.format("%,.2f", seg_max));
                 }
                 else
                 {
@@ -2533,10 +2511,9 @@ public class YFencePlotter
 			data_location        += data_range * data_length;
 			int    stop_location  = (int)data_location;
 			int    stop_index     = (int)index.get(stop_location);
-			seg_min        = Double.MAX_VALUE;
-			seg_max        = -Double.MAX_VALUE;
-			double seg_xmin       = Double.MAX_VALUE;
-			double seg_xmax       = 0;
+			
+			
+			
 			
 			// Find out which flight line(s) the data is located in;
 			int[][] line_array = ObjectMapper.getUnclippedLineArray();
@@ -2556,7 +2533,12 @@ public class YFencePlotter
 			        break;
 			    }
 			}
-			 
+			
+			
+			seg_min        = Double.MAX_VALUE;
+			seg_max        = -Double.MAX_VALUE;
+			double seg_xmin       = Double.MAX_VALUE;
+			double seg_xmax       = 0; 
 			for(int i = start_index; i < stop_index; i++)
 			{
 				Sample sample = (Sample) data.get(i);
@@ -2576,6 +2558,20 @@ public class YFencePlotter
 				sample = (Sample) relative_data.get(i);
 			    ArrayList relative_data_list = (ArrayList)relative_data_array.get(j);
 			    relative_data_list.add(sample);
+			}
+			
+			//System.out.println("Segment min is " + seg_min);
+			//System.out.println("Segment max is " + seg_max);
+			
+			//System.out.println("Minimum y is " + minimum_y);
+			//System.out.println("Maximum y is " + maximum_y);
+			
+			if(!data_clipped)
+			{
+				//System.out.println("Data is not being clipped.");
+				//System.out.println("Setting min/max to local min/max.");
+				minimum_y = seg_min;
+				maximum_y = seg_max;
 			}
 			
 			//Not really helpful.
@@ -2617,8 +2613,7 @@ public class YFencePlotter
 			else
 				y_remainder = 0;
 			
-			//minimum_y = seg_min;
-			//maximum_y = seg_max;
+			
 			double minimum_x = seg_xmin;
 			double maximum_x = seg_xmax;
 			
@@ -2628,18 +2623,7 @@ public class YFencePlotter
 				maximum_y = seg_max;
 			}
 			
-			/*
-			if(data_clipped == true)
-			{
-				String bound_string = lower_bound.getText();
-				if(!bound_string.equals(""))
-				    minimum_y = Double.valueOf(bound_string);
-				bound_string = upper_bound.getText();
-				if(!bound_string.equals(""))
-				    maximum_y = Double.valueOf(bound_string);
-			} 
-			*/
-			
+			// Modify our bounding values.
 			if(data_scaled)
 			{
 				minimum_y /= scale_factor;
@@ -3005,6 +2989,7 @@ public class YFencePlotter
 				Point2D.Double start_point = (Point2D.Double) plot_list.get(0);
 				Point2D.Double end_point   = (Point2D.Double) plot_list.get(plot_list.size() - 1);
 				
+				// Not really too helpful.
 				double         rise        = end_point.y - start_point.y;
 				double         run         = end_point.x - start_point.x;
 				slope[i]                   = rise / run;
@@ -3055,38 +3040,13 @@ public class YFencePlotter
 				}
 			}
 			
+			// If we want to keep track of how much the smoothing narrows the dynamic range.
 			if(smooth != 0)
 			{
 				//System.out.println("The minimum y after smoothing was " + smooth_minimum_y);
 				//System.out.println("The maximum y after smoothing was " + smooth_maximum_y);	
 			}
-			/*
-			double smooth_offset = 0;
-			double smooth_scale_factor = 1;
-			if(smooth != 0)
-			{
-				System.out.println("The minimum y after smoothing was " + smooth_minimum_y);
-				System.out.println("The maximum y after smoothing was " + smooth_maximum_y);	
-				smooth_offset = smooth_minimum_y - minimum_y;
-				smooth_scale_factor = (maximum_y - minimum_y) / (smooth_maximum_y - smooth_minimum_y);
-				System.out.println("The offset for the smoothed data is " + smooth_offset);
-				System.out.println("The scale factor for the smoothed data is " + smooth_scale_factor);
-			}
 			
-			for(int i = 0; i < plot_data.size(); i++)
-			{
-			    ArrayList plot_list = (ArrayList)plot_data.get(i);
-			    for(int j = 1; j < plot_data.size() - 1; j++)
-			    {
-			    	Point2D.Double smooth_point = (Point2D.Double) plot_list.get(j);
-			    	double x = smooth_point.getX();
-			    	double y = smooth_point.getY();
-			    	//y -= smooth_offset;
-			    	//y *= smooth_scale_factor;
-			    	smooth_point.setLocation(x, y);
-			    }
-			}
-			*/
 			
 			Polygon[] polygon               = new Polygon[number_of_segments];
 			boolean[] polygon_zero_crossing = new boolean[number_of_segments];
@@ -3347,11 +3307,13 @@ public class YFencePlotter
 				local_max -= yaddend;
 				
 				x[m] = a2;
+				// If we want to set the base of the local min.
 				//y[m] = (int)local_min;
 				y[m] = b1;
 				m++;
 
 				x[m] = a1;
+				// If we want to set the base of the local min.
 				//y[m] = (int)local_min;
 				y[m] = b1;
 				m++;
@@ -3584,7 +3546,6 @@ public class YFencePlotter
 					BasicStroke basic_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 1.0f, dash, 2f);
 					graphics_buffer.setStroke(basic_stroke);
 					graphics_buffer.setColor(java.awt.Color.RED);
-					//graphics_buffer.drawLine((int) a1, (int) zero_y, (int) a1 + xstep, (int) zero_y - ystep);
 					graphics_buffer.drawLine((int) a2, (int) zero_y, (int) a2 + xstep, (int) zero_y - ystep);
 					graphics_buffer.setStroke(new BasicStroke(1));
 					graphics_buffer.setColor(new Color(196, 196, 196));
@@ -3660,10 +3621,7 @@ public class YFencePlotter
 				    String intensity_string;
 				    for(int j = 0; j < number_of_units; j++)
 		            {
-				    	if(current_intensity_range > 20)
-					        intensity_string = String.format("%,.2f", current_value);
-					    else
-					    	intensity_string = String.format("%,.2f", current_value);
+				    	intensity_string = String.format("%,.2f", current_value);
 			            string_width     = font_metrics.stringWidth(intensity_string);
 			            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
 			            current_position += current_increment;
@@ -3775,6 +3733,14 @@ public class YFencePlotter
 				graphics_buffer.drawString(information_string, current_x, current_y);
 			}
 			g.drawImage(buffered_image, 0, 0, null);
+			
+			// Restore our bounding values.
+			// Could set this up without any boolean.
+			if(data_scaled)
+			{
+				minimum_y *= scale_factor;
+				maximum_y *= scale_factor;
+			}
 		}
 	}
 	
