@@ -167,7 +167,7 @@ public class ZFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.3 of wand.");
+			System.out.println("This is version 1.0 of z wand.");
 			try
 			{
 				try
