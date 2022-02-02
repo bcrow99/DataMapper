@@ -38,7 +38,7 @@ public class XFencePlotter
     boolean data_clipped   = false;
     boolean color_key      = false;
     boolean show_id        = true;
-    boolean show_label     = true;
+    //boolean show_label     = false;
     boolean in_order       = true;
     double  scale_factor   = 1.;
     double  normal_xstep   = 0.5;
@@ -113,7 +113,7 @@ public class XFencePlotter
     public SortCanvas         sort_canvas;
     public OrderCanvas        order_canvas;
 	public JTextField         load_input;
-	public JTextField         graph_input;
+	public JTextField         label_input;
 	public JTextField         load_config_input;
 	public JTextField         save_config_input;
 	public JTextField         lower_bound;
@@ -131,7 +131,7 @@ public class XFencePlotter
 	public JDialog dynamic_range_dialog;
 	public JDialog smooth_dialog;
 	public JDialog location_dialog;
-	public JDialog graph_dialog;
+	public JDialog label_dialog;
 	public JDialog load_config_dialog;
 	public JDialog save_config_dialog;
 	public JDialog save_graph_dialog;
@@ -163,8 +163,12 @@ public class XFencePlotter
 	// Updated by MouseMotionHandler
 	JTextArea sample_information;
 	JTextArea slope_output;
+	
 	// Fired by the range scrollbar and slider and adjust button and XFencePlotter
 	public JMenuItem apply_item;
+	
+	//Shared by data_canvas.paint and locad config handler.
+	public String graph_label;
 	
 	// Fired by the config file reloader.
 	public JCheckBoxMenuItem view_item;
@@ -177,6 +181,8 @@ public class XFencePlotter
 	public JSlider           factor_slider;
 	public JScrollBar        xstep_scrollbar;
 	public JScrollBar        ystep_scrollbar;
+	
+	
 	// Shared by the range scrollbar and slider and adjust button.
 	boolean range_slider_changing    = false;
 	boolean range_scrollbar_changing = false;
@@ -218,7 +224,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.1 of fence.");
+			System.out.println("This is version 3.3 of fence.");
 			try
 			{
 				try
@@ -279,7 +285,7 @@ public class XFencePlotter
 			File config_file = new File(config_filename);
 			if(config_file.exists())
 			{
-				//System.out.println("Loading config file.");
+				System.out.println("Loading config file.");
 				config_file_exists = true;
 				try
 				{
@@ -342,7 +348,10 @@ public class XFencePlotter
 				        {
 				            config_tokenizer = new StringTokenizer(line);
 				            String key       = config_tokenizer.nextToken();
+				            //System.out.println("Key is " + key);
 				            String value     = config_tokenizer.nextToken();
+				            //System.out.println("Value is " + value);
+				            
 				            if(key.equals("Offset"))
 				    	        offset = Double.valueOf(value);
 				            else if(key.equals("Range")) 
@@ -374,6 +383,10 @@ public class XFencePlotter
 					        		autoscale = true;
 					        	else
 					        		autoscale = false;
+					        } 
+				            else if(key.equals("Label")) 
+					        {
+				            	graph_label = value;
 					        } 
 				            else if(key.equals("ShowID")) 
 					        {
@@ -541,6 +554,11 @@ public class XFencePlotter
 					config_file_exists = false;
 				}
 			}
+			else
+			{
+				System.out.println("Config file not found.");
+				System.out.println("Starting up with default values.");
+			}
 			
 			ArrayList original_data = new ArrayList();
 			global_xmin = Double.MAX_VALUE;
@@ -678,6 +696,8 @@ public class XFencePlotter
 	            		output.write("Autoscale\t\ttrue\n");
 	            	else
 	            		output.write("Autoscale\t\tfalse\n");
+	            	if(!graph_label.equals(""))
+	            		output.write("Label\t\t\t" + graph_label + "\n");
 	            	if(show_id)
 	            		output.write("ShowID\t\t\ttrue\n");
 	            	else
@@ -1081,9 +1101,9 @@ public class XFencePlotter
 
 				x += 830;
 
-				graph_dialog.setLocation(x, y);
-				graph_dialog.pack();
-				graph_dialog.setVisible(true);
+				label_dialog.setLocation(x, y);
+				label_dialog.pack();
+				label_dialog.setVisible(true);
 			}
 		};
 		label_item.addActionListener(label_handler);
@@ -1750,6 +1770,18 @@ public class XFencePlotter
 						        			color_key_item.doClick();
 						        	}
 						        } 
+					            else if(key.equals("Label")) 
+						        {
+					            	label_input.setText(value);
+					            	graph_label = value;
+						        } 
+					            else if(key.equals("ShowID")) 
+						        {
+						        	if(value.equals("true"))
+						        		show_id = true;
+						        	else
+						        		show_id = false;
+						        } 
 					            else if(key.equals("Autoscale")) 
 						        {
 						        	if(value.equals("true"))
@@ -2006,7 +2038,6 @@ public class XFencePlotter
 					    // data and just call data_canvas.repaint().
 					    apply_item.doClick(); 
 					    
-					    
 						System.out.println("Finished resetting parameters.");
 						
 					}
@@ -2088,6 +2119,8 @@ public class XFencePlotter
 	            		output.write("Autoscale\t\ttrue\n");
 	            	else
 	            		output.write("Autoscale\t\tfalse\n");
+	            	if(!graph_label.equals(""))
+	            		output.write("Label\t\t\t" + graph_label + "\n");
 	            	if(show_id)
 	            		output.write("ShowID\t\t\ttrue\n");
 	            	else
@@ -2858,14 +2891,23 @@ public class XFencePlotter
 		location_dialog.add(location_panel);
 
 		// A modeless dialog box that shows up if Settings->Graph Label is selected.
-		JPanel graph_panel = new JPanel(new BorderLayout());
-		graph_input        = new JTextField(30);
-		graph_input.setHorizontalAlignment(JTextField.CENTER);
-        graph_input.setText("");
-		graph_panel.add(graph_input);
-		graph_dialog = new JDialog(frame, "Label");
-		graph_dialog.add(graph_panel, BorderLayout.CENTER);
-		graph_dialog.addWindowListener(new WindowAdapter() 
+		JPanel label_panel = new JPanel(new BorderLayout());
+		label_input        = new JTextField(30);
+		ActionListener label_input_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+			    graph_label = label_input.getText();
+			    data_canvas.repaint();
+			}
+		};
+        label_input.addActionListener(label_input_handler);
+		label_input.setHorizontalAlignment(JTextField.CENTER);
+        label_input.setText(graph_label);
+		label_panel.add(label_input);
+		label_dialog = new JDialog(frame, "Label");
+		label_dialog.add(label_panel, BorderLayout.CENTER);
+		label_dialog.addWindowListener(new WindowAdapter() 
 		{
 		  public void windowClosing(WindowEvent e)
 		  {
@@ -3768,7 +3810,7 @@ public class XFencePlotter
 					double current_increment = current_range / number_of_units;
 					double current_value_increment = current_intensity_range / number_of_units;
 					current_position = b2;
-					String intensity_string = String.format("%,.0f", current_value);
+					String intensity_string = String.format("%,.2f", current_value);
 					string_width = font_metrics.stringWidth(intensity_string);
 					for(int i = 0; i < number_of_segments; i++)
 					{
@@ -3794,7 +3836,7 @@ public class XFencePlotter
 						    {
 					            for(int j = 0; j < number_of_units; j++)
 					            {
-						            intensity_string = String.format("%,.0f", current_value);
+						            intensity_string = String.format("%,.2f", current_value);
 						            string_width     = font_metrics.stringWidth(intensity_string);
 						            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
 						            current_position += current_increment;
@@ -3817,7 +3859,7 @@ public class XFencePlotter
 										    graphics_buffer.drawString(line_id, a2 + 6, (int) current_position + ( 3 * string_height / 4));
 						            }
 					            }
-					            intensity_string = String.format("%,.0f", current_value);
+					            intensity_string = String.format("%,.2f", current_value);
 					            string_width = font_metrics.stringWidth(intensity_string);
 								graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
 						    }
@@ -3930,8 +3972,8 @@ public class XFencePlotter
 						graphics_buffer.drawString(information_string, current_x, current_y);
 					}
 					
-					String graph_label = graph_input.getText();					
-					if(show_label && !graph_label.equals(""))
+					graph_label = label_input.getText();					
+					if(!graph_label.equals(""))
 					{
 						string_width = font_metrics.stringWidth(graph_label); 
 						graphics_buffer.drawString(graph_label, xdim / 2 - string_width / 2, top_margin - 5);
