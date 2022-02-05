@@ -38,6 +38,8 @@ public class XFencePlotter
     boolean data_clipped   = false;
     boolean color_key      = false;
     boolean show_id        = true;
+    
+    
     //boolean show_label     = false;
     boolean in_order       = true;
     double  scale_factor   = 1.;
@@ -130,7 +132,11 @@ public class XFencePlotter
 	public JDialog scale_dialog;
 	public JDialog dynamic_range_dialog;
 	public JDialog smooth_dialog;
+	
 	public JDialog location_dialog;
+	public JDialog set_location_dialog;
+	public JDialog set_object_dialog;
+	
 	public JDialog label_dialog;
 	public JDialog load_config_dialog;
 	public JDialog save_config_dialog;
@@ -146,6 +152,9 @@ public class XFencePlotter
 	int    right_margin  = 100;
 	int    left_margin   = 90;
 	int    bottom_margin = 80;
+	
+	int    scrollbar_resolution = 2000;
+	int    slider_resolution    = 2000;
 	
 	//Shared by segment image canvas and XFencePlotter
 	int     image_xdim     = 670;
@@ -224,7 +233,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.3 of fence.");
+			System.out.println("This is version 3.4 of fence.");
 			try
 			{
 				try
@@ -1162,6 +1171,7 @@ public class XFencePlotter
 			    range_slider.setValue(lower_value);
 		    	range_slider.setUpperValue(upper_value);
 			    range_scrollbar_changing = false;
+				range_information.setText(String.format("%,.2f", range));
 			    apply_item.doClick();
 			    
 			}
@@ -1295,14 +1305,17 @@ public class XFencePlotter
 			    Point location_point = frame.getLocation();
 			    int x = (int) location_point.getX();
 			    int y = (int) location_point.getY();
-
-			    x += 830;
+			    Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+								
+				x += canvas_xdim;
 			    location_dialog.setLocation(x, y);
 			    location_dialog.pack();
 			    location_dialog.setVisible(true);
 		    }
 		};
 		location_item.addActionListener(location_handler);
+		
 		
 		JMenuItem segment_image_item = new JMenuItem("Show Segment Image");
 		ActionListener segment_image_handler = new ActionListener()
@@ -2822,8 +2835,7 @@ public class XFencePlotter
 		JPanel location_panel = new JPanel(new BorderLayout());
 		offset_information = new JTextField();
 		offset_information.setHorizontalAlignment(JTextField.CENTER);
-		String string = String.format("%,.2f", offset);
-		offset_information.setText(string);
+		offset_information.setText( String.format("%,.2f", offset));
 		JPanel location_canvas_panel = new JPanel(new BorderLayout());
 		location_canvas = new LocationCanvas();
 		location_canvas.setSize(240, 360);
@@ -2870,12 +2882,12 @@ public class XFencePlotter
 		location_canvas_panel.add(xlocation_scrollbar, BorderLayout.SOUTH);
 		location_canvas_panel.add(ylocation_scrollbar, BorderLayout.EAST);
 		
+		
 		JPanel parameter_panel = new JPanel(new GridLayout(2, 2));
 		parameter_panel.add(offset_information);
 		range_information = new JTextField();
 		range_information.setHorizontalAlignment(JTextField.CENTER);
-		string = String.format("%,.2f", range);
-		range_information.setText(string);
+		range_information.setText(String.format("%,.2f", range));
 		parameter_panel.add(range_information);
 		parameter_panel.add(new JLabel("Offset", JLabel.CENTER));
 		parameter_panel.add(new JLabel("Range", JLabel.CENTER));
@@ -2890,6 +2902,445 @@ public class XFencePlotter
 		location_dialog = new JDialog(frame, "Location");
 		location_dialog.add(location_panel);
 
+		// A modeless dialog box that shows up if Location->Set Location is selected.
+		set_location_dialog = new JDialog(frame, "Set Location");
+		JMenuItem set_location_item = new JMenuItem("Set Location");
+		ActionListener set_location_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+								
+				x += canvas_xdim;				
+				y += 500;
+
+				set_location_dialog.setLocation(x, y);
+				set_location_dialog.pack();
+				set_location_dialog.setVisible(true);
+			}
+		};
+		set_location_item.addActionListener(set_location_handler);
+		JPanel set_location_panel = new JPanel(new GridLayout(2, 1));
+		JTextField set_location_input             = new JTextField();
+		set_location_input.setHorizontalAlignment(JTextField.CENTER);
+		set_location_input.setText("");
+
+		JButton set_location_button = new JButton("Set Location");
+		ActionListener set_location_button_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String new_location_string = set_location_input.getText();
+				
+				double new_location = 0;
+				try
+				{
+				    new_location        = Double.valueOf(new_location_string);
+				}
+				catch(Exception e2)
+				{
+				    System.out.println(e2.toString());
+				    return;
+				}
+				
+				
+				if(new_location >= 0 && new_location < 29)
+				{
+					double new_line   = Math.floor(new_location);
+					double new_offset = new_location - new_line;
+					
+				
+					if((new_offset * 60. + 15) + range > 75)
+						new_offset = 75. - range;
+					else
+					{
+						new_offset *= 60;
+					    new_offset += 15;
+					}
+					
+					System.out.println("Setting location to flight line " + String.format("%,.0f", new_line)  + " at offset " + String.format("%,.2f",new_offset));
+								
+					
+					int current_line   = (int)new_line;
+					int current_sensor = 4;
+					if(current_line % 2 == 1)
+					    current_sensor = 0;
+					
+					String[] line_sensor_pair = new String[10];
+
+					int current_pair    = 0;
+                    int number_of_pairs = 10;
+					if (current_line % 2 == 1)
+					{
+						for (int i = current_sensor; i < 5; i++)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+						}
+					} 
+					else
+					{
+						for (int i = current_sensor; i >= 0; i--)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+						}
+					}
+					current_line++;
+					if (current_line % 2 == 1)
+					{
+						for (int i = 0; i < 5; i++)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+						}
+					} 
+					else
+					{
+						for (int i = 4; i >= 0; i--)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+						}
+					}
+					current_line++;
+					outer: if (current_pair < 10)
+					{
+						if (current_line % 2 == 1)
+						{
+							for (int i = 0; i < 5; i++)
+							{
+								String current_string = new String(current_line + ":" + i);
+								line_sensor_pair[current_pair] = current_string;
+								current_pair++;
+								if (current_pair == 10)
+									break outer;
+							}
+						} 
+						else
+						{
+							for (int i = 4; i >= 0; i--)
+							{
+								String current_string = new String(current_line + ":" + i);
+								line_sensor_pair[current_pair] = current_string;
+								current_pair++;
+								if (current_pair == 10)
+									break outer;
+							}
+						}
+					}
+
+					
+					for (int i = 0; i < 10; i++)
+					{
+						sensor[i].setText("");
+					}
+					for (int i = 0; i < number_of_pairs; i++)
+					{
+						sensor[i].setText(line_sensor_pair[i]);
+					}
+					
+					offset = new_offset;
+					
+					// Clear data since we're at a new position.		
+					append_data = false;
+					persistent_data = false;
+					sample_information.setText("");	
+					slope_output.setText("");
+					startpoint_set = false;
+					midpoint_set = false;
+					endpoint_set = false;
+									
+					// Update location map
+					location_canvas.repaint();
+					
+					// Reset the slider.	
+					// Set semaphore to prevent oscillation.
+					range_scrollbar_changing = true;
+					
+					double normal_start    = (offset - 15) / 60;
+					double normal_stop     = (offset + range - 15) / 60;
+					
+					
+					// Whether or not values get set correctly depends on current values.
+					int current_start = range_slider.getValue();
+					int current_stop  = range_slider.getUpperValue();
+					//System.out.println("Current start value for slider is " + current_start);
+					//System.out.println("Current stop value for slider is " + current_stop);
+					
+					int new_start = (int) (normal_start * slider_resolution);
+					int new_stop  = (int) (normal_stop * slider_resolution);
+					
+					if(new_start < current_stop)
+					{
+						//System.out.println("Setting lower value first.");
+					    range_slider.setValue(new_start);
+					    range_slider.setUpperValue(new_stop);
+					}
+					else
+					{
+						//System.out.println("Setting upper value first.");
+						range_slider.setUpperValue(new_stop);	
+					    range_slider.setValue(new_start);
+					}
+					// Reset semaphore.
+					range_scrollbar_changing = false;
+					
+					// Reset the scrollbar.
+					// Set semaphore to prevent oscillation.
+					range_slider_changing = true;
+					double normal_range    = normal_stop - normal_start;
+					double normal_position = normal_start + normal_range / 2;
+					range_scrollbar.setValue((int)(normal_position * scrollbar_resolution));
+					// Reset semaphore.
+					range_slider_changing = false;
+					
+					//offset_information.setText(String.format("%.2", offset));				
+					// Resegment and redraw data.
+					apply_item.doClick();
+				}
+				else
+				{
+					System.out.println("Location value must be from 0 to 28.99");	
+				}
+			}
+		};
+		set_location_button.addActionListener(set_location_button_handler);
+		set_location_panel.add(set_location_input);
+		set_location_panel.add(set_location_button);
+		set_location_dialog.add(set_location_panel);
+		set_location_dialog.add(set_location_panel);
+		location_menu.add(set_location_item);
+		
+		// A modeless dialog box that shows up if Location->Set Object is selected.		
+		set_object_dialog = new JDialog(frame, "Set Object");
+		JMenuItem set_object_item = new JMenuItem("Set Object");
+		ActionListener set_object_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+						
+				x += canvas_xdim;
+						
+				y += 500;
+
+				set_object_dialog.setLocation(x, y);
+				set_object_dialog.pack();
+				set_object_dialog.setVisible(true);
+			}
+		};
+		set_object_item.addActionListener(set_object_handler);
+		JPanel set_object_panel = new JPanel(new GridLayout(2, 1));
+		JTextField set_object_input             = new JTextField();
+		set_object_input.setHorizontalAlignment(JTextField.CENTER);
+		set_object_input.setText("");
+		JButton set_object_button = new JButton("Set Object");
+		ActionListener set_object_button_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String object_string = set_object_input.getText();
+				int object_id = Integer.parseInt(object_string);
+						
+				if(object_id >= 1 && object_id < 54)
+				{
+					System.out.println("Setting location close to object " + object_id);
+					double[] object_offset = ObjectMapper.getObjectLineOffsetArray();
+					double   new_location  = object_offset[object_id - 1];
+					
+					double new_line   = Math.floor(new_location);
+			
+					double normal_offset = new_location - new_line;
+					
+					double new_offset    = normal_offset * 60 + 15;
+					
+					if(new_offset + range > 75)
+					{
+						System.out.println("Object has been clipped.");
+						new_offset = 75. - range;
+					}
+					else if(new_offset == 15)
+					{
+						System.out.println("Object has been clipped.");  
+					}
+					
+                    System.out.println("Setting location to flight line " + String.format("%,.1f", new_line) + " at offset " + String.format("%,.2f", new_offset));
+									
+					int current_line   = (int)new_line;
+					int current_sensor = 4;
+					if(current_line % 2 == 1)
+					    current_sensor = 0;
+					
+					String[] line_sensor_pair = new String[10];
+
+					int current_pair    = 0;
+                    int number_of_pairs = 10;
+					if (current_line % 2 == 1)
+					{
+						for (int i = current_sensor; i < 5; i++)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+						}
+					} 
+					else
+					{
+						for (int i = current_sensor; i >= 0; i--)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+						}
+					}
+					current_line++;
+					if (current_line % 2 == 1)
+					{
+						for (int i = 0; i < 5; i++)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+						}
+					} 
+					else
+					{
+						for (int i = 4; i >= 0; i--)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+						}
+					}
+					current_line++;
+					outer: if (current_pair < 10)
+					{
+						if (current_line % 2 == 1)
+						{
+							for (int i = 0; i < 5; i++)
+							{
+								String current_string = new String(current_line + ":" + i);
+								line_sensor_pair[current_pair] = current_string;
+								current_pair++;
+								if (current_pair == 10)
+									break outer;
+							}
+						} 
+						else
+						{
+							for (int i = 4; i >= 0; i--)
+							{
+								String current_string = new String(current_line + ":" + i);
+								line_sensor_pair[current_pair] = current_string;
+								current_pair++;
+								if (current_pair == 10)
+									break outer;
+							}
+						}
+					}
+
+					
+					for (int i = 0; i < 10; i++)
+					{
+						sensor[i].setText("");
+					}
+					for (int i = 0; i < number_of_pairs; i++)
+					{
+						sensor[i].setText(line_sensor_pair[i]);
+					}
+					
+					offset = new_offset;
+					
+					// Clear data since we're at a new position.		
+					append_data = false;
+					persistent_data = false;
+					sample_information.setText("");	
+					slope_output.setText("");
+					startpoint_set = false;
+					midpoint_set = false;
+					endpoint_set = false;
+									
+					// Update location map
+					location_canvas.repaint();
+					
+					// Reset the slider.	
+					// Set semaphore to prevent oscillation.
+					range_scrollbar_changing = true;
+					
+					double normal_start    = (offset - 15) / 60;
+					double normal_stop     = (offset + range - 15) / 60;
+					double normal_range    = normal_stop - normal_start;
+				
+					
+					
+					// Whether or not values get set correctly depends on current values.
+					int current_start = range_slider.getValue();
+					int current_stop  = range_slider.getUpperValue();
+					//System.out.println("Current start value for slider is " + current_start);
+					//System.out.println("Current stop value for slider is " + current_stop);
+					
+					int new_start = (int) (normal_start * slider_resolution);
+					int new_stop  = (int) (normal_stop * slider_resolution);
+					
+					if(new_start < current_stop)
+					{
+						//System.out.println("Setting lower value first.");
+					    range_slider.setValue(new_start);
+					    range_slider.setUpperValue(new_stop);
+					}
+					else
+					{
+						//System.out.println("Setting upper value first.");
+						range_slider.setUpperValue(new_stop);	
+					    range_slider.setValue(new_start);
+					}
+					// Reset semaphore.
+					range_scrollbar_changing = false;
+					
+					// Reset the scrollbar.
+					// Set semaphore to prevent oscillation.
+					range_slider_changing = true;
+				
+					normal_range    = normal_stop - normal_start;
+					double normal_position = normal_start + normal_range / 2;
+					range_scrollbar.setValue((int)(normal_position * scrollbar_resolution));
+					// Reset semaphore.
+					range_slider_changing = false;
+									
+					// Resegment and redraw data.
+					apply_item.doClick();
+					
+					
+					
+				}
+				else
+				{
+					System.out.println("Object id must be from 1 to 53.");	
+				}
+			}
+		};
+		set_object_button.addActionListener(set_object_button_handler);
+		set_object_panel.add(set_object_input);
+		set_object_panel.add(set_object_button);
+		set_object_dialog.add(set_object_panel);
+		set_object_dialog.add(set_object_panel);
+		location_menu.add(set_object_item);
+		
 		// A modeless dialog box that shows up if Settings->Graph Label is selected.
 		JPanel label_panel = new JPanel(new BorderLayout());
 		label_input        = new JTextField(30);
@@ -2914,10 +3365,6 @@ public class XFencePlotter
 		    data_canvas.repaint();
 		  }
 		});
-		
-		
-		
-		
 		frame.setJMenuBar(menu_bar);
 
 		// Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
@@ -2926,7 +3373,7 @@ public class XFencePlotter
 		frame.setCursor(cursor);
 		frame.getContentPane().add(sensor_panel, BorderLayout.SOUTH);
 		frame.pack();
-		frame.setLocation(400, 200);
+		frame.setLocation(800, 200);
 		apply_item.doClick();
 	}
 
@@ -4324,6 +4771,7 @@ public class XFencePlotter
 			data_canvas.repaint();
 			placement_canvas.repaint();
 			location_canvas.repaint();
+			offset_information.setText(String.format("%.2f", offset));	
 			segment_image_canvas.repaint();
 			order_canvas.repaint();
 		}
@@ -4366,9 +4814,8 @@ public class XFencePlotter
 					boolean moving_down = true;
 					if(previous_offset < offset)
 						moving_down = false;
-					String string = String.format("%,.4f", offset);
 					if(offset_information != null)
-					    offset_information.setText(string);
+					    offset_information.setText(String.format("%,.2f", offset));
 
 					normal_position  = (offset - 15.)/ 60.;
 					normal_position *= 2000;
@@ -4409,20 +4856,17 @@ public class XFencePlotter
 	{
 		public void actionPerformed(ActionEvent e)
 		{
-			String offset_string = offset_information.getText();
-			String range_string = range_information.getText();
+			String offset_string  = offset_information.getText();
+			String range_string   = range_information.getText();
 			double current_offset = Double.valueOf(offset_string);
-			double current_range = Double.valueOf(range_string);
+			double current_range  = Double.valueOf(range_string);
 
 			if (current_offset < 15 || current_offset > (75 - current_range) || current_range < 0 || current_range > (75 - current_offset))
 			{
-				offset_string = String.format("%,.4f", offset);
-				range_string = String.format("%,.4f", range);
 				System.out.println("Invalid input: offset = " + offset_string + " range = " + range_string);
-				offset_string = String.format("%,.4f", offset);
-				range_string = String.format("%,.4f", range);
-				offset_information.setText(offset_string);
-				range_information.setText(range_string);
+
+				offset_information.setText(String.format("%,.2f", offset));
+				range_information.setText(String.format("%,.2f", range));
 			} 
 			else if (range_slider_changing == false && range_scrollbar_changing == false)
 			{
@@ -4489,11 +4933,9 @@ public class XFencePlotter
 					upper_normal_position *= 60.;
 					upper_normal_position += 15.;
 					range = upper_normal_position - offset;
-					
-					String string = String.format("%,.2f", offset);
-					offset_information.setText(string);
-					string = String.format("%,.2f", range);
-					range_information.setText(string);
+	
+					offset_information.setText(String.format("%,.2f", offset));
+					range_information.setText(String.format("%,.2f", range));
 					range_slider_changing = false;
 
 					append_data = false;

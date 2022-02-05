@@ -124,12 +124,17 @@ public class ZFencePlotter
 	public JDialog     smooth_dialog;
 	public JDialog     scale_dialog;
 	public JDialog     location_dialog;
+	public JDialog     set_location_dialog;
+	public JDialog     set_object_dialog;
 	public JDialog     slope_dialog;
 	public JDialog     dynamic_range_dialog;
 	public JDialog     label_dialog;
 	public JDialog     range_dialog;
 	public JDialog     load_config_dialog;
 	public JDialog     save_config_dialog;
+	
+	
+	
 	public PlacementCanvas placement_canvas;
 	
 	public JTextArea   sample_information;
@@ -167,7 +172,7 @@ public class ZFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 1.0 of z wand.");
+			System.out.println("This is version 3.4 of wand.");
 			try
 			{
 				try
@@ -275,8 +280,9 @@ public class ZFencePlotter
 				            config_tokenizer = new StringTokenizer(line);
 				            String key       = config_tokenizer.nextToken();
 				            String value     = config_tokenizer.nextToken();
-				            //System.out.println("Got here.");
+				            
 				            //System.out.println("Key is " + key);
+				            //System.out.println("Value is " + value);
 				            if(key.equals("Offset"))
 				    	        data_offset = Double.valueOf(value);
 				            else if(key.equals("Range")) 
@@ -1311,7 +1317,7 @@ public class ZFencePlotter
 	            	String _id          = new String("");
 	            	String _visible     = new String("");
 	            	String _transparent = new String("");
-	            	String _show_id     = new String("");
+	            	
 	            	for(int i = 0; i < 5; i++)
 	            	{
 	            	    _id = new String(_id + i + "\t\t");
@@ -2225,14 +2231,192 @@ public class ZFencePlotter
 		map_item.addActionListener(map_handler);
 		location_menu.add(map_item);
 		
-		JMenuItem location_item = new JMenuItem("Set Location");
-		location_menu.add(location_item);
-		
-		JMenuItem object_item = new JMenuItem("Set Object");
-		location_menu.add(object_item);
-			
-		JMenu     settings_menu  = new JMenu("Settings");
+		// A modeless dialog box that shows up if Location->Set Location is selected.
+		set_location_dialog = new JDialog(frame, "Set Location");
+		JMenuItem set_location_item = new JMenuItem("Set Location");
+		ActionListener set_location_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
 
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				
+				y += 200;
+
+				set_location_dialog.setLocation(x, y);
+				set_location_dialog.pack();
+				set_location_dialog.setVisible(true);
+			}
+		};
+		set_location_item.addActionListener(set_location_handler);
+		JPanel set_location_panel = new JPanel(new GridLayout(2, 1));
+		JTextField set_location_input             = new JTextField();
+		set_location_input.setHorizontalAlignment(JTextField.CENTER);
+		set_location_input.setText("");
+
+		JButton set_location_button = new JButton("Set Location");
+		ActionListener set_location_button_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String new_location_string = set_location_input.getText();
+				double new_location = Double.valueOf(new_location_string);
+				
+				if(new_location >= 0 && new_location <= 30)
+				{
+					System.out.println("Setting location to " + new_location);
+					
+					double normal_value = new_location / 30.;
+					if(normal_value == 0)
+					{
+						data_offset = 0.;
+					}
+					else if(normal_value == 1.)
+					{
+					    data_offset = 1. - data_range;	
+					}
+					else
+					{
+						data_offset = normal_value - data_range / 2;
+						if(data_offset < 0)
+						{
+							data_offset = 0;
+						}
+						else if(data_offset + data_range > 1)
+						{
+							data_offset = 1. - data_range;	
+						}
+						
+					}
+					
+					// Clear data since we're at a new position.
+					append_data = false;
+					persistent_data = false;
+					sample_information.setText("");	
+					slope_output.setText("");
+					startpoint_set = false;
+					midpoint_set = false;
+					endpoint_set = false;
+					
+					// Update location map
+					location_canvas.repaint();
+					
+					// Reset scrollbar.
+					int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+					data_scrollbar.setValue(scrollbar_position);
+					
+					// Redraw data.
+					data_canvas.repaint();
+				}
+				else
+				{
+					System.out.println("Location value must be from 0 to 30");	
+				}
+				
+			}
+		};
+		set_location_button.addActionListener(set_location_button_handler);
+		set_location_panel.add(set_location_input);
+		set_location_panel.add(set_location_button);
+		set_location_dialog.add(set_location_panel);
+		set_location_dialog.add(set_location_panel);
+		location_menu.add(set_location_item);
+		
+		
+		// A modeless dialog box that shows up if Location->Set Object is selected.		
+		set_object_dialog = new JDialog(frame, "Set Object");
+		JMenuItem set_object_item = new JMenuItem("Set Object");
+		ActionListener set_object_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+						
+				x += canvas_xdim;
+						
+				y += 200;
+
+				set_object_dialog.setLocation(x, y);
+				set_object_dialog.pack();
+				set_object_dialog.setVisible(true);
+			}
+		};
+		set_object_item.addActionListener(set_object_handler);
+		JPanel set_object_panel = new JPanel(new GridLayout(2, 1));
+		JTextField set_object_input             = new JTextField();
+		set_object_input.setHorizontalAlignment(JTextField.CENTER);
+		set_object_input.setText("");
+		JButton set_object_button = new JButton("Set Object");
+		ActionListener set_object_button_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String object_string = set_object_input.getText();
+				int object_id = Integer.parseInt(object_string);
+						
+				if(object_id >= 1 && object_id < 54)
+				{
+					System.out.println("Setting location close to object " + object_id);
+					double[] object_offset = ObjectMapper.getObjectOffsetArray();
+					double   offset        = object_offset[object_id - 1];
+					offset                /= 30.;
+					data_offset            = offset - data_range / 2;
+					
+					// Clear data since we're at a new position.
+					append_data = false;
+					persistent_data = false;
+					sample_information.setText("");	
+					slope_output.setText("");
+					startpoint_set = false;
+					midpoint_set = false;
+					endpoint_set = false;
+					
+					// Update location map
+					location_canvas.repaint();
+					
+					// Reset scrollbar.
+					int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+					data_scrollbar.setValue(scrollbar_position);
+					
+					// Redraw data.
+					data_canvas.repaint();
+					/*
+					int    index           = (int)object_index.get(object_id);
+					Sample sample          = (Sample)data.get(index);
+					double object_location = sample.y;
+					data_offset            = object_location / data_length - data_range / 2;
+					int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+					data_scrollbar.setValue(scrollbar_position);
+					data_canvas.repaint();
+					*/
+				}
+				else
+				{
+					System.out.println("Object id must be from 1 to 53.");	
+				}
+			}
+		};
+		set_object_button.addActionListener(set_object_button_handler);
+		set_object_panel.add(set_object_input);
+		set_object_panel.add(set_object_button);
+		set_object_dialog.add(set_object_panel);
+		set_object_dialog.add(set_object_panel);
+		location_menu.add(set_object_item);
+				
+		
+		
+		JMenu     settings_menu  = new JMenu("Settings");
 		view_item = new JCheckBoxMenuItem("Reverse View");
 		ActionListener view_handler = new ActionListener()
 		{
@@ -2517,6 +2701,8 @@ public class ZFencePlotter
 			int    start_index    = (int)location_index.get(start_location);
 			data_location        += data_range * data_length;
 			int    stop_location  = (int)data_location;
+			if(stop_location == location_index.size())
+				stop_location--;
 			int    stop_index     = (int)location_index.get(stop_location);
 			
 			// Find out which flight line(s) the data is located in;
@@ -2537,7 +2723,6 @@ public class ZFencePlotter
 			        break;
 			    }
 			}
-			
 			
 			seg_min        = Double.MAX_VALUE;
 			seg_max        = -Double.MAX_VALUE;
@@ -2579,6 +2764,7 @@ public class ZFencePlotter
 			}
 			
 			//Not really helpful.
+			/*
 			for(int i = 0; i < number_of_segments; i++)
 			{
 				 ArrayList data_list = (ArrayList)data_array.get(i);	
@@ -2589,7 +2775,7 @@ public class ZFencePlotter
 				 slope[i]           = rise / run;
 				 //System.out.println("Line " + i + " has slope " + slope[i]);
 			}
-			//System.out.println();
+			*/
 			
 			double max_xstep         = (xdim - (left_margin + right_margin)) / number_of_segments;
 			int    xstep             = (int) (max_xstep * normal_xstep);
@@ -2972,6 +3158,12 @@ public class ZFencePlotter
 				double current_intensity_range = maximum_y - minimum_y;
 				
 				ArrayList data_list = (ArrayList)data_array.get(i);
+				
+				if(data_list.size() == 0)
+				{
+					System.out.println("No samples in sample space.");
+					return;
+				}
 				ArrayList plot_list = new ArrayList();
 				
 				
@@ -2988,7 +3180,6 @@ public class ZFencePlotter
 						point.y = maximum_y;
 					plot_list.add(point);
 				}
-				
 				
 				Point2D.Double start_point = (Point2D.Double) plot_list.get(0);
 				Point2D.Double end_point   = (Point2D.Double) plot_list.get(plot_list.size() - 1);
@@ -4057,7 +4248,10 @@ public class ZFencePlotter
 			
 			data_location        += data_range * data_length;
 			int    stop_location  = (int)data_location;
+			if(stop_location == location_index.size())
+				stop_location--;
 			int    stop_index     = (int)location_index.get(stop_location);
+			
 			
 			Sample sample = (Sample) relative_data.get(2);
 			
@@ -4103,12 +4297,14 @@ public class ZFencePlotter
 				x *= xfactor;
 				y *= yfactor;
 				y = ydim - y;
+				
 				graphics_buffer.setColor(java.awt.Color.RED);
 				graphics_buffer.fillOval((int)(x - 1), (int)(y - 1), 3, 3);
 				// If we want target numbers.
 				graphics_buffer.setColor(java.awt.Color.BLACK);
 				String object_string = Integer.toString(i + 1); 
 				graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
+				
 			}
 			
 			int current_xlocation       = (int)(xlocation * (xdim - 1));
