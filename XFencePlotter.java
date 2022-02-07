@@ -38,9 +38,8 @@ public class XFencePlotter
     boolean data_clipped   = false;
     boolean color_key      = false;
     boolean show_id        = true;
-    
-    
-    //boolean show_label     = false;
+    boolean show_label     = false;
+    boolean show_data      = false;
     boolean in_order       = true;
     double  scale_factor   = 1.;
     double  normal_xstep   = 0.5;
@@ -124,9 +123,6 @@ public class XFencePlotter
 	public JScrollPane        order_scrollpane;
 	public BufferedImage      buffered_image;
 
-	public JDialog load_dialog;
-	public JDialog save_dialog;
-	public JDialog placement_dialog;
 	public JDialog sort_dialog;
 	public JDialog segment_image_dialog;
 	public JDialog scale_dialog;
@@ -138,10 +134,7 @@ public class XFencePlotter
 	public JDialog set_object_dialog;
 	
 	public JDialog label_dialog;
-	public JDialog load_config_dialog;
-	public JDialog save_config_dialog;
-	public JDialog save_graph_dialog;
-	
+
 	public JDialog line_image_dialog;
 	public JDialog information_dialog;
 	public JDialog slope_dialog;
@@ -185,6 +178,7 @@ public class XFencePlotter
 	public JCheckBoxMenuItem overlay_item;
 	public JCheckBoxMenuItem show_id_item;
 	public JCheckBoxMenuItem color_key_item;
+	public JCheckBoxMenuItem show_data_item;
 	public JToggleButton     autoscale_button;
 	public JSlider           smooth_slider;
 	public JSlider           factor_slider;
@@ -233,7 +227,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.4 of fence.");
+			System.out.println("This is version 3.5 of fence.");
 			try
 			{
 				try
@@ -312,6 +306,7 @@ public class XFencePlotter
 				    for(int i = 0; i < number_of_tokens; i++)
 				    {
 				    	token = config_tokenizer.nextToken();
+				    	
 				    	// Cannot instantiate arrays of non-primitive types statically,
 				    	// so we have to save the id and assign it later.
 				    	sensor_id.add(token);
@@ -919,14 +914,6 @@ public class XFencePlotter
 		    }
 		}
 		
-		for (int i = 0; i < 10; i++)
-		{
-			sensor_canvas[i] = new SensorCanvas(i);
-			SensorCanvasMouseHandler sensor_canvas_mouse_handler = new SensorCanvasMouseHandler(i);
-			sensor_canvas[i].addMouseListener(sensor_canvas_mouse_handler);
-			sensor_panel.add(sensor_canvas[i]);
-		}
-		
 		lower_bound = new JTextField();
 		upper_bound = new JTextField();
 		if(config_file_exists)
@@ -936,13 +923,126 @@ public class XFencePlotter
 			lower_bound.setText(lower_bound_string);
 			upper_bound.setText(upper_bound_string); 
 		}
+		
 		JMenuBar menu_bar = new JMenuBar();
 
+		// Start file menu
 		JMenu     file_menu  = new JMenu("File");
 		
-		apply_item           = new JMenuItem("Apply");
-		JMenuItem print_item = new JMenuItem("Print");
-		JMenuItem save_item  = new JMenuItem("Save");
+		// A modeless dialog box handler if File->Load Segment is selected.
+		class LoadInputHandler implements ActionListener
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String input_string = load_input.getText();
+				StringTokenizer input_tokenizer = new StringTokenizer(input_string, ":./");
+
+				String line_string = input_tokenizer.nextToken();
+				int current_line = Integer.parseInt(line_string);
+
+				String sensor_string = input_tokenizer.nextToken();
+				int current_sensor = Integer.parseInt(sensor_string);
+
+				int number_of_pairs = 10;
+				if (input_tokenizer.hasMoreTokens())
+				{
+					String number_of_pairs_string = input_tokenizer.nextToken();
+					number_of_pairs = Integer.parseInt(number_of_pairs_string);
+				}
+
+				String[] line_sensor_pair = new String[10];
+
+				int current_pair = 0;
+
+				if (current_line % 2 == 1)
+				{
+					for (int i = current_sensor; i < 5; i++)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				} 
+				else
+				{
+					for (int i = current_sensor; i >= 0; i--)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				}
+				current_line++;
+				if (current_line % 2 == 1)
+				{
+					for (int i = 0; i < 5; i++)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				} 
+				else
+				{
+					for (int i = 4; i >= 0; i--)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				}
+				current_line++;
+				outer: if (current_pair < 10)
+				{
+					if (current_line % 2 == 1)
+					{
+						for (int i = 0; i < 5; i++)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+							if (current_pair == 10)
+								break outer;
+						}
+					} 
+					else
+					{
+						for (int i = 4; i >= 0; i--)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+							if (current_pair == 10)
+								break outer;
+						}
+					}
+				}
+
+				for (int i = 0; i < 10; i++)
+				{
+					sensor[i].setText("");
+				}
+				for (int i = 0; i < number_of_pairs; i++)
+				{
+					sensor[i].setText(line_sensor_pair[i]);
+				}
+				// Resegment the data.
+				apply_item.doClick();
+			}
+		}
+		
+		JPanel load_panel = new JPanel(new GridLayout(2, 1));
+	    load_input             = new JTextField();
+		load_input.setHorizontalAlignment(JTextField.CENTER);
+		load_input.setText("");
+		JButton load_button = new JButton("Load Segment");
+		LoadInputHandler load_input_handler = new LoadInputHandler();
+		load_button.addActionListener(load_input_handler);
+		load_panel.add(load_input);
+		load_panel.add(load_button);
+		JDialog load_dialog = new JDialog(frame);
+		load_dialog.add(load_panel);
+
 		JMenuItem load_item  = new JMenuItem("Load Segment");
 		ActionListener load_handler = new ActionListener()
 		{
@@ -960,643 +1060,185 @@ public class XFencePlotter
 			}
 		};
 		load_item.addActionListener(load_handler);
-		
-		JMenuItem load_config_item  = new JMenuItem("Load Config");
-		ActionListener load_config_dialog_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-
-				load_config_dialog.setLocation(x, y);
-				load_config_dialog.pack();
-				load_config_dialog.setVisible(true);
-			}
-		};
-		load_config_item.addActionListener(load_config_dialog_handler);
-
-		JMenuItem save_config_item  = new JMenuItem("Save Config");
-		ActionListener save_config_dialog_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-
-				save_config_dialog.setLocation(x, y);
-				save_config_dialog.pack();
-				save_config_dialog.setVisible(true);
-			}
-		};
-		save_config_item.addActionListener(save_config_dialog_handler);
-		
-		ApplyHandler apply_handler = new ApplyHandler();
-		apply_item.addActionListener(apply_handler);
-		
-		PrintHandler print_handler = new PrintHandler();
-		print_item.addActionListener(print_handler);
-		
-		SaveHandler  save_handler = new SaveHandler();
-		save_item.addActionListener(save_handler);
-
 		file_menu.add(load_item);
 		
-		// This is almost obsolete, but still helps when 
-		// graphing non-sequential segments created by
-		// editing sensor entries by hand.
-		// All other changes are automatically applied.
-		file_menu.add(apply_item);
+
+
 		
-		// File->Print works but produces a low quality print.
-		// Not worth trying to make it look better when
-		// we can just print from Photoshop or Gimp instead.
-		// Still leaving the hook in here.  We might want 
-		// to print text for one thing.
-		file_menu.add(print_item);
-		
-		file_menu.add(save_item);
-        
-		file_menu.add(load_config_item);
-        
-		file_menu.add(save_config_item);
-        
-        JMenu format_menu = new JMenu("Format");
-		
-		// A modeless dialog box that shows up if Format->Show Data is selected.
-		JPanel information_panel = new JPanel(new BorderLayout());
-		sample_information = new JTextArea(8, 17);
-		information_panel.add(sample_information);
-		information_dialog = new JDialog(frame);
-		information_dialog.add(information_panel);		
-		JMenuItem data_item = new JMenuItem("Show Data");
-		ActionListener data_handler = new ActionListener()
+		JMenuItem    save_graph_item    = new JMenuItem("Save Graph");
+		ActionListener save_graph_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-						
-				Dimension canvas_dimension = data_canvas.getSize();
-				double    canvas_xdim      = canvas_dimension.getWidth();
-						
-				x += canvas_xdim;
-				information_dialog.setLocation(x, y);
-				information_dialog.pack();
-				information_dialog.setVisible(true);
+		        FileDialog file_dialog = new FileDialog(frame, "Save Graph", FileDialog.SAVE);
+		        file_dialog.setVisible(true);
+		        String filename = file_dialog.getFile();
+		        int           image_xdim   = buffered_image.getWidth();
+				int           image_ydim   = buffered_image.getHeight();
+				BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
+				Graphics2D    print_buffer = (Graphics2D) print_image.getGraphics(); 
+				print_buffer.drawImage(buffered_image, 0, 0,  null);	
+				String current_directory = file_dialog.getDirectory();
+				try 
+    	        {  
+    	            ImageIO.write(print_image, "png", new File(current_directory + filename + ".png")); 
+    	        } 
+    	        catch(IOException e2) 
+    	        {  
+    	            //e2.printStackTrace(); 
+    	            e2.toString();
+    	        }  
 			}
 		};
-		data_item.addActionListener(data_handler);
-		format_menu.add(data_item);
+		save_graph_item.addActionListener(save_graph_handler);
+		file_menu.add(save_graph_item);
 		
-		JMenuItem place_item = new JMenuItem("Placement");
-		ActionListener placement_handler = new ActionListener()
+		JMenuItem    save_segment_item    = new JMenuItem("Save Segment");
+		ActionListener save_segment_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-				y += 95;
-
-				if (y < 0)
-					y = 0;
-
-				placement_dialog.setLocation(x, y);
-				placement_dialog.pack();
-				placement_dialog.setVisible(true);
-			}
-		};
-		place_item.addActionListener(placement_handler);
-		
-		JMenuItem sort_item = new JMenuItem("Sort");
-		ActionListener sort_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent event)
-			{
+		        FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
+		        file_dialog.setVisible(true);
+		        String filename = file_dialog.getFile();
+		    
+				String current_directory = file_dialog.getDirectory();
 				
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-
-				sort_dialog.setLocation(x, y);
-				sort_dialog.pack();
-				sort_dialog.setVisible(true);
-				order_canvas.repaint();
-			}
-		};
-		sort_item.addActionListener(sort_handler);
-
-		
-		JMenuItem label_item  = new JMenuItem("Graph Label");
-		ActionListener label_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-
-				label_dialog.setLocation(x, y);
-				label_dialog.pack();
-				label_dialog.setVisible(true);
-			}
-		};
-		label_item.addActionListener(label_handler);
-		
-		JPanel     range_panel = new JPanel(new BorderLayout());
-		JTextField range_input = new JTextField();
-		range_input.setHorizontalAlignment(JTextField.CENTER);
-		range_input.setText("");
-		ActionListener range_input_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-			    String input = range_input.getText();
-			    double input_range = Double.valueOf(input);
-			    double range_delta = 0;
-			    if(input_range <= 0 || input_range > 60)
+				// General purpose text file to use with gnuplot and as a source of segmented data.
+				System.out.println("Writing text file.");
+			    try (PrintWriter output = new PrintWriter(current_directory + filename + ".txt"))
 			    {
-			        System.out.println("Range must be more than 0 and less than 60.");
-			        return;
-			    }
-			    else
-			    {	
-			    	range_delta = input_range - range;
-			    	range = input_range;
-			    }
-			    double normal_range = range / 60.;
-			    
-			    int scrollbar_value = range_scrollbar.getValue();
-			    
-			    double normal_position = scrollbar_value;
-			    normal_position /= 2000;
-			    
-			    // Using existing semaphores instead of implementing
-			    // a separate semaphore for the text input.  Otherwise,
-			    // we need to go back and check for that semaphore in
-			    // other parts of the program.
-			    if(normal_position - normal_range / 2 < 0)
-			    {
-			    	range_slider_changing = true;
-			    	range_scrollbar.setValue(0);
-			    	offset = 15;
-			    	range_slider_changing = false;	
-			    }
-			    else if(normal_position + normal_range / 2 > 1)
-			    {
-			    	range_slider_changing = true;
-			    	range_scrollbar.setValue(2000);
-			    	offset = 60 - range + 15;
-			    	range_slider_changing = false;   	
-				}
-			    else
-			    	offset -= range_delta / 2;
-			    range_scrollbar_changing = true;
-			    int lower_value = (int) ((offset - 15) / 60 * 2000);
-			    int upper_value = (int) ((offset + range - 15) / 60 * 2000);
-			    range_slider.setValue(lower_value);
-		    	range_slider.setUpperValue(upper_value);
-			    range_scrollbar_changing = false;
-				range_information.setText(String.format("%,.2f", range));
-			    apply_item.doClick();
-			    
-			}
-		};
-        range_input.addActionListener(range_input_handler);
-        range_panel.add(range_input);		
-        range_dialog = new JDialog(frame, "Range");
-        range_dialog.add(range_panel);
-		
-		JMenuItem range_item = new JMenuItem("Set Range");
-		ActionListener range_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				Dimension canvas_dimension = data_canvas.getSize();
-				double    canvas_xdim      = canvas_dimension.getWidth();
-				
-				x += canvas_xdim;
-				
-				y += 400;
-
-				range_dialog.setLocation(x, y);
-				range_dialog.pack();
-				range_dialog.setVisible(true);
-			}
-		};
-		range_item.addActionListener(range_handler);
-		
-		
-		format_menu.add(place_item);
-		format_menu.add(sort_item);
-		format_menu.add(label_item);
-		format_menu.add(range_item);
-		
-		JMenu adjustments_menu = new JMenu("Adjustments");
-		JMenu slope_menu       = new JMenu("Slope");
-
-		JMenuItem scaling_item = new JMenuItem("Scaling");
-		ActionListener scale_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-				y += 540;
-
-				scale_dialog.setLocation(x, y);
-				scale_dialog.pack();
-				scale_dialog.setVisible(true);
-			}
-		};
-		scaling_item.addActionListener(scale_handler);
-		
-		JMenuItem smoothing_item = new JMenuItem("Smoothing");
-		ActionListener smooth_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-				x += 830;
-				y += 640;
-				smooth_dialog.setLocation(x, y);
-				smooth_dialog.pack();
-				smooth_dialog.setVisible(true);
-			}
-		};
-		smoothing_item.addActionListener(smooth_handler);
-		
-
-		JMenuItem dynamic_range_item = new JMenuItem("Dynamic Range");
-		ActionListener dynamic_range_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x -= 150;
-				y += 35;
-
-				double seg_min = (double) sensor_data.get(0);
-				double seg_max = (double) sensor_data.get(1);
-				double line_min = (double) sensor_data.get(2);
-				double line_max = (double) sensor_data.get(3);
-                if(!data_clipped)
-                {
-				    if (autoscale)
-				    {
-					    lower_bound.setText(String.format("%,.2f", seg_min));
-					    upper_bound.setText(String.format("%,.2f", seg_max));
-				    }
-				    else
-				    {
-					    lower_bound.setText(String.format("%,.2f", line_min));
-					    upper_bound.setText(String.format("%,.2f", line_max));
-				    }
-                }
-                else
-                {
-                	lower_bound.setText(String.format("%,.2f", minimum_y));	
-                	upper_bound.setText(String.format("%,.2f", maximum_y));
-                }
-				dynamic_range_dialog.setLocation(x, y);
-				dynamic_range_dialog.pack();
-				dynamic_range_dialog.setVisible(true);
-			}
-		};
-		dynamic_range_item.addActionListener(dynamic_range_handler);
-
-		adjustments_menu.add(smoothing_item);
-		adjustments_menu.add(scaling_item);
-		adjustments_menu.add(dynamic_range_item);
-		
-		
-		JMenu     location_menu  = new JMenu("Location");
-		JMenuItem location_item = new JMenuItem("Show Map");
-		ActionListener location_handler = new ActionListener()
-		{
-		    public void actionPerformed(ActionEvent e)
-		    {
-			    Point location_point = frame.getLocation();
-			    int x = (int) location_point.getX();
-			    int y = (int) location_point.getY();
-			    Dimension canvas_dimension = data_canvas.getSize();
-				double    canvas_xdim      = canvas_dimension.getWidth();
-								
-				x += canvas_xdim;
-			    location_dialog.setLocation(x, y);
-			    location_dialog.pack();
-			    location_dialog.setVisible(true);
-		    }
-		};
-		location_item.addActionListener(location_handler);
-		
-		
-		JMenuItem segment_image_item = new JMenuItem("Show Segment Image");
-		ActionListener segment_image_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent event)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-				segment_image_dialog.setLocation(x, y);
-				segment_image_dialog.pack();
-				segment_image_dialog.setVisible(true);
-			}
-		};
-		segment_image_item.addActionListener(segment_image_handler);
-		
-		JMenuItem line_image_item = new JMenuItem("Show Line Image");
-		ActionListener line_image_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent event)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-				line_image_dialog.setLocation(x, y);
-				line_image_dialog.pack();
-				line_image_dialog.setVisible(true);
-			}
-		};
-		line_image_item.addActionListener(line_image_handler);
-		
-		location_menu.add(location_item);
-		location_menu.add(segment_image_item);
-		location_menu.add(line_image_item);
-		
-		JMenu settings_menu = new JMenu("Settings");
-		view_item = new JCheckBoxMenuItem("Reverse View");
-		ActionListener view_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(reverse_view == true)
-				{
-            		reverse_view = false;
-					item.setState(false);
-					placement_canvas.repaint();
-				}
-				else
-				{
-					reverse_view = true;
-					item.setState(true);
-					placement_canvas.repaint();
-				}
-            	if(append_data)
-				{
-            		int number_of_segments = sensor_data.size() - 4;
-					Dimension canvas_dimension = data_canvas.getSize();
-					int       canvas_xdim      = (int)canvas_dimension.getWidth();
-					int       canvas_ydim      = (int)canvas_dimension.getHeight();
-					
-					double    max_xstep        = (canvas_xdim - (left_margin + right_margin)) / number_of_segments;
-					int       xstep            = (int) (max_xstep * normal_xstep);
-					
-					double    max_ystep        = (canvas_ydim - (top_margin + bottom_margin)) / number_of_segments;
-					int       ystep            = (int) (max_ystep * normal_ystep);
-					
-					int delta_x = 0;
-					int delta_y = 0;
-						
-					if(number_of_segments % 2 == 1)
+				    // The first 4 elements in the sensor data are local min, local max, global min,
+			        // and global max.
+			        // The rest are array lists of samples, with some information prepended.
+			    	double intensity_min = (double) sensor_data.get(0);
+					String intensity_min_string = String.format("%.2f", intensity_min);
+					int size = sensor_data.size();
+					for (int i = 4; i < size; i++)
 					{
-						for(int i = 0; i < number_of_segments / 2; i++)
+						// The first 4 elements are flight line, sensor, visibility, and transparency.
+						// The last two are yes/no strings.
+						ArrayList segment_list = (ArrayList) sensor_data.get(i);
+						int line = (int) segment_list.get(0);
+						int sensor = (int) segment_list.get(1);
+
+						output.println("#Sensor " + sensor + ", Line " + line);
+
+						double ideal_x = line * 2;
+						if (line % 2 == 0)
 						{
-							int k = (number_of_segments - 1) / (i + 1);
-							if(gui_index == i)
-							{
-							    if(reverse_view)
-							    {
-							        delta_x =  k * xstep;
-							        delta_y = -k * ystep;
-							    }
-							    else
-							    {
-							    	delta_x = -k * xstep;
-							        delta_y =  k * ystep;   	
-							    }
-							}
-							else if(gui_index == number_of_segments - 1 - i)
-							{
-								if(reverse_view)
-							    {
-							        delta_x = -k * xstep;
-							        delta_y =  k * ystep;
-							    }
-							    else
-							    {
-							    	delta_x =  k * xstep;
-							        delta_y = -k * ystep;   	
-							    }	
-							}
+							ideal_x += ((4 - sensor) * .5);
+						} else
+						{
+							ideal_x += sensor * .5;
 						}
-					}
-					else
-					{
-						for(int i = 0; i < number_of_segments / 2; i++)
+						// Keeping track of how much deviation there is in raster.
+						String ideal_string = String.format("%.2f", ideal_x);
+                        
+						// Plot individual sensor curves.
+						String xstring, ystring;
+						for (int j = 4; j < segment_list.size(); j++)
 						{
-							int k = number_of_segments - (2 * i) - 1;
-							if(gui_index == i)
-							{
-							    if(reverse_view)
-							    {
-							        delta_x =  k * xstep;
-							        delta_y = -k * ystep;
-							    }
-							    else
-							    {
-							    	
-							    	delta_x = -k * xstep;
-							        delta_y =  k * ystep;  
-							    }
-							}
-							else if(gui_index == number_of_segments - 1 - i)
-							{
-								if(reverse_view)
-							    {
-							        delta_x = -k * xstep;
-							        delta_y =  k * ystep;
-							    }
-							    else
-							    {
-							    	delta_x =  k * xstep;
-							        delta_y = -k * ystep;   
-							    }	
-							}
-						}        
+							Sample sample = (Sample) segment_list.get(j);
+							xstring = String.format("%.2f", sample.x);
+							ystring = String.format("%.2f", sample.y);
+							String intensity_string = String.format("%.2f", sample.intensity);
+							output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
+						}
+						
+						// Seperate this sensor curve from the next one with an extra line feed.
+						output.println();
+						output.println();
 					}
+					output.close();
+			    } 
+			    catch (Exception ex)
+			    {
+				    System.out.println(ex.toString());
+			    }
+			}
+		};
+		save_segment_item.addActionListener(save_segment_handler);
+		file_menu.add(save_segment_item);
+		
+		JMenuItem    save_fenceplot_item    = new JMenuItem("Save Fence Plot");
+		ActionListener save_fenceplot_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+		        FileDialog file_dialog = new FileDialog(frame, "Save Fence Plot", FileDialog.SAVE);
+		        file_dialog.setVisible(true);
+		        String filename = file_dialog.getFile();
+		    
+				String current_directory = file_dialog.getDirectory();
+				
+				// Special format to generate fence plots in gnuplot.
+				System.out.println("Writing fence plot file.");
+			    try (PrintWriter output = new PrintWriter(current_directory + filename + ".txt"))
+			    {
+				    // The first 4 elements in the sensor data are local min, local max, global min,
+				    // and global max.
+				    // The rest are array lists of samples, with some information prepended.
+				    double intensity_min = (double) sensor_data.get(0);
+				    String intensity_min_string = String.format("%.2f", intensity_min);
+				    int size = sensor_data.size();
+				    for (int i = 4; i < size; i++)
+				    {
+					    // The first 4 elements are flight line, sensor, visibility, and transparency.
+					    // The last two are yes/no strings.
+					    ArrayList segment_list = (ArrayList) sensor_data.get(i);
+					    int line = (int) segment_list.get(0);
+					    int sensor = (int) segment_list.get(1);
+
+					    output.println("#Sensor " + sensor + ", Line " + line);
+
+					    double ideal_x = line * 2;
+					    if (line % 2 == 0)
+						  ideal_x += ((4 - sensor) * .5);
+					    else
+						    ideal_x += sensor * .5;
+					    // Keeping track of how much deviation there is in raster.
+					    String ideal_string = String.format("%.2f", ideal_x);
+
+					    // Make the first bottom corner of our fence plot.
+					    Sample init_sample = (Sample) segment_list.get(4);
+					    String xstring = String.format("%.2f", init_sample.x);
+					    String ystring = String.format("%.2f", init_sample.y);
+					    output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
 					
-					append_x_position += delta_x;
-				    append_y_position += delta_y;
-				}
-		        data_canvas.repaint();
-            }   	
+					    // Plot actual data points.
+					    for (int j = 4; j < segment_list.size(); j++)
+					    {
+					        Sample sample = (Sample) segment_list.get(j);
+					        xstring = String.format("%.2f", sample.x);
+					        ystring = String.format("%.2f", sample.y);
+					        String intensity_string = String.format("%.2f", sample.intensity);
+					        output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
+					    }
+					
+					    // Add the second bottom corner to our fence plot.
+					    output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
+					
+					    // Connect it to our first bottom corner to get our polygon.
+					    xstring = String.format("%.2f", init_sample.x);
+					    ystring = String.format("%.2f", init_sample.y);
+					    output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
+					
+					    // Seperate this sensor polygon from the next one with an extra line feed.
+					    output.println();
+					    output.println();
+				    }
+				    output.close();
+			    } 
+			    catch (Exception ex)
+			    {
+				    System.out.println(ex.toString());
+			    }
+			}
 		};
-		view_item.addActionListener(view_handler);
-		if(reverse_view)
-			view_item.setState(true);
-        
-		number_mode_item = new JCheckBoxMenuItem("Relative Mode");
-		if(relative_mode)
-		    number_mode_item.setState(true);
-		number_mode_item.addActionListener(new ActionListener() 
-        {
-            public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(relative_mode == true)
-				{
-            		relative_mode = false;
-					item.setState(false);
-				}
-				else
-				{
-					relative_mode = true;
-					item.setState(true);
-				}
-		        data_canvas.repaint();
-            }
-        });
+		save_fenceplot_item.addActionListener(save_fenceplot_handler);
+		file_menu.add(save_fenceplot_item);
 		
-        overlay_item = new JCheckBoxMenuItem("Raster Overlay");
-        if(raster_overlay == true)
-        	overlay_item.setState(true);	
-        overlay_item.addActionListener(new ActionListener() 
-        {
-            public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(raster_overlay == true)
-				{
-					raster_overlay = false;
-					item.setState(false);
-				}
-				else
-				{
-					raster_overlay = true;
-					item.setState(true);
-				}
-		        data_canvas.repaint();
-            }
-        });
-		
-		
-		color_key_item = new JCheckBoxMenuItem("Color Key");
-		ActionListener key_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(color_key == true)
-				{
-            		color_key = false;
-					item.setState(false);
-					data_canvas.repaint();;
-				}
-				else
-				{
-					color_key = true;
-					item.setState(true);
-					data_canvas.repaint();
-				}
-            }   	
-		};
-		color_key_item.addActionListener(key_handler);
-		if(color_key)
-			color_key_item.setState(true);
-		else
-			color_key_item.setState(false);
-		
-		show_id_item = new JCheckBoxMenuItem("Show ID");
-		ActionListener show_id_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e) 
-            {
-            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(show_id == true)
-				{
-            		show_id = false;
-					item.setState(false);
-				}
-				else
-				{
-					show_id = true;
-					item.setState(true);
-				}
-		        data_canvas.repaint();
-            }   	
-		};
-		show_id_item.addActionListener(show_id_handler);
-		if(show_id)
-			show_id_item.setState(true);
-		
-		
-		settings_menu.add(view_item);
-		settings_menu.add(overlay_item);
-		settings_menu.add(number_mode_item);
-		settings_menu.add(show_id_item);
-		settings_menu.add(color_key_item);
-		
-		
-		
-	
-		menu_bar.add(file_menu);
-		menu_bar.add(format_menu);
-		menu_bar.add(adjustments_menu);
-		menu_bar.add(slope_menu);
-		menu_bar.add(location_menu);
-		menu_bar.add(settings_menu);
-
-		// A modeless dialog box that shows up if File->Load is selected.
-		JPanel load_panel = new JPanel(new GridLayout(2, 1));
-		load_input             = new JTextField();
-		load_input.setHorizontalAlignment(JTextField.CENTER);
-		load_input.setText("");
-
-		JButton load_button = new JButton("Load Segment");
-		LoadInputHandler load_input_handler = new LoadInputHandler();
-		load_button.addActionListener(load_input_handler);
-
-		load_panel.add(load_input);
-		load_panel.add(load_button);
-
-		load_dialog = new JDialog(frame);
-		load_dialog.add(load_panel);
-		
-		
-
 		// A modeless dialog box that shows up if File->Load Config is selected.
 		JPanel load_config_panel = new JPanel(new GridLayout(2, 1));
 		load_config_input        = new JTextField(30);
@@ -1955,12 +1597,9 @@ public class XFencePlotter
 					        }
 					    }
 					    config_reader.close();
-					    
-					    
 					    // We now have current settings for all parameters with dependencies and can make the gui consistent.
 					    // We already reset booleans without dependencies.
-					    
-					    
+					     
 					    // Alert user they might want to sort overlapping segments.
 					    if(!in_order)
 					    	System.out.println("The segments are out of order at location " + sort_location);
@@ -1973,7 +1612,7 @@ public class XFencePlotter
 					    
 						// Make the order canvas red or green to show if segments are in order.
 						// This does not work, maybe because the adjustment listener sets in_order.
-					    //order_canvas.repaint();
+					    order_canvas.repaint();
 					    
 					    // Reset scaling slider to current settings.  
 					    if(data_scaled)
@@ -2065,8 +1704,31 @@ public class XFencePlotter
 		};
 		load_config_button.addActionListener(load_config_handler);
 		load_config_panel.add(load_config_button);
-		load_config_dialog = new JDialog(frame, "Load Config");
+		JDialog load_config_dialog = new JDialog(frame, "Load Config");
 		load_config_dialog.add(load_config_panel, BorderLayout.CENTER);
+		
+	
+
+		
+		
+		JMenuItem load_config_item  = new JMenuItem("Load Config");
+		ActionListener load_config_dialog_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+
+				load_config_dialog.setLocation(x, y);
+				load_config_dialog.pack();
+				load_config_dialog.setVisible(true);
+			}
+		};
+		load_config_item.addActionListener(load_config_dialog_handler);
+		file_menu.add(load_config_item);
 		
 		// A modeless dialog box that shows up if File->Save Config is selected.
 		JPanel save_config_panel = new JPanel(new GridLayout(2, 1));
@@ -2222,61 +1884,1132 @@ public class XFencePlotter
 		};
 		save_config_button.addActionListener(save_config_handler);
 		save_config_panel.add(save_config_button);
-		save_config_dialog = new JDialog(frame, "Save Config");
+		JDialog save_config_dialog = new JDialog(frame, "Save Config");
 		save_config_dialog.add(save_config_panel, BorderLayout.CENTER);
 		
-		// A modeless dialog box that shows up if Format->Placement is selected.
-		JPanel placement_panel = new JPanel(new BorderLayout());
-		placement_canvas = new PlacementCanvas();
-		placement_canvas.setSize(100, 100);
-		xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 101);
-		AdjustmentListener xstep_handler = new AdjustmentListener()
+		JMenuItem save_config_item  = new JMenuItem("Save Config");
+		ActionListener save_config_dialog_handler = new ActionListener()
 		{
-			public void adjustmentValueChanged(AdjustmentEvent event)
+			public void actionPerformed(ActionEvent e)
 			{
-				int xstep = event.getValue();
-				normal_xstep = (double) xstep / 100;
-				if (event.getValueIsAdjusting() == false)
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+
+				save_config_dialog.setLocation(x, y);
+				save_config_dialog.pack();
+				save_config_dialog.setVisible(true);
+			}
+		};
+		save_config_item.addActionListener(save_config_dialog_handler);
+		file_menu.add(save_config_item);
+		
+		/*
+		// File->Print works but produces a mediocre print.
+		// Not worth trying to make it look better when
+		// we can just print from Photoshop or Gimp instead.
+		// Still leaving the hook in here.
+		
+        class PrintHandler implements ActionListener
+	    {
+		    public void actionPerformed(ActionEvent event)
+		    {
+		        try
+		        {
+			        PrintService service = PrintServiceLookup.lookupDefaultPrintService();
+			        DocPrintJob  job     = service.createPrintJob();
+			        DocFlavor    flavor  = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
+			        SimpleDoc    doc     = new SimpleDoc(new GraphPrintable(), flavor, null);
+			        job.print(doc, null);
+		        }
+		        catch(Exception e)
+		        {
+		    	    System.out.println(e.toString());
+		        }
+		    }
+	    }
+	
+	    class GraphPrintable implements Printable 
+	    {
+		    public int print(Graphics g, PageFormat pf, int pageIndex) 
+		    {
+		         Graphics2D graphics = (Graphics2D) g;
+		         g.translate((int) (pf.getImageableX()), (int) (pf.getImageableY()));
+		         if (pageIndex == 0) 
+		         {
+		          double pageWidth   = pf.getImageableWidth();
+		          double pageHeight  = pf.getImageableHeight();
+		          double imageWidth  = buffered_image.getWidth();
+		          double imageHeight = buffered_image.getHeight();
+		          double scaleX = pageWidth / imageWidth;
+		          double scaleY = pageHeight / imageHeight;
+		          double scaleFactor = Math.min(scaleX, scaleY);
+		          graphics.scale(scaleFactor, scaleFactor);
+		          g.drawImage(buffered_image, 0, 0, null);
+		          return Printable.PAGE_EXISTS;
+		          }
+		          return Printable.NO_SUCH_PAGE;
+		    }
+	    } 
+		JMenuItem print_item = new JMenuItem("Print");
+		PrintHandler print_handler = new PrintHandler();
+		print_item.addActionListener(print_handler);
+		file_menu.add(print_item);
+		*/
+		
+		// This is almost obsolete, but still helps when 
+		// graphing arbitrary non-sequential segments created by
+		// editing sensor entries by hand.
+		// All other changes are now automatically applied.
+		class ApplyHandler implements ActionListener
+		{
+			int[][] line_array;
+			int[] current_line;
+			int[] current_sensor;
+
+			ApplyHandler()
+			{
+				line_array = ObjectMapper.getUnclippedLineArray();
+				current_line = new int[10];
+				current_sensor = new int[10];
+			}
+
+			public void actionPerformed(ActionEvent event)
+			{
+				for (int i = 0; i < 10; i++)
 				{
+					try
+					{
+						String line_sensor_pair = sensor[i].getText();
+						if(line_sensor_pair.equals(""))
+						{
+						    if(i < 9)
+						    {
+						    	line_sensor_pair = sensor[i + 1].getText();
+						    	sensor[i + 1].setText("");
+						    	sensor[i].setText(line_sensor_pair);
+						    }
+						}
+							
+						StringTokenizer tokenizer = new StringTokenizer(line_sensor_pair, ":");
+						int number_of_tokens = tokenizer.countTokens();
+						if (number_of_tokens == 2)
+						{
+							String line_string = tokenizer.nextToken(":");
+							int next_line = Integer.parseInt(line_string);
+							String sensor_string = tokenizer.nextToken(":");
+							int next_sensor = Integer.parseInt(sensor_string);
+
+							// Do a check for valid input
+							if (next_line >= 0 && next_line < 30 && next_sensor >= 0 && next_sensor < 5)
+							{
+								current_line[i] = next_line;
+								current_sensor[i] = next_sensor;
+							} 
+							else
+							{
+								current_line[i] = -1;
+								current_sensor[i] = -1;
+							}
+						} 
+						else
+						{
+							current_line[i] = -1;
+							current_sensor[i] = -1;
+						}
+					} 
+					catch (Exception exception)
+					{
+						current_line[i] = -1;
+						current_sensor[i] = -1;
+					}
+				}
+
+				// Do a first pass thru the data to get the segment and line extrema.
+				// This is so we can prepend it to the segment data for the line canvas
+				// to use to implement autoscaling.
+				double seg_min  = Double.MAX_VALUE;
+				double seg_max  = -Double.MAX_VALUE;
+				double line_min = Double.MAX_VALUE;
+				double line_max = -Double.MAX_VALUE;
+
+				for (int i = 0; i < 10; i++)
+				{
+					if (current_line[i] != -1)
+					{
+						int start = line_array[current_line[i]][0];
+						int stop = line_array[current_line[i]][1];
+
+						if (current_line[i] % 2 == 0)
+						{
+							for (int j = start + current_sensor[i]; j < stop; j += 5)
+							{
+								Sample sample = (Sample) data.get(j);
+								if (sample.y >= offset && sample.y < (offset + range))
+								{
+									if (seg_min > sample.intensity)
+										seg_min = sample.intensity;
+									if (seg_max < sample.intensity)
+										seg_max = sample.intensity;
+								}
+								if (sample.y >= 15 && sample.y < 75)
+								{
+									if (line_min > sample.intensity)
+										line_min = sample.intensity;
+									if (line_max < sample.intensity)
+										line_max = sample.intensity;
+								}
+							}
+						} 
+						else
+						{
+							for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
+							{
+								Sample sample = (Sample) data.get(j);
+								if (sample.y >= offset && sample.y < (offset + range))
+								{
+									if (seg_min > sample.intensity)
+										seg_min = sample.intensity;
+									if (seg_max < sample.intensity)
+										seg_max = sample.intensity;
+								}
+								if (sample.y >= 15 && sample.y < 75)
+								{
+									if (line_min > sample.intensity)
+										line_min = sample.intensity;
+									if (line_max < sample.intensity)
+										line_max = sample.intensity;
+								}
+							}
+						}
+					}
+				}
+
+				sensor_data.clear();
+				sensor_data.add(seg_min);
+				sensor_data.add(seg_max);
+				sensor_data.add(line_min);
+				sensor_data.add(line_max);
+				for (int i = 0; i < 10; i++)
+				{
+					if (current_line[i] != -1)
+					{
+						ArrayList segment_data = new ArrayList();
+						segment_data.add(current_line[i]);
+						segment_data.add(current_sensor[i]);
+
+						if (visible[i] == true)
+							segment_data.add(new String("yes"));
+						else
+							segment_data.add(new String("no"));
+						if (transparent[i] == true)
+							segment_data.add(new String("yes"));
+						else
+							segment_data.add(new String("no"));
+
+						int start = line_array[current_line[i]][0];
+						int stop = line_array[current_line[i]][1];
+						if (current_line[i] % 2 == 0)
+						{
+							for (int j = start + current_sensor[i]; j < stop; j += 5)
+							{
+								Sample sample = (Sample) data.get(j);
+								if (sample.y >= offset && sample.y < (offset + range))
+									segment_data.add(sample);
+							}
+						} 
+						else
+						{
+							for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
+							{
+								Sample sample = (Sample) data.get(j);
+								if (sample.y >= offset && sample.y < (offset + range))
+									segment_data.add(sample);
+							}
+						}
+						sensor_data.add(segment_data);
+					}
+				}
+				data_canvas.repaint();
+				placement_canvas.repaint();
+				location_canvas.repaint();
+				if(sort_canvas != null)
+					sort_canvas.repaint();
+				offset_information.setText(String.format("%.2f", offset));	
+				segment_image_canvas.repaint();
+				//order_canvas = new OrderCanvas();
+				//order_canvas.setSize(20, 20);
+				if(order_canvas != null)
+				    order_canvas.repaint();
+			}
+		}
+		apply_item           = new JMenuItem("Apply Params");
+		ApplyHandler apply_handler = new ApplyHandler();
+		apply_item.addActionListener(apply_handler);
+		file_menu.add(apply_item);
+		menu_bar.add(file_menu);
+		
+		// End file menu
+		
+		
+		
+		// Start format menu.
+        
+        JMenu format_menu = new JMenu("Format");
+	
+        
+        // A modeless dialog box that shows up if Format->Placement is selected.
+     	JPanel placement_panel = new JPanel(new BorderLayout());
+     	placement_canvas = new PlacementCanvas();
+     	placement_canvas.setSize(100, 100);
+     	xstep_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 101);
+     	AdjustmentListener xstep_handler = new AdjustmentListener()
+     	{
+     	    public void adjustmentValueChanged(AdjustmentEvent event)
+     		{
+     			int xstep = event.getValue();
+     			normal_xstep = (double) xstep / 100;
+     			if (event.getValueIsAdjusting() == false)
+     			{
+     				data_canvas.repaint();
+     				placement_canvas.repaint();
+     			}
+     		}
+     	};
+     	xstep_scrollbar.addAdjustmentListener(xstep_handler);
+     	int value = (int)(100. * normal_xstep);
+     	xstep_scrollbar.setValue(value);
+     	ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 101);
+     	AdjustmentListener ystep_handler = new AdjustmentListener()
+     	{
+     		public void adjustmentValueChanged(AdjustmentEvent event)
+     		{
+     			int ystep = 100 - event.getValue();
+     			normal_ystep = (double) ystep / 100;
+     			if (event.getValueIsAdjusting() == false)
+     			{
+     				data_canvas.repaint();
+     				placement_canvas.repaint();
+     			}
+     		}
+     	};
+     	ystep_scrollbar.addAdjustmentListener(ystep_handler);
+     	value = (int)(100. * (1 - normal_ystep));
+     	ystep_scrollbar.setValue(value);
+
+     	placement_panel.add(placement_canvas, BorderLayout.CENTER);
+     	placement_panel.add(xstep_scrollbar, BorderLayout.SOUTH);
+     	placement_panel.add(ystep_scrollbar, BorderLayout.EAST);
+
+     	JDialog placement_dialog = new JDialog(frame, "Placement");
+     	placement_dialog.add(placement_panel);
+	       
+		JMenuItem place_item = new JMenuItem("Placement");
+		ActionListener placement_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+				y += 95;
+
+				if (y < 0)
+					y = 0;
+
+				placement_dialog.setLocation(x, y);
+				placement_dialog.pack();
+				placement_dialog.setVisible(true);
+			}
+		};
+		place_item.addActionListener(placement_handler);
+		format_menu.add(place_item);
+		
+		// A modeless dialog box that shows up if Format->Sort is selected.
+		JPanel sort_panel = new JPanel(new BorderLayout());
+		JPanel sort_canvas_panel = new JPanel(new BorderLayout());
+		class SortCanvas extends Canvas
+		{
+			public void paint(Graphics g)
+			{
+				Graphics2D graphics       = (Graphics2D)g;
+				Rectangle  visible_area   = graphics.getClipBounds();
+				int xdim                  = (int) visible_area.getWidth();
+				int ydim                  = (int) visible_area.getHeight();
+				
+				Image buffered_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
+				Graphics2D graphics_buffer = (Graphics2D) buffered_image.getGraphics();
+				Font        current_font  = graphics_buffer.getFont();
+				FontMetrics font_metrics  = graphics_buffer.getFontMetrics(current_font);
+				int         string_height = font_metrics.getAscent();
+				int         string_width;
+				
+				graphics_buffer.setColor(java.awt.Color.WHITE);
+				graphics_buffer.fillRect(0, 0, xdim, ydim);
+				
+				int top_margin    = 10;
+				int bottom_margin = 10;
+				int left_margin   = 40;
+				int right_margin  = 10;
+				int graph_xdim    = xdim - (left_margin + right_margin);
+				int graph_ydim    = ydim - (top_margin + bottom_margin);
+				
+				double a1 = left_margin;
+				double a2 = left_margin + graph_xdim;
+				double b1 = top_margin;
+				double b2 = top_margin + graph_ydim;
+				
+				double xmin = Double.MAX_VALUE;
+				double xmax = Double.MIN_NORMAL;
+				for(int i = 4; i < sensor_data.size(); i++)
+				{
+				    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+				    for(int j = 4; j < sensor_list.size(); j++)
+				    {
+				    	Sample sample = (Sample)sensor_list.get(j);
+				    	if(sample.x < xmin)
+				    		xmin = sample.x;
+				    	if(sample.x > xmax)
+				    		xmax = sample.x;
+				    }
+				}
+				
+				double xrange = range;
+				double yrange = xmax - xmin;
+				graphics_buffer.setStroke(new BasicStroke(3));
+				for(int i = 4; i < sensor_data.size(); i++)
+				{
+				    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+				    Sample previous_sample = (Sample)sensor_list.get(4);
+				    
+				    // Switching x and y to match orientation of graphs
+				    double x = previous_sample.y;
+				    double y = previous_sample.x;
+				    
+				    x -= offset;
+				    x /= xrange;
+	        	    x *= graph_xdim;
+	        	    x += left_margin;
+	        	    
+	        	    y -= xmin;
+	        	    y /= yrange;
+	        	    y *= graph_ydim;
+	        	    y = graph_ydim - y;
+	        	    y += top_margin;
+				  
+	        	    int    line     = (int)sensor_list.get(0);
+	        	    int    sensor   = (int)sensor_list.get(1);
+	        	    String line_sensor_pair = new String(line + ":" + sensor);
+	        	    string_width = font_metrics.stringWidth(line_sensor_pair);
+	        	    graphics_buffer.setColor(java.awt.Color.BLACK);
+				    graphics_buffer.drawString(line_sensor_pair, (int)x - (string_width + 5), (int)y);
+				    graphics_buffer.setColor(fill_color[i - 4]);
+				    Point2D.Double previous = new Point2D.Double(x, y);
+				    for(int j = 5; j < sensor_list.size(); j++)
+					{
+						Sample sample = (Sample)sensor_list.get(j);
+						x = sample.y;
+					    y = sample.x;
+					    
+					    x -= offset;
+					    x /= xrange;
+		        	    x *= graph_xdim;
+		        	    x += left_margin;
+		        	    
+		        	    y -= xmin;
+		        	    y /= yrange;
+		        	    y *= graph_ydim;
+		        	    y = graph_ydim - y;
+		        	    y += top_margin;
+		        	    
+		        	    Point2D.Double current = new Point2D.Double(x, y);
+		        	    
+		        	    double x1 = previous.getX();
+						double y1 = previous.getY();
+						double x2 = current.getX();
+						double y2 = current.getY();
+						
+						graphics_buffer.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
+		        	    previous = current;
+					}
+				}
+				graphics_buffer.setStroke(new BasicStroke(1));
+				graphics_buffer.setColor(java.awt.Color.BLACK);
+				graphics_buffer.drawLine((int) a1, (int)b1, (int)a1, (int)b2);
+				graphics_buffer.drawLine((int) a2, (int)b1, (int) a2, (int)b2);
+				graphics_buffer.drawLine((int) a1, (int)b1, (int) a2, (int)b1);
+				graphics_buffer.drawLine((int) a1, (int)b2, (int) a2, (int)b2);
+				
+				double current_position = graph_xdim;
+				current_position        *= sort_location;
+				current_position        += left_margin;
+				graphics_buffer.setColor(java.awt.Color.BLUE);
+				graphics_buffer.drawLine((int) current_position, (int)b1, (int) current_position, (int)b2);
+				double current_ylocation = range * sort_location + offset;
+				String position_string = String.format("%,.2f",  current_ylocation); 
+				String string = new String("Y = " + position_string);
+				string_width = font_metrics.stringWidth(string);
+				if(current_ylocation < 45)
+				    graphics_buffer.drawString(string, (int)current_position + 10, graph_ydim / 2 + top_margin);
+				else
+					graphics_buffer.drawString(string, (int)current_position - 10 - string_width, graph_ydim / 2 + top_margin);
+					
+				graphics.drawImage(buffered_image, 0, 0, null);
+			}   	
+		}
+		
+		SortCanvas sort_canvas       = new SortCanvas();
+		sort_canvas.setSize(600, 400);
+		JScrollBar sort_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 501);
+
+		sort_canvas_panel.add(sort_canvas, BorderLayout.CENTER);
+		sort_canvas_panel.add(sort_scrollbar, BorderLayout.SOUTH);
+		sort_panel.add(sort_canvas_panel, BorderLayout.CENTER);
+						
+		JPanel      sort_button_panel = new JPanel(new BorderLayout());
+		order_information             = new JTextArea(10, 10);
+		order_information.setEditable(false);
+		order_scrollpane  = new JScrollPane(order_information, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); 
+		JPanel      order_panel       = new JPanel((new GridLayout(2, 1)));
+
+		order_canvas = new OrderCanvas();
+		order_canvas.setSize(20, 20);
+		
+		JButton     sort_button       = new JButton("Sort");
+		ActionListener sort_button_handler = new ActionListener()
+     	{
+     		public void actionPerformed(ActionEvent event)
+     		{
+				int number_of_segments     = sensor_data.size() - 4;
+				ArrayList line_sensor_list = new ArrayList();               
+				Hashtable sensor_table     = new Hashtable();
+		
+				
+				for(int i = 0; i < number_of_segments; i++)
+				{
+					String line_id = sensor[i].getText();
+					line_sensor_list.add(line_id);
+				}
+				// We're using x values as keys to a hashtable,
+				// so we need to make sure none of them are equal.
+				// We'll add a small value to subsequent numbers,
+				// so when values are equal the order remains the same.
+				for(int i = 0; i < number_of_segments; i++)
+				{
+					double addend = .000001;
+					double previous_x = (double)xlist.get(i);
+					for(int j = i + 1; j < 10; j++)
+					{
+						double x = (double)xlist.get(j);
+						if(previous_x == x)
+						{
+							x += addend;
+							xlist.set(j, x);
+							addend *= 2;
+						}
+					}
+				}
+				for(int i = 0; i < number_of_segments; i++)
+				{
+					// Modified data.
+					double    key         = (double)xlist.get(i); 
+					String    line_id     = (String)line_sensor_list.get(i);
+					sensor_table.put(key, line_id);
+				}
+				Collections.sort(xlist);
+				order_information.append("\n");
+				for(int i = 0; i < number_of_segments; i++)
+				{
+				    double x       = (double)xlist.get(i);
+				    String xstring = String.format("%,.2f", x);
+				    String line_id = (String)sensor_table.get(x);
+				    sensor[i].setText(line_id);
+				    order_information.append(line_id + "  " + xstring + "\n");
+				}
+				in_order = true;
+				order_canvas.repaint();
+				apply_item.doClick();	
+     		}
+     	};
+		sort_button.addActionListener(sort_button_handler);
+		order_panel.add(order_canvas);
+		if(!in_order)
+			System.out.println("Segments are out of order at location " + sort_location);
+		order_panel.add(sort_button);
+		sort_button_panel.add(order_scrollpane, BorderLayout.CENTER);
+		sort_button_panel.add(order_panel, BorderLayout.SOUTH);				
+		sort_panel.add(sort_button_panel, BorderLayout.EAST);
+		AdjustmentListener sort_location_handler = new AdjustmentListener()
+     	{
+     		public void adjustmentValueChanged(AdjustmentEvent event)
+     		{
+				int location = event.getValue();
+				sort_location = (double)location / 500.;
+				
+				double current_position = range * sort_location + offset;
+				xlist.clear();
+				
+				int size = sensor_data.size();
+				int number_of_segments = size - 4;
+				order_information.append("\n");
+				double previous_x = 0;
+				in_order = true;
+				for(int i = 0; i < number_of_segments; i++)
+				{
+					ArrayList sensor_list    = (ArrayList) sensor_data.get(i + 4);
+					int       current_line   = (int)sensor_list.get(0);
+					int       current_sensor = (int)sensor_list.get(1);
+					size                     = sensor_list.size();
+					
+					Sample sample = (Sample)sensor_list.get(4);
+					int j = 5;
+					while(sample.y < current_position && j < size)
+					{
+						sample = (Sample)sensor_list.get(j);
+						j++;
+					}
+					xlist.add(sample.x);
+					
+					if(i == 0)
+					{
+						previous_x = sample.x;  	
+					}
+					else
+					{
+					    if(sample.x < previous_x)
+					    	in_order = false;
+					    previous_x = sample.x;
+					}
+					
+					String data_string       = new String(current_line + ":" + current_sensor);
+					String xstring           = String.format("%,.2f", sample.x);
+					String order_string = new String(data_string + "   " + xstring);
+					if(order_information != null)
+						order_information.append(order_string + "\n");	
+					JScrollBar this_scrollbar = order_scrollpane.getVerticalScrollBar();
+					int max = this_scrollbar.getMaximum();
+					this_scrollbar.setValue(max);
+				}
+				if(sort_canvas != null)
+				    sort_canvas.repaint();
+				if(order_canvas != null)
+				    order_canvas.repaint();
+     		}
+     	};
+		sort_scrollbar.addAdjustmentListener(sort_location_handler);
+		value = (int) (500 * sort_location);
+		sort_scrollbar.setValue(value);
+		sort_dialog = new JDialog(frame, "Sort");
+		sort_dialog.add(sort_panel);
+		JMenuItem sort_item = new JMenuItem("Sort");
+		ActionListener sort_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent event)
+			{
+				
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+
+				sort_dialog.setLocation(x, y);
+				sort_dialog.pack();
+				sort_dialog.setVisible(true);
+				order_canvas.repaint();
+			}
+		};
+		sort_item.addActionListener(sort_handler);
+		format_menu.add(sort_item);
+		
+		// A modeless dialog box that shows up if Settings->Graph Label is selected.
+		JPanel label_panel = new JPanel(new BorderLayout());
+		label_input        = new JTextField(30);
+		ActionListener label_input_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+			    graph_label = label_input.getText();
+			    data_canvas.repaint();
+			}
+		};
+        label_input.addActionListener(label_input_handler);
+		label_input.setHorizontalAlignment(JTextField.CENTER);
+        label_input.setText(graph_label);
+		label_panel.add(label_input);
+		label_dialog = new JDialog(frame, "Label");
+		label_dialog.add(label_panel, BorderLayout.CENTER);
+		label_dialog.addWindowListener(new WindowAdapter() 
+		{
+		      public void windowClosing(WindowEvent e)
+		      {
+		        data_canvas.repaint();
+		      }
+		});
+		
+		JMenuItem label_item  = new JMenuItem("Graph Label");
+		ActionListener label_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+
+				label_dialog.setLocation(x, y);
+				label_dialog.pack();
+				label_dialog.setVisible(true);
+			}
+		};
+		label_item.addActionListener(label_handler);
+		format_menu.add(label_item);
+		
+		JPanel     range_panel = new JPanel(new BorderLayout());
+		JTextField range_input = new JTextField();
+		range_input.setHorizontalAlignment(JTextField.CENTER);
+		range_input.setText("");
+		ActionListener range_input_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+			    String input = range_input.getText();
+			    double input_range = Double.valueOf(input);
+			    double range_delta = 0;
+			    if(input_range <= 0 || input_range > 60)
+			    {
+			        System.out.println("Range must be more than 0 and less than 60.");
+			        return;
+			    }
+			    else
+			    {	
+			    	range_delta = input_range - range;
+			    	range = input_range;
+			    }
+			    double normal_range = range / 60.;
+			    
+			    int scrollbar_value = range_scrollbar.getValue();
+			    
+			    double normal_position = scrollbar_value;
+			    normal_position /= 2000;
+			    
+			    // Using existing semaphores instead of implementing
+			    // a separate semaphore for the text input.  Otherwise,
+			    // we need to go back and check for that semaphore in
+			    // other parts of the program.
+			    if(normal_position - normal_range / 2 < 0)
+			    {
+			    	range_slider_changing = true;
+			    	range_scrollbar.setValue(0);
+			    	offset = 15;
+			    	range_slider_changing = false;	
+			    }
+			    else if(normal_position + normal_range / 2 > 1)
+			    {
+			    	range_slider_changing = true;
+			    	range_scrollbar.setValue(2000);
+			    	offset = 60 - range + 15;
+			    	range_slider_changing = false;   	
+				}
+			    else
+			    	offset -= range_delta / 2;
+			    range_scrollbar_changing = true;
+			    int lower_value = (int) ((offset - 15) / 60 * 2000);
+			    int upper_value = (int) ((offset + range - 15) / 60 * 2000);
+			    range_slider.setValue(lower_value);
+		    	range_slider.setUpperValue(upper_value);
+			    range_scrollbar_changing = false;
+				range_information.setText(String.format("%,.2f", range));
+			    apply_item.doClick();
+			    
+			}
+		};
+        range_input.addActionListener(range_input_handler);
+        range_panel.add(range_input);		
+        range_dialog = new JDialog(frame, "Range");
+        range_dialog.add(range_panel);
+		
+		JMenuItem range_item = new JMenuItem("Set Range");
+		ActionListener range_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				
+				y += 400;
+
+				range_dialog.setLocation(x, y);
+				range_dialog.pack();
+				range_dialog.setVisible(true);
+			}
+		};
+		range_item.addActionListener(range_handler);
+		format_menu.add(range_item);
+		menu_bar.add(format_menu);
+		
+		// End format menu.
+		
+		
+		// Start adjustment menu.
+		
+		JMenu adjustments_menu = new JMenu("Adjustments");
+		
+		// A modeless dialog box that shows up if Adjustments->Scaling is selected.
+		JPanel scale_panel = new JPanel((new GridLayout(2, 1)));
+		if(autoscale)
+		    autoscale_button = new JToggleButton("Autoscale", true);
+		else
+			autoscale_button = new JToggleButton("Autoscale", false);
+		ItemListener autoscale_handler = new ItemListener()
+		{
+			public void itemStateChanged(ItemEvent itemEvent)
+			{
+				int state = itemEvent.getStateChange();
+
+				if (state == ItemEvent.SELECTED)
+				{
+					autoscale = true;
 					data_canvas.repaint();
-					placement_canvas.repaint();
+				} 
+				else
+				{
+					autoscale = false;
+					data_canvas.repaint();
+				}
+				reset_bounds_button.doClick();
+			}
+		};
+		autoscale_button.addItemListener(autoscale_handler);
+		
+
+	    factor_slider = new JSlider(0, 200, 0);
+		ChangeListener factor_handler = new ChangeListener()
+		{
+			public void stateChanged(ChangeEvent e)
+			{
+				JSlider slider = (JSlider) e.getSource();
+				if (slider.getValueIsAdjusting() == false)
+				{
+					int value = factor_slider.getValue();
+					
+					if(value == 0)
+						data_scaled = false;
+					else
+						data_scaled = true;
+					scale_factor = (double) value / 100 + 1.;
+					data_canvas.repaint();
 				}
 			}
 		};
-		xstep_scrollbar.addAdjustmentListener(xstep_handler);
-		int value = (int)(100. * normal_xstep);
-		xstep_scrollbar.setValue(value);
-		ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 101);
-		AdjustmentListener ystep_handler = new AdjustmentListener()
+		factor_slider.addChangeListener(factor_handler);
+		scale_panel.add(autoscale_button);
+		scale_panel.add(factor_slider);
+		if(data_scaled)
+	    {
+	        int current_value = (int)((scale_factor - 1.) * 100.);	
+	        factor_slider.setValue(current_value);
+	    }
+	    // Make it consistent with the boolean if it isn't in the config file.
+	    else
+	    {
+	    	factor_slider.setValue(0);
+	    	scale_factor = 1.0;
+	    }
+		scale_dialog = new JDialog(frame);
+		scale_dialog.add(scale_panel);
+
+		JMenuItem scaling_item = new JMenuItem("Scaling");
+		ActionListener scale_handler = new ActionListener()
 		{
-			public void adjustmentValueChanged(AdjustmentEvent event)
+			public void actionPerformed(ActionEvent e)
 			{
-				int ystep = 100 - event.getValue();
-				normal_ystep = (double) ystep / 100;
-				if (event.getValueIsAdjusting() == false)
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+				y += 540;
+
+				scale_dialog.setLocation(x, y);
+				scale_dialog.pack();
+				scale_dialog.setVisible(true);
+			}
+		};
+		scaling_item.addActionListener(scale_handler);
+		adjustments_menu.add(scaling_item);
+
+		// A modeless dialog box that shows up if Adjustments->Smoothing is selected.
+		JPanel  smooth_panel  = new JPanel(new BorderLayout());
+		smooth_slider = new JSlider(0, 100, smooth);
+		ChangeListener smooth_slider_handler = new ChangeListener()
+		{
+			public void stateChanged(ChangeEvent e)
+			{
+				JSlider slider = (JSlider) e.getSource();
+				if (slider.getValueIsAdjusting() == false)
 				{
+					int value = slider.getValue();
+					smooth = value;
 					data_canvas.repaint();
-					placement_canvas.repaint();
 				}
 			}
 		};
-		ystep_scrollbar.addAdjustmentListener(ystep_handler);
-		value = (int)(100. * (1 - normal_ystep));
-		ystep_scrollbar.setValue(value);
+		smooth_slider.addChangeListener(smooth_slider_handler);
+		smooth_panel.add(smooth_slider, BorderLayout.CENTER);
+		smooth_dialog = new JDialog(frame, "Smoothing");
+		smooth_dialog.add(smooth_panel);
+		JMenuItem smoothing_item = new JMenuItem("Smoothing");
+		ActionListener smooth_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+				x += 830;
+				y += 640;
+				smooth_dialog.setLocation(x, y);
+				smooth_dialog.pack();
+				smooth_dialog.setVisible(true);
+			}
+		};
+		smoothing_item.addActionListener(smooth_handler);
+		adjustments_menu.add(smoothing_item);
 
-		placement_panel.add(placement_canvas, BorderLayout.CENTER);
-		placement_panel.add(xstep_scrollbar, BorderLayout.SOUTH);
-		placement_panel.add(ystep_scrollbar, BorderLayout.EAST);
+		// A modeless dialog box that shows up if Adjustments->Dynamic Range is selected.
+		lower_bound.setHorizontalAlignment(JTextField.CENTER);
+		upper_bound.setHorizontalAlignment(JTextField.CENTER);
+		JPanel bounds_panel = new JPanel(new GridLayout(2, 2));
+		bounds_panel.add(lower_bound);
+		bounds_panel.add(upper_bound);
+		bounds_panel.add(new JLabel("Lower", JLabel.CENTER));
+		bounds_panel.add(new JLabel("Upper", JLabel.CENTER));
+		JPanel bounds_button_panel = new JPanel(new GridLayout(1, 2));
+		JButton adjust_bounds_button = new JButton("Adjust");
+		reset_bounds_button = new JButton("Reset");
+		bounds_button_panel.add(adjust_bounds_button);
+		ActionListener adjust_range_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				double seg_min      = (double) sensor_data.get(0);
+				double seg_max      = (double) sensor_data.get(1);
+				double line_min     = (double) sensor_data.get(2);
+				double line_max     = (double) sensor_data.get(3);
+				String bound_string = lower_bound.getText();
+				double min          = Double.valueOf(bound_string);
+				bound_string        = upper_bound.getText();
+				double max          = Double.valueOf(bound_string);
+				double global_min   = 0;
+				double global_max   = 0;
+				
+				if(autoscale)
+				{
+					global_min = seg_min;
+					global_max = seg_max;
+				}
+				else
+				{
+					global_min = line_min;
+					global_max = line_max;	
+				}
+				data_clipped = true;
+				if(global_min < min)
+					intensity_min = global_min;
+				else
+					intensity_min = min;
+				if(global_max > max)
+					intensity_max= global_max;
+				else
+					intensity_max = max;
+				apply_item.doClick();
+				dynamic_range_canvas.repaint();
+				dynamic_button_changing = true;
+				double current_range = intensity_max - intensity_min;
+				int min_value = 0;
+				int max_value = 0;
+				if(min > global_min)
+				{
+					min_value = (int) ((min - global_min) / current_range * 100);
+				    if(max < global_max)
+				    	max_value = (int) ((max - global_min) / current_range * 100);	
+				    else
+				    	max_value = (int) ((global_max - global_min) / current_range * 100);    
+				}
+				else
+				{
+					min_value = (int) ((global_min - min) / current_range * 100);
+					if(max < global_max)
+				    	max_value = (int) ((max - min) / current_range * 100);	
+				    else
+				    	max_value = (int) ((global_max - min) / current_range * 100);
+				}
+				dynamic_range_slider.setValue(min_value);
+				dynamic_range_slider.setUpperValue(max_value);
+				dynamic_button_changing = false;	
+			}
+		};
+		adjust_bounds_button.addActionListener(adjust_range_handler);
+		bounds_button_panel.add(reset_bounds_button);
+		ActionListener reset_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				double seg_min = (double) sensor_data.get(0);
+				double seg_max = (double) sensor_data.get(1);
+				double line_min = (double) sensor_data.get(2);
+				double line_max = (double) sensor_data.get(3);
+				if(autoscale)
+				{
+					String lower_bound_string = String.format("%,.2f", seg_min);
+					String upper_bound_string = String.format("%,.2f", seg_max);
+					lower_bound.setText(lower_bound_string);
+					upper_bound.setText(upper_bound_string);
+					dynamic_button_changing = true;
+					dynamic_range_slider.setValue(0);
+					dynamic_range_slider.setUpperValue(100);
+					dynamic_button_changing = false;
+				} 
+				else
+				{
+					String lower_bound_string = String.format("%,.2f", line_min);
+					String upper_bound_string = String.format("%,.2f", line_max);
+					lower_bound.setText(lower_bound_string);
+					upper_bound.setText(upper_bound_string);
 
-		placement_dialog = new JDialog(frame, "Placement");
-		placement_dialog.add(placement_panel);
+					dynamic_button_changing = true;
+					dynamic_range_slider.setValue(0);
+					dynamic_range_slider.setUpperValue(100);
+					dynamic_button_changing = false;
+				}
+				data_clipped = false;
+				apply_item.doClick();
+				dynamic_range_canvas.repaint();
+			}
+		};
+		reset_bounds_button.addActionListener(reset_handler);
+		JPanel dynamic_range_button_panel = new JPanel(new BorderLayout());
+		dynamic_range_button_panel.add(bounds_panel, BorderLayout.CENTER);
+		dynamic_range_button_panel.add(bounds_button_panel, BorderLayout.SOUTH);
+		dynamic_range_slider = new RangeSlider();
+		dynamic_range_slider.setOrientation(JSlider.VERTICAL);
+		dynamic_range_slider.setMinimum(0);
+		dynamic_range_slider.setMaximum(100);
+		dynamic_range_slider.setValue(0);
+		dynamic_range_slider.setUpperValue(100);
+		
+		ChangeListener dynamic_range_slider_handler = new ChangeListener()
+		{
+			public void stateChanged(ChangeEvent e)
+			{
+				RangeSlider slider = (RangeSlider) e.getSource();
+				int lower = slider.getValue();
+				int upper = slider.getUpperValue();
+				if (dynamic_button_changing == false)
+				{
+					double min = 0;
+					double max = 0;
+					if(data_clipped)
+					{
+					    min = intensity_min;
+					    max = intensity_max;
+					}
+					else if(autoscale)
+					{
+						min = (double) sensor_data.get(0);
+						max = (double) sensor_data.get(1);
+					} 
+					else
+					{
+						min = (double) sensor_data.get(2);
+						max = (double) sensor_data.get(3);
+					}
+					double current_range      = max - min;
+					double fraction           = (double) lower / 100;
+					double lower_value        = (fraction * current_range) + min;
+					String lower_bound_string = String.format("%,.2f", lower_value);
+					fraction                  = (double) upper / 100;
+					double upper_value        = (fraction * current_range) + min;
+					String upper_bound_string = String.format("%,.2f", upper_value);
+					lower_bound.setText(lower_bound_string);
+					upper_bound.setText(upper_bound_string);
+				}
+			}
+		};
+		dynamic_range_slider.addChangeListener(dynamic_range_slider_handler);
+		dynamic_range_canvas = new DynamicRangeCanvas();
+		dynamic_range_canvas.setSize(100, 520);
+		JPanel dynamic_range_canvas_panel = new JPanel(new BorderLayout());
+		dynamic_range_canvas_panel.add(dynamic_range_slider, BorderLayout.WEST);
+		dynamic_range_canvas_panel.add(dynamic_range_canvas, BorderLayout.CENTER);
+		JPanel dynamic_range_panel = new JPanel(new BorderLayout());
+		dynamic_range_panel.add(dynamic_range_canvas_panel, BorderLayout.CENTER);
+		dynamic_range_panel.add(dynamic_range_button_panel, BorderLayout.SOUTH);
+		dynamic_range_dialog = new JDialog(frame);
+		dynamic_range_dialog.add(dynamic_range_panel);
 
+		JMenuItem dynamic_range_item = new JMenuItem("Dynamic Range");
+		ActionListener dynamic_range_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x -= 150;
+				y += 35;
+
+				double seg_min = (double) sensor_data.get(0);
+				double seg_max = (double) sensor_data.get(1);
+				double line_min = (double) sensor_data.get(2);
+				double line_max = (double) sensor_data.get(3);
+                if(!data_clipped)
+                {
+				    if (autoscale)
+				    {
+					    lower_bound.setText(String.format("%,.2f", seg_min));
+					    upper_bound.setText(String.format("%,.2f", seg_max));
+				    }
+				    else
+				    {
+					    lower_bound.setText(String.format("%,.2f", line_min));
+					    upper_bound.setText(String.format("%,.2f", line_max));
+				    }
+                }
+                else
+                {
+                	lower_bound.setText(String.format("%,.2f", minimum_y));	
+                	upper_bound.setText(String.format("%,.2f", maximum_y));
+                }
+				dynamic_range_dialog.setLocation(x, y);
+				dynamic_range_dialog.pack();
+				dynamic_range_dialog.setVisible(true);
+			}
+		};
+		dynamic_range_item.addActionListener(dynamic_range_handler);
+		adjustments_menu.add(dynamic_range_item);
+		menu_bar.add(adjustments_menu);
+		
+		// Start slope menu.
+		
+		JMenu slope_menu       = new JMenu("Slope");
 		
 		JPanel slope_panel = new JPanel(new BorderLayout());
 		slope_output = new JTextArea(22, 10);
 		JPanel slope_button_panel = new JPanel(new GridLayout(2,3));
-		
-		
 		JButton        start_button       = new JButton("Start");
 		ActionListener startpoint_handler = new ActionListener()
 		{
@@ -2551,285 +3284,15 @@ public class XFencePlotter
 		};
 		slope_item.addActionListener(slope_handler);
 		slope_menu.add(slope_item);
-		
-		// A modeless dialog box that shows up if Format->Sort is selected.
-		JPanel sort_panel = new JPanel(new BorderLayout());
-		JPanel sort_canvas_panel = new JPanel(new BorderLayout());
-		sort_canvas       = new SortCanvas();
-		sort_canvas.setSize(600, 400);
-		JScrollBar sort_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 501);
-
-		sort_canvas_panel.add(sort_canvas, BorderLayout.CENTER);
-		sort_canvas_panel.add(sort_scrollbar, BorderLayout.SOUTH);
-		sort_panel.add(sort_canvas_panel, BorderLayout.CENTER);
+		menu_bar.add(slope_menu);
 				
-		JPanel      sort_button_panel = new JPanel(new BorderLayout());
-		order_information             = new JTextArea(10, 10);
-		order_information.setEditable(false);
-		order_scrollpane  = new JScrollPane(order_information, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); 
-		JPanel      order_panel       = new JPanel((new GridLayout(2, 1)));
-		order_canvas                  = new OrderCanvas();
-		order_canvas.setSize(20, 20);
-		JButton     sort_button       = new JButton("Sort");
-		SortButtonHandler sort_button_handler = new SortButtonHandler();
-		sort_button.addActionListener(sort_button_handler);
-		order_panel.add(order_canvas);
-		if(!in_order)
-			System.out.println("Segments are out of order at location " + sort_location);
-		order_panel.add(sort_button);
-		sort_button_panel.add(order_scrollpane, BorderLayout.CENTER);
-		sort_button_panel.add(order_panel, BorderLayout.SOUTH);
-				
-		sort_panel.add(sort_button_panel, BorderLayout.EAST);
-		SortLocationHandler sort_location_handler = new SortLocationHandler();
-		sort_scrollbar.addAdjustmentListener(sort_location_handler);
-		value = (int) (500 * sort_location);
-		sort_scrollbar.setValue(value);
-		sort_dialog = new JDialog(frame, "Sort");
-		sort_dialog.add(sort_panel);
+		// End slope menu.
 		
-		// A modeless dialog box that shows up if Settings->Show Segment Image is selected.
-		segment_image_canvas = new SegmentImageCanvas();
-		segment_image_canvas.setSize(image_xdim, image_ydim);
-		JScrollPane segment_image_scrollpane = new JScrollPane();
-		segment_image_scrollpane.setSize(400, 200);
-		segment_image_scrollpane.add(segment_image_canvas);
-		segment_image_scrollpane.setViewportView(segment_image_canvas);
+		// Start location menu.
 		
-		segment_image_dialog = new JDialog(frame);
-		segment_image_dialog.add(segment_image_scrollpane);
+		JMenu     location_menu  = new JMenu("Location");
 		
-		// A modeless dialog box that shows up if Settings->Show Line Image is selected.
-		line_image_canvas = new LineImageCanvas();
-		line_image_canvas.setSize(line_image_xdim, line_image_ydim);
-		
-		ImageMouseHandler image_mouse_handler = new ImageMouseHandler();
-		line_image_canvas.addMouseListener(image_mouse_handler);
-		JScrollPane line_image_scrollpane = new JScrollPane();
-		line_image_scrollpane.setSize(400, 200);
-		line_image_scrollpane.add(line_image_canvas);
-		line_image_scrollpane.setViewportView(line_image_canvas);		
-		line_image_dialog = new JDialog(frame);
-		line_image_dialog.add(line_image_scrollpane);
-		
-		// A modeless dialog box that shows up if Settings->Scaling is selected.
-		JPanel scale_panel = new JPanel((new GridLayout(2, 1)));
-		if(autoscale)
-		    autoscale_button = new JToggleButton("Autoscale", true);
-		else
-			autoscale_button = new JToggleButton("Autoscale", false);
-		ItemListener autoscale_handler = new ItemListener()
-		{
-			public void itemStateChanged(ItemEvent itemEvent)
-			{
-				int state = itemEvent.getStateChange();
-
-				if (state == ItemEvent.SELECTED)
-				{
-					autoscale = true;
-					data_canvas.repaint();
-				} 
-				else
-				{
-					autoscale = false;
-					data_canvas.repaint();
-				}
-				reset_bounds_button.doClick();
-			}
-		};
-		autoscale_button.addItemListener(autoscale_handler);
-		
-
-	    factor_slider = new JSlider(0, 200, 0);
-		ChangeListener factor_handler = new ChangeListener()
-		{
-			public void stateChanged(ChangeEvent e)
-			{
-				JSlider slider = (JSlider) e.getSource();
-				if (slider.getValueIsAdjusting() == false)
-				{
-					int value = factor_slider.getValue();
-					
-					if(value == 0)
-						data_scaled = false;
-					else
-						data_scaled = true;
-					scale_factor = (double) value / 100 + 1.;
-					data_canvas.repaint();
-				}
-			}
-		};
-		factor_slider.addChangeListener(factor_handler);
-		scale_panel.add(autoscale_button);
-		scale_panel.add(factor_slider);
-		if(data_scaled)
-	    {
-	        int current_value = (int)((scale_factor - 1.) * 100.);	
-	        factor_slider.setValue(current_value);
-	    }
-	    // Make it consistent with the boolean if it isn't in the config file.
-	    else
-	    {
-	    	factor_slider.setValue(0);
-	    	scale_factor = 1.0;
-	    }
-		scale_dialog = new JDialog(frame);
-		scale_dialog.add(scale_panel);
-
-		// A modeless dialog box that shows up if Settings->Dynamic Range is selected.
-		lower_bound.setHorizontalAlignment(JTextField.CENTER);
-		upper_bound.setHorizontalAlignment(JTextField.CENTER);
-		JPanel bounds_panel = new JPanel(new GridLayout(2, 2));
-		bounds_panel.add(lower_bound);
-		bounds_panel.add(upper_bound);
-		bounds_panel.add(new JLabel("Lower", JLabel.CENTER));
-		bounds_panel.add(new JLabel("Upper", JLabel.CENTER));
-		JPanel bounds_button_panel = new JPanel(new GridLayout(1, 2));
-		JButton adjust_bounds_button = new JButton("Adjust");
-		reset_bounds_button = new JButton("Reset");
-		bounds_button_panel.add(adjust_bounds_button);
-		ActionListener adjust_range_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				double seg_min      = (double) sensor_data.get(0);
-				double seg_max      = (double) sensor_data.get(1);
-				double line_min     = (double) sensor_data.get(2);
-				double line_max     = (double) sensor_data.get(3);
-				String bound_string = lower_bound.getText();
-				double min          = Double.valueOf(bound_string);
-				bound_string        = upper_bound.getText();
-				double max          = Double.valueOf(bound_string);
-				double global_min   = 0;
-				double global_max   = 0;
-				
-				if(autoscale)
-				{
-					global_min = seg_min;
-					global_max = seg_max;
-				}
-				else
-				{
-					global_min = line_min;
-					global_max = line_max;	
-				}
-				data_clipped = true;
-				if(global_min < min)
-					intensity_min = global_min;
-				else
-					intensity_min = min;
-				if(global_max > max)
-					intensity_max= global_max;
-				else
-					intensity_max = max;
-				apply_item.doClick();
-				dynamic_range_canvas.repaint();
-				dynamic_button_changing = true;
-				double current_range = intensity_max - intensity_min;
-				int min_value = 0;
-				int max_value = 0;
-				if(min > global_min)
-				{
-					min_value = (int) ((min - global_min) / current_range * 100);
-				    if(max < global_max)
-				    	max_value = (int) ((max - global_min) / current_range * 100);	
-				    else
-				    	max_value = (int) ((global_max - global_min) / current_range * 100);    
-				}
-				else
-				{
-					min_value = (int) ((global_min - min) / current_range * 100);
-					if(max < global_max)
-				    	max_value = (int) ((max - min) / current_range * 100);	
-				    else
-				    	max_value = (int) ((global_max - min) / current_range * 100);
-				}
-				dynamic_range_slider.setValue(min_value);
-				dynamic_range_slider.setUpperValue(max_value);
-				dynamic_button_changing = false;	
-			}
-		};
-		adjust_bounds_button.addActionListener(adjust_range_handler);
-		bounds_button_panel.add(reset_bounds_button);
-		ActionListener reset_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				double seg_min = (double) sensor_data.get(0);
-				double seg_max = (double) sensor_data.get(1);
-				double line_min = (double) sensor_data.get(2);
-				double line_max = (double) sensor_data.get(3);
-				if(autoscale)
-				{
-					String lower_bound_string = String.format("%,.2f", seg_min);
-					String upper_bound_string = String.format("%,.2f", seg_max);
-					lower_bound.setText(lower_bound_string);
-					upper_bound.setText(upper_bound_string);
-					dynamic_button_changing = true;
-					dynamic_range_slider.setValue(0);
-					dynamic_range_slider.setUpperValue(100);
-					dynamic_button_changing = false;
-				} 
-				else
-				{
-					String lower_bound_string = String.format("%,.2f", line_min);
-					String upper_bound_string = String.format("%,.2f", line_max);
-					lower_bound.setText(lower_bound_string);
-					upper_bound.setText(upper_bound_string);
-
-					dynamic_button_changing = true;
-					dynamic_range_slider.setValue(0);
-					dynamic_range_slider.setUpperValue(100);
-					dynamic_button_changing = false;
-				}
-				data_clipped = false;
-				apply_item.doClick();
-				dynamic_range_canvas.repaint();
-			}
-		};
-		reset_bounds_button.addActionListener(reset_handler);
-		JPanel dynamic_range_button_panel = new JPanel(new BorderLayout());
-		dynamic_range_button_panel.add(bounds_panel, BorderLayout.CENTER);
-		dynamic_range_button_panel.add(bounds_button_panel, BorderLayout.SOUTH);
-		dynamic_range_slider = new RangeSlider();
-		dynamic_range_slider.setOrientation(JSlider.VERTICAL);
-		dynamic_range_slider.setMinimum(0);
-		dynamic_range_slider.setMaximum(100);
-		dynamic_range_slider.setValue(0);
-		dynamic_range_slider.setUpperValue(100);
-		DynamicRangeSliderHandler dynamic_range_slider_handler = new DynamicRangeSliderHandler();
-		dynamic_range_slider.addChangeListener(dynamic_range_slider_handler);
-		dynamic_range_canvas = new DynamicRangeCanvas();
-		dynamic_range_canvas.setSize(100, 520);
-		JPanel dynamic_range_canvas_panel = new JPanel(new BorderLayout());
-		dynamic_range_canvas_panel.add(dynamic_range_slider, BorderLayout.WEST);
-		dynamic_range_canvas_panel.add(dynamic_range_canvas, BorderLayout.CENTER);
-		JPanel dynamic_range_panel = new JPanel(new BorderLayout());
-		dynamic_range_panel.add(dynamic_range_canvas_panel, BorderLayout.CENTER);
-		dynamic_range_panel.add(dynamic_range_button_panel, BorderLayout.SOUTH);
-		dynamic_range_dialog = new JDialog(frame);
-		dynamic_range_dialog.add(dynamic_range_panel);
-
-		// A modeless dialog box that shows up if Settings->Smoothing is selected.
-		JPanel  smooth_panel  = new JPanel(new BorderLayout());
-		smooth_slider = new JSlider(0, 100, smooth);
-		ChangeListener smooth_slider_handler = new ChangeListener()
-		{
-			public void stateChanged(ChangeEvent e)
-			{
-				JSlider slider = (JSlider) e.getSource();
-				if (slider.getValueIsAdjusting() == false)
-				{
-					int value = slider.getValue();
-					smooth = value;
-					data_canvas.repaint();
-				}
-			}
-		};
-		smooth_slider.addChangeListener(smooth_slider_handler);
-		smooth_panel.add(smooth_slider, BorderLayout.CENTER);
-		smooth_dialog = new JDialog(frame, "Smoothing");
-		smooth_dialog.add(smooth_panel);
+		// Basic data map.
 
 		// A modeless dialog box that shows up if Settings->Location is selected.
 		JPanel location_panel = new JPanel(new BorderLayout());
@@ -2874,15 +3337,13 @@ public class XFencePlotter
 			}
 		};		
 		ylocation_scrollbar.addAdjustmentListener(ylocation_handler);
-		// Adjust for coordinate systems.
+		// Adjust for coordinate systems--
+		// the direction of the scrollbars work reverse from each other.
 		value = (int)(2000. - ylocation * 2000.);
 		ylocation_scrollbar.setValue(value);
-		
 		location_canvas_panel.add(location_canvas, BorderLayout.CENTER);
 		location_canvas_panel.add(xlocation_scrollbar, BorderLayout.SOUTH);
 		location_canvas_panel.add(ylocation_scrollbar, BorderLayout.EAST);
-		
-		
 		JPanel parameter_panel = new JPanel(new GridLayout(2, 2));
 		parameter_panel.add(offset_information);
 		range_information = new JTextField();
@@ -2902,6 +3363,93 @@ public class XFencePlotter
 		location_dialog = new JDialog(frame, "Location");
 		location_dialog.add(location_panel);
 
+	
+		JMenuItem location_item = new JMenuItem("Show Map");
+		ActionListener location_handler = new ActionListener()
+		{
+		    public void actionPerformed(ActionEvent e)
+		    {
+			    Point location_point = frame.getLocation();
+			    int x = (int) location_point.getX();
+			    int y = (int) location_point.getY();
+			    Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+								
+				x += canvas_xdim;
+			    location_dialog.setLocation(x, y);
+			    location_dialog.pack();
+			    location_dialog.setVisible(true);
+		    }
+		};
+		location_item.addActionListener(location_handler);
+		location_menu.add(location_item);
+		
+		
+		// Grayscale image of current segment.
+		
+		// A modeless dialog box that shows up if Location->Show Segment Image is selected.
+		segment_image_canvas = new SegmentImageCanvas();
+		segment_image_canvas.setSize(image_xdim, image_ydim);
+		JScrollPane segment_image_scrollpane = new JScrollPane();
+		segment_image_scrollpane.setSize(400, 200);
+		segment_image_scrollpane.add(segment_image_canvas);
+		segment_image_scrollpane.setViewportView(segment_image_canvas);
+		
+		segment_image_dialog = new JDialog(frame);
+		segment_image_dialog.add(segment_image_scrollpane);
+		
+
+		JMenuItem segment_image_item = new JMenuItem("Show Segment Image");
+		ActionListener segment_image_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent event)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+				segment_image_dialog.setLocation(x, y);
+				segment_image_dialog.pack();
+				segment_image_dialog.setVisible(true);
+			}
+		};
+		segment_image_item.addActionListener(segment_image_handler);
+		location_menu.add(segment_image_item);
+		
+		
+		// Grayscale image of larger data set.
+		// A modeless dialog box that shows up if Location->Show Line Image is selected.
+		JMenuItem line_image_item = new JMenuItem("Show Line Image");
+		line_image_canvas = new LineImageCanvas();
+		line_image_canvas.setSize(line_image_xdim, line_image_ydim);
+		
+		ImageMouseHandler image_mouse_handler = new ImageMouseHandler();
+		line_image_canvas.addMouseListener(image_mouse_handler);
+		JScrollPane line_image_scrollpane = new JScrollPane();
+		line_image_scrollpane.setSize(400, 200);
+		line_image_scrollpane.add(line_image_canvas);
+		line_image_scrollpane.setViewportView(line_image_canvas);		
+		line_image_dialog = new JDialog(frame);
+		line_image_dialog.add(line_image_scrollpane);
+				
+		ActionListener line_image_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent event)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+				line_image_dialog.setLocation(x, y);
+				line_image_dialog.pack();
+				line_image_dialog.setVisible(true);
+			}
+		};
+		line_image_item.addActionListener(line_image_handler);
+		location_menu.add(line_image_item);
+		
 		// A modeless dialog box that shows up if Location->Set Location is selected.
 		set_location_dialog = new JDialog(frame, "Set Location");
 		JMenuItem set_location_item = new JMenuItem("Set Location");
@@ -3341,32 +3889,276 @@ public class XFencePlotter
 		set_object_dialog.add(set_object_panel);
 		location_menu.add(set_object_item);
 		
-		// A modeless dialog box that shows up if Settings->Graph Label is selected.
-		JPanel label_panel = new JPanel(new BorderLayout());
-		label_input        = new JTextField(30);
-		ActionListener label_input_handler = new ActionListener()
+		menu_bar.add(location_menu);
+		
+		
+		// Start settings menu.
+		
+		JMenu settings_menu = new JMenu("Settings");
+		
+		view_item = new JCheckBoxMenuItem("Reverse View");
+		ActionListener view_handler = new ActionListener()
 		{
-			public void actionPerformed(ActionEvent e)
-			{
-			    graph_label = label_input.getText();
-			    data_canvas.repaint();
-			}
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(reverse_view == true)
+				{
+            		reverse_view = false;
+					item.setState(false);
+					placement_canvas.repaint();
+				}
+				else
+				{
+					reverse_view = true;
+					item.setState(true);
+					placement_canvas.repaint();
+				}
+            	if(append_data)
+				{
+            		int number_of_segments = sensor_data.size() - 4;
+					Dimension canvas_dimension = data_canvas.getSize();
+					int       canvas_xdim      = (int)canvas_dimension.getWidth();
+					int       canvas_ydim      = (int)canvas_dimension.getHeight();
+					
+					double    max_xstep        = (canvas_xdim - (left_margin + right_margin)) / number_of_segments;
+					int       xstep            = (int) (max_xstep * normal_xstep);
+					
+					double    max_ystep        = (canvas_ydim - (top_margin + bottom_margin)) / number_of_segments;
+					int       ystep            = (int) (max_ystep * normal_ystep);
+					
+					int delta_x = 0;
+					int delta_y = 0;
+						
+					if(number_of_segments % 2 == 1)
+					{
+						for(int i = 0; i < number_of_segments / 2; i++)
+						{
+							int k = (number_of_segments - 1) / (i + 1);
+							if(gui_index == i)
+							{
+							    if(reverse_view)
+							    {
+							        delta_x =  k * xstep;
+							        delta_y = -k * ystep;
+							    }
+							    else
+							    {
+							    	delta_x = -k * xstep;
+							        delta_y =  k * ystep;   	
+							    }
+							}
+							else if(gui_index == number_of_segments - 1 - i)
+							{
+								if(reverse_view)
+							    {
+							        delta_x = -k * xstep;
+							        delta_y =  k * ystep;
+							    }
+							    else
+							    {
+							    	delta_x =  k * xstep;
+							        delta_y = -k * ystep;   	
+							    }	
+							}
+						}
+					}
+					else
+					{
+						for(int i = 0; i < number_of_segments / 2; i++)
+						{
+							int k = number_of_segments - (2 * i) - 1;
+							if(gui_index == i)
+							{
+							    if(reverse_view)
+							    {
+							        delta_x =  k * xstep;
+							        delta_y = -k * ystep;
+							    }
+							    else
+							    {
+							    	
+							    	delta_x = -k * xstep;
+							        delta_y =  k * ystep;  
+							    }
+							}
+							else if(gui_index == number_of_segments - 1 - i)
+							{
+								if(reverse_view)
+							    {
+							        delta_x = -k * xstep;
+							        delta_y =  k * ystep;
+							    }
+							    else
+							    {
+							    	delta_x =  k * xstep;
+							        delta_y = -k * ystep;   
+							    }	
+							}
+						}        
+					}
+					
+					append_x_position += delta_x;
+				    append_y_position += delta_y;
+				}
+		        data_canvas.repaint();
+            }   	
 		};
-        label_input.addActionListener(label_input_handler);
-		label_input.setHorizontalAlignment(JTextField.CENTER);
-        label_input.setText(graph_label);
-		label_panel.add(label_input);
-		label_dialog = new JDialog(frame, "Label");
-		label_dialog.add(label_panel, BorderLayout.CENTER);
-		label_dialog.addWindowListener(new WindowAdapter() 
+		view_item.addActionListener(view_handler);
+		if(reverse_view)
+			view_item.setState(true);
+		settings_menu.add(view_item);
+		
+		
+		number_mode_item = new JCheckBoxMenuItem("Relative Mode");
+		if(relative_mode)
+		    number_mode_item.setState(true);
+		number_mode_item.addActionListener(new ActionListener() 
+        {
+            public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(relative_mode == true)
+				{
+            		relative_mode = false;
+					item.setState(false);
+				}
+				else
+				{
+					relative_mode = true;
+					item.setState(true);
+				}
+		        data_canvas.repaint();
+            }
+        });
+		settings_menu.add(number_mode_item);
+		
+        overlay_item = new JCheckBoxMenuItem("Raster Overlay");
+        if(raster_overlay == true)
+        	overlay_item.setState(true);	
+        overlay_item.addActionListener(new ActionListener() 
+        {
+            public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(raster_overlay == true)
+				{
+					raster_overlay = false;
+					item.setState(false);
+				}
+				else
+				{
+					raster_overlay = true;
+					item.setState(true);
+				}
+		        data_canvas.repaint();
+            }
+        });
+        settings_menu.add(overlay_item);
+		
+		color_key_item = new JCheckBoxMenuItem("Color Key");
+		ActionListener key_handler = new ActionListener()
 		{
-		  public void windowClosing(WindowEvent e)
-		  {
-		    data_canvas.repaint();
-		  }
-		});
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(color_key == true)
+				{
+            		color_key = false;
+					item.setState(false);
+					data_canvas.repaint();;
+				}
+				else
+				{
+					color_key = true;
+					item.setState(true);
+					data_canvas.repaint();
+				}
+            }   	
+		};
+		color_key_item.addActionListener(key_handler);
+		if(color_key)
+			color_key_item.setState(true);
+		else
+			color_key_item.setState(false);
+		settings_menu.add(color_key_item);
+		
+		
+		
+		show_id_item = new JCheckBoxMenuItem("Show ID");
+		ActionListener show_id_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(show_id == true)
+				{
+            		show_id = false;
+					item.setState(false);
+				}
+				else
+				{
+					show_id = true;
+					item.setState(true);
+				}
+		        data_canvas.repaint();
+            }   	
+		};
+		show_id_item.addActionListener(show_id_handler);
+		if(show_id)
+			show_id_item.setState(true);
+		settings_menu.add(show_id_item);
+		
+		
+		// A modeless dialog box that shows up if Settings->Show Data is selected.
+		JPanel information_panel = new JPanel(new BorderLayout());
+		sample_information = new JTextArea(8, 17);
+		information_panel.add(sample_information);
+		information_dialog = new JDialog(frame);
+		information_dialog.add(information_panel);			
+		show_data_item = new JCheckBoxMenuItem("Show Data");
+		ActionListener show_data_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(show_data == true)
+				{
+            		show_data = false;
+            		information_dialog.setVisible(false);
+					item.setState(false);
+					
+				}
+				else
+				{
+					Point location_point = frame.getLocation();
+					int x = (int) location_point.getX();
+					int y = (int) location_point.getY();
+									
+					Dimension canvas_dimension = data_canvas.getSize();
+					double    canvas_xdim      = canvas_dimension.getWidth();
+									
+					x += canvas_xdim;
+					information_dialog.setLocation(x, y);
+					information_dialog.pack();
+					information_dialog.setVisible(true);
+					show_data = true;
+					item.setState(true);
+				}
+            }   	
+		};
+		show_data_item.addActionListener(show_data_handler);
+		if(show_data)
+			show_data_item.setState(true);
+		else
+			show_data_item.setState(false);
+		settings_menu.add(show_data_item);
+		menu_bar.add(settings_menu);
+		
+		// End settings menu.
+		
+	
 		frame.setJMenuBar(menu_bar);
-
 		// Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
 		Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
 		// Cursor cursor = new Cursor(Cursor.CROSSHAIR_CURSOR);
@@ -3377,6 +4169,7 @@ public class XFencePlotter
 		apply_item.doClick();
 	}
 
+	// Start data canvas.
 	class LineCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -4599,184 +5392,7 @@ public class XFencePlotter
 		}
 	}
 	
-	class ApplyHandler implements ActionListener
-	{
-		int[][] line_array;
-		int[] current_line;
-		int[] current_sensor;
-
-		ApplyHandler()
-		{
-			line_array = ObjectMapper.getUnclippedLineArray();
-			current_line = new int[10];
-			current_sensor = new int[10];
-		}
-
-		public void actionPerformed(ActionEvent event)
-		{
-			for (int i = 0; i < 10; i++)
-			{
-				try
-				{
-					String line_sensor_pair = sensor[i].getText();
-					if(line_sensor_pair.equals(""))
-					{
-					    if(i < 9)
-					    {
-					    	line_sensor_pair = sensor[i + 1].getText();
-					    	sensor[i + 1].setText("");
-					    	sensor[i].setText(line_sensor_pair);
-					    }
-					}
-						
-					StringTokenizer tokenizer = new StringTokenizer(line_sensor_pair, ":");
-					int number_of_tokens = tokenizer.countTokens();
-					if (number_of_tokens == 2)
-					{
-						String line_string = tokenizer.nextToken(":");
-						int next_line = Integer.parseInt(line_string);
-						String sensor_string = tokenizer.nextToken(":");
-						int next_sensor = Integer.parseInt(sensor_string);
-
-						// Do a check for valid input
-						if (next_line >= 0 && next_line < 30 && next_sensor >= 0 && next_sensor < 5)
-						{
-							current_line[i] = next_line;
-							current_sensor[i] = next_sensor;
-						} 
-						else
-						{
-							current_line[i] = -1;
-							current_sensor[i] = -1;
-						}
-					} 
-					else
-					{
-						current_line[i] = -1;
-						current_sensor[i] = -1;
-					}
-				} 
-				catch (Exception exception)
-				{
-					current_line[i] = -1;
-					current_sensor[i] = -1;
-				}
-			}
-
-			// Do a first pass thru the data to get the segment and line extrema.
-			// This is so we can prepend it to the segment data for the line canvas
-			// to use to implement autoscaling.
-			double seg_min  = Double.MAX_VALUE;
-			double seg_max  = -Double.MAX_VALUE;
-			double line_min = Double.MAX_VALUE;
-			double line_max = -Double.MAX_VALUE;
-
-			for (int i = 0; i < 10; i++)
-			{
-				if (current_line[i] != -1)
-				{
-					int start = line_array[current_line[i]][0];
-					int stop = line_array[current_line[i]][1];
-
-					if (current_line[i] % 2 == 0)
-					{
-						for (int j = start + current_sensor[i]; j < stop; j += 5)
-						{
-							Sample sample = (Sample) data.get(j);
-							if (sample.y >= offset && sample.y < (offset + range))
-							{
-								if (seg_min > sample.intensity)
-									seg_min = sample.intensity;
-								if (seg_max < sample.intensity)
-									seg_max = sample.intensity;
-							}
-							if (sample.y >= 15 && sample.y < 75)
-							{
-								if (line_min > sample.intensity)
-									line_min = sample.intensity;
-								if (line_max < sample.intensity)
-									line_max = sample.intensity;
-							}
-						}
-					} 
-					else
-					{
-						for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
-						{
-							Sample sample = (Sample) data.get(j);
-							if (sample.y >= offset && sample.y < (offset + range))
-							{
-								if (seg_min > sample.intensity)
-									seg_min = sample.intensity;
-								if (seg_max < sample.intensity)
-									seg_max = sample.intensity;
-							}
-							if (sample.y >= 15 && sample.y < 75)
-							{
-								if (line_min > sample.intensity)
-									line_min = sample.intensity;
-								if (line_max < sample.intensity)
-									line_max = sample.intensity;
-							}
-						}
-					}
-				}
-			}
-
-			sensor_data.clear();
-			sensor_data.add(seg_min);
-			sensor_data.add(seg_max);
-			sensor_data.add(line_min);
-			sensor_data.add(line_max);
-			for (int i = 0; i < 10; i++)
-			{
-				if (current_line[i] != -1)
-				{
-					ArrayList segment_data = new ArrayList();
-					segment_data.add(current_line[i]);
-					segment_data.add(current_sensor[i]);
-
-					if (visible[i] == true)
-						segment_data.add(new String("yes"));
-					else
-						segment_data.add(new String("no"));
-					if (transparent[i] == true)
-						segment_data.add(new String("yes"));
-					else
-						segment_data.add(new String("no"));
-
-					int start = line_array[current_line[i]][0];
-					int stop = line_array[current_line[i]][1];
-					if (current_line[i] % 2 == 0)
-					{
-						for (int j = start + current_sensor[i]; j < stop; j += 5)
-						{
-							Sample sample = (Sample) data.get(j);
-							if (sample.y >= offset && sample.y < (offset + range))
-								segment_data.add(sample);
-						}
-					} 
-					else
-					{
-						for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
-						{
-							Sample sample = (Sample) data.get(j);
-							if (sample.y >= offset && sample.y < (offset + range))
-								segment_data.add(sample);
-						}
-					}
-					sensor_data.add(segment_data);
-				}
-			}
-			data_canvas.repaint();
-			placement_canvas.repaint();
-			location_canvas.repaint();
-			offset_information.setText(String.format("%.2f", offset));	
-			segment_image_canvas.repaint();
-			order_canvas.repaint();
-		}
-	}
-
+	
 	class RangeScrollbarHandler implements AdjustmentListener
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
@@ -4953,321 +5569,9 @@ public class XFencePlotter
 			}
 		}
 	}
-
-	class LoadInputHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent e)
-		{
-			String input_string = load_input.getText();
-			StringTokenizer input_tokenizer = new StringTokenizer(input_string, ":./");
-
-			String line_string = input_tokenizer.nextToken();
-			int current_line = Integer.parseInt(line_string);
-
-			String sensor_string = input_tokenizer.nextToken();
-			int current_sensor = Integer.parseInt(sensor_string);
-
-			int number_of_pairs = 10;
-			if (input_tokenizer.hasMoreTokens())
-			{
-				String number_of_pairs_string = input_tokenizer.nextToken();
-				number_of_pairs = Integer.parseInt(number_of_pairs_string);
-			}
-
-			String[] line_sensor_pair = new String[10];
-
-			int current_pair = 0;
-
-			if (current_line % 2 == 1)
-			{
-				for (int i = current_sensor; i < 5; i++)
-				{
-					String current_string = new String(current_line + ":" + i);
-					line_sensor_pair[current_pair] = current_string;
-					current_pair++;
-				}
-			} 
-			else
-			{
-				for (int i = current_sensor; i >= 0; i--)
-				{
-					String current_string = new String(current_line + ":" + i);
-					line_sensor_pair[current_pair] = current_string;
-					current_pair++;
-				}
-			}
-			current_line++;
-			if (current_line % 2 == 1)
-			{
-				for (int i = 0; i < 5; i++)
-				{
-					String current_string = new String(current_line + ":" + i);
-					line_sensor_pair[current_pair] = current_string;
-					current_pair++;
-				}
-			} 
-			else
-			{
-				for (int i = 4; i >= 0; i--)
-				{
-					String current_string = new String(current_line + ":" + i);
-					line_sensor_pair[current_pair] = current_string;
-					current_pair++;
-				}
-			}
-			current_line++;
-			outer: if (current_pair < 10)
-			{
-				if (current_line % 2 == 1)
-				{
-					for (int i = 0; i < 5; i++)
-					{
-						String current_string = new String(current_line + ":" + i);
-						line_sensor_pair[current_pair] = current_string;
-						current_pair++;
-						if (current_pair == 10)
-							break outer;
-					}
-				} 
-				else
-				{
-					for (int i = 4; i >= 0; i--)
-					{
-						String current_string = new String(current_line + ":" + i);
-						line_sensor_pair[current_pair] = current_string;
-						current_pair++;
-						if (current_pair == 10)
-							break outer;
-					}
-				}
-			}
-
-			for (int i = 0; i < 10; i++)
-			{
-				sensor[i].setText("");
-			}
-			for (int i = 0; i < number_of_pairs; i++)
-			{
-				sensor[i].setText(line_sensor_pair[i]);
-			}
-			// Resegment the data.
-			apply_item.doClick();
-		}
-	}
-
-	class PrintHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent event)
-		{
-		    try
-		    {
-			    PrintService service = PrintServiceLookup.lookupDefaultPrintService();
-			    DocPrintJob  job     = service.createPrintJob();
-			    DocFlavor    flavor  = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
-			    SimpleDoc    doc     = new SimpleDoc(new GraphPrintable(), flavor, null);
-			    job.print(doc, null);
-		    }
-		    catch(Exception e)
-		    {
-		    	System.out.println(e.toString());
-		    }
-		}
-	}
+	// End data canvas.
 	
-	class GraphPrintable implements Printable 
-	{
-		 public int print(Graphics g, PageFormat pf, int pageIndex) 
-		 {
-		      Graphics2D graphics = (Graphics2D) g;
-		      g.translate((int) (pf.getImageableX()), (int) (pf.getImageableY()));
-		      if (pageIndex == 0) 
-		      {
-		          double pageWidth   = pf.getImageableWidth();
-		          double pageHeight  = pf.getImageableHeight();
-		          double imageWidth  = buffered_image.getWidth();
-		          double imageHeight = buffered_image.getHeight();
-		          double scaleX = pageWidth / imageWidth;
-		          double scaleY = pageHeight / imageHeight;
-		          double scaleFactor = Math.min(scaleX, scaleY);
-		          graphics.scale(scaleFactor, scaleFactor);
-		          g.drawImage(buffered_image, 0, 0, null);
-		          return Printable.PAGE_EXISTS;
-		      }
-		      return Printable.NO_SUCH_PAGE;
-		 }
-	}
 	
-	class SaveHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent ev)
-		{
-			int size = sensor_data.size();
-			if (size == 0)
-			{
-				System.out.println("No data to save.");
-				return;
-			} 
-			else
-			{
-				FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
-				file_dialog.setVisible(true);
-				String filename = file_dialog.getFile();
-				if (filename != "")
-				{
-					String current_directory = file_dialog.getDirectory();
-					StringTokenizer filename_tokenizer = new StringTokenizer(filename, ".");
-					int number_of_tokens = filename_tokenizer.countTokens();
-					if(number_of_tokens != 2)
-					{
-					    System.out.println("Filename requires .txt or .fp or .png extension.");
-					    return;
-					}
-					String name = filename_tokenizer.nextToken();
-					String extension = filename_tokenizer.nextToken();
-					if(!extension.equals("txt") && !extension.equals("fp")&& !extension.equals("png"))
-					{
-						System.out.println("Filename requires .txt or .fp or .png extension.");
-					    return;	
-					}
-					if(extension.equals("txt"))
-					{
-						// General purpose text file to use with gnuplot.
-						System.out.println("Writing text file.");
-					    try (PrintWriter output = new PrintWriter(current_directory + filename))
-					    {
-						    // The first 4 elements in the sensor data are local min, local max, global min,
-					        // and global max.
-					        // The rest are array lists of samples, with some information prepended.
-					    	double intensity_min = (double) sensor_data.get(0);
-							String intensity_min_string = String.format("%.2f", intensity_min);
-							for (int i = 4; i < size; i++)
-							{
-								// The first 4 elements are flight line, sensor, visibility, and transparency.
-								// The last two are yes/no strings.
-								ArrayList segment_list = (ArrayList) sensor_data.get(i);
-								int line = (int) segment_list.get(0);
-								int sensor = (int) segment_list.get(1);
-
-								output.println("#Sensor " + sensor + ", Line " + line);
-
-								double ideal_x = line * 2;
-								if (line % 2 == 0)
-								{
-									ideal_x += ((4 - sensor) * .5);
-								} else
-								{
-									ideal_x += sensor * .5;
-								}
-								// Keeping track of how much deviation there is in raster.
-								String ideal_string = String.format("%.2f", ideal_x);
-	                            
-								// Plot individual sensor curves.
-								String xstring, ystring;
-								for (int j = 4; j < segment_list.size(); j++)
-								{
-									Sample sample = (Sample) segment_list.get(j);
-									xstring = String.format("%.2f", sample.x);
-									ystring = String.format("%.2f", sample.y);
-									String intensity_string = String.format("%.2f", sample.intensity);
-									output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
-								}
-								
-								// Seperate this sensor curve from the next one with an extra line feed.
-								output.println();
-								output.println();
-							}
-							output.close();
-					    } 
-					    catch (Exception ex)
-					    {
-						    System.out.println(ex.toString());
-					    }
-				    }
-					else if(extension.equals("fp"))
-					{
-						// Special format to generate fence plots in gnuplot.
-						System.out.println("Writing fence plot file.");
-					    try (PrintWriter output = new PrintWriter(current_directory + filename))
-					    {
-						    // The first 4 elements in the sensor data are local min, local max, global min,
-						    // and global max.
-						    // The rest are array lists of samples, with some information prepended.
-						    double intensity_min = (double) sensor_data.get(0);
-						    String intensity_min_string = String.format("%.2f", intensity_min);
-						    for (int i = 4; i < size; i++)
-						    {
-							    // The first 4 elements are flight line, sensor, visibility, and transparency.
-							    // The last two are yes/no strings.
-							    ArrayList segment_list = (ArrayList) sensor_data.get(i);
-							    int line = (int) segment_list.get(0);
-							    int sensor = (int) segment_list.get(1);
-
-							    output.println("#Sensor " + sensor + ", Line " + line);
-
-							    double ideal_x = line * 2;
-							    if (line % 2 == 0)
-								  ideal_x += ((4 - sensor) * .5);
-							    else
-								    ideal_x += sensor * .5;
-							    // Keeping track of how much deviation there is in raster.
-							    String ideal_string = String.format("%.2f", ideal_x);
-
-							    // Make the first bottom corner of our fence plot.
-							    Sample init_sample = (Sample) segment_list.get(4);
-							    String xstring = String.format("%.2f", init_sample.x);
-							    String ystring = String.format("%.2f", init_sample.y);
-							    output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
-							
-							    // Plot actual data points.
-							    for (int j = 4; j < segment_list.size(); j++)
-							    {
-							        Sample sample = (Sample) segment_list.get(j);
-							        xstring = String.format("%.2f", sample.x);
-							        ystring = String.format("%.2f", sample.y);
-							        String intensity_string = String.format("%.2f", sample.intensity);
-							        output.println(xstring + " " + ystring + " " + intensity_string + " " + ideal_string);
-							    }
-							
-							    // Add the second bottom corner to our fence plot.
-							    output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
-							
-							    // Connect it to our first bottom corner to get our polygon.
-							    xstring = String.format("%.2f", init_sample.x);
-							    ystring = String.format("%.2f", init_sample.y);
-							    output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
-							
-							    // Seperate this sensor polygon from the next one with an extra line feed.
-							    output.println();
-							    output.println();
-						    }
-						    output.close();
-					    } 
-					    catch (Exception ex)
-					    {
-						    System.out.println(ex.toString());
-					    }
-				    }
-					else if(extension.equals("png"))
-					{
-						int           image_xdim   = buffered_image.getWidth();
-						int           image_ydim   = buffered_image.getHeight();
-						BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
-						Graphics2D    print_buffer = (Graphics2D) print_image.getGraphics(); 
-						print_buffer.drawImage(buffered_image, 0, 0,  null);	
-						try 
-	        	        {  
-	        	            ImageIO.write(print_image, "png", new File(current_directory + filename)); 
-	        	        } 
-	        	        catch(IOException e) 
-	        	        {  
-	        	            e.printStackTrace(); 
-	        	        }  
-					}
-				}
-			}
-		}
-	}
-
 	class OrderCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -5289,7 +5593,137 @@ public class XFencePlotter
 			}
 			
 		    g2.fillRect(0, 0, xdim, ydim);
-		}
+		}	
+	}
+	
+	class SortCanvas extends Canvas
+	{
+		public void paint(Graphics g)
+		{
+			Graphics2D graphics       = (Graphics2D)g;
+			Rectangle  visible_area   = graphics.getClipBounds();
+			int xdim                  = (int) visible_area.getWidth();
+			int ydim                  = (int) visible_area.getHeight();
+			
+			Image buffered_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
+			Graphics2D graphics_buffer = (Graphics2D) buffered_image.getGraphics();
+			Font        current_font  = graphics_buffer.getFont();
+			FontMetrics font_metrics  = graphics_buffer.getFontMetrics(current_font);
+			int         string_height = font_metrics.getAscent();
+			int         string_width;
+			
+			graphics_buffer.setColor(java.awt.Color.WHITE);
+			graphics_buffer.fillRect(0, 0, xdim, ydim);
+			
+			int top_margin    = 10;
+			int bottom_margin = 10;
+			int left_margin   = 40;
+			int right_margin  = 10;
+			int graph_xdim    = xdim - (left_margin + right_margin);
+			int graph_ydim    = ydim - (top_margin + bottom_margin);
+			
+			double a1 = left_margin;
+			double a2 = left_margin + graph_xdim;
+			double b1 = top_margin;
+			double b2 = top_margin + graph_ydim;
+			
+			double xmin = Double.MAX_VALUE;
+			double xmax = Double.MIN_NORMAL;
+			for(int i = 4; i < sensor_data.size(); i++)
+			{
+			    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+			    for(int j = 4; j < sensor_list.size(); j++)
+			    {
+			    	Sample sample = (Sample)sensor_list.get(j);
+			    	if(sample.x < xmin)
+			    		xmin = sample.x;
+			    	if(sample.x > xmax)
+			    		xmax = sample.x;
+			    }
+			}
+			
+			double xrange = range;
+			double yrange = xmax - xmin;
+			graphics_buffer.setStroke(new BasicStroke(3));
+			for(int i = 4; i < sensor_data.size(); i++)
+			{
+			    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+			    Sample previous_sample = (Sample)sensor_list.get(4);
+			    
+			    // Switching x and y to match orientation of graphs
+			    double x = previous_sample.y;
+			    double y = previous_sample.x;
+			    
+			    x -= offset;
+			    x /= xrange;
+        	    x *= graph_xdim;
+        	    x += left_margin;
+        	    
+        	    y -= xmin;
+        	    y /= yrange;
+        	    y *= graph_ydim;
+        	    y = graph_ydim - y;
+        	    y += top_margin;
+			  
+        	    int    line     = (int)sensor_list.get(0);
+        	    int    sensor   = (int)sensor_list.get(1);
+        	    String line_sensor_pair = new String(line + ":" + sensor);
+        	    string_width = font_metrics.stringWidth(line_sensor_pair);
+        	    graphics_buffer.setColor(java.awt.Color.BLACK);
+			    graphics_buffer.drawString(line_sensor_pair, (int)x - (string_width + 5), (int)y);
+			    graphics_buffer.setColor(fill_color[i - 4]);
+			    Point2D.Double previous = new Point2D.Double(x, y);
+			    for(int j = 5; j < sensor_list.size(); j++)
+				{
+					Sample sample = (Sample)sensor_list.get(j);
+					x = sample.y;
+				    y = sample.x;
+				    
+				    x -= offset;
+				    x /= xrange;
+	        	    x *= graph_xdim;
+	        	    x += left_margin;
+	        	    
+	        	    y -= xmin;
+	        	    y /= yrange;
+	        	    y *= graph_ydim;
+	        	    y = graph_ydim - y;
+	        	    y += top_margin;
+	        	    
+	        	    Point2D.Double current = new Point2D.Double(x, y);
+	        	    
+	        	    double x1 = previous.getX();
+					double y1 = previous.getY();
+					double x2 = current.getX();
+					double y2 = current.getY();
+					
+					graphics_buffer.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
+	        	    previous = current;
+				}
+			}
+			graphics_buffer.setStroke(new BasicStroke(1));
+			graphics_buffer.setColor(java.awt.Color.BLACK);
+			graphics_buffer.drawLine((int) a1, (int)b1, (int)a1, (int)b2);
+			graphics_buffer.drawLine((int) a2, (int)b1, (int) a2, (int)b2);
+			graphics_buffer.drawLine((int) a1, (int)b1, (int) a2, (int)b1);
+			graphics_buffer.drawLine((int) a1, (int)b2, (int) a2, (int)b2);
+			
+			double current_position = graph_xdim;
+			current_position        *= sort_location;
+			current_position        += left_margin;
+			graphics_buffer.setColor(java.awt.Color.BLUE);
+			graphics_buffer.drawLine((int) current_position, (int)b1, (int) current_position, (int)b2);
+			double current_ylocation = range * sort_location + offset;
+			String position_string = String.format("%,.2f",  current_ylocation); 
+			String string = new String("Y = " + position_string);
+			string_width = font_metrics.stringWidth(string);
+			if(current_ylocation < 45)
+			    graphics_buffer.drawString(string, (int)current_position + 10, graph_ydim / 2 + top_margin);
+			else
+				graphics_buffer.drawString(string, (int)current_position - 10 - string_width, graph_ydim / 2 + top_margin);
+				
+			graphics.drawImage(buffered_image, 0, 0, null);
+		}   	
 	}
 	
 	class SensorCanvas extends Canvas
@@ -5889,7 +6323,6 @@ public class XFencePlotter
 		}
 	}
 	
-	
 	class PlacementCanvas extends Canvas
 	{
 		int top_margin    = 2;
@@ -5995,250 +6428,7 @@ public class XFencePlotter
 		}
 	}
 
-	class SortCanvas extends Canvas
-	{
-		public void paint(Graphics g)
-		{
-			Graphics2D graphics       = (Graphics2D)g;
-			Rectangle  visible_area   = graphics.getClipBounds();
-			int xdim                  = (int) visible_area.getWidth();
-			int ydim                  = (int) visible_area.getHeight();
-			
-			Image buffered_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
-			Graphics2D graphics_buffer = (Graphics2D) buffered_image.getGraphics();
-			Font        current_font  = graphics_buffer.getFont();
-			FontMetrics font_metrics  = graphics_buffer.getFontMetrics(current_font);
-			int         string_height = font_metrics.getAscent();
-			int         string_width;
-			
-			graphics_buffer.setColor(java.awt.Color.WHITE);
-			graphics_buffer.fillRect(0, 0, xdim, ydim);
-			
-			int top_margin    = 10;
-			int bottom_margin = 10;
-			int left_margin   = 40;
-			int right_margin  = 10;
-			int graph_xdim    = xdim - (left_margin + right_margin);
-			int graph_ydim    = ydim - (top_margin + bottom_margin);
-			
-			double a1 = left_margin;
-			double a2 = left_margin + graph_xdim;
-			double b1 = top_margin;
-			double b2 = top_margin + graph_ydim;
-			
-			double xmin = Double.MAX_VALUE;
-			double xmax = Double.MIN_NORMAL;
-			for(int i = 4; i < sensor_data.size(); i++)
-			{
-			    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
-			    for(int j = 4; j < sensor_list.size(); j++)
-			    {
-			    	Sample sample = (Sample)sensor_list.get(j);
-			    	if(sample.x < xmin)
-			    		xmin = sample.x;
-			    	if(sample.x > xmax)
-			    		xmax = sample.x;
-			    }
-			}
-			
-			double xrange = range;
-			double yrange = xmax - xmin;
-			graphics_buffer.setStroke(new BasicStroke(3));
-			for(int i = 4; i < sensor_data.size(); i++)
-			{
-			    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
-			    Sample previous_sample = (Sample)sensor_list.get(4);
-			    
-			    // Switching x and y to match orientation of graphs
-			    double x = previous_sample.y;
-			    double y = previous_sample.x;
-			    
-			    x -= offset;
-			    x /= xrange;
-        	    x *= graph_xdim;
-        	    x += left_margin;
-        	    
-        	    y -= xmin;
-        	    y /= yrange;
-        	    y *= graph_ydim;
-        	    y = graph_ydim - y;
-        	    y += top_margin;
-			  
-        	    int    line     = (int)sensor_list.get(0);
-        	    int    sensor   = (int)sensor_list.get(1);
-        	    String line_sensor_pair = new String(line + ":" + sensor);
-        	    string_width = font_metrics.stringWidth(line_sensor_pair);
-        	    graphics_buffer.setColor(java.awt.Color.BLACK);
-			    graphics_buffer.drawString(line_sensor_pair, (int)x - (string_width + 5), (int)y);
-			    graphics_buffer.setColor(fill_color[i - 4]);
-			    Point2D.Double previous = new Point2D.Double(x, y);
-			    for(int j = 5; j < sensor_list.size(); j++)
-				{
-					Sample sample = (Sample)sensor_list.get(j);
-					x = sample.y;
-				    y = sample.x;
-				    
-				    x -= offset;
-				    x /= xrange;
-	        	    x *= graph_xdim;
-	        	    x += left_margin;
-	        	    
-	        	    y -= xmin;
-	        	    y /= yrange;
-	        	    y *= graph_ydim;
-	        	    y = graph_ydim - y;
-	        	    y += top_margin;
-	        	    
-	        	    Point2D.Double current = new Point2D.Double(x, y);
-	        	    
-	        	    double x1 = previous.getX();
-					double y1 = previous.getY();
-					double x2 = current.getX();
-					double y2 = current.getY();
-					
-					graphics_buffer.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
-	        	    previous = current;
-				}
-			}
-			graphics_buffer.setStroke(new BasicStroke(1));
-			graphics_buffer.setColor(java.awt.Color.BLACK);
-			graphics_buffer.drawLine((int) a1, (int)b1, (int)a1, (int)b2);
-			graphics_buffer.drawLine((int) a2, (int)b1, (int) a2, (int)b2);
-			graphics_buffer.drawLine((int) a1, (int)b1, (int) a2, (int)b1);
-			graphics_buffer.drawLine((int) a1, (int)b2, (int) a2, (int)b2);
-			
-			double current_position = graph_xdim;
-			current_position        *= sort_location;
-			current_position        += left_margin;
-			graphics_buffer.setColor(java.awt.Color.BLUE);
-			graphics_buffer.drawLine((int) current_position, (int)b1, (int) current_position, (int)b2);
-			double current_ylocation = range * sort_location + offset;
-			String position_string = String.format("%,.2f",  current_ylocation); 
-			String string = new String("Y = " + position_string);
-			string_width = font_metrics.stringWidth(string);
-			if(current_ylocation < 45)
-			    graphics_buffer.drawString(string, (int)current_position + 10, graph_ydim / 2 + top_margin);
-			else
-				graphics_buffer.drawString(string, (int)current_position - 10 - string_width, graph_ydim / 2 + top_margin);
-				
-			graphics.drawImage(buffered_image, 0, 0, null);
-		}   	
-	}
-	
-	class SortLocationHandler implements AdjustmentListener
-	{
-		public void adjustmentValueChanged(AdjustmentEvent event)
-		{
-			int location = event.getValue();
-			sort_location = (double)location / 500.;
-			
-			double current_position = range * sort_location + offset;
-			xlist.clear();
-			
-			int size = sensor_data.size();
-			int number_of_segments = size - 4;
-			order_information.append("\n");
-			double previous_x = 0;
-			in_order = true;
-			for(int i = 0; i < number_of_segments; i++)
-			{
-				ArrayList sensor_list    = (ArrayList) sensor_data.get(i + 4);
-				int       current_line   = (int)sensor_list.get(0);
-				int       current_sensor = (int)sensor_list.get(1);
-				size                     = sensor_list.size();
-				
-				Sample sample = (Sample)sensor_list.get(4);
-				int j = 5;
-				while(sample.y < current_position && j < size)
-				{
-					sample = (Sample)sensor_list.get(j);
-					j++;
-				}
-				xlist.add(sample.x);
-				
-				if(i == 0)
-				{
-					previous_x = sample.x;  	
-				}
-				else
-				{
-				    if(sample.x < previous_x)
-				    	in_order = false;
-				    previous_x = sample.x;
-				}
-				
-				String data_string       = new String(current_line + ":" + current_sensor);
-				String xstring           = String.format("%,.2f", sample.x);
-				String order_string = new String(data_string + "   " + xstring);
-				if(order_information != null)
-					order_information.append(order_string + "\n");	
-				JScrollBar this_scrollbar = order_scrollpane.getVerticalScrollBar();
-				int max = this_scrollbar.getMaximum();
-				this_scrollbar.setValue(max);
-			}
-			if(sort_canvas != null)
-			    sort_canvas.repaint();
-			if(order_canvas != null)
-			    order_canvas.repaint();
-		}
-	}
-	
-	class SortButtonHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent event)
-		{
-			int number_of_segments     = sensor_data.size() - 4;
-			ArrayList line_sensor_list = new ArrayList();               
-			Hashtable sensor_table     = new Hashtable();
-	
-			
-			for(int i = 0; i < number_of_segments; i++)
-			{
-				String line_id = sensor[i].getText();
-				line_sensor_list.add(line_id);
-			}
-			// We're using x values as keys to a hashtable,
-			// so we need to make sure none of them are equal.
-			// We'll add a small value to subsequent numbers,
-			// so when values are equal the order remains the same.
-			for(int i = 0; i < number_of_segments; i++)
-			{
-				double addend = .000001;
-				double previous_x = (double)xlist.get(i);
-				for(int j = i + 1; j < 10; j++)
-				{
-					double x = (double)xlist.get(j);
-					if(previous_x == x)
-					{
-						x += addend;
-						xlist.set(j, x);
-						addend *= 2;
-					}
-				}
-			}
-			for(int i = 0; i < number_of_segments; i++)
-			{
-				// Modified data.
-				double    key         = (double)xlist.get(i); 
-				String    line_id     = (String)line_sensor_list.get(i);
-				sensor_table.put(key, line_id);
-			}
-			Collections.sort(xlist);
-			order_information.append("\n");
-			for(int i = 0; i < number_of_segments; i++)
-			{
-			    double x       = (double)xlist.get(i);
-			    String xstring = String.format("%,.2f", x);
-			    String line_id = (String)sensor_table.get(x);
-			    sensor[i].setText(line_id);
-			    order_information.append(line_id + "  " + xstring + "\n");
-			}
-			in_order = true;
-			order_canvas.repaint();
-			apply_item.doClick();	
-		}
-	}
-	
+
 	class LocationCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -6619,45 +6809,6 @@ public class XFencePlotter
 						graphics.setColor(java.awt.Color.BLACK);
 					}
 				} 
-			}
-		}
-	}
-
-	class DynamicRangeSliderHandler implements ChangeListener
-	{
-		public void stateChanged(ChangeEvent e)
-		{
-			RangeSlider slider = (RangeSlider) e.getSource();
-			int lower = slider.getValue();
-			int upper = slider.getUpperValue();
-			if (dynamic_button_changing == false)
-			{
-				double min = 0;
-				double max = 0;
-				if(data_clipped)
-				{
-				    min = intensity_min;
-				    max = intensity_max;
-				}
-				else if(autoscale)
-				{
-					min = (double) sensor_data.get(0);
-					max = (double) sensor_data.get(1);
-				} 
-				else
-				{
-					min = (double) sensor_data.get(2);
-					max = (double) sensor_data.get(3);
-				}
-				double current_range      = max - min;
-				double fraction           = (double) lower / 100;
-				double lower_value        = (fraction * current_range) + min;
-				String lower_bound_string = String.format("%,.2f", lower_value);
-				fraction                  = (double) upper / 100;
-				double upper_value        = (fraction * current_range) + min;
-				String upper_bound_string = String.format("%,.2f", upper_value);
-				lower_bound.setText(lower_bound_string);
-				upper_bound.setText(upper_bound_string);
 			}
 		}
 	}
