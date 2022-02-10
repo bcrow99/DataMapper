@@ -137,7 +137,8 @@ public class XFencePlotter
 
 	public JDialog line_image_dialog;
 	public JDialog information_dialog;
-	public JDialog slope_dialog;
+	public JDialog triple_slope_dialog;
+	public JDialog double_slope_dialog;
 	public JDialog range_dialog;
 
 	// Shared by line canvas and mouse handler.
@@ -164,7 +165,10 @@ public class XFencePlotter
 
 	// Updated by MouseMotionHandler
 	JTextArea sample_information;
-	JTextArea slope_output;
+	
+	
+	JTextArea triple_slope_output;
+	JTextArea double_slope_output;
 	
 	// Fired by the range scrollbar and slider and adjust button and XFencePlotter
 	public JMenuItem apply_item;
@@ -227,7 +231,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.5 of fence.");
+			System.out.println("This is version 3.6 of fence.");
 			try
 			{
 				try
@@ -914,6 +918,16 @@ public class XFencePlotter
 		    }
 		}
 		
+		
+		for (int i = 0; i < 10; i++)
+		{
+			sensor_canvas[i] = new SensorCanvas(i);
+			SensorCanvasMouseHandler sensor_canvas_mouse_handler = new SensorCanvasMouseHandler(i);
+			sensor_canvas[i].addMouseListener(sensor_canvas_mouse_handler);
+			sensor_panel.add(sensor_canvas[i]);
+		}
+		
+		
 		lower_bound = new JTextField();
 		upper_bound = new JTextField();
 		if(config_file_exists)
@@ -1062,9 +1076,6 @@ public class XFencePlotter
 		load_item.addActionListener(load_handler);
 		file_menu.add(load_item);
 		
-
-
-		
 		JMenuItem    save_graph_item    = new JMenuItem("Save Graph");
 		ActionListener save_graph_handler = new ActionListener()
 		{
@@ -1110,14 +1121,12 @@ public class XFencePlotter
 			    {
 				    // The first 4 elements in the sensor data are local min, local max, global min,
 			        // and global max.
-			        // The rest are array lists of samples, with some information prepended.
+			        // The rest are array lists of samples, with line and sensor information prepended.
 			    	double intensity_min = (double) sensor_data.get(0);
 					String intensity_min_string = String.format("%.2f", intensity_min);
 					int size = sensor_data.size();
 					for (int i = 4; i < size; i++)
 					{
-						// The first 4 elements are flight line, sensor, visibility, and transparency.
-						// The last two are yes/no strings.
 						ArrayList segment_list = (ArrayList) sensor_data.get(i);
 						int line = (int) segment_list.get(0);
 						int sensor = (int) segment_list.get(1);
@@ -3007,10 +3016,10 @@ public class XFencePlotter
 		
 		JMenu slope_menu       = new JMenu("Slope");
 		
-		JPanel slope_panel = new JPanel(new BorderLayout());
-		slope_output = new JTextArea(22, 10);
-		JPanel slope_button_panel = new JPanel(new GridLayout(2,3));
-		JButton        start_button       = new JButton("Start");
+		JPanel triple_slope_panel = new JPanel(new BorderLayout());
+		triple_slope_output = new JTextArea(25, 10);
+		JPanel triple_button_panel = new JPanel(new GridLayout(2,3));
+		JButton   triple_start_button       = new JButton("Start");
 		ActionListener startpoint_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -3030,9 +3039,11 @@ public class XFencePlotter
 				data_canvas.repaint();
 			}
 		};
-		start_button.addActionListener(startpoint_handler);
+		triple_start_button.addActionListener(startpoint_handler);
+		triple_button_panel.add(triple_start_button);
 		
-		JButton midpoint_button  = new JButton("Midpoint");
+		
+		JButton triple_midpoint_button  = new JButton("Midpoint");
 		ActionListener midpoint_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -3053,9 +3064,11 @@ public class XFencePlotter
 				data_canvas.repaint();
 			}
 		};
-		midpoint_button.addActionListener(midpoint_handler);
+		triple_midpoint_button.addActionListener(midpoint_handler);
+		triple_button_panel.add(triple_midpoint_button);
 		
-		JButton end_button       = new JButton("End");
+		
+		JButton triple_end_button       = new JButton("End");
 		ActionListener endpoint_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -3076,34 +3089,33 @@ public class XFencePlotter
 				data_canvas.repaint();
 			}
 		};
-		end_button.addActionListener(endpoint_handler);
+		triple_end_button.addActionListener(endpoint_handler);
+		triple_button_panel.add(triple_end_button);
 		
 		
-		slope_button_panel.add(start_button);
-		slope_button_panel.add(midpoint_button);
-		slope_button_panel.add(end_button);
-		
-		JButton slope_apply_button = new JButton("Apply");
-		ActionListener slope_apply_handler = new ActionListener()
+		JButton triple_apply_button = new JButton("Apply");
+		ActionListener triple_apply_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
+				
+				
 				if(startpoint_set && midpoint_set && endpoint_set)
 				{
-	            	slope_output.append("start_intensity " + String.format("%.2f",startpoint_intensity) + " nT\n");
-	            	slope_output.append("start_x " + String.format("%.2f", startpoint_x) + " m\n");
-	            	slope_output.append("start_y " + String.format("%.2f", startpoint_y) + " m\n");
-	            	slope_output.append("start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n");
+					triple_slope_output.append(" start_intensity     " + String.format("%.2f",startpoint_intensity) + " nT\n");
+	            	triple_slope_output.append(" start_x                 " + String.format("%.2f", startpoint_x) + "  m\n");
+	            	triple_slope_output.append(" start_y                 " + String.format("%.2f", startpoint_y) + "  m\n");
+	            	triple_slope_output.append(" start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n\n");
 	            	
-	            	slope_output.append("mid_intensity " + String.format("%.2f", midpoint_intensity) +  " nT\n");
-	            	slope_output.append("mid_x " + String.format("%.2f", midpoint_x) + " m\n");
-	            	slope_output.append("mid_y " + String.format("%.2f", midpoint_y) + " m\n");
-	            	slope_output.append("mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n");
+	            	triple_slope_output.append(" mid_intensity     " + String.format("%.2f", midpoint_intensity) +  " nT\n");
+	            	triple_slope_output.append(" mid_x                 " + String.format("%.2f", midpoint_x) + "  m\n");
+	            	triple_slope_output.append(" mid_y                 " + String.format("%.2f", midpoint_y) + "  m\n");
+	            	triple_slope_output.append(" mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n\n");
 	            	
-	            	slope_output.append("end_intensity " + String.format("%.2f", endpoint_intensity) + " nT\n");
-	            	slope_output.append("end_x " + String.format("%.2f", endpoint_x) + " m\n");
-	            	slope_output.append("end_y " + String.format("%.2f", endpoint_y) + " m\n");
-	            	slope_output.append("end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n\n");
+	            	triple_slope_output.append(" end_intensity     " + String.format("%.2f", endpoint_intensity) + " nT\n");
+	            	triple_slope_output.append(" end_x                 " + String.format("%.2f", endpoint_x) + "  m\n");
+	            	triple_slope_output.append(" end_y                 " + String.format("%.2f", endpoint_y) + "  m\n");
+	            	triple_slope_output.append(" end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n\n");
 	        
 	            	double amplitude1 = midpoint_intensity - startpoint_intensity;
 				    double width1  = getDistance(startpoint_x, startpoint_y, midpoint_x, midpoint_y);
@@ -3114,15 +3126,15 @@ public class XFencePlotter
 				    double width2  = getDistance(endpoint_x, endpoint_y, midpoint_x, midpoint_y);
 				    double end_slope = amplitude2 / width2;
 				    
-				  
-				    slope_output.append("amplitude 1 " + String.format("%.2f", amplitude1) + " nT\n");
-				    slope_output.append("width1 " + String.format("%.2f", width1) + " m\n");
-				    slope_output.append("start_slope " + String.format("%.2f", start_slope) + " nT/m\n");
+				    triple_slope_output.append(" amplitude1  " + String.format("%.2f", amplitude1) + " nT\n");
+				    triple_slope_output.append(" width1          " + String.format("%.2f", width1) + "  m\n");
+				    triple_slope_output.append(" start_slope  " + String.format("%.2f", start_slope) + " nT/m\n\n");
 				    
-				    slope_output.append("amplitude 2 " + String.format("%.2f", amplitude2) + " nT\n");
-				    slope_output.append("width2 " + String.format("%.2f", width2) + " m\n");
-				    slope_output.append("end_slope " + String.format("%.2f", end_slope) + " nT/m\n");
+				    triple_slope_output.append(" amplitude2  " + String.format("%.2f", amplitude2) + " nT\n");
+				    triple_slope_output.append(" width2         " + String.format("%.2f", width2) + "  m\n");
+				    triple_slope_output.append(" end_slope   " + String.format("%.2f", end_slope) + " nT/m\n\n");
 				    
+				     
 				    double [][] location_array = ObjectMapper.getObjectLocationArray();
 					int length = location_array.length;
 					for(int i = 0; i < length; i++)
@@ -3141,9 +3153,9 @@ public class XFencePlotter
 							closest_target = i;
 						}
 					}
-					slope_output.append("nearest_target_id " + (closest_target + 1) + "\n");
-					slope_output.append("nearest_target_distance " + String.format("%.2f", previous_distance) + " m\n");
-				}
+					triple_slope_output.append(" nearest_target_id " + (closest_target + 1) + "\n");
+					triple_slope_output.append(" nearest_target_distance " + String.format("%.2f", previous_distance) + "\n");
+				}				
 				else
 				{
 					if(!startpoint_set)
@@ -3156,10 +3168,11 @@ public class XFencePlotter
 				}
 			}
 		};
-		slope_apply_button.addActionListener(slope_apply_handler);
+		triple_apply_button.addActionListener(triple_apply_handler);
+		triple_button_panel.add(triple_apply_button);
 		
-		JButton slope_clear_button = new JButton("Clear");
-		ActionListener slope_clear_handler = new ActionListener()
+		JButton triple_clear_button = new JButton("Clear");
+		ActionListener triple_clear_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
@@ -3167,14 +3180,15 @@ public class XFencePlotter
 				midpoint_set   = false;
 				endpoint_set   = false;
 				
-				slope_output.setText("");
+				triple_slope_output.setText("");
 				data_canvas.repaint();
 			}
 		};
-		slope_clear_button.addActionListener(slope_clear_handler);
+		triple_clear_button.addActionListener(triple_clear_handler);
+		triple_button_panel.add(triple_clear_button);
 		
 		
-		JButton slope_save_button = new JButton("Save");
+		JButton triple_save_button = new JButton("Save");
 		ActionListener slope_save_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent ev)
@@ -3239,7 +3253,6 @@ public class XFencePlotter
 	            	output.write("\n");
 	            	Date current_time = new Date();
 	            	output.write(current_time.toString());
-	            	//System.out.println("Current time is " + current_time.toString());
 	            	output.write("\n");
 	            	output.write("\n");
 	            	output.write("\n");
@@ -3251,18 +3264,16 @@ public class XFencePlotter
 				}
 			}
 		};
-		slope_save_button.addActionListener(slope_save_handler);
+		triple_save_button.addActionListener(slope_save_handler);
+		triple_button_panel.add(triple_save_button);
 		
-		slope_panel.add(slope_output, BorderLayout.CENTER);
-		slope_button_panel.add(slope_apply_button);
-		slope_button_panel.add(slope_clear_button);
-		slope_button_panel.add(slope_save_button);
-		slope_panel.add(slope_button_panel, BorderLayout.SOUTH);
+		triple_slope_panel.add(triple_slope_output, BorderLayout.CENTER);
+		triple_slope_panel.add(triple_button_panel, BorderLayout.SOUTH);
 		
-		slope_dialog = new JDialog(frame, "Get Slope/Amplitude");
-		slope_dialog.add(slope_panel);
-		JMenuItem slope_item = new JMenuItem("Get Slope/Amplitude");
-		ActionListener slope_handler = new ActionListener()
+		triple_slope_dialog = new JDialog(frame, "Get Triplet");
+		triple_slope_dialog.add(triple_slope_panel);
+		JMenuItem triple_slope_item = new JMenuItem("Get Triplet");
+		ActionListener triple_slope_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
@@ -3277,13 +3288,201 @@ public class XFencePlotter
 				
 				y += 200;
 
-				slope_dialog.setLocation(x, y);
-				slope_dialog.pack();
-				slope_dialog.setVisible(true);
+				triple_slope_dialog.setLocation(x, y);
+				triple_slope_dialog.pack();
+				triple_slope_dialog.setVisible(true);
 			}
 		};
-		slope_item.addActionListener(slope_handler);
-		slope_menu.add(slope_item);
+		triple_slope_item.addActionListener(triple_slope_handler);
+		
+		slope_menu.add(triple_slope_item);
+		
+		JPanel double_slope_panel = new JPanel(new BorderLayout());
+		double_slope_output = new JTextArea(18, 10);
+		
+		
+		JPanel double_point_panel = new JPanel(new GridLayout(1, 2));
+		
+		JButton double_start_button       = new JButton("Start");
+		double_start_button.addActionListener(startpoint_handler);
+		double_point_panel.add(double_start_button);
+		
+		JButton double_end_button       = new JButton("End");
+		double_end_button.addActionListener(endpoint_handler);
+		double_point_panel.add(double_end_button);
+		
+		JPanel double_control_panel = new JPanel(new GridLayout(1,3));
+		JButton double_apply_button = new JButton("Apply");
+		ActionListener double_apply_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				if(startpoint_set && endpoint_set)
+				{ 
+					double_slope_output.append(" start_intensity      "     + String.format("%.2f",startpoint_intensity) + " nT\n");
+	            	double_slope_output.append(" start_x                  " + String.format("%.2f", startpoint_x) + "  m\n");
+	            	double_slope_output.append(" start_y                  " + String.format("%.2f", startpoint_y) + "  m\n");
+	            	double_slope_output.append(" start_line_sensor  "       + startpoint_line + ":" + startpoint_sensor + "\n\n");
+	            	
+	            	double_slope_output.append(" end_intensity       "      + String.format("%.2f", endpoint_intensity) + " nT\n");
+	            	double_slope_output.append(" end_x                   " + String.format("%.2f", endpoint_x) + "  m\n");
+	            	double_slope_output.append(" end_y                   " + String.format("%.2f", endpoint_y) + "  m\n");
+	            	double_slope_output.append(" end_line_sensor   "       + endpoint_line + ":" + endpoint_sensor + "\n\n");
+	        
+	            	double amplitude = endpoint_intensity - startpoint_intensity;
+				    double width  = getDistance(startpoint_x, startpoint_y, endpoint_x, endpoint_y);
+				    double slope = amplitude / width;
+				     
+				    double_slope_output.append(" amplitude             " + String.format("%.2f", amplitude) + " nT\n");
+				    double_slope_output.append(" width                    " + String.format("%.2f", width) + "   m\n");
+				    double_slope_output.append(" slope                    " + String.format("%.2f", slope) + " nT/m\n\n");
+				    
+				    double [][] location_array = ObjectMapper.getObjectLocationArray();
+					int length = location_array.length;
+					for(int i = 0; i < length; i++)
+					{
+						location_array[i][0] -= global_xmin;
+						location_array[i][1] -= global_ymin;
+					}
+					double previous_distance = getDistance(endpoint_x, endpoint_y, location_array[0][0], location_array[0][1]);
+					int    closest_target    = 0;
+					for(int i = 1; i < location_array.length; i++)
+					{
+						double current_distance = getDistance(endpoint_x, endpoint_y, location_array[i][0], location_array[i][1]);
+						if(current_distance < previous_distance)
+						{
+							previous_distance = current_distance;
+							closest_target = i;
+						}
+					}
+					double_slope_output.append(" nearest_target_id            " + (closest_target + 1) + "\n");
+					double_slope_output.append(" nearest_target_distance " + String.format("%.2f", previous_distance) + " m\n");
+				}
+				else
+				{
+					if(!startpoint_set)
+						System.out.println("Start point is not set.");
+					if(!endpoint_set)
+						System.out.println("End point is not set.");
+				}
+			}
+		};
+		double_apply_button.addActionListener(double_apply_handler);
+		double_control_panel.add(double_apply_button);
+		
+		JButton double_clear_button = new JButton("Clear");
+		ActionListener double_clear_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				startpoint_set  = false;
+				// In case a triplet was previously selected.
+				midpoint_set = false;
+				endpoint_set  = false;
+				
+				double_slope_output.setText("");
+				data_canvas.repaint();
+			}
+		};
+		double_clear_button.addActionListener(double_clear_handler);
+		double_control_panel.add(double_clear_button);
+		
+		JButton double_save_button = new JButton("Save");
+		ActionListener double_save_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent ev)
+			{
+				try
+	            {
+	            	FileWriter output  = new FileWriter("points.txt", true);
+	            	
+	            	output.write("start_index "       + startpoint_index + "\n");
+	            	output.write("start_intensity "   + String.format("%.2f",startpoint_intensity) + " nT\n");
+	            	output.write("start_x "           + String.format("%.2f", startpoint_x) + " m\n");
+	            	output.write("start_y "           + String.format("%.2f", startpoint_y) + " m\n");
+	            	output.write("start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n");
+	            	output.write("end_index "         + endpoint_index + "\n");
+	            	output.write("end_intensity "     + String.format("%.2f", endpoint_intensity) + " nT\n");
+	            	output.write("end_x "             + String.format("%.2f", endpoint_x) + " m\n");
+	            	output.write("end_y "             + String.format("%.2f", endpoint_y) + " m\n");
+	            	output.write("end_line_sensor "   + endpoint_line + ":" + endpoint_sensor + "\n");
+	        
+	            	double amplitude = endpoint_intensity - startpoint_intensity;
+				    double width     = getDistance(startpoint_x, startpoint_y, endpoint_x, endpoint_y);
+				    double slope     = amplitude / width;
+				    output.write("amplitude " + String.format("%.2f", amplitude) + " nT\n");
+				    output.write("width "     + String.format("%.2f", width) + " m\n");
+				    output.write("slope "     + String.format("%.2f", slope) + " nT/m\n");
+				    
+				    double [][] location_array = ObjectMapper.getObjectLocationArray();
+					int length = location_array.length;
+					for(int i = 0; i < length; i++)
+					{
+						location_array[i][0] -= global_xmin;
+						location_array[i][1] -= global_ymin;
+					}
+					double previous_distance = getDistance(endpoint_x, endpoint_y, location_array[0][0], location_array[0][1]);
+					int    closest_target    = 0;
+					for(int i = 1; i < location_array.length; i++)
+					{
+						double current_distance = getDistance(endpoint_x, endpoint_y, location_array[i][0], location_array[i][1]);
+						if(current_distance < previous_distance)
+						{
+							previous_distance = current_distance;
+							closest_target = i;
+						}
+					}
+					output.write("nearest_target_id " + (closest_target + 1) + "\n");
+					output.write("nearest_target_distance " + String.format("%.2f", previous_distance) + " m\n");
+					
+	            	output.write("\n");
+	            	Date current_time = new Date();
+	            	output.write(current_time.toString());
+	            	output.write("\n");
+	            	output.write("\n");
+	            	output.write("\n");
+	            	output.close();
+	            }
+				catch(Exception ex)
+				{
+				    System.out.println(ex.toString());	
+				}
+			}
+		};
+		double_save_button.addActionListener(double_save_handler);
+		double_control_panel.add(double_save_button);
+		double_slope_panel.add(double_slope_output, BorderLayout.CENTER);
+		JPanel double_button_panel = new JPanel(new GridLayout(2, 1));
+		double_button_panel.add(double_point_panel);
+		double_button_panel.add(double_control_panel);
+		double_slope_panel.add(double_button_panel, BorderLayout.SOUTH);
+		
+		JDialog double_slope_dialog = new JDialog(frame, "Get Pair");
+		double_slope_dialog.add(double_slope_panel);
+		JMenuItem double_slope_item = new JMenuItem("Get Pair");
+		ActionListener double_slope_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				
+				y += 200;
+
+				double_slope_dialog.setLocation(x, y);
+				double_slope_dialog.pack();
+				double_slope_dialog.setVisible(true);
+			}
+		};
+		double_slope_item.addActionListener(double_slope_handler);
+		slope_menu.add(double_slope_item);
+		
 		menu_bar.add(slope_menu);
 				
 		// End slope menu.
@@ -3587,7 +3786,6 @@ public class XFencePlotter
 						}
 					}
 
-					
 					for (int i = 0; i < 10; i++)
 					{
 						sensor[i].setText("");
@@ -3603,7 +3801,7 @@ public class XFencePlotter
 					append_data = false;
 					persistent_data = false;
 					sample_information.setText("");	
-					slope_output.setText("");
+					triple_slope_output.setText("");
 					startpoint_set = false;
 					midpoint_set = false;
 					endpoint_set = false;
@@ -3818,7 +4016,7 @@ public class XFencePlotter
 					append_data = false;
 					persistent_data = false;
 					sample_information.setText("");	
-					slope_output.setText("");
+					triple_slope_output.setText("");
 					startpoint_set = false;
 					midpoint_set = false;
 					endpoint_set = false;
@@ -5456,7 +5654,7 @@ public class XFencePlotter
 					persistent_data = false;
 					sample_information.setText("");
 					
-					slope_output.setText("");
+					triple_slope_output.setText("");
 					startpoint_set = false;
 					midpoint_set = false;
 					endpoint_set = false;
@@ -5558,7 +5756,7 @@ public class XFencePlotter
 					persistent_data = false;
 					sample_information.setText("");
 					
-					slope_output.setText("");
+					triple_slope_output.setText("");
 					startpoint_set = false;
 					midpoint_set = false;
 					endpoint_set = false;
