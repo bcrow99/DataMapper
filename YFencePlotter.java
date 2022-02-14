@@ -13,12 +13,10 @@ public class YFencePlotter
 {
 	public PlotCanvas  data_canvas;
 	public JScrollBar  data_scrollbar;
-	public RangeSlider data_slider;
 	public RangeSlider dynamic_range_slider;
 	public DynamicRangeCanvas dynamic_range_canvas;
 	public JFrame      frame;
 	public LocationCanvas location_canvas;
-	public boolean     data_scrollbar_changing, data_slider_changing;
 	public double      global_xmin, global_xmax, global_ymin, global_ymax, global_intensity_min, global_intensity_max;
 	public double      seg_min, seg_max;
 	public double      clipped_min, clipped_max;
@@ -26,11 +24,12 @@ public class YFencePlotter
 	public int         scrollbar_resolution = 2640;
 	public int         data_length          = 2640;
 	public Color[]     fill_color           = new Color[10];
-	public Color[]     outline_color       = new Color[10];
+	public Color[]     outline_color        = new Color[10];
 	public double[]    slope                = new double[5];
 	public ArrayList   relative_data        = new ArrayList();
 	public ArrayList   data                 = new ArrayList();
-	public ArrayList   index                = new ArrayList();
+	public ArrayList   location_index       = new ArrayList();
+	public ArrayList   object_index         = new ArrayList();
 	public double      data_offset          = .0;
 	public double      data_range           = .002;
 	public double      normal_xstep         = .5;
@@ -50,8 +49,9 @@ public class YFencePlotter
 	boolean            reverse_view         = false;
 	boolean            persistent_data      = false;
 	boolean            show_id              = true;
-	boolean            show_label           = true;
+	boolean            show_label           = false;
 	boolean            show_slope           = false;
+	boolean            show_data            = false;
 	boolean            color_key            = false;
 	boolean            relative_mode        = false;
 	boolean            location_changing    = false;
@@ -125,24 +125,32 @@ public class YFencePlotter
 	public JDialog     smooth_dialog;
 	public JDialog     scale_dialog;
 	public JDialog     location_dialog;
-	public JDialog     slope_dialog;
+	public JDialog     set_location_dialog;
+	public JDialog     set_object_dialog;
 	public JDialog     dynamic_range_dialog;
 	public JDialog     label_dialog;
 	public JDialog     range_dialog;
 	public JDialog     load_config_dialog;
 	public JDialog     save_config_dialog;
+	
+	
+	
 	public PlacementCanvas placement_canvas;
 	
 	public JTextArea   sample_information;
-	public JTextArea   slope_output;
+	public JTextArea   double_slope_output;
+	public JTextArea   triple_slope_output;
 	public JTextField  load_config_input;
 	public JTextField  save_config_input;
+	
+	
 	// Gui components that are fired by load handler.
 	public JCheckBoxMenuItem view_item;
 	public JCheckBoxMenuItem mode_item;
 	public JCheckBoxMenuItem overlay_item;
 	public JCheckBoxMenuItem show_id_item;
 	public JCheckBoxMenuItem color_key_item;
+	public JCheckBoxMenuItem show_data_item;
 	public JSlider           smooth_slider;
 	public JSlider           factor_slider;
 	public JScrollBar        xstep_scrollbar;
@@ -166,7 +174,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.2 of wand.");
+			System.out.println("This is version 3.6 of wand.");
 			try
 			{
 				try
@@ -211,7 +219,7 @@ public class YFencePlotter
 		fill_color[9]    = new Color(224, 255, 224);
 
 		String version = System.getProperty("java.version");
-		//System.out.println("Current java version is " + version);
+		System.out.println("Current java version is " + version);
 		File file = new File(filename);
 		if (file.exists())
 		{
@@ -264,15 +272,19 @@ public class YFencePlotter
 				    	else
 				    		transparent[i] = false;
 				    }		    
-				    line = config_reader.readLine(); // Skip line.
+				    line = config_reader.readLine(); 
 				    while(line != null)
 				    {
+				    	// Skip line.
 				        line             = config_reader.readLine();
 				        if(line != null)
 				        {
 				            config_tokenizer = new StringTokenizer(line);
 				            String key       = config_tokenizer.nextToken();
 				            String value     = config_tokenizer.nextToken();
+				            
+				            //System.out.println("Key is " + key);
+				            //System.out.println("Value is " + value);
 				            if(key.equals("Offset"))
 				    	        data_offset = Double.valueOf(value);
 				            else if(key.equals("Range")) 
@@ -330,6 +342,11 @@ public class YFencePlotter
 					        		data_clipped = true;
 					        	else
 					        		data_clipped = false;
+					        } 
+				            else if(key.equals("Label")) 
+					        {
+				            	show_label = true;
+				            	graph_label = value;
 					        } 
 				            else if(key.equals("ShowID")) 
 					        {
@@ -435,9 +452,7 @@ public class YFencePlotter
 				            else if(key.equals("EndYPosition")) 
 				            	endpoint_y_position = Integer.parseInt(value);
 				            else if(key.equals("EndIndex")) 
-				            	endpoint_index = Integer.parseInt(value);
-				            
-				            
+				            	endpoint_index = Integer.parseInt(value); 
 				        }
 				    }
 					config_reader.close();  
@@ -549,17 +564,18 @@ public class YFencePlotter
 				}
 				
 				data_length          = (int)total_distance;
-				slider_resolution    = data_length;
 				scrollbar_resolution = data_length;
 				
-				int _index = 0;
-				index.add(_index);
+				// Location 0 m is at index 0.
+				int current_index = 0;
+				location_index.add(current_index);
+				
 				total_distance  = 0;
 				for(int i = 1; i < data_length; i++)
 				{
-					previous_sample = (Sample)relative_data.get(_index + 2);
+					previous_sample = (Sample)relative_data.get(current_index + 2);
 					
-					for(int j = _index + 7; j < relative_data.size(); j += 5)
+					for(int j = current_index + 7; j < relative_data.size(); j += 5)
 					{
 						Sample sample   = (Sample) relative_data.get(j);	
 						double distance = getDistance(sample.x, sample.y, previous_sample.x, previous_sample.y);
@@ -567,14 +583,48 @@ public class YFencePlotter
 						previous_sample = sample;
 						if((int) total_distance >= i)
 						{
-							_index = j - 2;
-							index.add(_index);
+							current_index = j - 2;
+							// Location i m is at current index
+							location_index.add(current_index);
 							break;
 						}
 					}
 				}
-				_index = relative_data.size() - 1;
-				index.add(_index);
+				// Any odd fraction of a meter is clipped, or will not correspond to a full i + 1 meters.
+				// Will not add the final index, although it might be randomly included.
+				
+				
+				
+				Sample init_sample = (Sample)relative_data.get(2);
+				double init_x      = init_sample.x;
+				double init_y      = init_sample.y;
+				
+				double [][] object_location = ObjectMapper.getObjectLocationArray();
+				int number_of_objects       = object_location.length;
+				for(int i = 0; i < number_of_objects; i++)
+				{
+					object_location[i][0] -= global_xmin;
+					object_location[i][1] -= global_ymin;
+				}
+				
+				for(int i = 0; i < number_of_objects; i++)
+				{
+					double distance = getDistance(init_x, init_y, object_location[i][0], object_location[i][1]);
+					int    index    = 0;
+					for(int j = 7; j < relative_data.size(); j += 5)
+					{
+						Sample sample = (Sample)relative_data.get(j);
+						double current_x = sample.x;
+						double current_y = sample.y;
+						double current_distance = getDistance(current_x, current_y, object_location[i][0], object_location[i][1]);
+						if(current_distance < distance)
+						{
+							index = j - 2;
+						}	
+					}
+					object_index.add(index);
+				}
+				
 				
 				data           = new ArrayList();
 				total_distance = 0;
@@ -633,14 +683,7 @@ public class YFencePlotter
 			System.exit(0);
 		}
 		
-		
-		// A modeless dialog box where data shows up if the mouse is dragged on the canvas.
-		JPanel information_panel = new JPanel(new BorderLayout());
-		sample_information = new JTextArea(8, 17);
-		information_panel.add(sample_information);
-		information_dialog = new JDialog(frame);
-		information_dialog.add(information_panel);
-		
+		// Start gui.
 				
 		frame = new JFrame("Slope Wand Plotter");
 		WindowAdapter window_handler = new WindowAdapter()
@@ -677,7 +720,8 @@ public class YFencePlotter
 		            	output.write("YLocation\t\t" + String.format("%,.4f", ylocation) + "\n");
 		            	output.write("XStep\t\t\t" + String.format("%,.2f", normal_xstep) + "\n");
 		            	output.write("YStep\t\t\t" + String.format("%,.2f", normal_ystep) + "\n");
-		                
+		            	if(show_label)
+		            		output.write("Label\t\t\t " + graph_label + "\n");
 		            	if(show_id)
 		            		output.write("ShowID\t\t\ttrue\n");
 		            	else
@@ -816,114 +860,279 @@ public class YFencePlotter
 		DataScrollbarHandler data_scrollbar_handler = new DataScrollbarHandler();
 		data_scrollbar.addAdjustmentListener(data_scrollbar_handler);	
 		
-		data_slider = new RangeSlider();
-		data_slider.setMinimum(0);
-		data_slider.setMaximum(slider_resolution);
-		DataSliderHandler data_slider_handler = new DataSliderHandler();
-		data_slider.addChangeListener(data_slider_handler);
-
 		JPanel data_panel = new JPanel(new BorderLayout());
-		JPanel segment_panel = new JPanel(new BorderLayout());
-		segment_panel.add(data_scrollbar, BorderLayout.NORTH);
-		segment_panel.add(data_slider, BorderLayout.SOUTH);
 		data_panel.add(data_canvas, BorderLayout.CENTER);
-		data_panel.add(segment_panel, BorderLayout.SOUTH);
+		data_panel.add(data_scrollbar, BorderLayout.SOUTH);
 		
-        data_scrollbar_changing = true;
-
-        double position;
-        int    value;
-        
-		position = slider_resolution * data_offset + slider_resolution * data_range;
-		value = (int) position;
-	    data_slider.setUpperValue((int)position);
-		
-	    position = slider_resolution * data_offset;
-        value = (int)position;
-		data_slider.setValue((int)position);
-
-		data_scrollbar_changing = false;
-	
 		for(int i = 0; i < 5; i++)
 		{
 			visible[i] = true;
 			transparent[i] = false;
 		}
+		JMenuBar menu_bar = new JMenuBar();
+		
+		
+		// End gui.
+		
+		// Start file menu.
 		
 		JMenu     file_menu      = new JMenu("File");
-		JMenuItem save_item      = new JMenuItem("Save");
-		SaveHandler  save_handler = new SaveHandler();
-		save_item.addActionListener(save_handler);
-		file_menu.add(save_item);
 		
-		JMenuItem load_config_item  = new JMenuItem("Load Config");
-		ActionListener load_config_dialog_handler = new ActionListener()
+		JMenuItem    save_graph_item    = new JMenuItem("Save Graph");
+		ActionListener save_graph_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-
-				load_config_dialog.setLocation(x, y);
-				load_config_dialog.pack();
-				load_config_dialog.setVisible(true);
+		        FileDialog file_dialog = new FileDialog(frame, "Save Graph", FileDialog.SAVE);
+		        file_dialog.setVisible(true);
+		        String filename = file_dialog.getFile();
+		        int           image_xdim   = buffered_image.getWidth();
+				int           image_ydim   = buffered_image.getHeight();
+				BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
+				Graphics2D    print_buffer = (Graphics2D) print_image.getGraphics(); 
+				print_buffer.drawImage(buffered_image, 0, 0,  null);	
+				String current_directory = file_dialog.getDirectory();
+				try 
+    	        {  
+    	            ImageIO.write(print_image, "png", new File(current_directory + filename + ".png")); 
+    	        } 
+    	        catch(IOException e2) 
+    	        {  
+    	            //e2.printStackTrace(); 
+    	            e2.toString();
+    	        }  
 			}
 		};
-		load_config_item.addActionListener(load_config_dialog_handler);
-		file_menu.add(load_config_item);
+		save_graph_item.addActionListener(save_graph_handler);
+		file_menu.add(save_graph_item);
 		
-		
-		JMenuItem save_config_item  = new JMenuItem("Save Config");
-		ActionListener save_config_dialog_handler = new ActionListener()
+		JMenuItem    save_segment_item    = new JMenuItem("Save Segment");
+		ActionListener save_segment_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-
-				save_config_dialog.setLocation(x, y);
-				save_config_dialog.pack();
-				save_config_dialog.setVisible(true);
+				// Line indices to help us figure out where an index falls.
+				int[][] line = ObjectMapper.getUnclippedLineArray();
+		        
+				
+				FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
+		        file_dialog.setVisible(true);
+		        String filename = file_dialog.getFile();
+		    
+				String current_directory = file_dialog.getDirectory();
+				
+				// General purpose text file to use with gnuplot and as a source of segmented data.
+				
+				System.out.println("Writing text file.");
+				
+				
+				try (PrintWriter output = new PrintWriter(current_directory + filename + ".txt"))
+			    {
+					// Maybe why we are getting empty sample spaces under a meter.
+					// A meter usually has two or three dozen samples or more, but we are
+					// coming up empty in some spots.  Would expect to get samples down to half 
+					// a meter.
+					
+					// Check behaviour against XFence which does not use indices like this.
+					// Also try getting an index every half meter, or the targeted higher resolution.
+					// We are getting indices at 1 meter intervals.
+					
+				    double data_location  = data_offset * data_length;
+				    int    start_location = (int)data_location;
+				    int    start_index    = (int)location_index.get(start_location);
+				    int    start_line     = 0;
+				    int previous_index    = line[0][0];
+				    int current_index     = line[1][0];
+				    outer1: for(int i = 0; i < line.length - 1; i++)
+				    {
+				        if(start_index >= previous_index && start_index < current_index)  
+				        	break outer1;
+				        else
+				        {
+				            start_line++;
+				            previous_index = current_index;
+				            current_index  = line[i + 1][0];		
+				        }	
+				    }
+				   
+				    data_location        += data_range * data_length;
+				    int    stop_location  = (int)data_location;
+				    int    stop_index     = (int)location_index.get(stop_location);
+				    int    stop_line      = 0;
+				    previous_index    = line[0][0];
+				    current_index     = line[1][0];
+				    outer2: for(int i = 0; i < line.length - 1; i++)
+				    {
+				        if(stop_index > previous_index && stop_index <= current_index)  
+				        	break outer2;
+				        else
+				        {
+				            stop_line++;
+				            previous_index = current_index;
+				            current_index  = line[i + 1][1];		
+				        }	
+				    }
+				    
+				    
+				    // Separate the sensor information into separate blocks.
+				    // This is a format that makes gnuplot easier to use,
+				    // especially fence plots.
+				    int number_of_sensors = 5;
+				    
+				    for(int i = 0; i < number_of_sensors; i++)
+				    {
+				    	output.println("#Sensor " + i + ", Line " + start_line);
+				        for(int j = start_index; j < stop_index; j += 5)
+				        {
+						        Sample sample    = (Sample)relative_data.get(j + i);
+						        String xlocation = String.format("%.2f", sample.x);
+						        String ylocation = String.format("%.2f", sample.y);
+						        String intensity = String.format("%.2f", sample.intensity);
+						        output.println(xlocation + " " + ylocation + " " + intensity);
+						}
+				        output.println("#Sensor " + i + ", Line " + stop_line);
+					    output.println();
+					    output.println();
+				    } 
+				    output.close();
+				} 
+			    catch (Exception ex)
+			    {
+				    System.out.println(ex.toString());
+			    }
 			}
 		};
-		save_config_item.addActionListener(save_config_dialog_handler);
-		file_menu.add(save_config_item);
+		save_segment_item.addActionListener(save_segment_handler);
+		file_menu.add(save_segment_item);
 		
-		JMenu     format_menu  = new JMenu("Format");
-		
-		// A modeless dialog box that shows up if Format->Show Data is selected.
-		information_panel = new JPanel(new BorderLayout());
-		sample_information = new JTextArea(8, 17);
-		information_panel.add(sample_information);
-		information_dialog = new JDialog(frame);
-		information_dialog.add(information_panel);		
-		JMenuItem data_item = new JMenuItem("Show Data");
-		ActionListener data_handler = new ActionListener()
+		JMenuItem      save_fenceplot_item    = new JMenuItem("Save Fenceplot");
+		ActionListener save_fenceplot_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-						
-				Dimension canvas_dimension = data_canvas.getSize();
-				double    canvas_xdim      = canvas_dimension.getWidth();
-						
-				x += canvas_xdim;
-				information_dialog.setLocation(x, y);
-				information_dialog.pack();
-				information_dialog.setVisible(true);
+				// Line indices to help us figure out where an index falls.
+				int[][] line = ObjectMapper.getUnclippedLineArray();
+		        
+				
+				FileDialog file_dialog = new FileDialog(frame, "Save Fenceplot", FileDialog.SAVE);
+		        file_dialog.setVisible(true);
+		        String filename = file_dialog.getFile();
+		    
+				String current_directory = file_dialog.getDirectory();
+				
+				// Special format text file to use with gnuplot to make fence plots.
+				// Fence plots can also be done with gnuplot scripts but it becomes very arcane.
+				// This make gnuplot easier to use.
+				
+				System.out.println("Writing fence plot text file.");
+				
+				
+				try (PrintWriter output = new PrintWriter(current_directory + filename + ".txt"))
+			    {
+					// We are using indices so we don't have to scan the data for locations.
+					// Might be why we are getting empty sample spaces under a meter.
+					// A meter usually has two or three dozen samples or more, but we are
+					// coming up empty in some spots.  Would expect to get samples down to half 
+					// a meter.
+					
+					// Check behaviour against XFence which does not use indices like this.
+					// Also try getting an index every half meter, or the targeted higher resolution.
+					// We are getting indices at 1 meter intervals.
+					
+				    double data_location  = data_offset * data_length;
+				    int    start_location = (int)data_location;
+				    int    start_index    = (int)location_index.get(start_location);
+				    int    start_line     = 0;
+				    int previous_index    = line[0][0];
+				    int current_index     = line[1][0];
+				    outer1: for(int i = 0; i < line.length - 1; i++)
+				    {
+				        if(start_index >= previous_index && start_index < current_index)  
+				        	break outer1;
+				        else
+				        {
+				            start_line++;
+				            previous_index = current_index;
+				            current_index  = line[i + 1][0];		
+				        }	
+				    }
+				   
+				    data_location        += data_range * data_length;
+				    int    stop_location  = (int)data_location;
+				    int    stop_index     = (int)location_index.get(stop_location);
+				    int    stop_line      = 0;
+				    previous_index    = line[0][0];
+				    current_index     = line[1][0];
+				    outer2: for(int i = 0; i < line.length - 1; i++)
+				    {
+				        if(stop_index > previous_index && stop_index <= current_index)  
+				        	break outer2;
+				        else
+				        {
+				            stop_line++;
+				            previous_index = current_index;
+				            current_index  = line[i + 1][1];		
+				        }	
+				    }
+				    
+				    
+				    
+				    // The information that we want ahead of time to
+				    // add bottom corners to make a fence plot is
+				    // the minimum intensity.
+				    Sample init_sample   = (Sample) relative_data.get(start_index);
+				    double min_intensity = init_sample.intensity;  
+				    for(int i = start_index + 1; i < stop_index; i ++)
+			        {
+					        Sample sample  = (Sample)relative_data.get(i);
+					        if(sample.intensity < min_intensity)
+					        	min_intensity = sample.intensity;
+			        }
+				    String intensity_min = String.format("%.2f", min_intensity);
+				    // Separate the sensor information into separate blocks.
+				    // This is a format that makes gnuplot easier to use,
+				    // especially fence plots.
+				    int number_of_sensors = 5;
+				    
+				    for(int i = 0; i < number_of_sensors; i++)
+				    {
+				    	output.println("#Sensor " + i + ", Line " + start_line);
+				    	
+				    	Sample start_sample = (Sample) relative_data.get(i);
+				    	String xlocation = String.format("%.2f", start_sample.x);
+				        String ylocation = String.format("%.2f", start_sample.y);
+				    	output.println(xlocation + " " + ylocation + " " + intensity_min);
+				    	String intensity = String.format("%.2f", start_sample.intensity);
+				    	output.println(xlocation + " " + ylocation + " " + intensity);
+				        for(int j = start_index + 1; j < stop_index; j += 5)
+				        {
+						        Sample sample    = (Sample)relative_data.get(j + i);
+						        xlocation = String.format("%.2f", sample.x);
+						        ylocation = String.format("%.2f", sample.y);
+						        intensity = String.format("%.2f", sample.intensity);
+						        output.println(xlocation + " " + ylocation + " " + intensity);
+						}
+				        Sample end_sample = (Sample) relative_data.get(stop_index - (5 - i));
+				        xlocation = String.format("%.2f", end_sample.x);
+				        ylocation = String.format("%.2f", end_sample.y);
+				    	output.println(xlocation + " " + ylocation + " " + intensity_min);
+				    	xlocation = String.format("%.2f", start_sample.x);
+				        ylocation = String.format("%.2f", start_sample.y);
+				    	output.println(xlocation + " " + ylocation + " " + intensity_min);
+				        output.println("#Sensor " + i + ", Line " + stop_line);
+					    output.println();
+					    output.println();
+				    } 
+				    output.close();
+				} 
+			    catch (Exception ex)
+			    {
+				    System.out.println(ex.toString());
+			    }
 			}
 		};
-		data_item.addActionListener(data_handler);
-		format_menu.add(data_item);
-		
+		save_fenceplot_item.addActionListener(save_fenceplot_handler);
+		file_menu.add(save_fenceplot_item);
 		
 		// A modeless dialog box that shows up if File->Load Config is selected.
 		JPanel load_config_panel = new JPanel(new GridLayout(2, 1));
@@ -937,7 +1146,6 @@ public class YFencePlotter
 			public void actionPerformed(ActionEvent e)
 			{
 				String filename = load_config_input.getText();
-				
 				String suffix = new String(".cfg");
 				System.out.println("Loading configuration from " + filename + suffix);
 				File config_file = new File(filename + suffix);
@@ -974,7 +1182,13 @@ public class YFencePlotter
 							     transparent[i] = true;
 							else
 							     transparent[i] = false;
-						}		    
+						}	
+					    
+					    // A graph label in the config file is optional,
+					    // so we set the defaults first. 
+					   show_label = false;
+					   graph_label = new String("");
+					  
 					   line = config_reader.readLine(); 
 					   while(line != null)
 					   {
@@ -993,6 +1207,18 @@ public class YFencePlotter
 					    	        data_offset = Double.valueOf(value);
 					            else if(key.equals("Range")) 
 					        	    data_range = Double.valueOf(value);
+					            else if(key.equals("Label")) 
+						        {
+					            	show_label = true;
+					            	graph_label = value;
+						        } 
+					            else if(key.equals("ShowID")) 
+						        {
+						        	if(value.equals("true"))
+						        		show_id = true;
+						        	else
+						        		show_id = false;
+						        } 
 					            else if(key.equals("ReverseView")) 
 						        {
 						        	if(value.equals("true"))
@@ -1222,49 +1448,15 @@ public class YFencePlotter
 					    }
 					    
 					    // So dynamic range comes up right.
-					    
 					    if(data_clipped)
 					    {
 					    	lower_bound.setText(String.format("%,.2f", minimum_y));	
 		                	upper_bound.setText(String.format("%,.2f", maximum_y));	
 					    }
 					    
-					    // Reset scrollbar and slider to current settings. 
-					    
-					    // The slider will fire the scrollbar and ad infinitum, 
-					    // unless it knows it's being fired by the scrollar and not the user.
-					    data_slider_changing = true;
 					    int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
 						data_scrollbar.setValue(scrollbar_position);
-						
-					    // We have to know the current state of the slider to reset it correctly;
-					    // This should be hidden in the implementation of the range slider but
-					    // we can deal with it.
-					    int current_lower_value = data_slider.getValue();
-					    int current_upper_value = data_slider.getUpperValue();
-					    
-					    
-					    data_scrollbar_changing = true;
-
-						double position = slider_resolution * data_offset + slider_resolution * data_range;
-						int upper_value = (int) position;
-					    
-					    position = slider_resolution * data_offset;
-				        int lower_value = (int)position;
-						
-				        if(current_upper_value > lower_value)
-				        {
-				        	data_slider.setValue(lower_value);
-					        data_slider.setUpperValue(upper_value);	
-				        }
-				        else
-				        {
-					        data_slider.setUpperValue(upper_value);	
-					        data_slider.setValue(lower_value);
-				        }
-
-						data_scrollbar_changing = false;
-					    
+					
 						// Data canvas paint() function does data segmentation.
 					    data_canvas.repaint();
 					     
@@ -1284,6 +1476,25 @@ public class YFencePlotter
 		load_config_panel.add(load_config_button);
 		load_config_dialog = new JDialog(frame, "Load Config");
 		load_config_dialog.add(load_config_panel, BorderLayout.CENTER);		
+		
+		JMenuItem load_config_item  = new JMenuItem("Load Config");
+		ActionListener load_config_dialog_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+
+				load_config_dialog.setLocation(x, y);
+				load_config_dialog.pack();
+				load_config_dialog.setVisible(true);
+			}
+		};
+		load_config_item.addActionListener(load_config_dialog_handler);
+		file_menu.add(load_config_item);
 		
 		
 		
@@ -1308,7 +1519,7 @@ public class YFencePlotter
 	            	String _id          = new String("");
 	            	String _visible     = new String("");
 	            	String _transparent = new String("");
-	            	String _show_id     = new String("");
+	            	
 	            	for(int i = 0; i < 5; i++)
 	            	{
 	            	    _id = new String(_id + i + "\t\t");
@@ -1331,7 +1542,7 @@ public class YFencePlotter
 	            	output.write("YLocation\t\t" + String.format("%,.4f", ylocation) + "\n");
 	            	output.write("XStep\t\t\t" + String.format("%,.2f", normal_xstep) + "\n");
 	            	output.write("YStep\t\t\t" + String.format("%,.2f", normal_ystep) + "\n");
-	            
+	                
 	            	if(reverse_view)
 	            		output.write("ReverseView\t\ttrue\n");
 	            	else
@@ -1344,6 +1555,8 @@ public class YFencePlotter
 	            		output.write("RasterOverlay\ttrue\n");
 	            	else
 	            		output.write("RasterOverlay\tfalse\n");
+	            	if(show_label)
+	            		output.write("Label\t\t\t " + graph_label + "\n");
 	            	if(show_id)
 	            		output.write("ShowID\t\t\ttrue\n");
 	            	else
@@ -1433,7 +1646,61 @@ public class YFencePlotter
 		save_config_button.addActionListener(save_config_handler);
 		save_config_panel.add(save_config_button);
 		save_config_dialog = new JDialog(frame, "Save Config");
-		save_config_dialog.add(save_config_panel, BorderLayout.CENTER);
+		save_config_dialog.add(save_config_panel, BorderLayout.CENTER);		
+		JMenuItem save_config_item  = new JMenuItem("Save Config");
+		ActionListener save_config_dialog_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+
+				save_config_dialog.setLocation(x, y);
+				save_config_dialog.pack();
+				save_config_dialog.setVisible(true);
+			}
+		};
+		save_config_item.addActionListener(save_config_dialog_handler);
+		file_menu.add(save_config_item);
+		menu_bar.add(file_menu);
+		
+		// End file menu.
+		
+		// Start format menu
+		
+		JMenu     format_menu  = new JMenu("Format");
+		
+		/*
+		// A modeless dialog box that shows up if Format->Show Data is selected.
+		JPanel information_panel = new JPanel(new BorderLayout());
+		sample_information = new JTextArea(8, 17);
+		information_panel.add(sample_information);
+		information_dialog = new JDialog(frame);
+		information_dialog.add(information_panel);		
+		JMenuItem data_item = new JMenuItem("Show Data");
+		ActionListener data_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+						
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+						
+				x += canvas_xdim;
+				information_dialog.setLocation(x, y);
+				information_dialog.pack();
+				information_dialog.setVisible(true);
+			}
+		};
+		data_item.addActionListener(data_handler);
+		format_menu.add(data_item);
+		*/
 		
 		// A modeless dialog box that shows up if Format->Placement is selected.
 		JPanel placement_panel = new JPanel(new BorderLayout());
@@ -1454,7 +1721,7 @@ public class YFencePlotter
 			}
 		};
 		xstep_scrollbar.addAdjustmentListener(xstep_handler);
-		value = (int)(100. * normal_xstep);
+		int value = (int)(100. * normal_xstep);
 		xstep_scrollbar.setValue(value);
 		ystep_scrollbar = new JScrollBar(JScrollBar.VERTICAL, 0, 1, 0, 101);
 		AdjustmentListener ystep_handler = new AdjustmentListener()
@@ -1550,7 +1817,10 @@ public class YFencePlotter
 			public void actionPerformed(ActionEvent e)
 			{
 			    graph_label = label_input.getText();
-			    //System.out.println("Graph label is now " + graph_label);
+			    if(graph_label.equals(""))
+			    	show_label = false;
+			    else
+			    	show_label = true;		
 			    data_canvas.repaint();
 			}
 		};
@@ -1565,7 +1835,6 @@ public class YFencePlotter
 		    data_canvas.repaint();
 		  }
 		});
-		
 		
 		JMenuItem label_item = new JMenuItem("Graph Label");
 		ActionListener label_handler = new ActionListener()
@@ -1603,14 +1872,8 @@ public class YFencePlotter
 			    String input = range_input.getText();
 			    double range = Double.valueOf(input);
 			    data_range = range / data_length;
-			    data_scrollbar_changing = true;
-			    int upper_value = (int) ((data_offset + data_range) * slider_resolution);
-			    data_slider.setUpperValue(upper_value);
-			    data_scrollbar_changing = false;
-			    data_slider_changing = true;
 			    int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
 			    data_scrollbar.setValue((int)scrollbar_position);
-				data_slider_changing = false;
 			    data_canvas.repaint();
 			}
 		};
@@ -1642,6 +1905,11 @@ public class YFencePlotter
 		};
 		range_item.addActionListener(range_handler);
 		format_menu.add(range_item);
+		menu_bar.add(format_menu);
+		
+		// End format menu.
+		
+		// Start adjustment_menu.
 		
 		JMenu     adjustment_menu  = new JMenu("Adjustments");
         
@@ -1868,14 +2136,20 @@ public class YFencePlotter
 		};
 		dynamic_range_item.addActionListener(dynamic_range_handler);
 		adjustment_menu.add(dynamic_range_item);	
+		menu_bar.add(adjustment_menu);
+		// End adjustment menu.
+		
+		// Start slope menu.
+	
+		JMenu  slope_menu  = new JMenu("Slope");
+		
+		JPanel double_slope_panel = new JPanel(new BorderLayout());
+		double_slope_output = new JTextArea(18, 10);
 		
 		
-		JPanel slope_panel = new JPanel(new BorderLayout());
-		slope_output = new JTextArea(22, 10);
-		JPanel slope_button_panel = new JPanel(new GridLayout(2,3));
+		JPanel double_point_panel = new JPanel(new GridLayout(1, 2));
 		
-		
-		JButton        start_button       = new JButton("Start");
+		JButton        double_start_button       = new JButton("Start");
 		ActionListener startpoint_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -1895,7 +2169,215 @@ public class YFencePlotter
 				data_canvas.repaint();
 			}
 		};
-		start_button.addActionListener(startpoint_handler);
+		double_start_button.addActionListener(startpoint_handler);
+		double_point_panel.add(double_start_button);
+		
+		JButton double_end_button  = new JButton("End");
+		ActionListener endpoint_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				endpoint_x          = append_x;
+				endpoint_y          = append_y;
+				endpoint_intensity  = append_intensity;
+				endpoint_intensity  = append_intensity;
+				endpoint_x_position = append_x_position;
+				endpoint_y_position = append_y_position;
+				endpoint_line       = append_line;
+				endpoint_sensor     = append_sensor;
+				endpoint_index      = append_index;
+				endpoint_set        = true;
+				append_data         = false;
+				persistent_data     = false;
+				
+				sample_information.setText("");
+				data_canvas.repaint();
+			}
+		};
+		double_end_button.addActionListener(endpoint_handler);
+		double_point_panel.add(double_end_button);
+		
+		JPanel double_control_panel = new JPanel(new GridLayout(1,3));
+		
+		JButton double_apply_button = new JButton("Apply");
+		ActionListener double_apply_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				if(startpoint_set && endpoint_set)
+				{ 
+					double_slope_output.append(" start_intensity      " + String.format("%.2f",startpoint_intensity) + " nT\n");
+	            	double_slope_output.append(" start_x                  " + String.format("%.2f", startpoint_x) + "  m\n");
+	            	double_slope_output.append(" start_y                  " + String.format("%.2f", startpoint_y) + "  m\n");
+	            	double_slope_output.append(" start_line_sensor  " + startpoint_line + ":" + startpoint_sensor + "\n\n");
+	            	
+	            	double_slope_output.append(" end_intensity       " + String.format("%.2f", endpoint_intensity) + " nT\n");
+	            	double_slope_output.append(" end_x                   " + String.format("%.2f", endpoint_x) + "  m\n");
+	            	double_slope_output.append(" end_y                   " + String.format("%.2f", endpoint_y) + "  m\n");
+	            	double_slope_output.append(" end_line_sensor   " + endpoint_line + ":" + endpoint_sensor + "\n\n");
+	        
+	            	double amplitude = endpoint_intensity - startpoint_intensity;
+				    double width  = getDistance(startpoint_x, startpoint_y, endpoint_x, endpoint_y);
+				    double slope = amplitude / width;
+				     
+				    double_slope_output.append(" amplitude             " + String.format("%.2f", amplitude) + " nT\n");
+				    double_slope_output.append(" width                    " + String.format("%.2f", width) + "   m\n");
+				    double_slope_output.append(" slope                    " + String.format("%.2f", slope) + " nT/m\n\n");
+				    
+				    double [][] location_array = ObjectMapper.getObjectLocationArray();
+					int length = location_array.length;
+					for(int i = 0; i < length; i++)
+					{
+						location_array[i][0] -= global_xmin;
+						location_array[i][1] -= global_ymin;
+					}
+					double previous_distance = getDistance(endpoint_x, endpoint_y, location_array[0][0], location_array[0][1]);
+					int    closest_target    = 0;
+					for(int i = 1; i < location_array.length; i++)
+					{
+						double current_distance = getDistance(endpoint_x, endpoint_y, location_array[i][0], location_array[i][1]);
+						if(current_distance < previous_distance)
+						{
+							previous_distance = current_distance;
+							closest_target = i;
+						}
+					}
+					double_slope_output.append(" nearest_target_id            " + (closest_target + 1) + "\n");
+					double_slope_output.append(" nearest_target_distance " + String.format("%.2f", previous_distance) + " m\n");
+				}
+				else
+				{
+					if(!startpoint_set)
+						System.out.println("Start point is not set.");
+					if(!endpoint_set)
+						System.out.println("Endd point is not set.");
+				}
+			}
+		};
+		double_apply_button.addActionListener(double_apply_handler);
+		double_control_panel.add(double_apply_button);
+		
+		JButton double_clear_button = new JButton("Clear");
+		ActionListener double_clear_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				startpoint_set  = false;
+				midpoint_set = false;
+				endpoint_set  = false;
+				
+				double_slope_output.setText("");
+				data_canvas.repaint();
+			}
+		};
+		double_clear_button.addActionListener(double_clear_handler);
+		double_control_panel.add(double_clear_button);
+		
+		JButton double_save_button = new JButton("Save");
+		ActionListener double_save_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent ev)
+			{
+				try
+	            {
+	            	FileWriter output  = new FileWriter("wpoints.txt", true);
+	            	
+	            	output.write("start_index " + startpoint_index + "\n");
+	            	output.write("start_intensity " + String.format("%.2f",startpoint_intensity) + " nT\n");
+	            	output.write("start_x " + String.format("%.2f", startpoint_x) + " m\n");
+	            	output.write("start_y " + String.format("%.2f", startpoint_y) + " m\n");
+	            	output.write("start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n");
+	            	output.write("end_index " + endpoint_index + "\n");
+	            	output.write("end_intensity " + String.format("%.2f", endpoint_intensity) + " nT\n");
+	            	output.write("end_x " + String.format("%.2f", endpoint_x) + " m\n");
+	            	output.write("end_y " + String.format("%.2f", endpoint_y) + " m\n");
+	            	output.write("end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n");
+	        
+	            	double amplitude = endpoint_intensity - startpoint_intensity;
+				    double width  = getDistance(startpoint_x, startpoint_y, endpoint_x, endpoint_y);
+				    double slope = amplitude / width;
+				    output.write("amplitude " + String.format("%.2f", amplitude) + " nT\n");
+				    output.write("width " + String.format("%.2f", width) + " m\n");
+				    output.write("slope " + String.format("%.2f", slope) + " nT/m\n");
+				    
+				    double [][] location_array = ObjectMapper.getObjectLocationArray();
+					int length = location_array.length;
+					for(int i = 0; i < length; i++)
+					{
+						location_array[i][0] -= global_xmin;
+						location_array[i][1] -= global_ymin;
+					}
+					double previous_distance = getDistance(midpoint_x, midpoint_y, location_array[0][0], location_array[0][1]);
+					int    closest_target    = 0;
+					for(int i = 1; i < location_array.length; i++)
+					{
+						double current_distance = getDistance(midpoint_x, midpoint_y, location_array[i][0], location_array[i][1]);
+						if(current_distance < previous_distance)
+						{
+							previous_distance = current_distance;
+							closest_target = i;
+						}
+					}
+					output.write("nearest_target_id " + (closest_target + 1) + "\n");
+					output.write("nearest_target_distance " + String.format("%.2f", previous_distance) + " m\n");
+					
+	            	output.write("\n");
+	            	Date current_time = new Date();
+	            	output.write(current_time.toString());
+	            	output.write("\n");
+	            	output.write("\n");
+	            	output.write("\n");
+	            	output.close();
+	            }
+				catch(Exception ex)
+				{
+				    System.out.println(ex.toString());	
+				}
+			}
+		};
+		double_save_button.addActionListener(double_save_handler);
+		double_control_panel.add(double_save_button);
+		double_slope_panel.add(double_slope_output, BorderLayout.CENTER);
+	 
+		JPanel double_button_panel = new JPanel(new GridLayout(2, 1));
+		double_button_panel.add(double_point_panel);
+		double_button_panel.add(double_control_panel);
+		
+		double_slope_panel.add(double_button_panel, BorderLayout.SOUTH);
+		
+		JDialog double_slope_dialog = new JDialog(frame, "Get Pair");
+		double_slope_dialog.add(double_slope_panel);
+		JMenuItem double_slope_item = new JMenuItem("Get Pair");
+		ActionListener double_slope_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				
+				y += 200;
+
+				double_slope_dialog.setLocation(x, y);
+				double_slope_dialog.pack();
+				double_slope_dialog.setVisible(true);
+			}
+		};
+		double_slope_item.addActionListener(double_slope_handler);
+		slope_menu.add(double_slope_item);
+		
+		JPanel slope_panel = new JPanel(new BorderLayout());
+		triple_slope_output = new JTextArea(25, 10);
+		JPanel slope_button_panel = new JPanel(new GridLayout(2,3));
+		
+		JButton triple_start_button       = new JButton("Start");
+		triple_start_button.addActionListener(startpoint_handler);
+		slope_button_panel.add(triple_start_button);
 		
 		JButton midpoint_button  = new JButton("Midpoint");
 		ActionListener midpoint_handler = new ActionListener()
@@ -1919,35 +2401,13 @@ public class YFencePlotter
 			}
 		};
 		midpoint_button.addActionListener(midpoint_handler);
-		
-		JButton end_button       = new JButton("End");
-		ActionListener endpoint_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				endpoint_x          = append_x;
-				endpoint_y          = append_y;
-				endpoint_intensity  = append_intensity;
-				endpoint_intensity  = append_intensity;
-				endpoint_x_position = append_x_position;
-				endpoint_y_position = append_y_position;
-				endpoint_line       = append_line;
-				endpoint_sensor     = append_sensor;
-				endpoint_index      = append_index;
-				endpoint_set        = true;
-				append_data         = false;
-				persistent_data     = false;
-				sample_information.setText("");
-				data_canvas.repaint();
-			}
-		};
-		end_button.addActionListener(endpoint_handler);
-		
-		
-		slope_button_panel.add(start_button);
 		slope_button_panel.add(midpoint_button);
-		slope_button_panel.add(end_button);
 		
+		JButton triple_end_button       = new JButton("End");
+		triple_end_button.addActionListener(endpoint_handler);
+		slope_button_panel.add(triple_end_button);
+		
+	
 		JButton slope_apply_button = new JButton("Apply");
 		ActionListener slope_apply_handler = new ActionListener()
 		{
@@ -1955,20 +2415,20 @@ public class YFencePlotter
 			{
 				if(startpoint_set && midpoint_set && endpoint_set)
 				{
-					slope_output.append("start_intensity " + String.format("%.2f",startpoint_intensity) + " nT\n");
-	            	slope_output.append("start_x " + String.format("%.2f", startpoint_x) + " m\n");
-	            	slope_output.append("start_y " + String.format("%.2f", startpoint_y) + " m\n");
-	            	slope_output.append("start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n");
+					triple_slope_output.append(" start_intensity     " + String.format("%.2f",startpoint_intensity) + " nT\n");
+	            	triple_slope_output.append(" start_x                 " + String.format("%.2f", startpoint_x) + "  m\n");
+	            	triple_slope_output.append(" start_y                 " + String.format("%.2f", startpoint_y) + "  m\n");
+	            	triple_slope_output.append(" start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n\n");
 	            	
-	            	slope_output.append("mid_intensity " + String.format("%.2f", midpoint_intensity) +  " nT\n");
-	            	slope_output.append("mid_x " + String.format("%.2f", midpoint_x) + " m\n");
-	            	slope_output.append("mid_y " + String.format("%.2f", midpoint_y) + " m\n");
-	            	slope_output.append("mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n");
+	            	triple_slope_output.append(" mid_intensity     " + String.format("%.2f", midpoint_intensity) +  " nT\n");
+	            	triple_slope_output.append(" mid_x                 " + String.format("%.2f", midpoint_x) + "  m\n");
+	            	triple_slope_output.append(" mid_y                 " + String.format("%.2f", midpoint_y) + "  m\n");
+	            	triple_slope_output.append(" mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n\n");
 	            	
-	            	slope_output.append("end_intensity " + String.format("%.2f", endpoint_intensity) + " nT\n");
-	            	slope_output.append("end_x " + String.format("%.2f", endpoint_x) + " m\n");
-	            	slope_output.append("end_y " + String.format("%.2f", endpoint_y) + " m\n");
-	            	slope_output.append("end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n\n");
+	            	triple_slope_output.append(" end_intensity     " + String.format("%.2f", endpoint_intensity) + " nT\n");
+	            	triple_slope_output.append(" end_x                 " + String.format("%.2f", endpoint_x) + "  m\n");
+	            	triple_slope_output.append(" end_y                 " + String.format("%.2f", endpoint_y) + "  m\n");
+	            	triple_slope_output.append(" end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n\n");
 	        
 	            	double amplitude1 = midpoint_intensity - startpoint_intensity;
 				    double width1  = getDistance(startpoint_x, startpoint_y, midpoint_x, midpoint_y);
@@ -1979,14 +2439,13 @@ public class YFencePlotter
 				    double width2  = getDistance(endpoint_x, endpoint_y, midpoint_x, midpoint_y);
 				    double end_slope = amplitude2 / width2;
 				    
-				  
-				    slope_output.append("amplitude1 " + String.format("%.2f", amplitude1) + " nT\n");
-				    slope_output.append("width1 " + String.format("%.2f", width1) + " m\n");
-				    slope_output.append("start_slope " + String.format("%.2f", start_slope) + " nT/m\n");
+				    triple_slope_output.append(" amplitude1  " + String.format("%.2f", amplitude1) + " nT\n");
+				    triple_slope_output.append(" width1          " + String.format("%.2f", width1) + "  m\n");
+				    triple_slope_output.append(" start_slope  " + String.format("%.2f", start_slope) + " nT/m\n\n");
 				    
-				    slope_output.append("amplitude2 " + String.format("%.2f", amplitude2) + " nT\n");
-				    slope_output.append("width2 " + String.format("%.2f", width2) + " m\n");
-				    slope_output.append("end_slope " + String.format("%.2f", end_slope) + " nT/m\n");
+				    triple_slope_output.append(" amplitude2  " + String.format("%.2f", amplitude2) + " nT\n");
+				    triple_slope_output.append(" width2         " + String.format("%.2f", width2) + "  m\n");
+				    triple_slope_output.append(" end_slope   " + String.format("%.2f", end_slope) + " nT/m\n\n");
 				    
 				     
 				    double [][] location_array = ObjectMapper.getObjectLocationArray();
@@ -2007,8 +2466,8 @@ public class YFencePlotter
 							closest_target = i;
 						}
 					}
-					slope_output.append("nearest_target_id " + (closest_target + 1) + "\n");
-					slope_output.append("nearest_target_distance " + String.format("%.2f", previous_distance) + "\n");
+					triple_slope_output.append(" nearest_target_id " + (closest_target + 1) + "\n");
+					triple_slope_output.append(" nearest_target_distance " + String.format("%.2f", previous_distance) + "\n");
 				}
 				else
 				{
@@ -2033,7 +2492,7 @@ public class YFencePlotter
 				midpoint_set   = false;
 				endpoint_set   = false;
 				
-				slope_output.setText("");
+				triple_slope_output.setText("");
 				data_canvas.repaint();
 			}
 		};
@@ -2117,16 +2576,16 @@ public class YFencePlotter
 		};
 		slope_save_button.addActionListener(slope_save_handler);
 		
-		slope_panel.add(slope_output, BorderLayout.CENTER);
+		slope_panel.add(triple_slope_output, BorderLayout.CENTER);
 		slope_button_panel.add(slope_apply_button);
 		slope_button_panel.add(slope_clear_button);
 		slope_button_panel.add(slope_save_button);
 		slope_panel.add(slope_button_panel, BorderLayout.SOUTH);
 		
-		slope_dialog = new JDialog(frame, "Get Slope/Amplitude");
-		slope_dialog.add(slope_panel);
-		JMenuItem slope_item = new JMenuItem("Get Slope/Amplitude");
-		ActionListener slope_handler = new ActionListener()
+		JDialog triple_slope_dialog = new JDialog(frame, "Get Triplet");
+		triple_slope_dialog.add(slope_panel);
+		JMenuItem triple_slope_item = new JMenuItem("Get Triplet");
+		ActionListener triple_slope_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
@@ -2141,15 +2600,30 @@ public class YFencePlotter
 				
 				y += 200;
 
-				slope_dialog.setLocation(x, y);
-				slope_dialog.pack();
-				slope_dialog.setVisible(true);
+				triple_slope_dialog.setLocation(x, y);
+				triple_slope_dialog.pack();
+				triple_slope_dialog.setVisible(true);
 			}
 		};
-		slope_item.addActionListener(slope_handler);
-		JMenu  slope_menu  = new JMenu("Slope");
-		slope_menu.add(slope_item);
+		triple_slope_item.addActionListener(triple_slope_handler);
+		slope_menu.add(triple_slope_item);
 		
+		
+		
+		
+		
+		
+		
+		
+		
+		menu_bar.add(slope_menu);
+		
+		
+		
+		// End slope menu.
+		
+		
+		// Start location menu.
 		
 		JMenu     location_menu  = new JMenu("Location");
 		
@@ -2200,8 +2674,8 @@ public class YFencePlotter
 		location_dialog = new JDialog(frame, "Location");
 		location_dialog.add(location_canvas_panel);
 		
-		JMenuItem location_item = new JMenuItem("Show Map");
-		ActionListener location_handler = new ActionListener()
+		JMenuItem map_item = new JMenuItem("Show Map");
+		ActionListener map_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
@@ -2221,11 +2695,192 @@ public class YFencePlotter
 				location_dialog.setVisible(true);
 			}
 		};
-		location_item.addActionListener(location_handler);
-		location_menu.add(location_item);
-				
-		JMenu     settings_menu  = new JMenu("Settings");
+		map_item.addActionListener(map_handler);
+		location_menu.add(map_item);
+		
+		// A modeless dialog box that shows up if Location->Set Location is selected.
+		set_location_dialog = new JDialog(frame, "Set Location");
+		JMenuItem set_location_item = new JMenuItem("Set Location");
+		ActionListener set_location_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
 
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				
+				x += canvas_xdim;
+				
+				y += 200;
+
+				set_location_dialog.setLocation(x, y);
+				set_location_dialog.pack();
+				set_location_dialog.setVisible(true);
+			}
+		};
+		set_location_item.addActionListener(set_location_handler);
+		JPanel set_location_panel = new JPanel(new GridLayout(2, 1));
+		JTextField set_location_input             = new JTextField();
+		set_location_input.setHorizontalAlignment(JTextField.CENTER);
+		set_location_input.setText("");
+
+		JButton set_location_button = new JButton("Set Location");
+		ActionListener set_location_button_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String new_location_string = set_location_input.getText();
+				double new_location = Double.valueOf(new_location_string);
+				
+				if(new_location >= 0 && new_location <= 30)
+				{
+					System.out.println("Setting location to " + new_location);
+					
+					double normal_value = new_location / 30.;
+					if(normal_value == 0)
+					{
+						data_offset = 0.;
+					}
+					else if(normal_value == 1.)
+					{
+					    data_offset = 1. - data_range;	
+					}
+					else
+					{
+						data_offset = normal_value - data_range / 2;
+						if(data_offset < 0)
+						{
+							data_offset = 0;
+						}
+						else if(data_offset + data_range > 1)
+						{
+							data_offset = 1. - data_range;	
+						}
+						
+					}
+					
+					// Clear data since we're at a new position.
+					append_data = false;
+					persistent_data = false;
+					sample_information.setText("");	
+					double_slope_output.setText("");
+					triple_slope_output.setText("");
+					startpoint_set = false;
+					midpoint_set = false;
+					endpoint_set = false;
+					
+					// Update location map
+					location_canvas.repaint();
+					
+					// Reset scrollbar.
+					int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+					data_scrollbar.setValue(scrollbar_position);
+					
+					// Redraw data.
+					data_canvas.repaint();
+				}
+				else
+				{
+					System.out.println("Location value must be from 0 to 30");	
+				}
+				
+			}
+		};
+		set_location_button.addActionListener(set_location_button_handler);
+		set_location_panel.add(set_location_input);
+		set_location_panel.add(set_location_button);
+		set_location_dialog.add(set_location_panel);
+		set_location_dialog.add(set_location_panel);
+		location_menu.add(set_location_item);
+		
+		
+		// A modeless dialog box that shows up if Location->Set Object is selected.		
+		set_object_dialog = new JDialog(frame, "Set Object");
+		JMenuItem set_object_item = new JMenuItem("Set Object");
+		ActionListener set_object_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+						
+				x += canvas_xdim;
+						
+				y += 200;
+
+				set_object_dialog.setLocation(x, y);
+				set_object_dialog.pack();
+				set_object_dialog.setVisible(true);
+			}
+		};
+		set_object_item.addActionListener(set_object_handler);
+		JPanel set_object_panel = new JPanel(new GridLayout(2, 1));
+		JTextField set_object_input             = new JTextField();
+		set_object_input.setHorizontalAlignment(JTextField.CENTER);
+		set_object_input.setText("");
+		JButton set_object_button = new JButton("Set Object");
+		ActionListener set_object_button_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String object_string = set_object_input.getText();
+				int object_id = Integer.parseInt(object_string);
+						
+				if(object_id >= 1 && object_id < 54)
+				{
+					System.out.println("Setting location close to object " + object_id);
+					double[] object_offset = ObjectMapper.getObjectOffsetArray();
+					double   offset        = object_offset[object_id - 1];
+					offset                /= 30.;
+					data_offset            = offset - data_range / 2;
+					
+					// Clear data since we're at a new position.
+					append_data = false;
+					persistent_data = false;
+					sample_information.setText("");	
+					double_slope_output.setText("");
+					triple_slope_output.setText("");
+					startpoint_set = false;
+					midpoint_set = false;
+					endpoint_set = false;
+					
+					// Update location map
+					location_canvas.repaint();
+
+					
+					// Reset scrollbar.
+					int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+					data_scrollbar.setValue(scrollbar_position);
+					
+					// Redraw data.
+					data_canvas.repaint();
+				}
+				else
+				{
+					System.out.println("Object id must be from 1 to 53.");	
+				}
+			}
+		};
+		set_object_button.addActionListener(set_object_button_handler);
+		set_object_panel.add(set_object_input);
+		set_object_panel.add(set_object_button);
+		set_object_dialog.add(set_object_panel);
+		set_object_dialog.add(set_object_panel);
+		location_menu.add(set_object_item);
+		menu_bar.add(location_menu);
+		
+		// End location menu.
+		
+		// Start settings menu.
+		
+		JMenu     settings_menu  = new JMenu("Settings");
 		view_item = new JCheckBoxMenuItem("Reverse View");
 		ActionListener view_handler = new ActionListener()
 		{
@@ -2422,18 +3077,58 @@ public class YFencePlotter
 			color_key_item.setState(true);
 		settings_menu.add(color_key_item);
 		
-		
-		JMenuBar menu_bar = new JMenuBar();
-		menu_bar.add(file_menu);
-		menu_bar.add(format_menu);
-		menu_bar.add(adjustment_menu);
-		menu_bar.add(slope_menu);
-		menu_bar.add(location_menu);
+		// A modeless dialog box that shows up if Settings->Show Data is selected.
+		JPanel information_panel = new JPanel(new BorderLayout());
+		sample_information = new JTextArea(8, 17);
+		information_panel.add(sample_information);
+		information_dialog = new JDialog(frame);
+		information_dialog.add(information_panel);			
+		show_data_item = new JCheckBoxMenuItem("Show Data");
+		ActionListener show_data_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+            {
+            	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            	if(show_data == true)
+				{
+            		show_data = false;
+            		information_dialog.setVisible(false);
+					item.setState(false);
+					
+				}
+				else
+				{
+					Point location_point = frame.getLocation();
+					int x = (int) location_point.getX();
+					int y = (int) location_point.getY();
+									
+					Dimension canvas_dimension = data_canvas.getSize();
+					double    canvas_xdim      = canvas_dimension.getWidth();
+									
+					x += canvas_xdim;
+					information_dialog.setLocation(x, y);
+					information_dialog.pack();
+					information_dialog.setVisible(true);
+					show_data = true;
+					item.setState(true);
+				}
+            }   	
+		};
+		show_data_item.addActionListener(show_data_handler);
+		if(show_data)
+			show_data_item.setState(true);
+		else
+			show_data_item.setState(false);
+		settings_menu.add(show_data_item);		
 		menu_bar.add(settings_menu);
+		// End settings menu.
+		
 		frame.setJMenuBar(menu_bar);
 		frame.getContentPane().add(data_panel, BorderLayout.CENTER);
 		frame.pack();
 		frame.setLocation(400, 200);
+		
+		// End constructor.
 	}
 	
 	class PlotCanvas extends Canvas
@@ -2505,15 +3200,19 @@ public class YFencePlotter
 			int string_height        = font_metrics.getAscent();
 			
 			// Get the indices for the segmented data.
+			// This breaks down when we use a range under a meter.
+			// Would have to change the way the data location works to fix it.
+			// Why we're getting empty sample spaces under a meter.
+			// The actual data is usually  populated up to .25 m.
+			// Might be worth the fix.
 			double data_location  = data_offset * data_length;
 			int    start_location = (int)data_location;
-			int    start_index    = (int)index.get(start_location);
+			int    start_index    = (int)location_index.get(start_location);
 			data_location        += data_range * data_length;
 			int    stop_location  = (int)data_location;
-			int    stop_index     = (int)index.get(stop_location);
-			
-			
-			
+			if(stop_location == location_index.size())
+				stop_location--;
+			int    stop_index     = (int)location_index.get(stop_location);
 			
 			// Find out which flight line(s) the data is located in;
 			int[][] line_array = ObjectMapper.getUnclippedLineArray();
@@ -2534,7 +3233,6 @@ public class YFencePlotter
 			    }
 			}
 			
-			
 			seg_min        = Double.MAX_VALUE;
 			seg_max        = -Double.MAX_VALUE;
 			double seg_xmin       = Double.MAX_VALUE;
@@ -2554,27 +3252,19 @@ public class YFencePlotter
 				if(seg_xmax < sample.y)
 					seg_xmax = sample.y;
 				
-				//Save the unadjusted data in a parallel data structure.
 				sample = (Sample) relative_data.get(i);
 			    ArrayList relative_data_list = (ArrayList)relative_data_array.get(j);
 			    relative_data_list.add(sample);
 			}
 			
-			//System.out.println("Segment min is " + seg_min);
-			//System.out.println("Segment max is " + seg_max);
-			
-			//System.out.println("Minimum y is " + minimum_y);
-			//System.out.println("Maximum y is " + maximum_y);
-			
 			if(!data_clipped)
 			{
-				//System.out.println("Data is not being clipped.");
-				//System.out.println("Setting min/max to local min/max.");
 				minimum_y = seg_min;
 				maximum_y = seg_max;
 			}
 			
 			//Not really helpful.
+			/*
 			for(int i = 0; i < number_of_segments; i++)
 			{
 				 ArrayList data_list = (ArrayList)data_array.get(i);	
@@ -2585,7 +3275,7 @@ public class YFencePlotter
 				 slope[i]           = rise / run;
 				 //System.out.println("Line " + i + " has slope " + slope[i]);
 			}
-			//System.out.println();
+			*/
 			
 			double max_xstep         = (xdim - (left_margin + right_margin)) / number_of_segments;
 			int    xstep             = (int) (max_xstep * normal_xstep);
@@ -2942,10 +3632,6 @@ public class YFencePlotter
 			ArrayList plot_data = new ArrayList();
 			
 			
-			//System.out.println("Number of smoothing iterations is " + smooth);
-			//System.out.println("The original minimum y was " + minimum_y);
-			//System.out.println("The original maximum y was " + maximum_y);
-			
 			double smooth_maximum_y = -Double.MAX_VALUE;
 			double smooth_minimum_y = Double.MAX_VALUE;
 			
@@ -2968,6 +3654,12 @@ public class YFencePlotter
 				double current_intensity_range = maximum_y - minimum_y;
 				
 				ArrayList data_list = (ArrayList)data_array.get(i);
+				
+				if(data_list.size() == 0)
+				{
+					System.out.println("No samples in sample space.");
+					return;
+				}
 				ArrayList plot_list = new ArrayList();
 				
 				
@@ -2984,7 +3676,6 @@ public class YFencePlotter
 						point.y = maximum_y;
 					plot_list.add(point);
 				}
-				
 				
 				Point2D.Double start_point = (Point2D.Double) plot_list.get(0);
 				Point2D.Double end_point   = (Point2D.Double) plot_list.get(plot_list.size() - 1);
@@ -3043,8 +3734,10 @@ public class YFencePlotter
 			// If we want to keep track of how much the smoothing narrows the dynamic range.
 			if(smooth != 0)
 			{
-				//System.out.println("The minimum y after smoothing was " + smooth_minimum_y);
-				//System.out.println("The maximum y after smoothing was " + smooth_maximum_y);	
+				System.out.println("The minimum y was " + String.format("%.2f", seg_min));
+				System.out.println("The maximum y was " + String.format("%.2f", seg_max));
+				System.out.println("The minimum y after smoothing was " + String.format("%.2f", smooth_minimum_y));
+				System.out.println("The maximum y after smoothing was " + String.format("%.2f", smooth_maximum_y));	
 			}
 			
 			
@@ -3307,14 +4000,16 @@ public class YFencePlotter
 				local_max -= yaddend;
 				
 				x[m] = a2;
-				// If we want to set the base of the local min.
-				//y[m] = (int)local_min;
+				// If we want to set the base to the local min.
+				// y[m] = (int)local_min;
+				// Setting base to global_min.
 				y[m] = b1;
 				m++;
 
 				x[m] = a1;
-				// If we want to set the base of the local min.
-				//y[m] = (int)local_min;
+				// If we want to set the base to the local min.
+				// y[m] = (int)local_min;
+				// Setting base to global_min.
 				y[m] = b1;
 				m++;
 				
@@ -3735,65 +4430,11 @@ public class YFencePlotter
 			g.drawImage(buffered_image, 0, 0, null);
 			
 			// Restore our bounding values.
-			// Could set this up without any boolean.
+			// Could set this up without any boolean and without modifying global values.
 			if(data_scaled)
 			{
 				minimum_y *= scale_factor;
 				maximum_y *= scale_factor;
-			}
-		}
-	}
-	
-	class DataSliderHandler implements ChangeListener
-	{
-		public void stateChanged(ChangeEvent e)
-		{
-			if (data_scrollbar_changing == false)
-			{
-				data_slider_changing = true;
-				RangeSlider slider = (RangeSlider) e.getSource();
-				if(slider.getValueIsAdjusting() == false)
-				{
-					int value = slider.getValue();
-					int upper_value = slider.getUpperValue();
-					if(value == upper_value)
-					{
-						if(value == slider.getMaximum())
-						{
-							value--;
-							slider.setValue(value);
-						}
-						else
-						{
-							upper_value++;
-							slider.setUpperValue(upper_value);
-						}
-					}
-					double start = (double) value;
-					double stop = (double) upper_value;
-					double range = (stop - start) / slider_resolution;
-					start /= slider_resolution;
-					stop /= slider_resolution;	
-					data_offset = start;
-					data_range  = range;
-					double scrollbar_position = start + range / 2;
-					scrollbar_position *= scrollbar_resolution;
-					data_scrollbar.setValue((int)scrollbar_position);
-					data_slider_changing = false;
-					
-					
-					append_data = false;
-					persistent_data = false;
-					sample_information.setText("");
-					
-					slope_output.setText("");
-					startpoint_set = false;
-					midpoint_set = false;
-					endpoint_set = false;
-					
-					data_canvas.repaint();
-					location_canvas.repaint();
-				}
 			}
 		}
 	}
@@ -3804,61 +4445,42 @@ public class YFencePlotter
 		{
 			if (data_scrollbar.getValueIsAdjusting() == false)
 			{
-				if (data_slider_changing == false)
+				JScrollBar scrollbar    = (JScrollBar) event.getSource();
+				double normal_position  = (double) event.getValue();
+				
+				// Calculate the new offset.
+				normal_position         /= scrollbar_resolution;
+				double normal_start     = data_offset; 
+				double normal_stop      = normal_start + data_range; 
+				normal_start = normal_position - data_range / 2;
+				normal_stop = normal_start + data_range;
+				if(normal_start < 0)
 				{
-					data_scrollbar_changing = true;
-					
-					JScrollBar scrollbar    = (JScrollBar) event.getSource();
-					double normal_position  = (double) event.getValue();
-					normal_position         /= scrollbar_resolution;
-					double normal_start     = data_offset; 
-					double normal_stop      = normal_start + data_range; 
-					normal_start = normal_position - data_range / 2;
-					normal_stop = normal_start + data_range;
-					if(normal_start < 0)
-					{
-						normal_start = 0;
-						normal_stop  = data_range;
-					}
-					else if(normal_stop > 1)
-					{
-						normal_stop = 1;
-						normal_start = 1 - data_range;
-					}
-		
-					boolean moving_down = true;
-					if(normal_start >  data_offset)
-						moving_down = false;
-					data_offset   = normal_start;
-					normal_start *= slider_resolution;
-					normal_stop  *= slider_resolution;
-					int start     = (int)normal_start;
-					int stop      = (int)normal_stop;
-					int error = 0;
-					if(moving_down)
-					{
-					    data_slider.setValue(start);
-					    data_slider.setUpperValue(stop);
-					}
-					else
-					{
-					    data_slider.setUpperValue(stop);
-					    data_slider.setValue(start);
-					}
-					data_scrollbar_changing = false;
-					
-					append_data = false;
-					persistent_data = false;
-					sample_information.setText("");
-					
-					slope_output.setText("");
-					startpoint_set = false;
-					midpoint_set = false;
-					endpoint_set = false;
-					
-					data_canvas.repaint();
-					location_canvas.repaint();
+					normal_start = 0;
+					normal_stop  = data_range;
 				}
+				else if(normal_stop > 1)
+				{
+					normal_stop = 1;
+					normal_start = 1 - data_range;
+				}
+				data_offset   = normal_start;
+				
+				// Clear data since we're at a new position.
+				append_data = false;
+				persistent_data = false;
+				sample_information.setText("");	
+				double_slope_output.setText("");
+				triple_slope_output.setText("");
+				startpoint_set = false;
+				midpoint_set = false;
+				endpoint_set = false;
+				
+				// Update location map
+				location_canvas.repaint();
+				
+				//Redraw data.
+				data_canvas.repaint();
 			}
 		}
 	}
@@ -3871,7 +4493,6 @@ public class YFencePlotter
 			if(button == 1)
 			{
 			    persistent_data = true;
-			    // Not making this a separate action.
 			    append_data     = true;
 			    data_canvas.repaint();
 			}
@@ -3882,7 +4503,6 @@ public class YFencePlotter
 				if(append_data)
 				{
 				    append_data = false;
-				    //append_data_item.setState(false);
 				    data_canvas.repaint();
 				}
 			}
@@ -3992,6 +4612,26 @@ public class YFencePlotter
 					// Blank information panel when a pixel is traversed that is not associated with data.
 					sample_information.setText("");
 			}
+		}
+	}
+	
+	class CompassCanvas extends Canvas
+	{
+		int top_margin    = 2;
+		int bottom_margin = 4;
+		int left_margin   = 4;
+		int right_margin  = 2;
+		public void paint(Graphics g)
+		{
+			Rectangle visible_area = g.getClipBounds();
+			int xdim = (int) visible_area.getWidth();
+			int ydim = (int) visible_area.getHeight();
+			Graphics2D g2 = (Graphics2D) g;
+			Font current_font = g2.getFont();
+			FontMetrics font_metrics = g2.getFontMetrics(current_font);
+			g2.setColor(java.awt.Color.WHITE);
+			g2.fillRect(0, 0, xdim, ydim);
+
 		}
 	}
 	
@@ -4123,11 +4763,14 @@ public class YFencePlotter
 			
 			double data_location  = data_offset * data_length;
 			int    start_location = (int)data_location;
-			int    start_index    = (int)index.get(start_location);
+			int    start_index    = (int)location_index.get(start_location);
 			
 			data_location        += data_range * data_length;
 			int    stop_location  = (int)data_location;
-			int    stop_index     = (int)index.get(stop_location);
+			if(stop_location == location_index.size())
+				stop_location--;
+			int    stop_index     = (int)location_index.get(stop_location);
+			
 			
 			Sample sample = (Sample) relative_data.get(2);
 			
@@ -4173,12 +4816,14 @@ public class YFencePlotter
 				x *= xfactor;
 				y *= yfactor;
 				y = ydim - y;
+				
 				graphics_buffer.setColor(java.awt.Color.RED);
 				graphics_buffer.fillOval((int)(x - 1), (int)(y - 1), 3, 3);
 				// If we want target numbers.
 				graphics_buffer.setColor(java.awt.Color.BLACK);
 				String object_string = Integer.toString(i + 1); 
 				graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
+				
 			}
 			
 			int current_xlocation       = (int)(xlocation * (xdim - 1));
@@ -4291,11 +4936,11 @@ public class YFencePlotter
 				    {
 					    double data_location  = data_offset * data_length;
 					    int    start_location = (int)data_location;
-					    int    start_index    = (int)index.get(start_location);
+					    int    start_index    = (int)location_index.get(start_location);
 					
 					    data_location        += data_range * data_length;
 					    int    stop_location  = (int)data_location;
-					    int    stop_index     = (int)index.get(stop_location);
+					    int    stop_index     = (int)location_index.get(stop_location);
 					
 					    for(int i = start_index; i < stop_index; i += 5)
 					    {
@@ -4305,6 +4950,7 @@ public class YFencePlotter
 						        String xlocation = String.format("%.2f", sample.x);
 						        String ylocation = String.format("%.2f", sample.y);
 						        String intensity = String.format("%.2f", sample.intensity);
+						        output.print(xlocation + " " + ylocation + " " + intensity + " ");
 						    }
 						    output.println();
 					    } 	
