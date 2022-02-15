@@ -11,40 +11,72 @@ import javax.swing.event.*;
 
 public class ZFencePlotter
 {
+	// Entire data set in interleaved format.
+	public ArrayList   data          = new ArrayList(); // Adjusted sample data for wand plot.
+	public ArrayList   relative_data = new ArrayList(); // Unadjusted sample data for calculations.
+	
+	// Data segments seperated by sensor, attached to these arrays as lists.
+	ArrayList data_array;         // Adjusted sample data for wand plot, from which smoothed segments are extracted.
+	ArrayList relative_data_array; // Unadjusted and possibly smoothed sample data for calculations.
+	
+	// Information we collect at start up.
+	public double      global_xmin, global_xmax;
+	public double      global_ymin, global_ymax;
+	public double      global_intensity_min, global_intensity_max;
+	
+	// Values that determine a data segment.
+	public double      data_offset  = .0;
+	public double      data_range   = .002;
+	
+	// Local min/max for current data segment.
+	public double      seg_min, seg_max;
+	
+	// Arbitrary values when not graphing all values and/or not using entire display area.
+	public double      clipped_min, clipped_max;
+	
+	// Keeping point values in a convenient form for smoothing.
+	public double[]    adjusted_xpoint;
+	public double[]    adjusted_ypoint;
+	public double[]    adjusted_zpoint;
+	
+	public double[]    relative_xpoint;
+	public double[]    relative_ypoint;
+	public double[]    relative_zpoint;
+	
+	// An array that keeps track of what data is associated 
+	// with what part of the graph.
+	ArrayList[][]      pixel_data;
+	
+	// An array of indices to object locations.
+	public ArrayList   object_index         = new ArrayList();
+	
+	
+	
+	
+	
 	public PlotCanvas  data_canvas;
 	public JScrollBar  data_scrollbar;
 	public RangeSlider dynamic_range_slider;
 	public DynamicRangeCanvas dynamic_range_canvas;
 	public JFrame      frame;
 	public LocationCanvas location_canvas;
-	public double      global_xmin, global_xmax, global_ymin, global_ymax, global_intensity_min, global_intensity_max;
-	public double      seg_min, seg_max;
-	public double      clipped_min, clipped_max;
+	
+	
 	public int         slider_resolution    = 2640;
 	public int         scrollbar_resolution = 2640;
 	public int         data_length          = 2640;
 	public Color[]     fill_color           = new Color[10];
 	public Color[]     outline_color        = new Color[10];
-	public ArrayList   relative_data        = new ArrayList();
-	public ArrayList   relative_smooth_data = new ArrayList();
-	public ArrayList   data                 = new ArrayList();
-	public ArrayList   location_index       = new ArrayList();
-	public ArrayList   object_index         = new ArrayList();
-	public double      data_offset          = .0;
-	public double      data_range           = .002;
+	
+	
+	
 	public double      normal_xstep         = .5;
 	public double      normal_ystep         = .5;
 	public double      xlocation            = .5;
 	public double      ylocation            = .5;	
 	public int         x_remainder          = 0;
 	public int         y_remainder          = 0;
-	public double[]    adjusted_xpoint;
-	public double[]    adjusted_ypoint;
-	public double[]    adjusted_zpoint;
-	public double[]    relative_xpoint;
-	public double[]    relative_ypoint;
-	public double[]    relative_zpoint;
-	ArrayList[][]      pixel_data;
+	
 	
 	int                start_flight_line    = 0;
 	int                stop_flight_line     = 0;
@@ -180,7 +212,7 @@ public class ZFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.7 of wand.");
+			System.out.println("This is version 3.7.1 of wand.");
 			try
 			{
 				try
@@ -576,6 +608,7 @@ public class ZFencePlotter
 				scrollbar_resolution = data_length;
 				
 				// Location 0 m is at index 0.
+				/*
 				int current_index = 0;
 				location_index.add(current_index);
 				
@@ -599,10 +632,7 @@ public class ZFencePlotter
 						}
 					}
 				}
-				// Any odd fraction of a meter is clipped, or will not correspond to a full i + 1 meters.
-				// Will not add the final index, although it might be randomly included.
-				
-				
+				*/
 				
 				Sample init_sample = (Sample)relative_data.get(2);
 				double init_x      = init_sample.x;
@@ -616,6 +646,7 @@ public class ZFencePlotter
 					object_location[i][1] -= global_ymin;
 				}
 				
+				// Need to understand why this doesn't work.
 				for(int i = 0; i < number_of_objects; i++)
 				{
 					double distance = getDistance(init_x, init_y, object_location[i][0], object_location[i][1]);
@@ -963,69 +994,23 @@ public class ZFencePlotter
 				
 				try (PrintWriter output = new PrintWriter(current_directory + filename + ".txt"))
 			    {
-					// Maybe why we are getting empty sample spaces under a meter.
-					// A meter usually has two or three dozen samples or more, but we are
-					// coming up empty in some spots.  Would expect to get samples down to half 
-					// a meter.
-					
-					// Check behaviour against XFence which does not use indices like this.
-					// Also try getting an index every half meter, or the targeted higher resolution.
-					// We are getting indices at 1 meter intervals.
-					
-				    double data_location  = data_offset * data_length;
-				    int    start_location = (int)data_location;
-				    int    start_index    = (int)location_index.get(start_location);
-				    int    start_line     = 0;
-				    int previous_index    = line[0][0];
-				    int current_index     = line[1][0];
-				    outer1: for(int i = 0; i < line.length - 1; i++)
-				    {
-				        if(start_index >= previous_index && start_index < current_index)  
-				        	break outer1;
-				        else
-				        {
-				            start_line++;
-				            previous_index = current_index;
-				            current_index  = line[i + 1][0];		
-				        }	
-				    }
-				   
-				    data_location        += data_range * data_length;
-				    int    stop_location  = (int)data_location;
-				    int    stop_index     = (int)location_index.get(stop_location);
-				    int    stop_line      = 0;
-				    previous_index    = line[0][0];
-				    current_index     = line[1][0];
-				    outer2: for(int i = 0; i < line.length - 1; i++)
-				    {
-				        if(stop_index > previous_index && stop_index <= current_index)  
-				        	break outer2;
-				        else
-				        {
-				            stop_line++;
-				            previous_index = current_index;
-				            current_index  = line[i + 1][1];		
-				        }	
-				    }
-				    
-				    
 				    // Separate the sensor information into separate blocks.
 				    // This is a format that makes gnuplot easier to use,
-				    // especially fence plots.
+				    // especially making fence plots.
 				    int number_of_sensors = 5;
-				    
 				    for(int i = 0; i < number_of_sensors; i++)
 				    {
-				    	output.println("#Sensor " + i + ", Line " + start_line);
-				        for(int j = start_index; j < stop_index; j += 5)
+				    	ArrayList relative_data_list = (ArrayList)relative_data_array.get(i);
+				    	output.println("#Sensor " + i + ", Line " + start_flight_line);
+				        for(int j = 0; j < relative_data_list.size(); j++)
 				        {
-						        Sample sample    = (Sample)relative_data.get(j + i);
+						        Sample sample    = (Sample)relative_data_list.get(j);
 						        String xlocation = String.format("%.2f", sample.x);
 						        String ylocation = String.format("%.2f", sample.y);
 						        String intensity = String.format("%.2f", sample.intensity);
 						        output.println(xlocation + " " + ylocation + " " + intensity);
 						}
-				        output.println("#Sensor " + i + ", Line " + stop_line);
+				        output.println("#Sensor " + i + ", Line " + stop_flight_line);
 					    output.println();
 					    output.println();
 				    } 
@@ -1045,10 +1030,6 @@ public class ZFencePlotter
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				// Line indices to help us figure out where an index falls.
-				int[][] line = ObjectMapper.getUnclippedLineArray();
-		        
-				
 				FileDialog file_dialog = new FileDialog(frame, "Save Fenceplot", FileDialog.SAVE);
 		        file_dialog.setVisible(true);
 		        String filename = file_dialog.getFile();
@@ -1064,97 +1045,61 @@ public class ZFencePlotter
 				
 				try (PrintWriter output = new PrintWriter(current_directory + filename + ".txt"))
 			    {
-					// We are using indices so we don't have to scan the data for locations.
-					// Might be why we are getting empty sample spaces under a meter.
-					// A meter usually has two or three dozen samples or more, but we are
-					// coming up empty in some spots.  Would expect to get samples down to half 
-					// a meter.
-					
-					// Check behaviour against XFence which does not use indices like this.
-					// Also try getting an index every half meter, or the targeted higher resolution.
-					// We are getting indices at 1 meter intervals.
-					
-				    double data_location  = data_offset * data_length;
-				    int    start_location = (int)data_location;
-				    int    start_index    = (int)location_index.get(start_location);
-				    int    start_line     = 0;
-				    int previous_index    = line[0][0];
-				    int current_index     = line[1][0];
-				    outer1: for(int i = 0; i < line.length - 1; i++)
-				    {
-				        if(start_index >= previous_index && start_index < current_index)  
-				        	break outer1;
-				        else
-				        {
-				            start_line++;
-				            previous_index = current_index;
-				            current_index  = line[i + 1][0];		
-				        }	
-				    }
-				   
-				    data_location        += data_range * data_length;
-				    int    stop_location  = (int)data_location;
-				    int    stop_index     = (int)location_index.get(stop_location);
-				    int    stop_line      = 0;
-				    previous_index    = line[0][0];
-				    current_index     = line[1][0];
-				    outer2: for(int i = 0; i < line.length - 1; i++)
-				    {
-				        if(stop_index > previous_index && stop_index <= current_index)  
-				        	break outer2;
-				        else
-				        {
-				            stop_line++;
-				            previous_index = current_index;
-				            current_index  = line[i + 1][1];		
-				        }	
-				    }
-				    
-				    
-				    
 				    // The information that we want ahead of time to
 				    // add bottom corners to make a fence plot is
 				    // the minimum intensity.
-				    Sample init_sample   = (Sample) relative_data.get(start_index);
-				    double min_intensity = init_sample.intensity;  
-				    for(int i = start_index + 1; i < stop_index; i ++)
-			        {
-					        Sample sample  = (Sample)relative_data.get(i);
-					        if(sample.intensity < min_intensity)
-					        	min_intensity = sample.intensity;
-			        }
-				    String intensity_min = String.format("%.2f", min_intensity);
-				    // Separate the sensor information into separate blocks.
-				    // This is a format that makes gnuplot easier to use,
-				    // especially fence plots.
-				    int number_of_sensors = 5;
-				    
-				    for(int i = 0; i < number_of_sensors; i++)
+					
+					// We could use the minimums from each sensor to theoretically display
+					// more information, but it can be confusing to understand.
+					
+					// We use the minimum from all the sensors.
+					// First set the value to the maximum in the data set,
+					// then find the actual value.
+					double min_intensity = 200;
+					int number_of_sensors = 5;
+					for(int i = 0; i < number_of_sensors; i++)
 				    {
-				    	output.println("#Sensor " + i + ", Line " + start_line);
+				    	ArrayList relative_data_list = (ArrayList)relative_data_array.get(i);
+				        for(int j = 0; j < relative_data_list.size(); j++)
+				        {
+				        	Sample sample = (Sample)relative_data_list.get(j);    
+				        	if(sample.intensity < min_intensity)
+				        	     min_intensity = sample.intensity;
+				        }
+				    }
+					System.out.println("Minimum intensity is " + String.format("%.2f", min_intensity));
+				
+					for(int i = 0; i < number_of_sensors; i++)
+				    {
+						output.println("#Sensor " + i + ", Line " + start_flight_line);
+				    	ArrayList relative_data_list = (ArrayList)relative_data_array.get(i);
+				    	Sample start_sample           = (Sample) relative_data_list.get(0);
 				    	
-				    	Sample start_sample = (Sample) relative_data.get(i);
 				    	String xlocation = String.format("%.2f", start_sample.x);
 				        String ylocation = String.format("%.2f", start_sample.y);
-				    	output.println(xlocation + " " + ylocation + " " + intensity_min);
+				    	output.println(xlocation + " " + ylocation + " " + String.format("%.2f", min_intensity));
 				    	String intensity = String.format("%.2f", start_sample.intensity);
 				    	output.println(xlocation + " " + ylocation + " " + intensity);
-				        for(int j = start_index + 1; j < stop_index; j += 5)
+				    	
+				        for(int j = 1; j < relative_data_list.size(); j++)
 				        {
-						        Sample sample    = (Sample)relative_data.get(j + i);
+						        Sample sample    = (Sample)relative_data_list.get(j);
 						        xlocation = String.format("%.2f", sample.x);
 						        ylocation = String.format("%.2f", sample.y);
 						        intensity = String.format("%.2f", sample.intensity);
 						        output.println(xlocation + " " + ylocation + " " + intensity);
 						}
-				        Sample end_sample = (Sample) relative_data.get(stop_index - (5 - i));
-				        xlocation = String.format("%.2f", end_sample.x);
+				        
+				        int    size                  = relative_data_list.size();
+				    	Sample end_sample            = (Sample) relative_data_list.get(size - 1);
+				    	xlocation = String.format("%.2f", end_sample.x);
 				        ylocation = String.format("%.2f", end_sample.y);
-				    	output.println(xlocation + " " + ylocation + " " + intensity_min);
+				    	output.println(xlocation + " " + ylocation + " " + String.format("%.2f", min_intensity));
 				    	xlocation = String.format("%.2f", start_sample.x);
 				        ylocation = String.format("%.2f", start_sample.y);
-				    	output.println(xlocation + " " + ylocation + " " + intensity_min);
-				        output.println("#Sensor " + i + ", Line " + stop_line);
+				    	output.println(xlocation + " " + ylocation + " " + String.format("%.2f", min_intensity));
+				        
+				        output.println("#Sensor " + i + ", Line " + stop_flight_line);
 					    output.println();
 					    output.println();
 				    } 
@@ -3138,11 +3083,10 @@ public class ZFencePlotter
 	
 	class PlotCanvas extends Canvas
 	{
-		ArrayList data_array;
-		ArrayList relative_data_array;
 		
 		
-		int       number_of_segments = 5;
+		
+		
 		
 		PlotCanvas()
 		{
@@ -3151,6 +3095,7 @@ public class ZFencePlotter
 			// and the relative data array is the information we display in the graph.
 			data_array = new ArrayList();
 			relative_data_array = new ArrayList();
+			int       number_of_segments = 5;
 			for(int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList data_list = new ArrayList();
@@ -3186,6 +3131,7 @@ public class ZFencePlotter
 					pixel_data[i][j] = new ArrayList();
 			
 			// Remember to clear any previous segments.
+			int    number_of_segments = 5;
 			for(int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList data_list = (ArrayList)data_array.get(i);
@@ -3204,48 +3150,6 @@ public class ZFencePlotter
 			// We also use string_width which varies.
 			int string_height        = font_metrics.getAscent();
 			
-			// We were using a location index so we did not have to scan the data
-			// to pull out specific segments, but since we are working now with data
-			// that has been smoothed an arbitrary amount, the indices will no longer
-			// be precise.  Also, we can just use the normals data_offset and data_range to
-			// get flight lines nearly as accurately as using the line index, and we will
-			// not have to be concerned about imprecise indices in that case either.
-			// We'll go back to scanning the data everytime to get indices which is
-			// what the fence program does.  Slower, but also solves the problem of 
-			// data ranges less than 1 meter not working which would have required a 
-			// higher resolution location index.
-			
-			/*
-			double data_location  = data_offset * data_length;
-			int    start_location = (int)data_location;
-			int    start_index    = (int)location_index.get(start_location);
-			data_location        += data_range * data_length;
-			int    stop_location  = (int)data_location;
-			if(stop_location == location_index.size())
-				stop_location--;
-			int    stop_index     = (int)location_index.get(stop_location);
-			
-			// Find out which flight line(s) the data is located in;
-			int[][] line_array = ObjectMapper.getUnclippedLineArray();
-			for(int i = 0; i < line_array.length; i++)
-			{
-			    if(start_index < line_array[i][1])	
-			    {
-			        start_flight_line = i;
-			        break;
-			    }
-			}
-			for(int i = 0; i < line_array.length; i++)
-			{
-			    if(stop_index < line_array[i][0])	
-			    {
-			        stop_flight_line = i - 1;
-			        break;
-			    }
-			}
-			*/
-			
-			
 			// Get the flight lines to label the graph.
 			// Assume a flight line is 1/30 of the data, 
 			// which is only approximately true.
@@ -3253,6 +3157,8 @@ public class ZFencePlotter
 			double stop_location  = (data_offset + data_range) * 30;
 			start_flight_line = (int)Math.floor(start_location);
 			stop_flight_line = (int)Math.floor(stop_location);
+			
+			// Start data segmentation.
 			
 			// Get start and stop locations in terms of the entire data set.
 			int start_index = 0;
@@ -3267,9 +3173,7 @@ public class ZFencePlotter
 			double seg_xmax = 0; 
 			
 			
-			
-			// Initialize data lists from smoothed data
-			if(smooth != 0)
+			if(smooth != 0) // Initialize data lists from smoothed data
 			{
 			    double[] smooth_adjusted_x = smooth(adjusted_xpoint, smooth);
 			    double[] smooth_adjusted_y = smooth(adjusted_ypoint, smooth);	
@@ -3299,8 +3203,6 @@ public class ZFencePlotter
 			    
 			    for(int i = start_index; i < stop_index; i++)
 				{
-					//Sample sample = (Sample) data.get(i);
-			    	
 			    	Sample adjusted_sample = new Sample(smooth_adjusted_x[i], smooth_adjusted_y[i], smooth_adjusted_z[i]);
 					int j = i % 5;
 				    ArrayList data_list = (ArrayList)data_array.get(j);
@@ -3319,8 +3221,6 @@ public class ZFencePlotter
 				    ArrayList relative_data_list = (ArrayList)relative_data_array.get(j);
 				    relative_data_list.add(relative_sample);
 				}
-				
-			    
 			}
 			else // Initialize data lists from unsmoothed data.
 			{
@@ -3334,7 +3234,6 @@ public class ZFencePlotter
 				    }
 				}
 				
-				
 				for(int i = start_index; i < data.size(); i++)
 				{
 				    Sample sample = (Sample)data.get(i);
@@ -3345,7 +3244,6 @@ public class ZFencePlotter
 				    }
 				} 
 				
-			
 				for(int i = start_index; i < stop_index; i++)
 				{
 					Sample sample = (Sample) data.get(i);
@@ -3364,7 +3262,6 @@ public class ZFencePlotter
 				    ArrayList relative_data_list = (ArrayList)relative_data_array.get(j);
 				    relative_data_list.add(sample);
 				}
-				
 			}
 			
 			if(!data_clipped)
@@ -3372,6 +3269,15 @@ public class ZFencePlotter
 				minimum_y = seg_min;
 				maximum_y = seg_max;
 			}
+			
+			// End data segmentation.
+			
+			
+			
+			
+			
+			
+			// Start graph.
 			
 			double max_xstep         = (xdim - (left_margin + right_margin)) / number_of_segments;
 			int    xstep             = (int) (max_xstep * normal_xstep);
@@ -3390,7 +3296,6 @@ public class ZFencePlotter
 			else
 				x_remainder = 0;
 
-			
 			if(ystep == max_ystep && xstep == 0)
 			{
 			    graph_ydim -= 20;
@@ -4773,19 +4678,37 @@ public class ZFencePlotter
 			graphics_buffer.setColor(java.awt.Color.WHITE);
 			graphics_buffer.fillRect(0, 0, xdim, ydim);
 			
-			double data_location  = data_offset * data_length;
-			int    start_location = (int)data_location;
-			int    start_index    = (int)location_index.get(start_location);
-			
-			data_location        += data_range * data_length;
-			int    stop_location  = (int)data_location;
-			if(stop_location == location_index.size())
-				stop_location--;
-			int    stop_index     = (int)location_index.get(stop_location);
-			
-			
+			// Check the start and stop y values from one of the data lists.
+			ArrayList data_list = (ArrayList)data_array.get(0);
+		   
+			Sample init_sample = (Sample)data_list.get(0);
+			double start_y = init_sample.y;
+			int size = data_list.size();
+			Sample end_sample = (Sample)data_list.get(size - 1);
+			double stop_y = end_sample.y;
+			size = data.size();
+			int start_index = 0;
+			for(int i = 0; i < size; i += 5)
+			{
+			    Sample current_sample = (Sample)data.get(i); 
+			    if(current_sample.y >= start_y)
+			    {
+			    	start_index = i;
+			    	break;
+			    }
+			}
+			int stop_index = 0;
+			for(int i = 0; i < size; i += 5)
+			{
+			    Sample current_sample = (Sample)data.get(i); 
+			    if(current_sample.y >= stop_y)
+			    {
+			    	stop_index = i;
+			    	break;
+			    }
+			}
+		
 			Sample sample = (Sample) relative_data.get(2);
-			
 			int previous_x = (int)(sample.x * xfactor);
 		    int previous_y = (int)(sample.y * yfactor);
 		    previous_y     = ydim - previous_y;
@@ -4913,85 +4836,6 @@ public class ZFencePlotter
 			{
 				g2.setColor(java.awt.Color.WHITE);
 				g2.fillRect(0, 0, xdim, ydim);
-			}
-		}
-	}
-
-	class SaveHandler implements ActionListener
-	{
-		public void actionPerformed(ActionEvent ev)
-		{
-			FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
-			file_dialog.setVisible(true);
-			String filename = file_dialog.getFile();
-			if (filename != "")
-			{
-				String current_directory = file_dialog.getDirectory();
-				StringTokenizer filename_tokenizer = new StringTokenizer(filename, ".");
-				int number_of_tokens = filename_tokenizer.countTokens();
-				if(number_of_tokens != 2)
-				{
-					System.out.println("Filename requires .txt or .png extension.");
-					return;
-				}
-				String name = filename_tokenizer.nextToken();
-				String extension = filename_tokenizer.nextToken();
-				if(!extension.equals("txt") && !extension.equals("png"))
-				{
-					System.out.println("Filename requires .txt or .fp or .png extension.");
-					return;	
-				}
-				if(extension.equals("txt"))
-				{
-					System.out.println("Writing text file.");
-					try (PrintWriter output = new PrintWriter(current_directory + filename))
-				    {
-					    double data_location  = data_offset * data_length;
-					    int    start_location = (int)data_location;
-					    int    start_index    = (int)location_index.get(start_location);
-					
-					    data_location        += data_range * data_length;
-					    int    stop_location  = (int)data_location;
-					    int    stop_index     = (int)location_index.get(stop_location);
-					
-					    for(int i = start_index; i < stop_index; i += 5)
-					    {
-						    for(int j = i; j < i + 5; j++)
-						    {
-						        Sample sample    = (Sample)relative_data.get(j);
-						        String xlocation = String.format("%.2f", sample.x);
-						        String ylocation = String.format("%.2f", sample.y);
-						        String intensity = String.format("%.2f", sample.intensity);
-						        output.print(xlocation + " " + ylocation + " " + intensity + " ");
-						    }
-						    output.println();
-					    } 	
-					    output.close();
-					} 
-				    catch (Exception ex)
-				    {
-					    System.out.println(ex.toString());
-				    }
-				}
-			    else if(extension.equals("png"))
-				{	
-					int  image_xdim   = buffered_image.getWidth();
-					int  image_ydim   = buffered_image.getHeight();
-					BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
-					Graphics2D    print_buffer = (Graphics2D) print_image.getGraphics(); 
-					FontMetrics   font_metrics = print_buffer.getFontMetrics();
-					print_buffer.drawImage(buffered_image, 0, 0,  null);	
-								
-					try 
-			        {  
-			            ImageIO.write(print_image, "png", new File(current_directory + filename)); 
-			        } 
-			        catch(IOException e) 
-			        {  
-			            e.printStackTrace(); 
-			        } 
-			         
-				}
 			}
 		}
 	}
