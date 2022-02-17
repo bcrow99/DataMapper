@@ -16,8 +16,8 @@ public class ZFencePlotter
 	public ArrayList   relative_data = new ArrayList(); // Unadjusted sample data for calculations.
 	
 	// Data segments segmented by sensor and range, attached to these arrays as lists.
-	ArrayList data_array;         // Adjusted sample data for wand plot, from which smoothed segments are extracted.
-	ArrayList relative_data_array; // Unadjusted and possibly smoothed sample data for calculations.
+	ArrayList data_array = new ArrayList();          // Adjusted sample data for wand plot, from which smoothed segments are extracted.
+	ArrayList relative_data_array = new ArrayList(); // Unadjusted and possibly smoothed sample data for calculations.
 	
 	// Entire data set segmented by sensor
 	ArrayList set_array = new ArrayList();
@@ -30,22 +30,13 @@ public class ZFencePlotter
 	
 	// Values that determine a data segment.
 	public double      data_offset  = .0;
-	public double      data_range   = .002;
+	public double      data_range   = .004;
 	
 	// Local min/max for current data segment.
 	public double      seg_min, seg_max;
 	
 	// Arbitrary values when not graphing all values and/or not using entire display area.
 	public double      clipped_min, clipped_max;
-	
-	// Keeping point values in a convenient form for smoothing.
-	public double[]    adjusted_xpoint;
-	public double[]    adjusted_ypoint;
-	public double[]    adjusted_zpoint;
-	
-	public double[]    relative_xpoint;
-	public double[]    relative_ypoint;
-	public double[]    relative_zpoint;
 	
 	// An array that keeps track of what data is associated 
 	// with what part of the graph.
@@ -213,7 +204,7 @@ public class ZFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.7.1 of wand.");
+			System.out.println("This is version 3.7.2 of wand.");
 			try
 			{
 				try
@@ -718,31 +709,6 @@ public class ZFencePlotter
 				Sample relative_sample = (Sample)data.get(j);
 				relative_data_list.add(sample);
 			}
-		}
-		
-		// Keep x and y and z values available for smoothing.
-		int adjusted_data_size = data.size();
-		adjusted_xpoint = new double[adjusted_data_size];
-		adjusted_ypoint = new double[adjusted_data_size];
-		adjusted_zpoint = new double[adjusted_data_size];
-		for(int i = 0; i < adjusted_data_size; i++)
-		{
-			Sample sample = (Sample)data.get(i);
-			adjusted_xpoint[i] = sample.x;
-			adjusted_ypoint[i] = sample.y;
-			adjusted_zpoint[i] = sample.intensity;
-		}
-		
-		int relative_data_size = relative_data.size();
-		relative_xpoint = new double[relative_data_size];
-		relative_ypoint = new double[relative_data_size];
-		relative_zpoint = new double[relative_data_size];
-		for(int i = 0; i < relative_data_size; i++)
-		{
-			Sample sample = (Sample)relative_data.get(i);
-			relative_xpoint[i] = sample.x;
-			relative_ypoint[i] = sample.y;
-			relative_zpoint[i] = sample.intensity;
 		}
 		
 		// End file input.
@@ -2709,16 +2675,17 @@ public class ZFencePlotter
 					startpoint_set = false;
 					midpoint_set = false;
 					endpoint_set = false;
-					
-					// Update location map
-					location_canvas.repaint();
-					
+
 					// Reset scrollbar.
 					int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
 					data_scrollbar.setValue(scrollbar_position);
 					
-					// Redraw data.
+					// Redraw resegment data.
 					data_canvas.repaint();
+					
+					// Update location map
+					location_canvas.repaint();
+					
 				}
 				else
 				{
@@ -2789,16 +2756,18 @@ public class ZFencePlotter
 					midpoint_set = false;
 					endpoint_set = false;
 					
-					// Update location map
-					location_canvas.repaint();
+					
 
 					
 					// Reset scrollbar.
 					int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
 					data_scrollbar.setValue(scrollbar_position);
 					
-					// Redraw data.
+					// Redraw and resegment data.
 					data_canvas.repaint();
+					// Update location map
+					location_canvas.repaint();
+					
 				}
 				else
 				{
@@ -3065,7 +3034,7 @@ public class ZFencePlotter
 		frame.getContentPane().add(data_panel, BorderLayout.CENTER);
 		frame.pack();
 		frame.setLocation(400, 200);
-		
+	
 		// End constructor.
 	}
 	
@@ -3073,13 +3042,10 @@ public class ZFencePlotter
 	{
 		PlotCanvas()
 		{
-			// We can just do this once and save the garbage collector some work.
 			// The data array is what we use to construct the graph,
 			// and the relative data array is the information we display in the graph.
-			data_array = new ArrayList();
-			relative_data_array = new ArrayList();
-			int       number_of_segments = 5;
-			for(int i = 0; i < number_of_segments; i++)
+			// Add empty lists at startup.
+			for(int i = 0; i < 5; i++)
 			{
 				ArrayList data_list = new ArrayList();
 				data_array.add(data_list);
@@ -3155,12 +3121,53 @@ public class ZFencePlotter
 			
 			if(smooth != 0) // Initialize data lists from smoothed data
 			{
+				// First get indices for the segment from the center sensor.
+				start_index           = 0;
+				stop_index            = 0;
+				boolean start_set     = false;
+				boolean stop_set      = false;
+				boolean setting_index = true;
+				while(setting_index)
+				{
+				    ArrayList source = (ArrayList)set_array.get(2);
+				    int size         = source.size();
+				    double[] y       = new double[size];
+					for(int j = 0; j < size; j++)
+					{
+					    Sample sample = (Sample)source.get(j);
+					    y[j] = sample.y;
+					}
+					double[] smooth_y = smooth(y, smooth);
+					start_index = 0;
+					stop_index  = 0;
+					for(int j = 0; j < smooth_y.length; j++)
+					{
+					    if(y[j] >= start_location && !start_set)
+					    {
+					    	start_index = j;
+					    	start_set   = true;
+					    }
+					    if(y[j] >= stop_location && !stop_set)
+					    {
+					    	stop_index = j;
+					    	stop_set   = true;
+					    	stop_index = j;
+					    }
+					}
+				    setting_index = false;
+				}
+				
 				for(int i = 0; i < 5; i++)
 				{
 					ArrayList source = (ArrayList)set_array.get(i);
 					ArrayList dest   = (ArrayList)data_array.get(i);
-					
 					dest.clear();
+					
+					// Smooth the entire set of adjusted points.
+					// We don't want to shrink the segment by itself because the range contracts,
+					// and we'll need to use a few points outside the range to re-expand it.
+					// Lot of unnecessary points being processed--could check that with
+					// some extra code.
 					
 					int size = source.size();
 					
@@ -3180,16 +3187,40 @@ public class ZFencePlotter
 					double[] smooth_x = smooth(x, smooth);
 					double[] smooth_y = smooth(y, smooth);
 					double[] smooth_z = smooth(z, smooth);
-					
-					int length = smooth_x.length;
-					for(int j = 0; j < length; j++)
+
+					for(int j = start_index; j < stop_index; j++)
 					{
 					    Sample sample = new Sample(smooth_x[j], smooth_y[j], smooth_z[j]);
 					    dest.add(sample);
+					    
+					    // Some tricky stuff here--use the y value for x and the z value
+						// for y in the wand plot.
+					    
+					    // Y
+					    if (seg_min > sample.intensity)
+							seg_min = sample.intensity;
+						if (seg_max < sample.intensity)
+							seg_max = sample.intensity;	
+						
+						// X
+						if(seg_xmin > sample.y)
+							seg_xmin = sample.y;
+						if(seg_xmax < sample.y)
+							seg_xmax = sample.y; 
 					}
+					
+					// Now do a similar thing to the unadjusted data,
+					// using the same indices.
 					
 					source = (ArrayList)relative_set_array.get(i);
 					dest   = (ArrayList)relative_data_array.get(i);
+					
+                    size   = source.size();
+					
+					x = new double[size];
+					y = new double[size];
+					z = new double[size];
+					
 					for(int j = 0; j < size; j++)
 					{
 					    Sample sample = (Sample)source.get(j);
@@ -3197,59 +3228,41 @@ public class ZFencePlotter
 					    y[j] = sample.y;
 					    z[j] = sample.intensity;
 					}
+					
 					smooth_x = smooth(x, smooth);
 					smooth_y = smooth(y, smooth);
 					smooth_z = smooth(z, smooth);
 					
-					for(int j = 0; j < length; j++)
+					for(int j = start_index; j < stop_index; j++)
 					{
 					    Sample sample = new Sample(smooth_x[j], smooth_y[j], smooth_z[j]);
-					    if (seg_min > sample.intensity)
-							seg_min = sample.intensity;
-						if (seg_max < sample.intensity)
-							seg_max = sample.intensity;	
-						if(seg_xmin > sample.y)
-							seg_xmin = sample.y;
-						if(seg_xmax < sample.y)
-							seg_xmax = sample.y; 
 					    dest.add(sample);
 					}
-					//System.out.println("Got here.");
-					System.out.println("Seg min is " + seg_min);
-					System.out.println("Seg max is " + seg_max);
-					System.out.println("Seg xmin is " + seg_xmin);
-					System.out.println("Seg xmax is " + seg_xmax);
 				}
 			}
 			else // Initialize data lists from unsmoothed data.
 			{
-				for(int i = 0; i < data.size(); i++)
+				start_index = 0;
+				stop_index  = 0;
+				
+				boolean start_set = false;
+				boolean stop_set  = false;
+				
+				ArrayList sample_list = (ArrayList)set_array.get(2);
+				for(int i = 0; i < sample_list.size(); i++)
 				{
-				    Sample sample = (Sample)data.get(i);
-				    if(sample.y >= start_location)
+				    Sample sample = (Sample)sample_list.get(i);
+				    if(sample.y >= start_location && !start_set)
 				    {
 				    	start_index = i;
-				    	break;
+				    	start_set   = true;
 				    }
-				}
-				
-				for(int i = start_index; i < data.size(); i++)
-				{
-				    Sample sample = (Sample)data.get(i);
-				    if(sample.y > stop_location)
+				    if(sample.y >= stop_location && !stop_set)
 				    {
 				    	stop_index = i;
-				    	break;
+				    	stop_set   = true;
 				    }
-				} 
-				
-				if(start_index % 5 != 0)
-					start_index -= start_index % 5;
-				start_index /= 5;
-				
-				if(stop_index % 5 != 0)
-					stop_index += stop_index % 5;
-				stop_index  /= 5;
+				}
 				
 				for(int i = 0; i < 5; i++)
 				{
@@ -3265,6 +3278,7 @@ public class ZFencePlotter
 							seg_min = sample.intensity;
 						if (seg_max < sample.intensity)
 							seg_max = sample.intensity;	
+
 						if(seg_xmin > sample.y)
 							seg_xmin = sample.y;
 						if(seg_xmax < sample.y)
@@ -3282,6 +3296,8 @@ public class ZFencePlotter
 				}
 			}
 			
+			
+			
 			if(!data_clipped)
 			{
 				minimum_y = seg_min;
@@ -3289,10 +3305,6 @@ public class ZFencePlotter
 			}
 			
 			// End data segmentation.
-			
-			
-           // System.out.println("Got here.");
-			
 			
 			
 			// Start graph.
@@ -3305,7 +3317,6 @@ public class ZFencePlotter
 			int    ystep             = (int) (max_ystep * normal_ystep);
 			int    graph_ydim        = ydim - (top_margin + bottom_margin) - (number_of_segments - 1) * ystep;
 			
-			System.out.println("Got here.");
 
 			// So that graphs are not butted together.
 			if (xstep == max_xstep && ystep == 0)
@@ -3341,6 +3352,7 @@ public class ZFencePlotter
 				minimum_y /= scale_factor;
 				maximum_y /= scale_factor;
 			}
+			
 			
 			// Layout the isometric space.
 			for (int i = 0; i < number_of_segments; i++)
@@ -3568,7 +3580,6 @@ public class ZFencePlotter
 		    	    graphics_buffer.setStroke(new BasicStroke(1));
 		    	    graphics_buffer.drawLine(a1, b1, a2, b1);
 		    	    
-		    	    
 		    	    if(xstep == max_xstep && ystep == 0)
 		    	        graphics_buffer.drawLine(a1, b1, a1, b2);
 		    	    if(xstep > (max_xstep - 2)  && ystep > (max_ystep - 2))
@@ -3629,7 +3640,6 @@ public class ZFencePlotter
 			}
 			ArrayList plot_data = new ArrayList();
 			
-			
 			double smooth_maximum_y = -Double.MAX_VALUE;
 			double smooth_minimum_y = Double.MAX_VALUE;
 			
@@ -3677,7 +3687,7 @@ public class ZFencePlotter
 				plot_data.add(plot_list);
 			}
 			
-			
+
 			Polygon[] polygon               = new Polygon[number_of_segments];
 			boolean[] polygon_zero_crossing = new boolean[number_of_segments];
 			double[]  polygon_min           = new double[number_of_segments];
@@ -4376,6 +4386,8 @@ public class ZFencePlotter
 		}
 	}
 	
+	// End PlotCanvas
+	
 	class DataScrollbarHandler implements AdjustmentListener
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
@@ -4383,24 +4395,20 @@ public class ZFencePlotter
 			if (data_scrollbar.getValueIsAdjusting() == false)
 			{
 				JScrollBar scrollbar    = (JScrollBar) event.getSource();
-				double normal_position  = (double) event.getValue();
 				
 				// Calculate the new offset.
+				double normal_position  = (double) event.getValue();
 				normal_position         /= scrollbar_resolution;
-				double normal_start     = data_offset; 
-				double normal_stop      = normal_start + data_range; 
-				normal_start = normal_position - data_range / 2;
-				normal_stop = normal_start + data_range;
+				double normal_start     = normal_position - data_range / 2;
 				if(normal_start < 0)
-				{
 					normal_start = 0;
-					normal_stop  = data_range;
-				}
-				else if(normal_stop > 1)
+				double normal_stop      = normal_start + data_range; 
+				if(normal_stop > 1)
 				{
 					normal_stop = 1;
 					normal_start = 1 - data_range;
 				}
+				
 				data_offset   = normal_start;
 				
 				// Clear data since we're at a new position.
