@@ -204,7 +204,7 @@ public class ZFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.7.2 of wand.");
+			System.out.println("This is version 3.7.7 of wand.");
 			try
 			{
 				try
@@ -493,7 +493,7 @@ public class ZFencePlotter
 				catch(Exception e)
 				{
 					System.out.println("Exception trying to read config file.");
-					//System.out.println(e.toString());
+					System.out.println(e.toString());
 					//Could reset to defaults here.
 					config_file_exists = false;
 					
@@ -706,8 +706,8 @@ public class ZFencePlotter
 			{
 				Sample sample = (Sample)data.get(j);
 				data_list.add(sample);
-				Sample relative_sample = (Sample)data.get(j);
-				relative_data_list.add(sample);
+				Sample relative_sample = (Sample)relative_data.get(j);
+				relative_data_list.add(relative_sample);
 			}
 		}
 		
@@ -787,14 +787,17 @@ public class ZFencePlotter
 		            	output.write("AppendLine\t\t" + append_line + "\n");
 		            	output.write("AppendSensor\t" + append_sensor + "\n");
 		            	output.write("AppendX\t\t\t" + String.format("%,.2f", append_x) + "\n");
-		            	output.write("AppendY\t\t\t" + String.format("%,.2f", append_y) + "\n");
+		            	String decimal_string = String.format("%,.2f", append_y);
+		            	output.write("AppendY\t\t\t" + decimal_string.replaceAll(",", "") + "\n");
 		            	output.write("AppendIntensity\t" + String.format("%,.2f", append_intensity) + "\n");
 		            	
-		            	String decimal_string = String.format("%,.2f", append_x_abs);
+		            	decimal_string = String.format("%,.2f", append_x_abs);
 		            	output.write("AppendXAbs\t\t" + decimal_string.replaceAll(",", "") + "\n");
 		            	
 		            	decimal_string = String.format("%,.2f", append_y_abs);
 		            	output.write("AppendYAbs\t\t" + decimal_string.replaceAll(",", "") + "\n");
+		            	
+		            	
 		            	output.write("AppendXPosition\t" + append_x_position + "\n");
 		            	output.write("AppendYPosition\t" + append_y_position + "\n");
 		            	output.write("AppendIndex\t\t" + append_index + "\n");
@@ -862,8 +865,6 @@ public class ZFencePlotter
 		String lower_string = String.format("%.2f", minimum_y);
 		String upper_string = String.format("%.2f", maximum_y);
 		
-		//System.out.println("Lower bound is " + lower_string);
-		//System.out.println("Upper bound is " + upper_string);
 		lower_bound.setText(lower_string);
 		upper_bound.setText(upper_string);
 		
@@ -1528,10 +1529,11 @@ public class ZFencePlotter
 	            	output.write("AppendLine\t\t" + append_line + "\n");
 	            	output.write("AppendSensor\t" + append_sensor + "\n");
 	            	output.write("AppendX\t\t\t" + String.format("%,.2f", append_x) + "\n");
-	            	output.write("AppendY\t\t\t" + String.format("%,.2f", append_y) + "\n");
+	            	String decimal_string = String.format("%,.2f", append_y);
+	            	output.write("AppendY\t\t\t" + decimal_string.replaceAll(",", "") + "\n");
 	            	output.write("AppendIntensity\t" + String.format("%,.2f", append_intensity) + "\n");
 	            	
-	            	String decimal_string = String.format("%,.2f", append_x_abs);
+	            	decimal_string = String.format("%,.2f", append_x_abs);
 	            	output.write("AppendXAbs\t\t" + decimal_string.replaceAll(",", "") + "\n");
 	            	
 	            	decimal_string = String.format("%,.2f", append_y_abs);
@@ -2683,8 +2685,13 @@ public class ZFencePlotter
 					// Redraw resegment data.
 					data_canvas.repaint();
 					
-					// Update location map
-					location_canvas.repaint();
+					
+					// This doesn't always work because
+					// the order that the paint() function
+					// is called is not guaranteed.
+					// Now calling the location canvas paint()
+					// from inside the data canvas paint().
+					//location_canvas.repaint();
 					
 				}
 				else
@@ -2756,18 +2763,17 @@ public class ZFencePlotter
 					midpoint_set = false;
 					endpoint_set = false;
 					
-					
-
-					
 					// Reset scrollbar.
 					int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
 					data_scrollbar.setValue(scrollbar_position);
 					
 					// Redraw and resegment data.
+					System.out.println("Redrawing data canvas.");
 					data_canvas.repaint();
-					// Update location map
-					location_canvas.repaint();
 					
+					//System.out.println("Redrawing location map.");
+					// Update location map
+					//location_canvas.repaint();
 				}
 				else
 				{
@@ -3066,6 +3072,7 @@ public class ZFencePlotter
 			double    canvas_ydim      = canvas_dimension.getHeight();
 			double    entire_area      = canvas_xdim * canvas_ydim;
 			
+
 			if(clipped_area != entire_area)
 			{
 				if(buffered_image != null)
@@ -3156,6 +3163,13 @@ public class ZFencePlotter
 					}
 				    setting_index = false;
 				}
+				
+				
+				
+				
+				
+				
+				
 				
 				for(int i = 0; i < 5; i++)
 				{
@@ -3296,7 +3310,20 @@ public class ZFencePlotter
 				}
 			}
 			
+			//System.out.println("Finished segmenting data.");
 			
+			// Get some information we'll use
+			// to label the x-axis in relative mode.
+			boolean data_increasing = true;
+			ArrayList init_list     = (ArrayList)relative_data_array.get(2);
+			Sample init_sample      = (Sample)init_list.get(0);
+			int size = init_list.size();
+			Sample end_sample       = (Sample)init_list.get(size - 1);
+			if(end_sample.y < init_sample.y)
+			    data_increasing = false;
+			
+			double relative_start_y = init_sample.y;
+			double relative_end_y   = end_sample.y;
 			
 			if(!data_clipped)
 			{
@@ -3662,6 +3689,7 @@ public class ZFencePlotter
 				double current_intensity_range = maximum_y - minimum_y;
 				
 				ArrayList data_list = (ArrayList)data_array.get(i);
+				ArrayList relative_data_list = (ArrayList)relative_data_array.get(i);
 				
 				if(data_list.size() == 0)
 				{
@@ -3802,7 +3830,7 @@ public class ZFencePlotter
 					    sample = (Sample)relative_data_list.get(k);
 					else
 						sample = (Sample)relative_data_list.get(relative_data_list.size() - 1);
-						
+					
 					if (pixel_data_list.size() == 0)
 					{
 						pixel_data_list.add(start_flight_line);
@@ -4090,8 +4118,6 @@ public class ZFencePlotter
 				}
 				else
 				{
-					//if((polygon_zero_crossing[number_of_segments - 1 - i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[i])
-					//if((xstep == max_xstep  || ystep == max_ystep) && visible[i])
 					if(visible[i])
 					{
 						ArrayList plot_list = (ArrayList) plot_data.get(i);
@@ -4199,11 +4225,31 @@ public class ZFencePlotter
 			    current_position = a1;
 			    String width_string;
 			    if(maximum_x > 10)
-			      width_string = String.format("%.1f", maximum_x);
+			    {
+			        if(relative_mode)
+			        {
+			        	width_string = String.format("%.1f", maximum_x);	
+			        }
+			        else
+			        {
+			        	width_string = String.format("%.1f", global_ymin);		
+			        }
+			    }
 			    else
-			    	width_string = String.format("%.2f", maximum_x);
+			    {
+			    	if(relative_mode)
+			        {
+			        	width_string = String.format("%.2f", maximum_x);	
+			        }
+			        else
+			        {
+			        	width_string = String.format("%.2f", global_ymin);		
+			        }	
+			    }
 			    	
 			    int string_width = font_metrics.stringWidth(width_string);
+			    if(!relative_mode)
+			    	string_width *= 2;
 			    xrange           = maximum_x - minimum_x;
 		        int    number_of_units            = (int) (graph_xdim / (string_width + 6));
 		        double current_position_increment = graph_xdim;
@@ -4213,25 +4259,42 @@ public class ZFencePlotter
 		        if(relative_mode)
 		        {
 		            if(maximum_x > 10)
-		                position_string = String.format("%,.1f", current_value);
+		                position_string = String.format("%.2f", relative_start_y);
 		            else
-		        	    position_string = String.format("%,.2f", current_value);
+		        	    position_string = String.format("%.1f", relative_start_y);
+		            current_value = relative_start_y;
 		        }
 		        else
 		        {
-		        	if(maximum_x  + minimum_x > 10)
-		                position_string = String.format("%,.1f", current_value + minimum_x);
+		        	if(maximum_x > 10)
+		                position_string = String.format("%.2f", relative_start_y + global_ymin);
 		            else
-		        	    position_string = String.format("%,.2f", current_value + minimum_x);	
+		        	    position_string = String.format("%.1f", relative_start_y + global_ymin);	
+		        	current_value = relative_start_y + global_ymin;
 		        }
+		        
 		        if(i == 0 || (xstep == max_xstep && ystep == 0) )
 		        {
 		        	// Hanging locations on frontmost graph or all the graphs if they are laid out in a row.
 		        	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
-		            double current_value_increment = xrange / number_of_units;	            
+		        	double current_value_increment = 0;
+		        	
+		        	if(relative_mode)
+		        	{
+		        		ArrayList data_list = (ArrayList)data_array.get(2);
+		        		Sample start_sample = (Sample)data_list.get(0);
+		        		size = data_list.size();
+		        		Sample stop_sample = (Sample)data_list.get(size - 1);
+		                current_value_increment = (stop_sample.y - start_sample.y) / number_of_units;	  
+		        	}
+		        	else
+		        		current_value_increment = xrange / number_of_units;	
 		            for(int j = 0; j < number_of_units; j++)
 		            {
-			            current_value += current_value_increment;
+		            	if(relative_mode && !data_increasing)
+			                current_value -= current_value_increment;
+		            	else 
+		            		current_value += current_value_increment;
 			            current_position += current_position_increment;
 			            if(relative_mode)
 			            {
@@ -4351,27 +4414,32 @@ public class ZFencePlotter
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y += string_height + 2;
-				information_string = new String("  Intensity:   " + append_intensity + "\n");	
+				
+				information_string = new String("  Intensity:   " + String.format("%.2f", append_intensity) + "\n");	
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y           += string_height + 2;
-				String number_string = String.format("%,.2f", append_x);
+				String number_string = String.format("%.2f", append_x);
 				information_string   = new String("  Relative x: " + number_string);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y           += string_height + 2;
-				number_string        = String.format("%,.2f", append_y);
+				number_string        = String.format("%.2f", append_y);
 				information_string   = new String("  Relative y: " + number_string);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y           += string_height + 2;
-				number_string = String.format("%,.2f", append_x_abs);
+				number_string = String.format("%.2f", append_x_abs);
 				information_string   = new String("  Absolute x: " + number_string);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y           += string_height + 2;
-				number_string        = String.format("%,.2f", append_y_abs);
+				number_string        = String.format("%.2f", append_y_abs);
 				information_string   = new String("  Absolute y: " + number_string);
+				graphics_buffer.drawString(information_string, current_x, current_y);
+				
+				current_y           += string_height + 2;
+				information_string   = new String("  Smoothing: " + smooth);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 			}
 			g.drawImage(buffered_image, 0, 0, null);
@@ -4383,6 +4451,7 @@ public class ZFencePlotter
 				minimum_y *= scale_factor;
 				maximum_y *= scale_factor;
 			}
+			location_canvas.repaint();
 		}
 	}
 	
@@ -4786,7 +4855,6 @@ public class ZFencePlotter
 				graphics_buffer.setColor(java.awt.Color.BLACK);
 				String object_string = Integer.toString(i + 1); 
 				graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
-				
 			}
 			
 			int current_xlocation       = (int)(xlocation * (xdim - 1));
