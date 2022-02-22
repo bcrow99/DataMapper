@@ -204,7 +204,7 @@ public class ZFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.7.7 of wand.");
+			System.out.println("This is version 3.7.8 of wand.");
 			try
 			{
 				try
@@ -3419,15 +3419,21 @@ public class ZFencePlotter
 			    graphics_buffer.setStroke(new BasicStroke(1));
 			    current_position = a1;
 			    String width_string;
-			    if(maximum_x > 10)
-			        width_string = String.format("%.1f", maximum_x);
+			    double xrange = maximum_x - minimum_x;
+			    if(relative_mode)
+			    {
+			    	if(xrange > 10)
+			    		width_string = String.format("%.1f", maximum_x);	
+			    	else
+			    		width_string = String.format("%.2f", maximum_x);
+			    }    
 			    else
-			    	width_string = String.format("%.2f", maximum_x);
+			    	width_string = String.format("%.0f", global_ymin);
+			    
 			    	
 			    int string_width = font_metrics.stringWidth(width_string);
 			    int    number_of_units            = (int) (graph_xdim / (string_width + 6));  
-		        double current_position_increment = graph_xdim;
-		        current_position_increment        /= number_of_units;
+		        double current_position_increment = graph_xdim / number_of_units;
 		       
 		        if(i == 0  || (xstep == max_xstep && ystep == 0))
 		        {
@@ -3655,6 +3661,7 @@ public class ZFencePlotter
 				    	    number_of_units   = (int)(graph_xdim / (string_width + 6));  
 				    	    current_increment = graph_xdim;
 				    	    current_increment /= number_of_units;
+				    	    
 				    	    // Creating grid on rear of data space.
 				    	    for(int j = 0; j < number_of_units; j++)
 			                {
@@ -4222,95 +4229,69 @@ public class ZFencePlotter
 				}
 			 
 			    current_value    = 0;
-			    current_position = a1;
 			    String width_string;
-			    if(maximum_x > 10)
+			   
+			    xrange = maximum_x - minimum_x;
+			    if(relative_mode)
 			    {
-			        if(relative_mode)
-			        {
-			        	width_string = String.format("%.1f", maximum_x);	
-			        }
-			        else
-			        {
-			        	width_string = String.format("%.1f", global_ymin);		
-			        }
-			    }
+			    	if(xrange > 10)
+			    		width_string = String.format("%.1f", maximum_x);	
+			    	else
+			    		width_string = String.format("%.2f", maximum_x);
+			    }    
 			    else
-			    {
-			    	if(relative_mode)
-			        {
-			        	width_string = String.format("%.2f", maximum_x);	
-			        }
-			        else
-			        {
-			        	width_string = String.format("%.2f", global_ymin);		
-			        }	
-			    }
+			    	width_string = String.format("%.0f", global_ymin);
+			    
 			    	
 			    int string_width = font_metrics.stringWidth(width_string);
-			    if(!relative_mode)
-			    	string_width *= 2;
-			    xrange           = maximum_x - minimum_x;
-		        int    number_of_units            = (int) (graph_xdim / (string_width + 6));
-		        double current_position_increment = graph_xdim;
-		        current_position_increment        /= number_of_units;
+			    int    number_of_units            = (int) (graph_xdim / (string_width + 6));  
+		        double current_position_increment = graph_xdim / number_of_units;
 		        
 		        String position_string;
+		        xrange = maximum_x - minimum_x;
 		        if(relative_mode)
 		        {
-		            if(maximum_x > 10)
-		                position_string = String.format("%.2f", relative_start_y);
+		            if(xrange > 10)
+		                position_string = String.format("%.1f", relative_start_y);
 		            else
-		        	    position_string = String.format("%.1f", relative_start_y);
+		        	    position_string = String.format("%.2f", relative_start_y);
 		            current_value = relative_start_y;
 		        }
 		        else
 		        {
-		        	if(maximum_x > 10)
-		                position_string = String.format("%.2f", relative_start_y + global_ymin);
-		            else
-		        	    position_string = String.format("%.1f", relative_start_y + global_ymin);	
+		            position_string = String.format("%.0f", relative_start_y + global_ymin);	
 		        	current_value = relative_start_y + global_ymin;
 		        }
+		        current_position = a1;
+		        double current_value_increment = xrange / number_of_units;	
 		        
 		        if(i == 0 || (xstep == max_xstep && ystep == 0) )
 		        {
 		        	// Hanging locations on frontmost graph or all the graphs if they are laid out in a row.
 		        	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
-		        	double current_value_increment = 0;
-		        	
-		        	if(relative_mode)
-		        	{
-		        		ArrayList data_list = (ArrayList)data_array.get(2);
-		        		Sample start_sample = (Sample)data_list.get(0);
-		        		size = data_list.size();
-		        		Sample stop_sample = (Sample)data_list.get(size - 1);
-		                current_value_increment = (stop_sample.y - start_sample.y) / number_of_units;	  
-		        	}
-		        	else
-		        		current_value_increment = xrange / number_of_units;	
+		        	current_position += current_position_increment;
+		        	//current_position += current_position_increment;
+		        	if(data_increasing)
+	            		current_value += current_value_increment;
+	            	else
+	            		current_value -= current_value_increment;
 		            for(int j = 0; j < number_of_units; j++)
 		            {
-		            	if(relative_mode && !data_increasing)
-			                current_value -= current_value_increment;
-		            	else 
+		            	if(relative_mode)
+		            	{
+		            	    if(xrange > 10)
+		                        position_string = String.format("%.1f", current_value);
+		                    else
+		            	        position_string = String.format("%.2f", current_value);
+		            	}
+		            	else
+		            		position_string = String.format("%.0f", current_value);
+		            	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
+		            	current_position += current_position_increment;
+			        	if(data_increasing)
 		            		current_value += current_value_increment;
-			            current_position += current_position_increment;
-			            if(relative_mode)
-			            {
-			                if(maximum_x > 10)
-			                    position_string = String.format("%,.1f", current_value);
-			                else
-			            	    position_string = String.format("%,.2f", current_value);
-			            }
-			            else
-			            {
-			            	if(maximum_x + minimum_x > 10)
-			                    position_string = String.format("%,.1f", current_value + minimum_x);
-			                else
-			            	    position_string = String.format("%,.2f", current_value + minimum_x);	
-			            }
-			            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
+		            	else
+		            		current_value -= current_value_increment;
 		            }
 		        }
 		        
@@ -4320,22 +4301,19 @@ public class ZFencePlotter
 				    double current_range = b1 - b2;
 				    number_of_units = (int) (current_range / (2 * string_height));
 				    double current_increment = current_range / number_of_units;
-				    double current_value_increment = current_intensity_range / number_of_units;
+				    current_value_increment = current_intensity_range / number_of_units;
 				    current_position = b2;
 				    current_value = maximum_y;
 				    String intensity_string;
 				    for(int j = 0; j < number_of_units; j++)
 		            {
-				    	intensity_string = String.format("%,.2f", current_value);
+				    	intensity_string = String.format("%.1f", current_value);
 			            string_width     = font_metrics.stringWidth(intensity_string);
 			            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
 			            current_position += current_increment;
 			            current_value    -= current_value_increment;
 		            }
-				    if(current_intensity_range > 20)
-				        intensity_string = String.format("%,.2f", current_value);
-				    else
-				    	intensity_string = String.format("%,.2f", current_value);
+				    intensity_string = String.format("%.1f", current_value);
 		            string_width     = font_metrics.stringWidth(intensity_string);
 		            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));	
 		        }
@@ -5203,6 +5181,34 @@ public class ZFencePlotter
 		}
 		return (dst);
 	}
+	
+	/*
+	public double[] adaptive_smooth(double[] x, double[] y, double[] z, int iterations, double amount)
+	{
+		// Use z as the discriminant, and process x and y accordingly.
+		double[] src   = z;
+		int dst_length = z.length - 1;
+		double[] x_dst = new double[dst_length];
+		double[] y_dst = new double[dst_length];
+		double[] z_dst = new double[dst_length];
+		while (dst_length >= z.length - iterations)
+		{
+			for (int i = 0; i < dst_length; i++)
+			{
+				if(Math.abs(src[i + 1] - src[i]) > amount)
+				{
+				    z_dst[i] = (src[i] + src[i + 1]) / 2;
+				
+			}
+			src = dst;
+			dst_length--;
+			if (dst_length >= source.length - iterations)
+				dst = new double[dst_length];
+		}
+		return (dst);
+	}
+	*/
+	
 	
 	public double getDistance(double x, double y, double x_origin, double y_origin)
 	{
