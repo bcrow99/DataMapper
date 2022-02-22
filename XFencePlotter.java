@@ -1,9 +1,6 @@
 import java.awt.*;
-import java.awt.Color.*;
 import java.awt.event.*;
-import java.awt.geom.Area;
 import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
@@ -13,20 +10,56 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.FileWriter;
 import java.util.*;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.table.*;
-
-import java.awt.print.*;
-import javax.print.*;
+import javax.swing.event.*;
 
 public class XFencePlotter
 {
+	// Entire data set in interleaved format.
+	ArrayList data        = new ArrayList();
+	
+	// Entire data set in segments seperated by sensor.
+	ArrayList set_array   = new ArrayList();
+	
+	// Data segments seperated by sensor, attached to these arrays as lists.
+	ArrayList data_array = new ArrayList();
+	
+	// An index in the vicinity of objects.
+	ArrayList object_index = new ArrayList();
+	
+	// Information we collect at start up.
+	public double      global_xmin, global_xmax;
+	public double      global_ymin, global_ymax;
+	//public double      global_intensity_min, global_intensity_max;
+	public double      intensity_min, intensity_max;
+	
+	// Values that determine a data segment in a normal form.
+	public double      data_offset  = .0;
+	public double      data_range   = 1.;
+	
+	// Hard coded numbers for our data set.
 	double  offset         = 15;
 	double  range          = 60;
+		
+	// Local min/max for current data segment.
+	public double  seg_min, seg_max;
+	// Local min/max for current data segment.
+	public double  line_min, line_max;
+	// Arbitrary values when not graphing all values and/or not using entire display area.
+	// Otherwise, line min/max or segment min/max.
+	public double  minimum_y = 0;
+	public double  maximum_y = 0;
+	
+	// Keeping point values in a convenient form for smoothing.
+	public double[]    xpoint;
+	public double[]    ypoint;
+	public double[]    zpoint;
+		
+	// An array that keeps track of what data is associated 
+	// with what part of the graph.
+	ArrayList[][] pixel_data;
+	
 	int     init_line      = 9;
 	boolean autoscale      = false;
    
@@ -47,8 +80,7 @@ public class XFencePlotter
 	double  sort_location  = 0.5;
 	double  xlocation      = 0.5;
 	double  ylocation      = 0.5;	
-    double  minimum_y      = 0;
-    double  maximum_y      = 0;
+   
     int     smooth         = 0;
     boolean config_file_exists = false;
     String  config_filename;
@@ -97,10 +129,11 @@ public class XFencePlotter
 	boolean            endpoint_set;
 	
     ArrayList     sensor_id   = new ArrayList();
-	ArrayList     data        = new ArrayList();
-	ArrayList     sensor_data = new ArrayList();
+	
+    // Used by sort dialog to show x-coordinates for different sensors 
+    // from different lines.
 	ArrayList     xlist       = new ArrayList();
-	ArrayList[][] grid_data;
+	
 	ArrayList[][] image_grid_data;
 			
 	public JFrame             frame;
@@ -157,9 +190,6 @@ public class XFencePlotter
 	int     line_image_xdim = 870;
 	int     line_image_ydim = 940;
 	
-	// Variables determined when reading in data.
-	double global_xmin, global_xmax, global_ymin, global_ymax, intensity_min, intensity_max;
-
 	// Updated by Range Slider, Range Scrollbar, and Range Button
 	JTextField offset_information, range_information;
 
@@ -174,7 +204,7 @@ public class XFencePlotter
 	public JMenuItem apply_item;
 	
 	//Shared by data_canvas.paint and locad config handler.
-	public String graph_label;
+	public String graph_label = new String("");
 	
 	// Fired by the config file reloader.
 	public JCheckBoxMenuItem view_item;
@@ -208,8 +238,6 @@ public class XFencePlotter
 	// Shared by dynamic range control and autoscale control.
 	JButton reset_bounds_button;
 	
-	
-	
 	// Referenced by location canvas and modified by location scrollbars.
 	boolean location_changing;
 	
@@ -231,7 +259,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.6 of fence.");
+			System.out.println("This is version 3.7.2 of fence.");
 			try
 			{
 				try
@@ -638,6 +666,163 @@ public class XFencePlotter
 					sample.index = i;
 					data.add(sample);
 				}
+				
+				// Keep x and y and z values available for smoothing.
+				int data_size = data.size();
+				xpoint = new double[data_size];
+				ypoint = new double[data_size];
+				zpoint = new double[data_size];
+				for(int i = 0; i < data_size; i++)
+				{
+					Sample sample = (Sample)data.get(i);
+					xpoint[i] = sample.x;
+					ypoint[i] = sample.y;
+					zpoint[i] = sample.intensity;
+				}
+				
+				
+				
+				// Segment the data set by sensor so we don't have
+				// to do it over and over again in the rest of the program.
+				for(int i = 0; i < 5; i++)
+				{
+					ArrayList data_list = new ArrayList();
+					set_array.add(data_list);
+				}
+				
+				for(int i = 0; i < 5; i++)
+				{
+					ArrayList data_list = (ArrayList)set_array.get(i);
+					
+					for(int j = i; j < data.size(); j += 5)
+					{
+						Sample sample = (Sample)data.get(j);
+						data_list.add(sample);
+					}
+				}
+				
+				// Create an object index to navigate around the data set.
+				Sample init_sample = (Sample)data.get(2);
+				double init_x      = init_sample.x;
+				double init_y      = init_sample.y;
+				
+				double [][] object_location = ObjectMapper.getObjectLocationArray();
+				int number_of_objects       = object_location.length;
+				for(int i = 0; i < number_of_objects; i++)
+				{
+					object_location[i][0] -= global_xmin;
+					object_location[i][1] -= global_ymin;
+				}
+				
+				for(int i = 0; i < number_of_objects; i++)
+				{
+					double distance = getDistance(init_x, init_y, object_location[i][0], object_location[i][1]);
+					int    index    = 2;
+					for(int j = 7; j < data.size(); j += 5)
+					{
+						Sample sample           = (Sample)data.get(j);
+						double current_x        = sample.x;
+						double current_y        = sample.y;
+						double current_distance = getDistance(current_x, current_y, object_location[i][0], object_location[i][1]);
+						if(current_distance < distance)
+						{
+							distance = current_distance;
+							index    = j;
+						}	
+					}
+					
+					
+					// Check for clipping.
+					Sample closest_sample = (Sample)data.get(index);
+					if(closest_sample.y < 15)
+					{
+					    Sample previous_sample = (Sample)data.get(index - 5);
+					    Sample next_sample = (Sample)data.get(index + 5);
+					    if(previous_sample.y < next_sample.y)
+					    {
+					    	//System.out.println("Data is increasing.");
+					    	boolean data_in_bounds = false;
+					    	while(!data_in_bounds)
+					    	{
+					    		for(int j = index + 5; j < data.size(); j++)
+					    		{
+					    		    Sample sample = (Sample)data.get(j);
+					    		    if(sample.y >= 15)
+					    		    {
+					    		    	index = j;
+					    		    	break;
+					    		    }
+					    		}
+					    		data_in_bounds = true;
+					    	}
+					    }
+					    else
+					    {
+					    	//System.out.println("Data is decreasing.");
+					    	boolean data_in_bounds = false;
+					    	while(!data_in_bounds)
+					    	{
+					    		for(int j = index - 5; j > 0; j--)
+					    		{
+					    		    Sample sample = (Sample)data.get(j);
+					    		    if(sample.y >= 15)
+					    		    {
+					    		    	index = j;
+					    		    	break;
+					    		    }
+					    		}
+					    		data_in_bounds = true;	
+					    	}
+					    }
+					}
+					else if(closest_sample.y > 75)
+					{
+						Sample previous_sample = (Sample)data.get(index - 5);
+					    Sample next_sample = (Sample)data.get(index + 5);	
+					    if(previous_sample.y < next_sample.y)
+					    {
+					    	//System.out.println("Data is increasing.");
+					    	boolean data_in_bounds = false;
+					    	
+					    	while(!data_in_bounds)
+					    	{
+					    		for(int j = index - 5; j > 0; j--)
+					    		{
+					    		    Sample sample = (Sample)data.get(j);
+					    		    if(sample.y <= 75)
+					    		    {
+					    		    	index = j;
+					    		    	break;
+					    		    }
+					    		}
+					    		data_in_bounds = true;	
+					    	}
+					    }
+					    else
+					    {
+					    	//System.out.println("Data is decreasing.");
+					    	boolean data_in_bounds = false;
+					    	while(!data_in_bounds)
+					    	{
+					    		for(int j = index + 5; j < data.size(); j++)
+					    		{
+					    		    Sample sample = (Sample)data.get(j);
+					    		    if(sample.y <= 75)
+					    		    {
+					    		    	index = j;
+					    		    	break;
+					    		    }
+					    		}
+					    		data_in_bounds = true;
+					    	}
+					    }
+					}
+					
+					// Set the index to refer to the first sensor.
+					index -= 2;
+					object_index.add(index);
+				}
+				
 			} 
 			catch (Exception e)
 			{
@@ -1122,12 +1307,12 @@ public class XFencePlotter
 				    // The first 4 elements in the sensor data are local min, local max, global min,
 			        // and global max.
 			        // The rest are array lists of samples, with line and sensor information prepended.
-			    	double intensity_min = (double) sensor_data.get(0);
-					String intensity_min_string = String.format("%.2f", intensity_min);
-					int size = sensor_data.size();
+			    	double intensity_min = (double) data_array.get(0);
+					//String intensity_min_string = String.format("%.2f", intensity_min);
+					int size = data_array.size();
 					for (int i = 4; i < size; i++)
 					{
-						ArrayList segment_list = (ArrayList) sensor_data.get(i);
+						ArrayList segment_list = (ArrayList) data_array.get(i);
 						int line = (int) segment_list.get(0);
 						int sensor = (int) segment_list.get(1);
 
@@ -1188,14 +1373,14 @@ public class XFencePlotter
 				    // The first 4 elements in the sensor data are local min, local max, global min,
 				    // and global max.
 				    // The rest are array lists of samples, with some information prepended.
-				    double intensity_min = (double) sensor_data.get(0);
+				    double intensity_min = (double) data_array.get(0);
 				    String intensity_min_string = String.format("%.2f", intensity_min);
-				    int size = sensor_data.size();
+				    int size = data_array.size();
 				    for (int i = 4; i < size; i++)
 				    {
 					    // The first 4 elements are flight line, sensor, visibility, and transparency.
 					    // The last two are yes/no strings.
-					    ArrayList segment_list = (ArrayList) sensor_data.get(i);
+					    ArrayList segment_list = (ArrayList) data_array.get(i);
 					    int line = (int) segment_list.get(0);
 					    int sensor = (int) segment_list.get(1);
 
@@ -1915,59 +2100,6 @@ public class XFencePlotter
 		save_config_item.addActionListener(save_config_dialog_handler);
 		file_menu.add(save_config_item);
 		
-		/*
-		// File->Print works but produces a mediocre print.
-		// Not worth trying to make it look better when
-		// we can just print from Photoshop or Gimp instead.
-		// Still leaving the hook in here.
-		
-        class PrintHandler implements ActionListener
-	    {
-		    public void actionPerformed(ActionEvent event)
-		    {
-		        try
-		        {
-			        PrintService service = PrintServiceLookup.lookupDefaultPrintService();
-			        DocPrintJob  job     = service.createPrintJob();
-			        DocFlavor    flavor  = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
-			        SimpleDoc    doc     = new SimpleDoc(new GraphPrintable(), flavor, null);
-			        job.print(doc, null);
-		        }
-		        catch(Exception e)
-		        {
-		    	    System.out.println(e.toString());
-		        }
-		    }
-	    }
-	
-	    class GraphPrintable implements Printable 
-	    {
-		    public int print(Graphics g, PageFormat pf, int pageIndex) 
-		    {
-		         Graphics2D graphics = (Graphics2D) g;
-		         g.translate((int) (pf.getImageableX()), (int) (pf.getImageableY()));
-		         if (pageIndex == 0) 
-		         {
-		          double pageWidth   = pf.getImageableWidth();
-		          double pageHeight  = pf.getImageableHeight();
-		          double imageWidth  = buffered_image.getWidth();
-		          double imageHeight = buffered_image.getHeight();
-		          double scaleX = pageWidth / imageWidth;
-		          double scaleY = pageHeight / imageHeight;
-		          double scaleFactor = Math.min(scaleX, scaleY);
-		          graphics.scale(scaleFactor, scaleFactor);
-		          g.drawImage(buffered_image, 0, 0, null);
-		          return Printable.PAGE_EXISTS;
-		          }
-		          return Printable.NO_SUCH_PAGE;
-		    }
-	    } 
-		JMenuItem print_item = new JMenuItem("Print");
-		PrintHandler print_handler = new PrintHandler();
-		print_item.addActionListener(print_handler);
-		file_menu.add(print_item);
-		*/
-		
 		// This is almost obsolete, but still helps when 
 		// graphing arbitrary non-sequential segments created by
 		// editing sensor entries by hand.
@@ -2035,112 +2167,186 @@ public class XFencePlotter
 						current_sensor[i] = -1;
 					}
 				}
-
-				// Do a first pass thru the data to get the segment and line extrema.
-				// This is so we can prepend it to the segment data for the line canvas
-				// to use to implement autoscaling.
-				double seg_min  = Double.MAX_VALUE;
-				double seg_max  = -Double.MAX_VALUE;
-				double line_min = Double.MAX_VALUE;
-				double line_max = -Double.MAX_VALUE;
-
-				for (int i = 0; i < 10; i++)
+				
+				int number_of_segments = 0;
+				//System.out.println("Current set of line/sensors: ");
+				for(int i = 0; i < 10; i++)
 				{
-					if (current_line[i] != -1)
-					{
-						int start = line_array[current_line[i]][0];
-						int stop = line_array[current_line[i]][1];
-
-						if (current_line[i] % 2 == 0)
-						{
-							for (int j = start + current_sensor[i]; j < stop; j += 5)
-							{
-								Sample sample = (Sample) data.get(j);
-								if (sample.y >= offset && sample.y < (offset + range))
-								{
-									if (seg_min > sample.intensity)
-										seg_min = sample.intensity;
-									if (seg_max < sample.intensity)
-										seg_max = sample.intensity;
-								}
-								if (sample.y >= 15 && sample.y < 75)
-								{
-									if (line_min > sample.intensity)
-										line_min = sample.intensity;
-									if (line_max < sample.intensity)
-										line_max = sample.intensity;
-								}
-							}
-						} 
-						else
-						{
-							for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
-							{
-								Sample sample = (Sample) data.get(j);
-								if (sample.y >= offset && sample.y < (offset + range))
-								{
-									if (seg_min > sample.intensity)
-										seg_min = sample.intensity;
-									if (seg_max < sample.intensity)
-										seg_max = sample.intensity;
-								}
-								if (sample.y >= 15 && sample.y < 75)
-								{
-									if (line_min > sample.intensity)
-										line_min = sample.intensity;
-									if (line_max < sample.intensity)
-										line_max = sample.intensity;
-								}
-							}
-						}
-					}
+				    if(current_line[i] != -1)	
+				    {
+				        //System.out.print(current_line[i] + ":" + current_sensor[i] + " ");	
+				        number_of_segments++;
+				    }
 				}
-
-				sensor_data.clear();
-				sensor_data.add(seg_min);
-				sensor_data.add(seg_max);
-				sensor_data.add(line_min);
-				sensor_data.add(line_max);
-				for (int i = 0; i < 10; i++)
+				//System.out.println();
+				//System.out.println("Number of segments is " + number_of_segments);
+				
+				// We want to clear the entire data array, and not just the lists,
+				// because the number of segments can change.
+				data_array.clear();
+				
+				// A place to park the raw sample lists until we get the data
+				// we want to prepend in the data array, 
+				// before the individual segment lists.
+				ArrayList raw_array = new ArrayList();
+				
+				seg_min  = Double.MAX_VALUE;
+				seg_max  = -Double.MAX_VALUE;
+				line_min = Double.MAX_VALUE;
+				line_max = -Double.MAX_VALUE;
+				
+				for(int i = 0; i < number_of_segments; i++)
 				{
-					if (current_line[i] != -1)
-					{
-						ArrayList segment_data = new ArrayList();
-						segment_data.add(current_line[i]);
-						segment_data.add(current_sensor[i]);
-
-						if (visible[i] == true)
-							segment_data.add(new String("yes"));
-						else
-							segment_data.add(new String("no"));
-						if (transparent[i] == true)
-							segment_data.add(new String("yes"));
-						else
-							segment_data.add(new String("no"));
-
-						int start = line_array[current_line[i]][0];
-						int stop = line_array[current_line[i]][1];
-						if (current_line[i] % 2 == 0)
-						{
-							for (int j = start + current_sensor[i]; j < stop; j += 5)
-							{
-								Sample sample = (Sample) data.get(j);
-								if (sample.y >= offset && sample.y < (offset + range))
-									segment_data.add(sample);
-							}
-						} 
-						else
-						{
-							for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
-							{
-								Sample sample = (Sample) data.get(j);
-								if (sample.y >= offset && sample.y < (offset + range))
-									segment_data.add(sample);
-							}
-						}
-						sensor_data.add(segment_data);
-					}
+				    ArrayList src_list = (ArrayList)set_array.get(current_sensor[i]);
+				    ArrayList dst_list = new ArrayList(); 
+				    int       index    = current_line[i];
+				    
+				    //System.out.println("Current line is " + index);
+				    int       start    = line_array[index][0];
+				    int       stop     = line_array[index][1];
+				    start             /= 5;
+				    stop              /= 5;
+				    if(smooth == 0)
+				    {
+				    	if(current_line[i] % 2 == 0)
+				    	{
+				            for(int j = start; j < stop; j++)
+				            {
+				        	    Sample sample = (Sample)src_list.get(j);
+				        	    if(sample.y >= 15 && sample.y < 75)
+				        	    {
+				        	        if(sample.intensity < line_min)
+				        	    	    line_min = sample.intensity;
+				        	        if(sample.intensity > line_max)
+				        	    	    line_max = sample.intensity;    
+				        	    }
+				        	    if(sample.y >= offset && sample.y < offset + range)
+				        	    {
+				        	    	if(sample.intensity < seg_min)
+				        	    		seg_min = sample.intensity;
+				        	    	if(sample.intensity > seg_max)
+				        	    		seg_max = sample.intensity;	
+				        	    	dst_list.add(sample);
+				        	    }
+				            }
+				            raw_array.add(dst_list);
+				    	}
+				    	else
+				    	{
+				    		for(int j = stop; j >= start; j--)
+				            {
+				        	    Sample sample = (Sample)src_list.get(j);
+				        	    if(sample.y >= 15 && sample.y < 75)
+				        	    {
+				        	        if(sample.intensity < line_min)
+				        	    	    line_min = sample.intensity;
+				        	        if(sample.intensity > line_max)
+				        	    	    line_max = sample.intensity;
+				        	    }
+				        	    if(sample.y >= offset && sample.y < offset + range)
+				        	    {
+				        	    	if(sample.intensity < seg_min)
+				        	    		seg_min = sample.intensity;
+				        	    	if(sample.intensity > seg_max)
+				        	    		seg_max = sample.intensity;
+				        	    	dst_list.add(sample);
+				        	    }
+				            }
+				    		raw_array.add(dst_list);
+				    	}
+				    }
+				    else  // Smooth data
+				    {
+				    	if(current_line[i] % 2 == 0)
+				    	{
+				    		// Get a list to smooth.
+				    		for(int j = start; j < stop; j++)
+				            {
+				        	    Sample sample = (Sample)src_list.get(j);
+				        	    dst_list.add(sample);
+				            }
+				    	}
+				    	else
+				    	{
+				    		for(int j = stop; j >= start; j--)
+				            {
+				        	    Sample sample = (Sample)src_list.get(j);
+				        	    dst_list.add(sample);
+				            }
+				    	} 
+				    	int    size = dst_list.size();
+			    		double x[]  = new double[size];
+			    		double y[]  = new double[size];
+			    		double z[]  = new double[size];
+			    		
+			    		for(int j = 0; j < size; j++)
+			    		{
+			    			Sample sample = (Sample)dst_list.get(j);
+			    			x[j] = sample.x;
+			    			y[j] = sample.y;
+			    			z[j] = sample.intensity;
+			    		}
+			    		
+			    		double smooth_x[] = smooth(x, smooth);
+			    		double smooth_y[] = smooth(y, smooth);
+			    		double smooth_z[] = smooth(z, smooth);
+			    		
+			    		
+			    		ArrayList smooth_list = new ArrayList();
+			    		int length = smooth_x.length;
+			    		for(int j = 0; j < length; j++)
+			    		{  
+			    			if(smooth_y[j] >= 15 && smooth_y[j] < 75)
+			    			{
+			    			    if(smooth_z[j] < line_min)
+				        	        line_min = smooth_z[j];
+				        	    if(smooth_z[j] > line_max)
+				        	        line_max = smooth_z[j];
+			    			}
+			    			if(smooth_y[j] >= offset && smooth_y[j] < (offset + range))
+			    			{
+			    				if(smooth_z[j] < seg_min)
+					        	    seg_min = smooth_z[j];
+					        	if(smooth_z[j] > seg_max)
+					        	    seg_max = smooth_z[j];
+			    			    Sample sample = new Sample(smooth_x[j], smooth_y[j], smooth_z[j]);	
+			    			    smooth_list.add(sample);
+			    			}
+			    		}
+			    		raw_array.add(smooth_list);
+				    }
 				}
+				
+				data_array.clear();
+				data_array.add(seg_min);
+				data_array.add(seg_max);
+				data_array.add(line_min);
+				data_array.add(line_max);
+				
+				for (int i = 0; i < number_of_segments; i++)
+				{
+				    ArrayList segment_data = new ArrayList();
+				    segment_data.add(current_line[i]);
+					segment_data.add(current_sensor[i]);
+
+					if (visible[i] == true)
+						segment_data.add(new String("yes"));
+					else
+						segment_data.add(new String("no"));
+					if (transparent[i] == true)
+						segment_data.add(new String("yes"));
+					else
+						segment_data.add(new String("no"));
+				 
+					ArrayList sample_list = (ArrayList)raw_array.get(i);
+					
+					Sample sample = (Sample)sample_list.get(0);
+					segment_data.add(sample_list); 
+					
+					int size = segment_data.size();
+					data_array.add(segment_data);
+				}
+				
 				data_canvas.repaint();
 				placement_canvas.repaint();
 				location_canvas.repaint();
@@ -2148,13 +2354,11 @@ public class XFencePlotter
 					sort_canvas.repaint();
 				offset_information.setText(String.format("%.2f", offset));	
 				segment_image_canvas.repaint();
-				//order_canvas = new OrderCanvas();
-				//order_canvas.setSize(20, 20);
 				if(order_canvas != null)
 				    order_canvas.repaint();
 			}
 		}
-		apply_item           = new JMenuItem("Apply Params");
+		apply_item  = new JMenuItem("Apply Params");
 		ApplyHandler apply_handler = new ApplyHandler();
 		apply_item.addActionListener(apply_handler);
 		file_menu.add(apply_item);
@@ -2274,9 +2478,9 @@ public class XFencePlotter
 				
 				double xmin = Double.MAX_VALUE;
 				double xmax = Double.MIN_NORMAL;
-				for(int i = 4; i < sensor_data.size(); i++)
+				for(int i = 4; i < data_array.size(); i++)
 				{
-				    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+				    ArrayList sensor_list = (ArrayList)data_array.get(i);
 				    for(int j = 4; j < sensor_list.size(); j++)
 				    {
 				    	Sample sample = (Sample)sensor_list.get(j);
@@ -2290,9 +2494,9 @@ public class XFencePlotter
 				double xrange = range;
 				double yrange = xmax - xmin;
 				graphics_buffer.setStroke(new BasicStroke(3));
-				for(int i = 4; i < sensor_data.size(); i++)
+				for(int i = 4; i < data_array.size(); i++)
 				{
-				    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+				    ArrayList sensor_list = (ArrayList)data_array.get(i);
 				    Sample previous_sample = (Sample)sensor_list.get(4);
 				    
 				    // Switching x and y to match orientation of graphs
@@ -2393,7 +2597,7 @@ public class XFencePlotter
      	{
      		public void actionPerformed(ActionEvent event)
      		{
-				int number_of_segments     = sensor_data.size() - 4;
+				int number_of_segments     = data_array.size() - 4;
 				ArrayList line_sensor_list = new ArrayList();               
 				Hashtable sensor_table     = new Hashtable();
 		
@@ -2462,14 +2666,14 @@ public class XFencePlotter
 				double current_position = range * sort_location + offset;
 				xlist.clear();
 				
-				int size = sensor_data.size();
+				int size = data_array.size();
 				int number_of_segments = size - 4;
 				order_information.append("\n");
 				double previous_x = 0;
 				in_order = true;
 				for(int i = 0; i < number_of_segments; i++)
 				{
-					ArrayList sensor_list    = (ArrayList) sensor_data.get(i + 4);
+					ArrayList sensor_list    = (ArrayList) data_array.get(i + 4);
 					int       current_line   = (int)sensor_list.get(0);
 					int       current_sensor = (int)sensor_list.get(1);
 					size                     = sensor_list.size();
@@ -2771,7 +2975,7 @@ public class XFencePlotter
 				{
 					int value = slider.getValue();
 					smooth = value;
-					data_canvas.repaint();
+					apply_item.doClick();
 				}
 			}
 		};
@@ -2813,10 +3017,10 @@ public class XFencePlotter
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				double seg_min      = (double) sensor_data.get(0);
-				double seg_max      = (double) sensor_data.get(1);
-				double line_min     = (double) sensor_data.get(2);
-				double line_max     = (double) sensor_data.get(3);
+				double seg_min      = (double) data_array.get(0);
+				double seg_max      = (double) data_array.get(1);
+				double line_min     = (double) data_array.get(2);
+				double line_max     = (double) data_array.get(3);
 				String bound_string = lower_bound.getText();
 				double min          = Double.valueOf(bound_string);
 				bound_string        = upper_bound.getText();
@@ -2836,7 +3040,7 @@ public class XFencePlotter
 				}
 				data_clipped = true;
 				if(global_min < min)
-					intensity_min = global_min;
+				   intensity_min = global_min;
 				else
 					intensity_min = min;
 				if(global_max > max)
@@ -2876,10 +3080,10 @@ public class XFencePlotter
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				double seg_min = (double) sensor_data.get(0);
-				double seg_max = (double) sensor_data.get(1);
-				double line_min = (double) sensor_data.get(2);
-				double line_max = (double) sensor_data.get(3);
+				double seg_min = (double) data_array.get(0);
+				double seg_max = (double) data_array.get(1);
+				double line_min = (double) data_array.get(2);
+				double line_max = (double) data_array.get(3);
 				if(autoscale)
 				{
 					String lower_bound_string = String.format("%,.2f", seg_min);
@@ -2937,13 +3141,13 @@ public class XFencePlotter
 					}
 					else if(autoscale)
 					{
-						min = (double) sensor_data.get(0);
-						max = (double) sensor_data.get(1);
+						min = (double) data_array.get(0);
+						max = (double) data_array.get(1);
 					} 
 					else
 					{
-						min = (double) sensor_data.get(2);
-						max = (double) sensor_data.get(3);
+						min = (double) data_array.get(2);
+						max = (double) data_array.get(3);
 					}
 					double current_range      = max - min;
 					double fraction           = (double) lower / 100;
@@ -2981,10 +3185,10 @@ public class XFencePlotter
 				x -= 150;
 				y += 35;
 
-				double seg_min = (double) sensor_data.get(0);
-				double seg_max = (double) sensor_data.get(1);
-				double line_min = (double) sensor_data.get(2);
-				double line_max = (double) sensor_data.get(3);
+				double seg_min = (double) data_array.get(0);
+				double seg_max = (double) data_array.get(1);
+				double line_min = (double) data_array.get(2);
+				double line_max = (double) data_array.get(3);
                 if(!data_clipped)
                 {
 				    if (autoscale)
@@ -3906,6 +4110,44 @@ public class XFencePlotter
 				if(object_id >= 1 && object_id < 54)
 				{
 					System.out.println("Setting location close to object " + object_id);
+					
+					int index = (int)object_index.get(object_id - 1);
+					
+					int[][] line_index = ObjectMapper.getUnclippedLineArray();
+				
+					int current_line = 0;
+					for(int i = 0; i < line_index.length; i++)
+					{
+					    if(index >= line_index[i][0] && index <= line_index[i][1])	
+					    {
+					    	current_line = i;
+					    	break;
+					    }
+					}
+					
+					// Adjust the index to allow for the current range, 
+					// and possibly a boundry condition.
+					
+					Sample current_sample = (Sample)data.get(index);
+					double current_offset = current_sample.y;
+					if((current_offset - range / 2) < 15)
+					{
+					    current_offset = 15;	
+					}
+					else if((current_offset + range / 2) > 75)
+					{
+					    current_offset = 75 - range;	
+					}
+					else
+					{
+						current_offset -= range / 2;
+					}
+					
+					
+					//System.out.println("Current line is " + current_line);
+					//System.out.println("Current offset is " + current_offset);
+					
+					/*
 					double[] object_offset = ObjectMapper.getObjectLineOffsetArray();
 					double   new_location  = object_offset[object_id - 1];
 					
@@ -3925,9 +4167,13 @@ public class XFencePlotter
 						System.out.println("Object has been clipped.");  
 					}
 					
-                    System.out.println("Setting location to flight line " + String.format("%,.1f", new_line) + " at offset " + String.format("%,.2f", new_offset));
-									
 					int current_line   = (int)new_line;
+					System.out.println("Setting location to flight line " + String.format("%,.1f", new_line) + " at offset " + String.format("%,.2f", new_offset));
+					*/
+					
+                    
+									
+					
 					int current_sensor = 4;
 					if(current_line % 2 == 1)
 					    current_sensor = 0;
@@ -4010,7 +4256,7 @@ public class XFencePlotter
 						sensor[i].setText(line_sensor_pair[i]);
 					}
 					
-					offset = new_offset;
+					offset = current_offset;
 					
 					// Clear data since we're at a new position.		
 					append_data = false;
@@ -4114,7 +4360,7 @@ public class XFencePlotter
 				}
             	if(append_data)
 				{
-            		int number_of_segments = sensor_data.size() - 4;
+            		int number_of_segments = data_array.size() - 4;
 					Dimension canvas_dimension = data_canvas.getSize();
 					int       canvas_xdim      = (int)canvas_dimension.getWidth();
 					int       canvas_ydim      = (int)canvas_dimension.getHeight();
@@ -4325,7 +4571,6 @@ public class XFencePlotter
             		show_data = false;
             		information_dialog.setVisible(false);
 					item.setState(false);
-					
 				}
 				else
 				{
@@ -4390,22 +4635,24 @@ public class XFencePlotter
 			} 
 			else
 			{
-				grid_data = new ArrayList[ydim][xdim];
+				pixel_data = new ArrayList[ydim][xdim];
 				for (int i = 0; i < ydim; i++)
 					for (int j = 0; j < xdim; j++)
-						grid_data[i][j] = new ArrayList();
+						pixel_data[i][j] = new ArrayList();
 				buffered_image             = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
 				Graphics2D graphics_buffer = (Graphics2D) buffered_image.getGraphics();
 				graphics_buffer.setColor(java.awt.Color.WHITE);
 				graphics_buffer.fillRect(0, 0, xdim, ydim);
-				int size = sensor_data.size();
+				int size = data_array.size();
+				
 				if (size > 0)
 				{
 					int    number_of_segments = size - 4;
-					double seg_min           = (double) sensor_data.get(0);
-					double seg_max           = (double) sensor_data.get(1);
-					double line_min          = (double) sensor_data.get(2);
-					double line_max          = (double) sensor_data.get(3);
+					double seg_min           = (double) data_array.get(0);
+					double seg_max           = (double) data_array.get(1);
+					double line_min          = (double) data_array.get(2);
+					double line_max          = (double) data_array.get(3);
+					
 					double max_xstep         = (xdim - (left_margin + right_margin)) / number_of_segments;
 					int    xstep             = (int) (max_xstep * normal_xstep);
 					int   graph_xdim         = xdim - (left_margin + right_margin) - (number_of_segments - 1) * xstep;
@@ -4715,37 +4962,15 @@ public class XFencePlotter
 
 					for (int i = 4; i < size; i++)
 					{
-						ArrayList sensor_list = (ArrayList) sensor_data.get(i);
+						ArrayList segment_data_list = (ArrayList) data_array.get(i);
+						ArrayList sensor_list = (ArrayList)segment_data_list.get(4);
 						int       length      = sensor_list.size();
+						
 						ArrayList plot_list   = new ArrayList();
 						ArrayList sample_list = new ArrayList();
-
-						// This is to help filter out vertical jitter but not sure that's what we want
-						// to do.
-						/*
-						 * int j = 4; Sample sample = (Sample) sensor_list.get(j); Point2D.Double point
-						 * = new Point2D.Double(); point.x = sample.y; point.y = sample.intensity;
-						 * point.y *= scale_factor; plot_list.add(point); double previous_x = sample.x;
-						 * double current_intensity_max = sample.intensity; double current_intensity_min
-						 * = sample.intensity; for (j = 5; j < length; j++)
-						 */
 						for (int j = 4; j < length; j++)
 						{
 							Sample sample = (Sample) sensor_list.get(j);
-							// Will revisit this later.
-							// Need to keep track of new dynamic range after subsampling.
-							/*
-							 * if (sample.x > previous_x + quantum_distance) { point = new Point2D.Double();
-							 * point.x = sample.y; point.y = sample.intensity; point.y *= scale_factor; if
-							 * (point.y < minimum_y) point.y = minimum_y; else if (point.y > maximum_y)
-							 * point.y = maximum_y; previous_x = sample.x; if(sample.intensity <
-							 * current_intensity_min) current_intensity_min = sample.intensity; else
-							 * if(sample.intensity > current_intensity_max) current_intensity_max =
-							 * sample.intensity; }
-							 */
-
-							// Using all the points, even the ones that map to the
-							// same x coordinate on the display and vertical lines in the curve.
 							Point2D.Double point = new Point2D.Double();
 							point.x = sample.y;
 							point.y = sample.intensity;
@@ -4757,54 +4982,8 @@ public class XFencePlotter
 							plot_list.add(point);
 							sample_list.add(sample);
 						}
-						int plot_length = plot_list.size();
-
-						if (smooth == 0)
-						{
-							plot_data.add(plot_list);
-							sample_data.add(sample_list);
-						} 
-						else
-						{
-							double x[] = new double[plot_length];
-							double y[] = new double[plot_length];
-							for (int j = 0; j < plot_length; j++)
-							{
-								Point2D.Double point = (Point2D.Double) plot_list.get(j);
-								x[j] = point.getX();
-								y[j] = point.getY();
-							}
-							double[] smooth_x = smooth(x, smooth);
-							double[] smooth_y = smooth(y, smooth);
-
-							Point2D.Double start_point = (Point2D.Double) plot_list.get(0);
-							Point2D.Double end_point = (Point2D.Double) plot_list.get(plot_length - 1);
-							plot_list.clear();
-
-							plot_length = smooth_x.length;
-							plot_list.add(start_point);
-							for (int j = 0; j < plot_length; j++)
-							{
-								Point2D.Double smooth_point = new Point2D.Double(smooth_x[j], smooth_y[j]);
-								plot_list.add(smooth_point);
-							}
-							plot_list.add(end_point);
-							plot_data.add(plot_list);
-							length = sample_list.size();
-							Sample sample = (Sample) sample_list.get(length - 1);
-
-							// Add a duplicate sample so the lengths of the plot list and sample_list are
-							// the same.
-							// Actually more accurately correlated than the sample being duplicated since we
-							// are matching original data.
-							Sample extra_sample = new Sample();
-							extra_sample.intensity = sample.intensity;
-							extra_sample.x = sample.x;
-							extra_sample.y = sample.y;
-							extra_sample.index = sample.index;
-							sample_list.add(extra_sample);
-							sample_data.add(sample_list);
-						}
+						plot_data.add(plot_list);
+						sample_data.add(sample_list);
 					}
 
 					Polygon[] polygon = new Polygon[number_of_segments];
@@ -4832,7 +5011,7 @@ public class XFencePlotter
 						int current_sensor;
 						if (!reverse_view)
 						{
-							sensor_list    = (ArrayList) sensor_data.get(i + 4);
+							sensor_list    = (ArrayList) data_array.get(i + 4);
 							current_line   = (int) sensor_list.get(0);
 							current_sensor = (int) sensor_list.get(1);
 							segment        = (ArrayList) plot_data.get(i);
@@ -4840,7 +5019,7 @@ public class XFencePlotter
 						} 
 						else
 						{
-							sensor_list    = (ArrayList) sensor_data.get((number_of_segments - 1) - i + 4);
+							sensor_list    = (ArrayList) data_array.get((number_of_segments - 1) - i + 4);
 							current_line   = (int) sensor_list.get(0);
 							current_sensor = (int) sensor_list.get(1);
 							segment        = (ArrayList) plot_data.get((number_of_segments - 1) - i);
@@ -4890,7 +5069,7 @@ public class XFencePlotter
 
 							// Associate this point with sample information.
 							// Where endpoints overlap, there should be multiple samples.
-							ArrayList grid_list = grid_data[(int) current_y][(int) current_x];
+							ArrayList grid_list = pixel_data[(int) current_y][(int) current_x];
 							if (grid_list.size() == 0)
 							{
 								grid_list.add(sensor_list.get(0));
@@ -4926,12 +5105,12 @@ public class XFencePlotter
 										new_grid_list.add(previous_sample);
 									}
 								}
-								grid_data[(int) current_y][(int) current_x] = new_grid_list;
+								pixel_data[(int) current_y][(int) current_x] = new_grid_list;
 							}
 
 							// Assigning neighbor pixels if they are unassigned so that
 							// it isn't hard for the mouse to find an assigned pixel.
-							grid_list = grid_data[(int) current_y - 1][(int) current_x];
+							grid_list = pixel_data[(int) current_y - 1][(int) current_x];
 							if (grid_list.size() == 0)
 							{
 								grid_list.add(sensor_list.get(0));
@@ -4939,7 +5118,7 @@ public class XFencePlotter
 								grid_list.add(sample);
 							}
 
-							grid_list = grid_data[(int) current_y - 1][(int) current_x - 1];
+							grid_list = pixel_data[(int) current_y - 1][(int) current_x - 1];
 							if (grid_list.size() == 0)
 							{
 								grid_list.add(sensor_list.get(0));
@@ -4947,7 +5126,7 @@ public class XFencePlotter
 								grid_list.add(sample);
 							}
 
-							grid_list = grid_data[(int) current_y - 1][(int) current_x + 1];
+							grid_list = pixel_data[(int) current_y - 1][(int) current_x + 1];
 							if (grid_list.size() == 0)
 							{
 								grid_list.add(sensor_list.get(0));
@@ -4955,7 +5134,7 @@ public class XFencePlotter
 								grid_list.add(sample);
 							}
 
-							grid_list = grid_data[(int) current_y][(int) current_x - 1];
+							grid_list = pixel_data[(int) current_y][(int) current_x - 1];
 							if (grid_list.size() == 0)
 							{
 								grid_list.add(sensor_list.get(0));
@@ -4963,7 +5142,7 @@ public class XFencePlotter
 								grid_list.add(sample);
 							}
 
-							grid_list = grid_data[(int) current_y][(int) current_x + 1];
+							grid_list = pixel_data[(int) current_y][(int) current_x + 1];
 							if (grid_list.size() == 0)
 							{
 								grid_list.add(sensor_list.get(0));
@@ -4971,7 +5150,7 @@ public class XFencePlotter
 								grid_list.add(sample);
 							}
 
-							grid_list = grid_data[(int) current_y + 1][(int) current_x];
+							grid_list = pixel_data[(int) current_y + 1][(int) current_x];
 							if (grid_list.size() == 0)
 							{
 								grid_list.add(sensor_list.get(0));
@@ -4979,7 +5158,7 @@ public class XFencePlotter
 								grid_list.add(sample);
 							}
 
-							grid_list = grid_data[(int) current_y + 1][(int) current_x - 1];
+							grid_list = pixel_data[(int) current_y + 1][(int) current_x - 1];
 							if (grid_list.size() == 0)
 							{
 								grid_list.add(sensor_list.get(0));
@@ -4987,7 +5166,7 @@ public class XFencePlotter
 								grid_list.add(sample);
 							}
 
-							grid_list = grid_data[(int) current_y + 1][(int) current_x + 1];
+							grid_list = pixel_data[(int) current_y + 1][(int) current_x + 1];
 							if (grid_list.size() == 0)
 							{
 								grid_list.add(sensor_list.get(0));
@@ -5209,7 +5388,7 @@ public class XFencePlotter
 				        if (relative_mode)
 				        {
 				            string_width = font_metrics.stringWidth("77.7");
-				            position_string = String.format("%,.0f", current_value);
+				            position_string = String.format("%.1f", current_value);
 				        }
 				        else
 				        {
@@ -5229,7 +5408,7 @@ public class XFencePlotter
 					            current_value += current_value_increment;
 					            current_position += current_position_increment;
 					            if(relative_mode)
-					                position_string = String.format("%,.0f", current_value);
+					                position_string = String.format("%,.1f", current_value);
 					            else
 						            position_string = String.format("%,.0f", current_value + global_ymin);	
 					            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
@@ -5248,7 +5427,7 @@ public class XFencePlotter
 					double current_increment = current_range / number_of_units;
 					double current_value_increment = current_intensity_range / number_of_units;
 					current_position = b2;
-					String intensity_string = String.format("%,.2f", current_value);
+					String intensity_string = String.format("%,.1f", current_value);
 					string_width = font_metrics.stringWidth(intensity_string);
 					for(int i = 0; i < number_of_segments; i++)
 					{
@@ -5274,7 +5453,7 @@ public class XFencePlotter
 						    {
 					            for(int j = 0; j < number_of_units; j++)
 					            {
-						            intensity_string = String.format("%,.2f", current_value);
+						            intensity_string = String.format("%,.1f", current_value);
 						            string_width     = font_metrics.stringWidth(intensity_string);
 						            graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
 						            current_position += current_increment;
@@ -5283,21 +5462,19 @@ public class XFencePlotter
 						            if(j == number_of_units - 1)
 						            {
 										
-										ArrayList sensor_list;
+										ArrayList segment_data_list;
 						            	if(reverse_view)
-						            	    sensor_list = (ArrayList) sensor_data.get(((number_of_segments - 1) - i) + 4);
+						            		segment_data_list = (ArrayList) data_array.get(((number_of_segments - 1) - i) + 4);
 						            	else
-						            		sensor_list = (ArrayList) sensor_data.get(i + 4);      	
-						            	int line   = (int)sensor_list.get(0);
-						            	int sensor = (int)sensor_list.get(1);
-										size = sensor_list.size();
-										Sample sample = (Sample)sensor_list.get(size - 1);
+						            		segment_data_list = (ArrayList) data_array.get(i + 4);      	
+						            	int line   = (int)segment_data_list.get(0);
+						            	int sensor = (int)segment_data_list.get(1);
 										String line_id = new String(line + ":" + sensor);
 										if(ystep != 0  && show_id)
 										    graphics_buffer.drawString(line_id, a2 + 6, (int) current_position + ( 3 * string_height / 4));
 						            }
 					            }
-					            intensity_string = String.format("%,.2f", current_value);
+					            intensity_string = String.format("%,.1f", current_value);
 					            string_width = font_metrics.stringWidth(intensity_string);
 								graphics_buffer.drawString(intensity_string, a1 - (string_width + 14), (int) (current_position + string_height / 2));
 						    }
@@ -5312,9 +5489,9 @@ public class XFencePlotter
 							            {
 							            	ArrayList sensor_list;
 							            	if(reverse_view)
-							            	    sensor_list = (ArrayList) sensor_data.get(((number_of_segments - 1) - i) + 4);
+							            	    sensor_list = (ArrayList) data_array.get(((number_of_segments - 1) - i) + 4);
 							            	else
-							            		sensor_list = (ArrayList) sensor_data.get(i + 4);      	
+							            		sensor_list = (ArrayList) data_array.get(i + 4);      	
 							            	int line   = (int)sensor_list.get(0);
 							            	int sensor = (int)sensor_list.get(1);
 							            	
@@ -5408,6 +5585,10 @@ public class XFencePlotter
 						number_string        = String.format("%,.2f", append_y_abs);
 						information_string   = new String("  Absolute y: " + number_string);
 						graphics_buffer.drawString(information_string, current_x, current_y);
+						
+						current_y           += string_height + 2;
+						information_string   = new String("  Smoothing: " + smooth);
+						graphics_buffer.drawString(information_string, current_x, current_y);
 					}
 					
 					graph_label = label_input.getText();					
@@ -5476,49 +5657,49 @@ public class XFencePlotter
 	{
 		public void mouseMoved(MouseEvent event)
 		{
-			if(persistent_data || grid_data == null)
+			if(persistent_data || pixel_data == null)
 				return;
 			
 			int x = event.getX();
 			int y = event.getY();
-			int xdim = grid_data[0].length;
-			int ydim = grid_data.length;
+			int xdim = pixel_data[0].length;
+			int ydim = pixel_data.length;
 
 			if (x > left_margin && x < xdim - right_margin && y > top_margin && y < ydim - bottom_margin)
 			{
 				int current_line, current_sensor;
 				double current_intensity, current_x, current_y;
-				ArrayList sample_list = grid_data[y][x];
+				ArrayList sample_list = pixel_data[y][x];
 				int size = sample_list.size();
 				outer: if (size == 0)
 				{
-					sample_list = grid_data[y - 1][x];
+					sample_list = pixel_data[y - 1][x];
 					size = sample_list.size();
 					if (size != 0)
 						break outer;
-					sample_list = grid_data[y + 1][x];
+					sample_list = pixel_data[y + 1][x];
 					size = sample_list.size();
 					if (size != 0)
 						break outer;
-					sample_list = grid_data[y][x - 1];
+					sample_list = pixel_data[y][x - 1];
 					size = sample_list.size();
 					if (size != 0)
 						break outer;
-					sample_list = grid_data[y][x + 1];
+					sample_list = pixel_data[y][x + 1];
 					size = sample_list.size();
 					if (size != 0)
 					break outer;
-					sample_list = grid_data[y - 1][x - 1];
+					sample_list = pixel_data[y - 1][x - 1];
 					size = sample_list.size();
 					if (size != 0)
 						break outer;
-					sample_list = grid_data[y + 1][x - 1];
+					sample_list = pixel_data[y + 1][x - 1];
 					size = sample_list.size();
-					sample_list = grid_data[y - 1][x + 1];
+					sample_list = pixel_data[y - 1][x + 1];
 					size = sample_list.size();
 					if (size != 0)
 						break outer;
-					sample_list = grid_data[y + 1][x + 1];
+					sample_list = pixel_data[y + 1][x + 1];
 					size = sample_list.size();
 				}
 
@@ -5827,9 +6008,9 @@ public class XFencePlotter
 			
 			double xmin = Double.MAX_VALUE;
 			double xmax = Double.MIN_NORMAL;
-			for(int i = 4; i < sensor_data.size(); i++)
+			for(int i = 4; i < data_array.size(); i++)
 			{
-			    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+			    ArrayList sensor_list = (ArrayList)data_array.get(i);
 			    for(int j = 4; j < sensor_list.size(); j++)
 			    {
 			    	Sample sample = (Sample)sensor_list.get(j);
@@ -5843,9 +6024,9 @@ public class XFencePlotter
 			double xrange = range;
 			double yrange = xmax - xmin;
 			graphics_buffer.setStroke(new BasicStroke(3));
-			for(int i = 4; i < sensor_data.size(); i++)
+			for(int i = 4; i < data_array.size(); i++)
 			{
-			    ArrayList sensor_list = (ArrayList)sensor_data.get(i);
+			    ArrayList sensor_list = (ArrayList)data_array.get(i);
 			    Sample previous_sample = (Sample)sensor_list.get(4);
 			    
 			    // Switching x and y to match orientation of graphs
@@ -6035,7 +6216,7 @@ public class XFencePlotter
 		
 		public void paint(Graphics g)
 		{
-			int size = sensor_data.size();
+			int size = data_array.size();
 			if(size < 5)
 				return;
 			//BufferedImage buffered_image       = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
@@ -6075,7 +6256,7 @@ public class XFencePlotter
 			double xmin = Double.MAX_VALUE;
 			for (int i = 0; i < number_of_segments; i++)
 			{
-				ArrayList sensor_list = (ArrayList) sensor_data.get(i + 4);
+				ArrayList sensor_list = (ArrayList) data_array.get(i + 4);
 				size = sensor_list.size();
 				for(int j = 4; j < size; j++)
 				{
@@ -6101,14 +6282,14 @@ public class XFencePlotter
 			graphics_buffer.drawLine(position, b2, position, b1);
 			graphics_buffer.drawString(value_string, position - (string_width / 2), b2 + (12 + string_height));
 			
-			double min_intensity   = (double)sensor_data.get(0);
-			double max_intensity   = (double)sensor_data.get(1);
+			double min_intensity   = (double)data_array.get(0);
+			double max_intensity   = (double)data_array.get(1);
 			double intensity_range = max_intensity - min_intensity;
 			
 			
 			for (int i = 0; i < number_of_segments; i++)
 			{
-				ArrayList sensor_list = (ArrayList) sensor_data.get(i + 4);
+				ArrayList sensor_list = (ArrayList) data_array.get(i + 4);
 				size = sensor_list.size();
 				for(int j = 4; j < size; j++)
 				{
@@ -6301,7 +6482,7 @@ public class XFencePlotter
 			}
 			xmax = xmin + 8;
 			
-		    ArrayList line_sensor_data = new ArrayList();
+		    ArrayList line_data_array = new ArrayList();
 			for (int i = 0; i < 10; i++)
 			{
 				if (current_line[i] != -1)
@@ -6329,7 +6510,7 @@ public class XFencePlotter
 						    segment_data.add(sample);
 						}
 					}
-					line_sensor_data.add(segment_data);
+					line_data_array.add(segment_data);
 				}
 			}
 			
@@ -6352,10 +6533,10 @@ public class XFencePlotter
 			double max_intensity   = line_max;
 			double intensity_range = max_intensity - min_intensity;
 			
-			int number_of_segments = line_sensor_data.size();	
+			int number_of_segments = line_data_array.size();	
 			for (int i = 0; i < number_of_segments; i++)
 			{
-				ArrayList line_data_list = (ArrayList) line_sensor_data.get(i);
+				ArrayList line_data_list = (ArrayList) line_data_array.get(i);
 				int size = line_data_list.size();
 				
 				int current_line   = (int)line_data_list.get(0);
@@ -6538,7 +6719,7 @@ public class XFencePlotter
 			g2.setColor(java.awt.Color.WHITE);
 			g2.fillRect(0, 0, xdim, ydim);
 
-			int size = sensor_data.size();
+			int size = data_array.size();
 			int number_of_segments = 1;
 			if (size > 0)
 			{
@@ -6642,7 +6823,7 @@ public class XFencePlotter
 			double xfactor = (double)xdim / xrange;
 			double yfactor = (double)ydim / yrange;
 
-			int size = sensor_data.size();
+			int size = data_array.size();
 			int number_of_segments = 0;
 			if (size > 0)
 			{
@@ -6655,7 +6836,7 @@ public class XFencePlotter
 			
 			for(int i = 0; i < number_of_segments; i++)
 			{
-				ArrayList sensor_list = (ArrayList)sensor_data.get(i + 4);
+				ArrayList sensor_list = (ArrayList)data_array.get(i + 4);
 				int included_line = (int)sensor_list.get(0);
 				lineIncluded[included_line] = true;
 			}
@@ -6832,12 +7013,12 @@ public class XFencePlotter
 
 			double min = 0;
 			double max = 0;
-			double seg_min = (double) sensor_data.get(0);
-			double seg_max = (double) sensor_data.get(1);
-			double line_min = (double) sensor_data.get(2);
-			double line_max = (double) sensor_data.get(3);
+			double seg_min = (double) data_array.get(0);
+			double seg_max = (double) data_array.get(1);
+			double line_min = (double) data_array.get(2);
+			double line_max = (double) data_array.get(3);
 			double current_range = 0;
-			int size = sensor_data.size();
+			int size = data_array.size();
 			if (size > 0)
 			{
 				if(data_clipped)
@@ -7011,6 +7192,146 @@ public class XFencePlotter
 		}
 	}
 
+	public ArrayList adaptive_interpolate(double[] x, double[] y, double[] z, double distance)
+	{
+		// We'll get three lists of original data with new interpolated values included.
+		ArrayList interpolated_data = new ArrayList();
+		
+		// Use z as the discriminant, and process x and y accordingly.
+		double[] src   = z;
+		
+		
+		ArrayList x_dst = new ArrayList();
+		ArrayList y_dst = new ArrayList();
+		ArrayList z_dst = new ArrayList();
+		
+		
+		for(int i = 0; i < src.length; i++)
+		{
+		    x_dst.add(x[i]);
+		    y_dst.add(y[i]);
+		    z_dst.add(z[i]);
+		    
+		    // If that was the last point, don't
+		    // bother interpolating.
+		    if(i != src.length - 1)
+		    {
+		    	// The range of the jitter is about 6 nT,
+		    	// so we don't want to interpolate when points
+		    	// are that close because it will affect
+		    	// the result of the averaging we do later.
+		    	// We'll try to interpolate a point at least every
+		    	// 12 nT, so the gap we're looking for is
+		    	// at least 24 nT.
+		    	// That's being conservative, although it would
+		    	// be even more conservative to only interpolate
+		    	// one point.
+		    	
+		    	double discriminant = Math.abs(src[i + 1] - src[i]);
+		    	if(discriminant > distance)
+				{
+		    		// This does something crazy.
+		    		/*
+		    		// Find out how large the gap is, and if we
+		    		// want to interpolate multiple values.
+		    		int number_of_points = (int)Math.floor(discriminant / distance);
+		    		// Take care of the simple case.
+		    		if(number_of_points == 1)
+		    		{
+		    		    x_dst.add((x[i] + x[i + 1]) / 2);
+		    		    y_dst.add((y[i] + y[i + 1]) / 2);
+		    		    z_dst.add((z[i] + z[i + 1]) / 2);
+		    		}
+		    		else
+		    		{
+		    			double increment = 1. / (number_of_points + 1);
+		    			double factor    = increment;
+		    		    for(int j = 0; j < number_of_points; j++)
+		    		    {
+		    		        double first_value  = (1 - factor) * x[i + 1];		
+		    		        double second_value = factor * x[i];
+		    		        x_dst.add((first_value + second_value) / 2);
+		    		        
+		    		        first_value  = (1 - factor) * y[i + 1];
+		    		        second_value = factor * y[i];
+		    		        y_dst.add((first_value + second_value) / 2);
+		    		        
+		    		        first_value  = (1 - factor) * z[i + 1];
+		    		        second_value = factor * z[i];
+		    		        z_dst.add((first_value + second_value) / 2);
+		    		        
+		    		        factor += increment;
+		    		    }
+		    		}
+		    		*/
+		    		
+		    		// Try simple.
+		    		x_dst.add((x[i] + x[i + 1]) / 2);
+	    		    y_dst.add((y[i] + y[i + 1]) / 2);
+	    		    z_dst.add((z[i] + z[i + 1]) / 2);
+				}
+		    }
+		}
+		
+		interpolated_data.add(x_dst);
+		interpolated_data.add(y_dst);
+		interpolated_data.add(z_dst);
+		
+		return(interpolated_data);
+	}
+	
+	
+	public ArrayList adaptive_smooth(double[] x, double[] y, double[] z, int iterations, double amount)
+	{
+		ArrayList smooth_data = new ArrayList();
+		
+		// Use z as the discriminant, and process x and y accordingly.
+		double[] src   = z;
+		int dst_length = z.length - 1;
+		int final_length = z.length - iterations;
+		double[] x_dst = new double[dst_length];
+		double[] y_dst = new double[dst_length];
+		double[] z_dst = new double[dst_length];
+		while (dst_length >= final_length)
+		{
+			for (int i = 0; i < dst_length; i++)
+			{
+				if(Math.abs(src[i + 1] - src[i]) > amount)
+				{
+				    x_dst[i] = (x[i] + x[i + 1]) / 2;
+				    y_dst[i] = (y[i] + y[i + 1]) / 2;
+				    z_dst[i] = (z[i] + z[i + 1]) / 2;
+				}
+				else
+				{
+				    x_dst[i] = x[i];
+				    y_dst[i] = y[i];
+				    z_dst[i] = z[i];
+				}
+			}
+			src = z_dst;
+			x   = x_dst;
+			y   = y_dst;
+			z   = z_dst;
+			dst_length--;
+			if(dst_length >= final_length)
+			{
+			    x_dst = new double[dst_length];
+			    y_dst = new double[dst_length];
+				z_dst = new double[dst_length];
+			}
+			else
+			{
+			    smooth_data.add(x);
+			    smooth_data.add(y);
+			    smooth_data.add(z);
+			}
+		}
+		return(smooth_data);
+	}
+	
+	
+	
 	public double[] smooth(double[] source, int iterations)
 	{
 		int dst_length = source.length - 1;
