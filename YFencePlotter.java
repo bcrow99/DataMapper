@@ -205,6 +205,10 @@ public class YFencePlotter
 		else
 		{
 			System.out.println("This is version 3.7.8 of wand.");
+
+			String version = System.getProperty("java.version");
+			System.out.println("Current java version is " + version);
+			
 			try
 			{
 				try
@@ -248,9 +252,6 @@ public class YFencePlotter
 		fill_color[8]    = new Color(224, 224, 255);
 		fill_color[9]    = new Color(224, 255, 224);
 
-		String version = System.getProperty("java.version");
-		//System.out.println("Current java version is " + version);
-		
 		// Start file input.
 		
 		File file = new File(filename);

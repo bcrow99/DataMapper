@@ -260,6 +260,8 @@ public class XFencePlotter
 		else
 		{
 			System.out.println("This is version 3.7.2 of fence.");
+			String version = System.getProperty("java.version");
+			System.out.println("Current java version is " + version);
 			try
 			{
 				try
