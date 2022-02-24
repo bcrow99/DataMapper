@@ -259,9 +259,9 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.7.2 of fence.");
+			System.out.println("This is version 4.0.2 of fence.");
 			String version = System.getProperty("java.version");
-			System.out.println("Current java version is " + version);
+			//System.out.println("Current java version is " + version);
 			try
 			{
 				try
@@ -501,6 +501,8 @@ public class XFencePlotter
 					        	append_x = Double.valueOf(value);
 				            else if(key.equals("AppendY")) 
 					        	append_y = Double.valueOf(value);
+				            else if(key.equals("AppendIntensity")) 
+					        	append_intensity = Double.valueOf(value);
 				            else if(key.equals("AppendXAbs")) 
 					        	append_x_abs = Double.valueOf(value);
 				            else if(key.equals("AppendYAbs")) 
@@ -1711,6 +1713,8 @@ public class XFencePlotter
 						        	append_x = Double.valueOf(value);
 					            else if(key.equals("AppendY")) 
 						        	append_y = Double.valueOf(value);
+					            else if(key.equals("AppendIntensity")) 
+						        	append_intensity = Double.valueOf(value);
 					            else if(key.equals("AppendXAbs")) 
 						        	append_x_abs = Double.valueOf(value);
 					            else if(key.equals("AppendYAbs")) 
@@ -2483,9 +2487,10 @@ public class XFencePlotter
 				for(int i = 4; i < data_array.size(); i++)
 				{
 				    ArrayList sensor_list = (ArrayList)data_array.get(i);
-				    for(int j = 4; j < sensor_list.size(); j++)
+				    ArrayList sample_list = (ArrayList)sensor_list.get(4);
+				    for(int j = 0; j < sample_list.size(); j++)
 				    {
-				    	Sample sample = (Sample)sensor_list.get(j);
+				    	Sample sample = (Sample)sample_list.get(j);
 				    	if(sample.x < xmin)
 				    		xmin = sample.x;
 				    	if(sample.x > xmax)
@@ -2499,7 +2504,8 @@ public class XFencePlotter
 				for(int i = 4; i < data_array.size(); i++)
 				{
 				    ArrayList sensor_list = (ArrayList)data_array.get(i);
-				    Sample previous_sample = (Sample)sensor_list.get(4);
+				    ArrayList sample_list = (ArrayList)sensor_list.get(4);
+				    Sample previous_sample = (Sample)sample_list.get(0);
 				    
 				    // Switching x and y to match orientation of graphs
 				    double x = previous_sample.y;
@@ -2524,9 +2530,9 @@ public class XFencePlotter
 				    graphics_buffer.drawString(line_sensor_pair, (int)x - (string_width + 5), (int)y);
 				    graphics_buffer.setColor(fill_color[i - 4]);
 				    Point2D.Double previous = new Point2D.Double(x, y);
-				    for(int j = 5; j < sensor_list.size(); j++)
+				    for(int j = 1; j < sample_list.size(); j++)
 					{
-						Sample sample = (Sample)sensor_list.get(j);
+						Sample sample = (Sample)sample_list.get(j);
 						x = sample.y;
 					    y = sample.x;
 					    
@@ -2678,13 +2684,14 @@ public class XFencePlotter
 					ArrayList sensor_list    = (ArrayList) data_array.get(i + 4);
 					int       current_line   = (int)sensor_list.get(0);
 					int       current_sensor = (int)sensor_list.get(1);
-					size                     = sensor_list.size();
+					ArrayList sample_list    = (ArrayList)sensor_list.get(4);
+					size                     = sample_list.size();
 					
-					Sample sample = (Sample)sensor_list.get(4);
-					int j = 5;
+					Sample sample = (Sample)sample_list.get(0);
+					int j = 1;
 					while(sample.y < current_position && j < size)
 					{
-						sample = (Sample)sensor_list.get(j);
+						sample = (Sample)sample_list.get(j);
 						j++;
 					}
 					xlist.add(sample.x);
@@ -3403,9 +3410,9 @@ public class XFencePlotter
 				//System.out.println("Saving points of interest.");
 				try
 	            {
-	            	FileWriter output  = new FileWriter("points.txt", true);
+	            	FileWriter output  = new FileWriter("fpoints.txt", true);
 	            	
-	            	output.write("start_index " + startpoint_index + "\n");
+	            	//output.write("start_index " + startpoint_index + "\n");
 	            	output.write("start_intensity " + String.format("%.2f",startpoint_intensity) + " nT\n");
 	            	output.write("start_x " + String.format("%.2f", startpoint_x) + " m\n");
 	            	output.write("start_y " + String.format("%.2f", startpoint_y) + " m\n");
@@ -3415,7 +3422,7 @@ public class XFencePlotter
 	            	output.write("mid_x " + String.format("%.2f", midpoint_x) + " m\n");
 	            	output.write("mid_y " + String.format("%.2f", midpoint_y) + " m\n");
 	            	output.write("mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n");
-	            	output.write("end_index " + endpoint_index + "\n");
+	            	//output.write("end_index " + endpoint_index + "\n");
 	            	output.write("end_intensity " + String.format("%.2f", endpoint_intensity) + " nT\n");
 	            	output.write("end_x " + String.format("%.2f", endpoint_x) + " m m\n");
 	            	output.write("end_y " + String.format("%.2f", endpoint_y) + "\n");
@@ -3600,14 +3607,14 @@ public class XFencePlotter
 			{
 				try
 	            {
-	            	FileWriter output  = new FileWriter("points.txt", true);
+	            	FileWriter output  = new FileWriter("fpoints.txt", true);
 	            	
-	            	output.write("start_index "       + startpoint_index + "\n");
+	            	//output.write("start_index "       + startpoint_index + "\n");
 	            	output.write("start_intensity "   + String.format("%.2f",startpoint_intensity) + " nT\n");
 	            	output.write("start_x "           + String.format("%.2f", startpoint_x) + " m\n");
 	            	output.write("start_y "           + String.format("%.2f", startpoint_y) + " m\n");
 	            	output.write("start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n");
-	            	output.write("end_index "         + endpoint_index + "\n");
+	            	//output.write("end_index "         + endpoint_index + "\n");
 	            	output.write("end_intensity "     + String.format("%.2f", endpoint_intensity) + " nT\n");
 	            	output.write("end_x "             + String.format("%.2f", endpoint_x) + " m\n");
 	            	output.write("end_y "             + String.format("%.2f", endpoint_y) + " m\n");
@@ -4757,12 +4764,28 @@ public class XFencePlotter
 					    graphics_buffer.setStroke(new BasicStroke(1));
 					    
                         current_position = a1;
+                        
 					    int string_width = 0;
-				        if(relative_mode)
-				            string_width = font_metrics.stringWidth("77.7");
-				        else
-					        string_width    = font_metrics.stringWidth("7,777,777");
-				        int    number_of_units            = (int) (graph_xdim / (string_width + 4));  
+					    if(relative_mode)
+					    {
+					        if(range < 10)
+					        {
+					        	String width_string = String.format("%.2f", maximum_x);
+					        	string_width = font_metrics.stringWidth(width_string);
+					        }
+					        else
+					        {
+					        	String width_string = String.format("%.1f", maximum_x);
+					        	string_width = font_metrics.stringWidth(width_string);	
+					        }
+					    }
+					    else
+					    {
+					    	String width_string = String.format("%.0f", global_ymin);
+					    	string_width = font_metrics.stringWidth(width_string);	
+					    }
+					    
+				        int    number_of_units            = (int) (graph_xdim / (string_width + 6));  
 				        double current_position_increment = graph_xdim;
 				        current_position_increment        /= number_of_units;
 				        
@@ -4795,7 +4818,8 @@ public class XFencePlotter
                         current_position         = b2;
                         current_range            = b1 - b2;
 					    number_of_units          = (int) (current_range / (2 * (string_height)));
-					    double current_increment = current_range / number_of_units;
+					    double current_increment = current_range;
+					    current_increment       /= number_of_units;
 					    
 					    if(i == 0)
 					    {
@@ -4821,7 +4845,7 @@ public class XFencePlotter
 					                current_position += current_increment;
 				                }
 					    	    current_position  = a1;
-					    	    number_of_units   = (int)(graph_xdim / (string_width + 4));  
+					    	    number_of_units   = (int)(graph_xdim / (string_width + 6));  
 					    	    current_increment = graph_xdim;
 					    	    current_increment /= number_of_units;
 					    	    // Creating grid on rear of data space on frontmost graph panel.
@@ -4885,7 +4909,7 @@ public class XFencePlotter
 					            current_position += current_increment;
 				            }
 					    	current_position  = a1;
-					    	number_of_units   = (int)(graph_xdim / (string_width + 4));  
+					    	number_of_units   = (int)(graph_xdim / (string_width + 6));  
 					    	current_increment = graph_xdim;
 					    	current_increment /= number_of_units;
 					    	for(int j = 0; j < number_of_units; j++)
@@ -4915,7 +4939,7 @@ public class XFencePlotter
 					                current_position += current_increment;
 				                }
 					    	    current_position  = a1;
-					    	    number_of_units   = (int)(graph_xdim / (string_width + 4));  
+					    	    number_of_units   = (int)(graph_xdim / (string_width + 6));  
 					    	    current_increment = graph_xdim;
 					    	    current_increment /= number_of_units;
 					    	    
@@ -5386,31 +5410,45 @@ public class XFencePlotter
 					    
 					    current_value    = offset;
 					    current_position = a1;
+					    if(relative_mode)
+					    {
+					        if(range < 10)
+					        {
+					        	position_string = String.format("%.2f", current_value);
+					        	string_width = font_metrics.stringWidth(position_string);
+					        }
+					        else
+					        {
+					        	position_string = String.format("%.1f", current_value);
+					        	string_width = font_metrics.stringWidth(position_string);	
+					        }
+					    }
+					    else
+					    {
+					    	position_string = String.format("%,.0f", current_value + global_ymin);
+					    	string_width = font_metrics.stringWidth(position_string);	
+					    }
 					    
-				        if (relative_mode)
-				        {
-				            string_width = font_metrics.stringWidth("77.7");
-				            position_string = String.format("%.1f", current_value);
-				        }
-				        else
-				        {
-					        string_width    = font_metrics.stringWidth("7,777,777");
-					        position_string = String.format("%,.0f", current_value + global_ymin);
-				        }
-				        int    number_of_units            = (int) (graph_xdim / (string_width + 4));
+				        int    number_of_units            = (int) (graph_xdim / (string_width + 6));
 				        double current_position_increment = graph_xdim;
 				        current_position_increment        /= number_of_units;
 				        if(i == 0  || (xstep == max_xstep && ystep == 0))
 				        {
 				        	// Hanging numbers on frontmost xaxis.
 				        	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
-				            double current_value_increment = range / number_of_units;
+				            double current_value_increment = range;
+				            current_value_increment        /= number_of_units;
 				            for(int j = 0; j < number_of_units; j++)
 				            {
 					            current_value += current_value_increment;
 					            current_position += current_position_increment;
 					            if(relative_mode)
-					                position_string = String.format("%,.1f", current_value);
+					            {
+					            	if(range > 10)
+					                    position_string = String.format("%.1f", current_value);
+					            	else
+					            		position_string = String.format("%.2f", current_value);
+					            }
 					            else
 						            position_string = String.format("%,.0f", current_value + global_ymin);	
 					            graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
@@ -5424,10 +5462,12 @@ public class XFencePlotter
                     
 					// Placing numbers on the intensity axis.
 					double current_intensity_range = maximum_y - minimum_y;
-					double current_range = b1 - b2;
-					int number_of_units = (int) (current_range / (2 * string_height));
-					double current_increment = current_range / number_of_units;
-					double current_value_increment = current_intensity_range / number_of_units;
+					double current_range    = b1 - b2;
+					int number_of_units      = (int) (current_range / (2 * string_height));
+					double current_increment = current_range;
+					current_increment       /= number_of_units;
+					double current_value_increment = current_intensity_range;
+					current_value_increment /= number_of_units;
 					current_position = b2;
 					String intensity_string = String.format("%,.1f", current_value);
 					string_width = font_metrics.stringWidth(intensity_string);
@@ -5501,6 +5541,7 @@ public class XFencePlotter
 							            	// the actual locations that might reflect any out of
 							            	// orders segments, and the ideal location that we
 							            	// might want to compare it to.
+							            	// A color key could be added to specity line sensor ids.
 							            	/*
 							            	double ideal_x = line * 2;
 											if (line % 2 == 0)
@@ -5512,7 +5553,7 @@ public class XFencePlotter
 							            	
 											size = sensor_list.size();
 											Sample sample = (Sample)sensor_list.get(size - 1);
-											String actual_string = String.format("%, .2f", sample.x);
+											String actual_string = String.format("% .2f", sample.x);
 											*/
 											String line_id = new String(line + ":" + sensor);
 											if(show_id)
@@ -5557,35 +5598,35 @@ public class XFencePlotter
 						
 						int current_y = string_height + 2;
 						int current_x = 2;
-						String information_string = new String("  Line:         " + append_line);
+						String information_string = new String("  Line:            " + append_line);
 						graphics_buffer.drawString(information_string, current_x, current_y);
 						
 						current_y += string_height + 2;
-						information_string = new String("  Sensor:     " + append_sensor);
+						information_string = new String("  Sensor:       " + append_sensor);
 						graphics_buffer.drawString(information_string, current_x, current_y);
 						
 						current_y += string_height + 2;
-						information_string = new String("  Intensity:   " + append_intensity + "\n");	
+						information_string = new String("  Intensity:     " + String.format("%.2f", append_intensity) + "\n");	
 						graphics_buffer.drawString(information_string, current_x, current_y);
 						
 						current_y           += string_height + 2;
 						String number_string = String.format("%,.2f", append_x);
-						information_string   = new String("  Relative x: " + number_string);
+						information_string   = new String("  Relative x:   " + number_string);
 						graphics_buffer.drawString(information_string, current_x, current_y);
 						
 						current_y           += string_height + 2;
 						number_string        = String.format("%,.2f", append_y);
-						information_string   = new String("  Relative y: " + number_string);
+						information_string   = new String("  Relative y:   " + number_string);
 						graphics_buffer.drawString(information_string, current_x, current_y);
 						
 						current_y           += string_height + 2;
 						number_string = String.format("%,.2f", append_x_abs);
-						information_string   = new String("  Absolute x: " + number_string);
+						information_string   = new String("  Absolute x:  " + number_string);
 						graphics_buffer.drawString(information_string, current_x, current_y);
 						
 						current_y           += string_height + 2;
 						number_string        = String.format("%,.2f", append_y_abs);
-						information_string   = new String("  Absolute y: " + number_string);
+						information_string   = new String("  Absolute y:  " + number_string);
 						graphics_buffer.drawString(information_string, current_x, current_y);
 						
 						current_y           += string_height + 2;
@@ -5952,7 +5993,6 @@ public class XFencePlotter
 	}
 	// End data canvas.
 	
-	
 	class OrderCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -6259,10 +6299,11 @@ public class XFencePlotter
 			for (int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList sensor_list = (ArrayList) data_array.get(i + 4);
-				size = sensor_list.size();
-				for(int j = 4; j < size; j++)
+				ArrayList sample_list = (ArrayList) sensor_list.get(4);
+				size = sample_list.size();
+				for(int j = 0; j < size; j++)
 				{
-					Sample sample = (Sample) sensor_list.get(j);
+					Sample sample = (Sample) sample_list.get(j);
 					double x = sample.x;
 					if(xmin > x)
 						xmin = x;
@@ -6292,10 +6333,11 @@ public class XFencePlotter
 			for (int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList sensor_list = (ArrayList) data_array.get(i + 4);
-				size = sensor_list.size();
-				for(int j = 4; j < size; j++)
+				ArrayList sample_list = (ArrayList)sensor_list.get(4);
+				size = sample_list.size();
+				for(int j = 0; j < size; j++)
 				{
-					Sample sample = (Sample) sensor_list.get(j);
+					Sample sample = (Sample) sample_list.get(j);
 					double x = sample.x;
 					double y = sample.y;
 					x -= xmin;
@@ -6809,7 +6851,6 @@ public class XFencePlotter
 		}
 	}
 
-
 	class LocationCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -7193,146 +7234,6 @@ public class XFencePlotter
 			}
 		}
 	}
-
-	public ArrayList adaptive_interpolate(double[] x, double[] y, double[] z, double distance)
-	{
-		// We'll get three lists of original data with new interpolated values included.
-		ArrayList interpolated_data = new ArrayList();
-		
-		// Use z as the discriminant, and process x and y accordingly.
-		double[] src   = z;
-		
-		
-		ArrayList x_dst = new ArrayList();
-		ArrayList y_dst = new ArrayList();
-		ArrayList z_dst = new ArrayList();
-		
-		
-		for(int i = 0; i < src.length; i++)
-		{
-		    x_dst.add(x[i]);
-		    y_dst.add(y[i]);
-		    z_dst.add(z[i]);
-		    
-		    // If that was the last point, don't
-		    // bother interpolating.
-		    if(i != src.length - 1)
-		    {
-		    	// The range of the jitter is about 6 nT,
-		    	// so we don't want to interpolate when points
-		    	// are that close because it will affect
-		    	// the result of the averaging we do later.
-		    	// We'll try to interpolate a point at least every
-		    	// 12 nT, so the gap we're looking for is
-		    	// at least 24 nT.
-		    	// That's being conservative, although it would
-		    	// be even more conservative to only interpolate
-		    	// one point.
-		    	
-		    	double discriminant = Math.abs(src[i + 1] - src[i]);
-		    	if(discriminant > distance)
-				{
-		    		// This does something crazy.
-		    		/*
-		    		// Find out how large the gap is, and if we
-		    		// want to interpolate multiple values.
-		    		int number_of_points = (int)Math.floor(discriminant / distance);
-		    		// Take care of the simple case.
-		    		if(number_of_points == 1)
-		    		{
-		    		    x_dst.add((x[i] + x[i + 1]) / 2);
-		    		    y_dst.add((y[i] + y[i + 1]) / 2);
-		    		    z_dst.add((z[i] + z[i + 1]) / 2);
-		    		}
-		    		else
-		    		{
-		    			double increment = 1. / (number_of_points + 1);
-		    			double factor    = increment;
-		    		    for(int j = 0; j < number_of_points; j++)
-		    		    {
-		    		        double first_value  = (1 - factor) * x[i + 1];		
-		    		        double second_value = factor * x[i];
-		    		        x_dst.add((first_value + second_value) / 2);
-		    		        
-		    		        first_value  = (1 - factor) * y[i + 1];
-		    		        second_value = factor * y[i];
-		    		        y_dst.add((first_value + second_value) / 2);
-		    		        
-		    		        first_value  = (1 - factor) * z[i + 1];
-		    		        second_value = factor * z[i];
-		    		        z_dst.add((first_value + second_value) / 2);
-		    		        
-		    		        factor += increment;
-		    		    }
-		    		}
-		    		*/
-		    		
-		    		// Try simple.
-		    		x_dst.add((x[i] + x[i + 1]) / 2);
-	    		    y_dst.add((y[i] + y[i + 1]) / 2);
-	    		    z_dst.add((z[i] + z[i + 1]) / 2);
-				}
-		    }
-		}
-		
-		interpolated_data.add(x_dst);
-		interpolated_data.add(y_dst);
-		interpolated_data.add(z_dst);
-		
-		return(interpolated_data);
-	}
-	
-	
-	public ArrayList adaptive_smooth(double[] x, double[] y, double[] z, int iterations, double amount)
-	{
-		ArrayList smooth_data = new ArrayList();
-		
-		// Use z as the discriminant, and process x and y accordingly.
-		double[] src   = z;
-		int dst_length = z.length - 1;
-		int final_length = z.length - iterations;
-		double[] x_dst = new double[dst_length];
-		double[] y_dst = new double[dst_length];
-		double[] z_dst = new double[dst_length];
-		while (dst_length >= final_length)
-		{
-			for (int i = 0; i < dst_length; i++)
-			{
-				if(Math.abs(src[i + 1] - src[i]) > amount)
-				{
-				    x_dst[i] = (x[i] + x[i + 1]) / 2;
-				    y_dst[i] = (y[i] + y[i + 1]) / 2;
-				    z_dst[i] = (z[i] + z[i + 1]) / 2;
-				}
-				else
-				{
-				    x_dst[i] = x[i];
-				    y_dst[i] = y[i];
-				    z_dst[i] = z[i];
-				}
-			}
-			src = z_dst;
-			x   = x_dst;
-			y   = y_dst;
-			z   = z_dst;
-			dst_length--;
-			if(dst_length >= final_length)
-			{
-			    x_dst = new double[dst_length];
-			    y_dst = new double[dst_length];
-				z_dst = new double[dst_length];
-			}
-			else
-			{
-			    smooth_data.add(x);
-			    smooth_data.add(y);
-			    smooth_data.add(z);
-			}
-		}
-		return(smooth_data);
-	}
-	
-	
 	
 	public double[] smooth(double[] source, int iterations)
 	{
@@ -7350,7 +7251,7 @@ public class XFencePlotter
 			if (dst_length >= source.length - iterations)
 				dst = new double[dst_length];
 		}
-		return (dst);
+		return(dst);
 	}
 	
 

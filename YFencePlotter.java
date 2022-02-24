@@ -23,6 +23,7 @@ public class YFencePlotter
 	ArrayList set_array = new ArrayList();
 	ArrayList relative_set_array = new ArrayList();
 	
+	
 	// Information we collect at start up.
 	public double      global_xmin, global_xmax;
 	public double      global_ymin, global_ymax;
@@ -204,10 +205,10 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 3.7.8 of wand.");
+			System.out.println("This is version 4.0.2 of wand.");
 
 			String version = System.getProperty("java.version");
-			System.out.println("Current java version is " + version);
+			//System.out.println("Current java version is " + version);
 			
 			try
 			{
@@ -404,6 +405,8 @@ public class YFencePlotter
 				            	append_line = Integer.parseInt(value);	
 				            else if(key.equals("AppendSensor")) 
 				            	append_sensor = Integer.parseInt(value);
+				            else if(key.equals("AppendIntensity")) 
+					        	append_intensity = Double.valueOf(value);
 				            else if(key.equals("AppendX")) 
 					        	append_x = Double.valueOf(value);
 				            else if(key.equals("AppendY")) 
@@ -600,7 +603,7 @@ public class YFencePlotter
 				data_length          = (int)total_distance;
 				scrollbar_resolution = data_length;
 				
-				Sample init_sample = (Sample)relative_data.get(0);
+				Sample init_sample = (Sample)relative_data.get(2);
 				double init_x      = init_sample.x;
 				double init_y      = init_sample.y;
 				
@@ -616,7 +619,7 @@ public class YFencePlotter
 				{
 					double distance = getDistance(init_x, init_y, object_location[i][0], object_location[i][1]);
 					int    index    = 0;
-					for(int j = 5; j < relative_data.size(); j += 5)
+					for(int j = 7; j < relative_data.size(); j += 5)
 					{
 						Sample sample = (Sample)relative_data.get(j);
 						double current_x = sample.x;
@@ -628,9 +631,10 @@ public class YFencePlotter
 							index = j;
 						}	
 					}
+					// Reset index from center to initial sensor.
+					index -= 2;
 					object_index.add(index);
 				}
-				
 				
 				data           = new ArrayList();
 				total_distance = 0;
@@ -665,7 +669,6 @@ public class YFencePlotter
 					adjusted_sample  = new Sample(current_sample.x, total_distance, current_sample.intensity);
 					adjusted_sample.index   = current_sample.index;
 					data.add(adjusted_sample);
-					
 					
 					current_sample      = (Sample) relative_data.get(i + 1);
 					adjusted_sample  = new Sample(current_sample.x, total_distance, current_sample.intensity);
@@ -1282,6 +1285,8 @@ public class YFencePlotter
 						        	append_x = Double.valueOf(value);
 					            else if(key.equals("AppendY")) 
 						        	append_y = Double.valueOf(value);
+					            else if(key.equals("AppendIntensity")) 
+						        	append_intensity = Double.valueOf(value);
 					            else if(key.equals("AppendXAbs")) 
 						        	append_x_abs = Double.valueOf(value);
 					            else if(key.equals("AppendYAbs")) 
@@ -1396,8 +1401,8 @@ public class YFencePlotter
 					    // So dynamic range comes up right.
 					    if(data_clipped)
 					    {
-					    	lower_bound.setText(String.format("%,.2f", minimum_y));	
-		                	upper_bound.setText(String.format("%,.2f", maximum_y));	
+					    	lower_bound.setText(String.format("%.2f", minimum_y));	
+		                	upper_bound.setText(String.format("%.2f", maximum_y));	
 					    }
 					    
 					    int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
@@ -2200,12 +2205,12 @@ public class YFencePlotter
 	            {
 	            	FileWriter output  = new FileWriter("wpoints.txt", true);
 	            	
-	            	output.write("start_index " + startpoint_index + "\n");
+	            	//output.write("start_index " + startpoint_index + "\n");
 	            	output.write("start_intensity " + String.format("%.2f",startpoint_intensity) + " nT\n");
 	            	output.write("start_x " + String.format("%.2f", startpoint_x) + " m\n");
 	            	output.write("start_y " + String.format("%.2f", startpoint_y) + " m\n");
 	            	output.write("start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n");
-	            	output.write("end_index " + endpoint_index + "\n");
+	            	//output.write("end_index " + endpoint_index + "\n");
 	            	output.write("end_intensity " + String.format("%.2f", endpoint_intensity) + " nT\n");
 	            	output.write("end_x " + String.format("%.2f", endpoint_x) + " m\n");
 	            	output.write("end_y " + String.format("%.2f", endpoint_y) + " m\n");
@@ -2225,17 +2230,19 @@ public class YFencePlotter
 						location_array[i][0] -= global_xmin;
 						location_array[i][1] -= global_ymin;
 					}
-					double previous_distance = getDistance(midpoint_x, midpoint_y, location_array[0][0], location_array[0][1]);
+					double previous_distance = getDistance(endpoint_x, endpoint_y, location_array[0][0], location_array[0][1]);
 					int    closest_target    = 0;
 					for(int i = 1; i < location_array.length; i++)
 					{
-						double current_distance = getDistance(midpoint_x, midpoint_y, location_array[i][0], location_array[i][1]);
+						double current_distance = getDistance(endpoint_x, endpoint_y, location_array[i][0], location_array[i][1]);
 						if(current_distance < previous_distance)
 						{
 							previous_distance = current_distance;
 							closest_target = i;
 						}
 					}
+					
+					System.out.println("Nearest target is " + (closest_target + 1));
 					output.write("nearest_target_id " + (closest_target + 1) + "\n");
 					output.write("nearest_target_distance " + String.format("%.2f", previous_distance) + " m\n");
 					
@@ -2463,17 +2470,18 @@ public class YFencePlotter
 						location_array[i][0] -= global_xmin;
 						location_array[i][1] -= global_ymin;
 					}
-					double previous_distance = getDistance(midpoint_x, midpoint_y, location_array[0][0], location_array[0][1]);
+					double previous_distance = getDistance(endpoint_x, endpoint_y, location_array[0][0], location_array[0][1]);
 					int    closest_target    = 0;
 					for(int i = 1; i < location_array.length; i++)
 					{
-						double current_distance = getDistance(midpoint_x, midpoint_y, location_array[i][0], location_array[i][1]);
+						double current_distance = getDistance(endpoint_x, endpoint_y, location_array[i][0], location_array[i][1]);
 						if(current_distance < previous_distance)
 						{
 							previous_distance = current_distance;
 							closest_target = i;
 						}
 					}
+					
 					output.write("nearest_target_id " + (closest_target + 1) + "\n");
 					output.write("nearest_target_distance " + String.format("%.2f", previous_distance) + " m\n");
 					
@@ -2749,20 +2757,23 @@ public class YFencePlotter
 				if(object_id >= 1 && object_id < 54)
 				{
 					System.out.println("Setting location close to object " + object_id);
-					double[] object_offset = ObjectMapper.getObjectOffsetArray();
-					double   offset        = object_offset[object_id - 1];
-					offset                /= 30.;
-					data_offset            = offset - data_range / 2;
+					
+					int    index          = (int)object_index.get(object_id - 1);
+					Sample current_sample = (Sample)data.get(index);
+					double current_offset = current_sample.y;
+					
+					data_offset = current_offset / data_length - data_range / 2;
 					
 					// Clear data since we're at a new position.
-					append_data = false;
+					append_data     = false;
 					persistent_data = false;
+					startpoint_set  = false;
+					midpoint_set    = false;
+					endpoint_set    = false;
+					
 					sample_information.setText("");	
 					double_slope_output.setText("");
 					triple_slope_output.setText("");
-					startpoint_set = false;
-					midpoint_set = false;
-					endpoint_set = false;
 					
 					// Reset scrollbar.
 					int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
@@ -2771,10 +2782,6 @@ public class YFencePlotter
 					// Redraw and resegment data.
 					System.out.println("Redrawing data canvas.");
 					data_canvas.repaint();
-					
-					//System.out.println("Redrawing location map.");
-					// Update location map
-					//location_canvas.repaint();
 				}
 				else
 				{
@@ -2827,7 +2834,6 @@ public class YFencePlotter
 					
 					int delta_x = 0;
 					int delta_y = 0;
-					
 					
 					if(append_sensor == 0)
 					{
@@ -3432,9 +3438,10 @@ public class YFencePlotter
 			    	width_string = String.format("%.0f", global_ymin);
 			    
 			    	
-			    int string_width = font_metrics.stringWidth(width_string);
-			    int    number_of_units            = (int) (graph_xdim / (string_width + 6));  
-		        double current_position_increment = graph_xdim / number_of_units;
+			    int    string_width               = font_metrics.stringWidth(width_string);
+			    int    number_of_units            = graph_xdim / (string_width + 6);  
+		        double current_position_increment = graph_xdim;
+		        current_position_increment        /= number_of_units;
 		       
 		        if(i == 0  || (xstep == max_xstep && ystep == 0))
 		        {
@@ -3448,7 +3455,8 @@ public class YFencePlotter
 		            current_position         = b2;
 	                current_range            = b1 - b2;
 				    number_of_units          = (int) (current_range / (2 * (string_height)));
-				    double current_increment = current_range / number_of_units;
+				    double current_increment = current_range;
+				    current_increment       /= number_of_units;
 				    graphics_buffer.setColor(Color.BLACK);
 			    	graphics_buffer.setStroke(new BasicStroke(2));
 			    	graphics_buffer.drawLine(a1, b1, a1, b2);
@@ -3462,6 +3470,7 @@ public class YFencePlotter
 			            current_position += current_increment;
 		            }
 		            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
+		           
 		            
 		            if(ystep != 0  && show_id)
 		            {
@@ -3565,7 +3574,8 @@ public class YFencePlotter
 		        		current_position         = b2;
 		                current_range            = b1 - b2;
 					    number_of_units          = (int) (current_range / (2 * (string_height)));
-					    double current_increment = current_range / number_of_units;
+					    double current_increment = current_range;
+					    current_increment       /= number_of_units;
 					    graphics_buffer.setColor(Color.BLACK);
 				    	graphics_buffer.setStroke(new BasicStroke(2));
 				    	graphics_buffer.drawLine(a1, b1, a1, b2);
@@ -3584,7 +3594,8 @@ public class YFencePlotter
 		        	current_position         = b2;
 	                current_range            = b1 - b2;
 				    number_of_units          = (int) (current_range / (2 * (string_height)));
-				    double current_increment = current_range / number_of_units;
+				    double current_increment = current_range;
+				    current_increment       /= number_of_units;
 				    if(ystep != 0)
 			    	{
 			    		graphics_buffer.setColor(Color.BLACK);
@@ -4244,9 +4255,10 @@ public class YFencePlotter
 			    	width_string = String.format("%.0f", global_ymin);
 			    
 			    	
-			    int string_width = font_metrics.stringWidth(width_string);
+			    int string_width                  = font_metrics.stringWidth(width_string);
 			    int    number_of_units            = (int) (graph_xdim / (string_width + 6));  
-		        double current_position_increment = graph_xdim / number_of_units;
+		        double current_position_increment = graph_xdim;
+		        current_position_increment       /= number_of_units;
 		        
 		        String position_string;
 		        xrange = maximum_x - minimum_x;
@@ -4263,8 +4275,9 @@ public class YFencePlotter
 		            position_string = String.format("%.0f", relative_start_y + global_ymin);	
 		        	current_value = relative_start_y + global_ymin;
 		        }
-		        current_position = a1;
-		        double current_value_increment = xrange / number_of_units;	
+		        current_position               = a1;
+		        double current_value_increment = xrange;
+		        current_value_increment       /= number_of_units;	
 		        
 		        if(i == 0 || (xstep == max_xstep && ystep == 0) )
 		        {
@@ -4299,10 +4312,12 @@ public class YFencePlotter
 		        if(i == 0 || (xstep == 0 && ystep == max_ystep))
 		        {
 		        	double current_intensity_range = maximum_y - minimum_y;
-				    double current_range = b1 - b2;
-				    number_of_units = (int) (current_range / (2 * string_height));
-				    double current_increment = current_range / number_of_units;
-				    current_value_increment = current_intensity_range / number_of_units;
+				    double current_range     = b1 - b2;
+				    number_of_units          = (int) (current_range / (2 * string_height));
+				    double current_increment = current_range; 
+				    current_increment       /= number_of_units;
+				    current_value_increment  = current_intensity_range;
+				    current_value_increment /= number_of_units;
 				    current_position = b2;
 				    current_value = maximum_y;
 				    String intensity_string;
@@ -4385,36 +4400,36 @@ public class YFencePlotter
 				
 				int current_y = string_height + 2;
 				int current_x = 2;
-				String information_string = new String("  Line:         " + append_line);
+				String information_string = new String("  Line:            " + append_line);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y += string_height + 2;
-				information_string = new String("  Sensor:     " + append_sensor);
+				information_string = new String("  Sensor:       " + append_sensor);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y += string_height + 2;
 				
-				information_string = new String("  Intensity:   " + String.format("%.2f", append_intensity) + "\n");	
+				information_string = new String("  Intensity:      " + String.format("%.2f", append_intensity) + "\n");	
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y           += string_height + 2;
 				String number_string = String.format("%.2f", append_x);
-				information_string   = new String("  Relative x: " + number_string);
+				information_string   = new String("  Relative x:   " + number_string);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y           += string_height + 2;
 				number_string        = String.format("%.2f", append_y);
-				information_string   = new String("  Relative y: " + number_string);
+				information_string   = new String("  Relative y:   " + number_string);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y           += string_height + 2;
 				number_string = String.format("%.2f", append_x_abs);
-				information_string   = new String("  Absolute x: " + number_string);
+				information_string   = new String("  Absolute x:  " + number_string);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y           += string_height + 2;
 				number_string        = String.format("%.2f", append_y_abs);
-				information_string   = new String("  Absolute y: " + number_string);
+				information_string   = new String("  Absolute y:  " + number_string);
 				graphics_buffer.drawString(information_string, current_x, current_y);
 				
 				current_y           += string_height + 2;
@@ -5182,33 +5197,6 @@ public class YFencePlotter
 		}
 		return (dst);
 	}
-	
-	/*
-	public double[] adaptive_smooth(double[] x, double[] y, double[] z, int iterations, double amount)
-	{
-		// Use z as the discriminant, and process x and y accordingly.
-		double[] src   = z;
-		int dst_length = z.length - 1;
-		double[] x_dst = new double[dst_length];
-		double[] y_dst = new double[dst_length];
-		double[] z_dst = new double[dst_length];
-		while (dst_length >= z.length - iterations)
-		{
-			for (int i = 0; i < dst_length; i++)
-			{
-				if(Math.abs(src[i + 1] - src[i]) > amount)
-				{
-				    z_dst[i] = (src[i] + src[i + 1]) / 2;
-				
-			}
-			src = dst;
-			dst_length--;
-			if (dst_length >= source.length - iterations)
-				dst = new double[dst_length];
-		}
-		return (dst);
-	}
-	*/
 	
 	
 	public double getDistance(double x, double y, double x_origin, double y_origin)
