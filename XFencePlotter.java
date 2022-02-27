@@ -44,10 +44,12 @@ public class XFencePlotter
 		
 	// Local min/max for current data segment.
 	public double  seg_min, seg_max;
-	// Local min/max for current data segment.
+	
+	// Global min/max for current data segment.
 	public double  line_min, line_max;
+	
 	// Arbitrary values when not graphing all values and/or not using entire display area.
-	// Otherwise, line min/max or segment min/max.
+	// Otherwise, global min/max or local min/max.
 	public double  minimum_y = 0;
 	public double  maximum_y = 0;
 	
@@ -67,7 +69,6 @@ public class XFencePlotter
     boolean persistent_data = false;
 	boolean relative_mode  = true;
     boolean reverse_view   = false;
-    boolean data_scaled    = false;
     boolean data_clipped   = false;
     boolean color_key      = false;
     boolean show_id        = true;
@@ -80,7 +81,6 @@ public class XFencePlotter
 	double  sort_location  = 0.5;
 	double  xlocation      = 0.5;
 	double  ylocation      = 0.5;	
-   
     int     smooth         = 0;
     boolean config_file_exists = false;
     String  config_filename;
@@ -259,7 +259,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.0.2 of fence.");
+			System.out.println("This is version 4.0.4 of fence.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			try
@@ -386,9 +386,7 @@ public class XFencePlotter
 				        {
 				            config_tokenizer = new StringTokenizer(line);
 				            String key       = config_tokenizer.nextToken();
-				            //System.out.println("Key is " + key);
 				            String value     = config_tokenizer.nextToken();
-				            //System.out.println("Value is " + value);
 				            
 				            if(key.equals("Offset"))
 				    	        offset = Double.valueOf(value);
@@ -451,14 +449,19 @@ public class XFencePlotter
 					        	if(value.equals("true"))
 					        		in_order = true;
 					        	else
-					        		in_order = false;	
+					        		in_order = false;
+					        	//System.out.println("Setting boolean in order to " + in_order);
 					        }
 					        else if(key.equals("SortLocation")) 
+					        {
 					        	sort_location = Double.valueOf(value); 
+					        	//System.out.println("Setting sort location to " + sort_location);
+					        }
 					        else if(key.equals("XLocation"))
 					    	    xlocation = Double.valueOf(value);
 					        else if(key.equals("YLocation")) 
 					        	ylocation = Double.valueOf(value);
+				            /*
 					        else if(key.equals("Scaling")) 
 					        {
 					        	if(value.equals("true"))
@@ -466,15 +469,9 @@ public class XFencePlotter
 					        	else
 					        		data_scaled = false;
 					        } 
+					        */
 					        else if(key.equals("ScaleFactor")) 
 					        	scale_factor = Double.valueOf(value);
-					        else if(key.equals("Scaling")) 
-					        {
-					        	if(value.equals("true"))
-					        		data_scaled = true;
-					        	else
-					        		data_scaled = false;
-					        } 
 				            else if(key.equals("Clipping")) 
 					        {
 					        	if(value.equals("true"))
@@ -589,7 +586,7 @@ public class XFencePlotter
 				catch(Exception e)
 				{
 					System.out.println("Exception reading config file.");
-					//System.out.println(e.toString());
+					System.out.println(e.toString());
 					// Could reset to defaults here.
 					config_file_exists = false;
 				}
@@ -670,21 +667,6 @@ public class XFencePlotter
 					sample.index = i;
 					data.add(sample);
 				}
-				
-				// Keep x and y and z values available for smoothing.
-				int data_size = data.size();
-				xpoint = new double[data_size];
-				ypoint = new double[data_size];
-				zpoint = new double[data_size];
-				for(int i = 0; i < data_size; i++)
-				{
-					Sample sample = (Sample)data.get(i);
-					xpoint[i] = sample.x;
-					ypoint[i] = sample.y;
-					zpoint[i] = sample.intensity;
-				}
-				
-				
 				
 				// Segment the data set by sensor so we don't have
 				// to do it over and over again in the rest of the program.
@@ -903,10 +885,12 @@ public class XFencePlotter
 	            		output.write("ColorKey\t\ttrue\n");
 	            	else
 	            		output.write("ColorKey\t\tfalse\n");
+	            	/*
 	            	if(data_scaled)
 	            		output.write("Scaling\t\t\ttrue\n");
 	            	else
 	            		output.write("Scaling\t\t\tfalse\n");
+	            	*/
 	            	output.write("ScaleFactor\t\t" + String.format("%,.2f", scale_factor) + "\n");
 	            	if(data_clipped)
 	            		output.write("Clipping\t\ttrue\n");
@@ -1653,9 +1637,7 @@ public class XFencePlotter
 					        	    smooth = Integer.parseInt(value);
 					        	    smooth_slider.setValue(smooth);
 					            }
-					            // Need to reset gui but need current values
-					            // for both scaling and scale factor.
-					            // Process at end.
+					            /*
 					            else if(key.equals("Scaling")) 
 						        {
 						        	if(value.equals("true"))
@@ -1663,6 +1645,7 @@ public class XFencePlotter
 						        	else
 						        		data_scaled = false;
 						        } 
+						        */
 						        else if(key.equals("ScaleFactor")) 
 						        {
 						        	scale_factor = Double.valueOf(value);
@@ -1802,38 +1785,27 @@ public class XFencePlotter
 					     
 					    // Alert user they might want to sort overlapping segments.
 					    if(!in_order)
-					    	System.out.println("The segments are out of order at location " + sort_location);
-					    
+					    {
+					    	double current_location = sort_location * range + offset;
+					    	System.out.println("The segments are out of order at location y = " + String.format("%.2f", current_location));
+					    }
+					  
 					    // Reset placement scrollbars.
 					    int value = (int)(100. * normal_xstep);
 					    xstep_scrollbar.setValue(value);
 					    value = (int)(100. * (1 - normal_ystep));
 						ystep_scrollbar.setValue(value);
 					    
-						// Make the order canvas red or green to show if segments are in order.
-						// This does not work, maybe because the adjustment listener sets in_order.
-					    order_canvas.repaint();
-					    
 					    // Reset scaling slider to current settings.  
-					    if(data_scaled)
-					    {
-					        value = (int)((scale_factor - 1.) * 100.);	
-					        factor_slider.setValue(value);
-					    }
-					    // Make it consistent with boolean.
-					    else
-					    {
-					    	factor_slider.setValue(0);
-					    	scale_factor = 1.0;
-					    }
-					    
+						value = (int)((scale_factor - 1.) * 100.);	
+				        factor_slider.setValue(value);
+						
 					    // So dynamic range comes up right.
 					    if(data_clipped)
 					    {
 					    	lower_bound.setText(String.format("%,.2f", minimum_y));	
 		                	upper_bound.setText(String.format("%,.2f", maximum_y));	
 					    }
-					    
 					    
 					    // Reset scrollbar and slider to current settings. 
 					    double normal_range           = range / 60.;
@@ -2004,10 +1976,12 @@ public class XFencePlotter
 	            		output.write("ColorKey\t\ttrue\n");
 	            	else
 	            		output.write("ColorKey\t\tfalse\n");
+	            	/*
 	            	if(data_scaled)
 	            		output.write("Scaling\t\t\ttrue\n");
 	            	else
 	            		output.write("Scaling\t\t\tfalse\n");
+	            	*/
 	            	output.write("ScaleFactor\t\t" + String.format("%,.2f", scale_factor) + "\n");
 	            	if(data_clipped)
 	            		output.write("Clipping\t\ttrue\n");
@@ -2356,12 +2330,11 @@ public class XFencePlotter
 				data_canvas.repaint();
 				placement_canvas.repaint();
 				location_canvas.repaint();
-				if(sort_canvas != null)
-					sort_canvas.repaint();
-				offset_information.setText(String.format("%.2f", offset));	
+				sort_canvas.repaint();
 				segment_image_canvas.repaint();
-				if(order_canvas != null)
-				    order_canvas.repaint();
+				line_image_canvas.repaint();
+				
+				offset_information.setText(String.format("%.2f", offset));	
 			}
 		}
 		apply_item  = new JMenuItem("Apply Params");
@@ -2451,141 +2424,13 @@ public class XFencePlotter
 		// A modeless dialog box that shows up if Format->Sort is selected.
 		JPanel sort_panel = new JPanel(new BorderLayout());
 		JPanel sort_canvas_panel = new JPanel(new BorderLayout());
-		class SortCanvas extends Canvas
-		{
-			public void paint(Graphics g)
-			{
-				Graphics2D graphics       = (Graphics2D)g;
-				Rectangle  visible_area   = graphics.getClipBounds();
-				int xdim                  = (int) visible_area.getWidth();
-				int ydim                  = (int) visible_area.getHeight();
-				
-				Image buffered_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
-				Graphics2D graphics_buffer = (Graphics2D) buffered_image.getGraphics();
-				Font        current_font  = graphics_buffer.getFont();
-				FontMetrics font_metrics  = graphics_buffer.getFontMetrics(current_font);
-				int         string_height = font_metrics.getAscent();
-				int         string_width;
-				
-				graphics_buffer.setColor(java.awt.Color.WHITE);
-				graphics_buffer.fillRect(0, 0, xdim, ydim);
-				
-				int top_margin    = 10;
-				int bottom_margin = 10;
-				int left_margin   = 40;
-				int right_margin  = 10;
-				int graph_xdim    = xdim - (left_margin + right_margin);
-				int graph_ydim    = ydim - (top_margin + bottom_margin);
-				
-				double a1 = left_margin;
-				double a2 = left_margin + graph_xdim;
-				double b1 = top_margin;
-				double b2 = top_margin + graph_ydim;
-				
-				double xmin = Double.MAX_VALUE;
-				double xmax = Double.MIN_NORMAL;
-				for(int i = 4; i < data_array.size(); i++)
-				{
-				    ArrayList sensor_list = (ArrayList)data_array.get(i);
-				    ArrayList sample_list = (ArrayList)sensor_list.get(4);
-				    for(int j = 0; j < sample_list.size(); j++)
-				    {
-				    	Sample sample = (Sample)sample_list.get(j);
-				    	if(sample.x < xmin)
-				    		xmin = sample.x;
-				    	if(sample.x > xmax)
-				    		xmax = sample.x;
-				    }
-				}
-				
-				double xrange = range;
-				double yrange = xmax - xmin;
-				graphics_buffer.setStroke(new BasicStroke(3));
-				for(int i = 4; i < data_array.size(); i++)
-				{
-				    ArrayList sensor_list = (ArrayList)data_array.get(i);
-				    ArrayList sample_list = (ArrayList)sensor_list.get(4);
-				    Sample previous_sample = (Sample)sample_list.get(0);
-				    
-				    // Switching x and y to match orientation of graphs
-				    double x = previous_sample.y;
-				    double y = previous_sample.x;
-				    
-				    x -= offset;
-				    x /= xrange;
-	        	    x *= graph_xdim;
-	        	    x += left_margin;
-	        	    
-	        	    y -= xmin;
-	        	    y /= yrange;
-	        	    y *= graph_ydim;
-	        	    y = graph_ydim - y;
-	        	    y += top_margin;
-				  
-	        	    int    line     = (int)sensor_list.get(0);
-	        	    int    sensor   = (int)sensor_list.get(1);
-	        	    String line_sensor_pair = new String(line + ":" + sensor);
-	        	    string_width = font_metrics.stringWidth(line_sensor_pair);
-	        	    graphics_buffer.setColor(java.awt.Color.BLACK);
-				    graphics_buffer.drawString(line_sensor_pair, (int)x - (string_width + 5), (int)y);
-				    graphics_buffer.setColor(fill_color[i - 4]);
-				    Point2D.Double previous = new Point2D.Double(x, y);
-				    for(int j = 1; j < sample_list.size(); j++)
-					{
-						Sample sample = (Sample)sample_list.get(j);
-						x = sample.y;
-					    y = sample.x;
-					    
-					    x -= offset;
-					    x /= xrange;
-		        	    x *= graph_xdim;
-		        	    x += left_margin;
-		        	    
-		        	    y -= xmin;
-		        	    y /= yrange;
-		        	    y *= graph_ydim;
-		        	    y = graph_ydim - y;
-		        	    y += top_margin;
-		        	    
-		        	    Point2D.Double current = new Point2D.Double(x, y);
-		        	    
-		        	    double x1 = previous.getX();
-						double y1 = previous.getY();
-						double x2 = current.getX();
-						double y2 = current.getY();
-						
-						graphics_buffer.drawLine((int)x1, (int)y1, (int)x2, (int)y2);
-		        	    previous = current;
-					}
-				}
-				graphics_buffer.setStroke(new BasicStroke(1));
-				graphics_buffer.setColor(java.awt.Color.BLACK);
-				graphics_buffer.drawLine((int) a1, (int)b1, (int)a1, (int)b2);
-				graphics_buffer.drawLine((int) a2, (int)b1, (int) a2, (int)b2);
-				graphics_buffer.drawLine((int) a1, (int)b1, (int) a2, (int)b1);
-				graphics_buffer.drawLine((int) a1, (int)b2, (int) a2, (int)b2);
-				
-				double current_position = graph_xdim;
-				current_position        *= sort_location;
-				current_position        += left_margin;
-				graphics_buffer.setColor(java.awt.Color.BLUE);
-				graphics_buffer.drawLine((int) current_position, (int)b1, (int) current_position, (int)b2);
-				double current_ylocation = range * sort_location + offset;
-				String position_string = String.format("%,.2f",  current_ylocation); 
-				String string = new String("Y = " + position_string);
-				string_width = font_metrics.stringWidth(string);
-				if(current_ylocation < 45)
-				    graphics_buffer.drawString(string, (int)current_position + 10, graph_ydim / 2 + top_margin);
-				else
-					graphics_buffer.drawString(string, (int)current_position - 10 - string_width, graph_ydim / 2 + top_margin);
-					
-				graphics.drawImage(buffered_image, 0, 0, null);
-			}   	
-		}
 		
-		SortCanvas sort_canvas       = new SortCanvas();
+		
+		sort_canvas       = new SortCanvas();
+		
 		sort_canvas.setSize(600, 400);
-		JScrollBar sort_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 501);
+		int sort_value = (int) (500 * sort_location);
+		JScrollBar sort_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, sort_value, 1, 0, 501);
 
 		sort_canvas_panel.add(sort_canvas, BorderLayout.CENTER);
 		sort_canvas_panel.add(sort_scrollbar, BorderLayout.SOUTH);
@@ -2599,6 +2444,7 @@ public class XFencePlotter
 
 		order_canvas = new OrderCanvas();
 		order_canvas.setSize(20, 20);
+		
 		
 		JButton     sort_button       = new JButton("Sort");
 		ActionListener sort_button_handler = new ActionListener()
@@ -2659,11 +2505,15 @@ public class XFencePlotter
 		sort_button.addActionListener(sort_button_handler);
 		order_panel.add(order_canvas);
 		if(!in_order)
-			System.out.println("Segments are out of order at location " + sort_location);
+		{
+			double current_location = sort_location * range + offset;
+			System.out.println("Segments are out of order at location y = " + String.format("%.2f", current_location));
+		}
 		order_panel.add(sort_button);
 		sort_button_panel.add(order_scrollpane, BorderLayout.CENTER);
 		sort_button_panel.add(order_panel, BorderLayout.SOUTH);				
 		sort_panel.add(sort_button_panel, BorderLayout.EAST);
+		
 		AdjustmentListener sort_location_handler = new AdjustmentListener()
      	{
      		public void adjustmentValueChanged(AdjustmentEvent event)
@@ -2722,9 +2572,8 @@ public class XFencePlotter
 				    order_canvas.repaint();
      		}
      	};
-		sort_scrollbar.addAdjustmentListener(sort_location_handler);
-		value = (int) (500 * sort_location);
-		sort_scrollbar.setValue(value);
+		
+     	sort_scrollbar.addAdjustmentListener(sort_location_handler);
 		sort_dialog = new JDialog(frame, "Sort");
 		sort_dialog.add(sort_panel);
 		JMenuItem sort_item = new JMenuItem("Sort");
@@ -2742,10 +2591,12 @@ public class XFencePlotter
 				sort_dialog.setLocation(x, y);
 				sort_dialog.pack();
 				sort_dialog.setVisible(true);
-				order_canvas.repaint();
 			}
 		};
+		
 		sort_item.addActionListener(sort_handler);
+		
+		
 		format_menu.add(sort_item);
 		
 		// A modeless dialog box that shows up if Settings->Graph Label is selected.
@@ -2926,10 +2777,12 @@ public class XFencePlotter
 				{
 					int value = factor_slider.getValue();
 					
+					/*
 					if(value == 0)
 						data_scaled = false;
 					else
 						data_scaled = true;
+					*/
 					scale_factor = (double) value / 100 + 1.;
 					data_canvas.repaint();
 				}
@@ -2938,17 +2791,22 @@ public class XFencePlotter
 		factor_slider.addChangeListener(factor_handler);
 		scale_panel.add(autoscale_button);
 		scale_panel.add(factor_slider);
+		int current_value = (int)((scale_factor - 1.) * 100.);	
+        factor_slider.setValue(current_value);
+		/*
 		if(data_scaled)
 	    {
 	        int current_value = (int)((scale_factor - 1.) * 100.);	
 	        factor_slider.setValue(current_value);
 	    }
+	    
 	    // Make it consistent with the boolean if it isn't in the config file.
 	    else
 	    {
 	    	factor_slider.setValue(0);
 	    	scale_factor = 1.0;
 	    }
+	    */
 		scale_dialog = new JDialog(frame);
 		scale_dialog.add(scale_panel);
 
@@ -4020,7 +3878,7 @@ public class XFencePlotter
 					endpoint_set = false;
 									
 					// Update location map
-					location_canvas.repaint();
+					//location_canvas.repaint();
 					
 					// Reset the slider.	
 					// Set semaphore to prevent oscillation.
@@ -4155,34 +4013,7 @@ public class XFencePlotter
 					
 					//System.out.println("Current line is " + current_line);
 					//System.out.println("Current offset is " + current_offset);
-					
-					/*
-					double[] object_offset = ObjectMapper.getObjectLineOffsetArray();
-					double   new_location  = object_offset[object_id - 1];
-					
-					double new_line   = Math.floor(new_location);
-			
-					double normal_offset = new_location - new_line;
-					
-					double new_offset    = normal_offset * 60 + 15;
-					
-					if(new_offset + range > 75)
-					{
-						System.out.println("Object has been clipped.");
-						new_offset = 75. - range;
-					}
-					else if(new_offset == 15)
-					{
-						System.out.println("Object has been clipped.");  
-					}
-					
-					int current_line   = (int)new_line;
-					System.out.println("Setting location to flight line " + String.format("%,.1f", new_line) + " at offset " + String.format("%,.2f", new_offset));
-					*/
-					
-                    
-									
-					
+				
 					int current_sensor = 4;
 					if(current_line % 2 == 1)
 					    current_sensor = 0;
@@ -4326,6 +4157,7 @@ public class XFencePlotter
 					// Resegment and redraw data.
 					apply_item.doClick();
 					
+					sort_canvas.repaint();
 					
 					
 				}
@@ -4535,9 +4367,7 @@ public class XFencePlotter
 		else
 			color_key_item.setState(false);
 		settings_menu.add(color_key_item);
-		
-		
-		
+
 		show_id_item = new JCheckBoxMenuItem("Show ID");
 		ActionListener show_id_handler = new ActionListener()
 		{
@@ -4617,8 +4447,19 @@ public class XFencePlotter
 		frame.setCursor(cursor);
 		frame.getContentPane().add(sensor_panel, BorderLayout.SOUTH);
 		frame.pack();
-		frame.setLocation(800, 200);
+		frame.setLocation(200, 200);
 		apply_item.doClick();
+		
+		// Some difficult to spot bug in the sort tool constructors
+		// is setting in_order to true at start up, although the sort
+		// tool fixes it as soon as it's opened up.  We'll keep an eye
+		// out for the bug, but we don't want to trust the config
+		// file anyway.  
+		
+		
+		
+		// End gui.
+		
 	}
 
 	// Start data canvas.
@@ -4712,11 +4553,18 @@ public class XFencePlotter
 						}
 					}
                     
+					/*
 					if(data_scaled)
 					{
 						minimum_y /= scale_factor;
 						maximum_y /= scale_factor;
 					}
+					*/
+					
+					// We're changing our local min/max depending on the scale factor.
+					minimum_y /= scale_factor;
+					maximum_y /= scale_factor;
+					
 					
 					double      xrange        = range;
 					double      yrange        = maximum_y - minimum_y;
@@ -5666,6 +5514,12 @@ public class XFencePlotter
 							y += 2 * string_height;
 						}
 					}
+					
+					// We're restoring the local min/max if they were scaled.
+					// If they weren't, were just doing a multiply by 1.
+					// This cuts out a lot of checking a boolean.
+					minimum_y *= scale_factor;
+					maximum_y *= scale_factor;
 				}
 				g.drawImage(buffered_image, 0, 0, null);
 			}
@@ -5993,30 +5847,6 @@ public class XFencePlotter
 	}
 	// End data canvas.
 	
-	class OrderCanvas extends Canvas
-	{
-		public void paint(Graphics g)
-		{
-			Rectangle visible_area = g.getClipBounds();
-			int xdim = (int) visible_area.getWidth();
-			int ydim = (int) visible_area.getHeight();
-			Graphics2D g2 = (Graphics2D) g;
-            
-			if(in_order)
-			{
-				Color color = new Color(0, 175, 0);
-				g2.setColor(color);
-			}
-			else
-			{
-				Color color = new Color(175, 0, 0);
-				g2.setColor(color);	
-			}
-			
-		    g2.fillRect(0, 0, xdim, ydim);
-		}	
-	}
-	
 	class SortCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -6053,9 +5883,10 @@ public class XFencePlotter
 			for(int i = 4; i < data_array.size(); i++)
 			{
 			    ArrayList sensor_list = (ArrayList)data_array.get(i);
-			    for(int j = 4; j < sensor_list.size(); j++)
+			    ArrayList sample_list = (ArrayList)sensor_list.get(4);
+			    for(int j = 0; j < sample_list.size(); j++)
 			    {
-			    	Sample sample = (Sample)sensor_list.get(j);
+			    	Sample sample = (Sample)sample_list.get(j);
 			    	if(sample.x < xmin)
 			    		xmin = sample.x;
 			    	if(sample.x > xmax)
@@ -6069,7 +5900,8 @@ public class XFencePlotter
 			for(int i = 4; i < data_array.size(); i++)
 			{
 			    ArrayList sensor_list = (ArrayList)data_array.get(i);
-			    Sample previous_sample = (Sample)sensor_list.get(4);
+			    ArrayList sample_list = (ArrayList)sensor_list.get(4);
+			    Sample previous_sample = (Sample)sample_list.get(0);
 			    
 			    // Switching x and y to match orientation of graphs
 			    double x = previous_sample.y;
@@ -6094,9 +5926,9 @@ public class XFencePlotter
 			    graphics_buffer.drawString(line_sensor_pair, (int)x - (string_width + 5), (int)y);
 			    graphics_buffer.setColor(fill_color[i - 4]);
 			    Point2D.Double previous = new Point2D.Double(x, y);
-			    for(int j = 5; j < sensor_list.size(); j++)
+			    for(int j = 1; j < sample_list.size(); j++)
 				{
-					Sample sample = (Sample)sensor_list.get(j);
+					Sample sample = (Sample)sample_list.get(j);
 					x = sample.y;
 				    y = sample.x;
 				    
@@ -6144,7 +5976,71 @@ public class XFencePlotter
 				graphics_buffer.drawString(string, (int)current_position - 10 - string_width, graph_ydim / 2 + top_margin);
 				
 			graphics.drawImage(buffered_image, 0, 0, null);
+			
+			// Now find out if the current sort location is in order.
+			current_position = range * sort_location + offset;
+			xlist.clear();
+			
+			int size = data_array.size();
+			int number_of_segments = size - 4;
+			double previous_x = 0;
+			in_order = true;
+			for(int i = 0; i < number_of_segments; i++)
+			{
+				ArrayList sensor_list    = (ArrayList) data_array.get(i + 4);
+				int       current_line   = (int)sensor_list.get(0);
+				int       current_sensor = (int)sensor_list.get(1);
+				ArrayList sample_list    = (ArrayList)sensor_list.get(4);
+				size                     = sample_list.size();
+				
+				Sample sample = (Sample)sample_list.get(0);
+				int j = 1;
+				while(sample.y < current_position && j < size)
+				{
+					sample = (Sample)sample_list.get(j);
+					j++;
+				}
+				xlist.add(sample.x);
+				
+				if(i == 0)
+				{
+					previous_x = sample.x;  	
+				}
+				else
+				{
+				    if(sample.x < previous_x)
+				    	in_order = false;
+				    previous_x = sample.x;
+				}
+			}
+			if(order_canvas != null)
+			    order_canvas.repaint();
 		}   	
+	}
+	
+	
+	class OrderCanvas extends Canvas
+	{
+		public void paint(Graphics g)
+		{
+			Rectangle visible_area = g.getClipBounds();
+			int xdim = (int) visible_area.getWidth();
+			int ydim = (int) visible_area.getHeight();
+			Graphics2D g2 = (Graphics2D) g;
+            
+			if(in_order)
+			{
+				Color color = new Color(0, 175, 0);
+				g2.setColor(color);
+			}
+			else
+			{
+				Color color = new Color(175, 0, 0);
+				g2.setColor(color);	
+			}
+			
+		    g2.fillRect(0, 0, xdim, ydim);
+		}	
 	}
 	
 	class SensorCanvas extends Canvas
