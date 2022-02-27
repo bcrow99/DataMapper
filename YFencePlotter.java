@@ -23,7 +23,6 @@ public class YFencePlotter
 	ArrayList set_array = new ArrayList();
 	ArrayList relative_set_array = new ArrayList();
 	
-	
 	// Information we collect at start up.
 	public double      global_xmin, global_xmax;
 	public double      global_ymin, global_ymax;
@@ -86,7 +85,6 @@ public class YFencePlotter
 	boolean            color_key            = false;
 	boolean            relative_mode        = false;
 	boolean            location_changing    = false;
-	boolean            data_scaled          = false;
 	boolean            data_clipped         = false;
 	boolean            config_file_exists   = false;
 	boolean            interpolation        = false;
@@ -205,7 +203,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.0.2 of wand.");
+			System.out.println("This is version 4.0.3 of wand.");
 
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
@@ -355,22 +353,8 @@ public class YFencePlotter
 					    	    xlocation = Double.valueOf(value);
 					        else if(key.equals("YLocation")) 
 					        	ylocation = Double.valueOf(value);
-					        else if(key.equals("Scaling")) 
-					        {
-					        	if(value.equals("true"))
-					        		data_scaled = true;
-					        	else
-					        		data_scaled = false;
-					        } 
 					        else if(key.equals("ScaleFactor")) 
 					        	scale_factor = Double.valueOf(value);
-					        else if(key.equals("Scaling")) 
-					        {
-					        	if(value.equals("true"))
-					        		data_scaled = true;
-					        	else
-					        		data_scaled = false;
-					        } 
 				            else if(key.equals("Clipping")) 
 					        {
 					        	if(value.equals("true"))
@@ -772,10 +756,6 @@ public class YFencePlotter
 		            		output.write("RasterOverlay\ttrue\n");
 		            	else
 		            		output.write("RasterOverlay\tfalse\n");
-		            	if(data_scaled)
-		            		output.write("Scaling\t\t\ttrue\n");
-		            	else
-		            		output.write("Scaling\t\t\tfalse\n");
 		            	output.write("ScaleFactor\t\t" + String.format("%,.2f", scale_factor) + "\n");
 		            	if(data_clipped)
 		            		output.write("Clipping\t\ttrue\n");
@@ -1234,16 +1214,6 @@ public class YFencePlotter
 					        	    smooth = Integer.parseInt(value);
 					        	    smooth_slider.setValue(smooth);
 					            }
-					            // Need to reset gui but need current values
-					            // for both scaling and scale factor.
-					            // Process at end.
-					            else if(key.equals("Scaling")) 
-						        {
-						        	if(value.equals("true"))
-						        		data_scaled = true;
-						        	else
-						        		data_scaled = false;
-						        } 
 						        else if(key.equals("ScaleFactor")) 
 						        {
 						        	scale_factor = Double.valueOf(value);
@@ -1381,24 +1351,12 @@ public class YFencePlotter
 					    value = (int)(100. * (1 - normal_ystep));
 						ystep_scrollbar.setValue(value);
 					    
-						// Make the order canvas red or green to show if segments are in order.
-						// This does not work, maybe because the adjustment listener sets in_order.
-					    //order_canvas.repaint();
-					    
 					    // Reset scaling slider to current settings.  
-					    if(data_scaled)
-					    {
-					        value = (int)((scale_factor - 1.) * 100.);	
-					        factor_slider.setValue(value);
-					    }
-					    // Make it consistent with boolean.
-					    else
-					    {
-					    	factor_slider.setValue(0);
-					    	scale_factor = 1.0;
-					    }
+						value = (int)((scale_factor - 1.) * 100.);	
+				        factor_slider.setValue(value);
+				       
 					    
-					    // So dynamic range comes up right.
+				        // So dynamic range comes up right.
 					    if(data_clipped)
 					    {
 					    	lower_bound.setText(String.format("%.2f", minimum_y));	
@@ -1516,10 +1474,6 @@ public class YFencePlotter
 	            		output.write("ColorKey\t\ttrue\n");
 	            	else
 	            		output.write("ColorKey\t\tfalse\n");
-	            	if(data_scaled)
-	            		output.write("Scaling\t\t\ttrue\n");
-	            	else
-	            		output.write("Scaling\t\t\tfalse\n");
 	            	output.write("ScaleFactor\t\t" + String.format("%,.2f", scale_factor) + "\n");
 	            	if(data_clipped)
 	            		output.write("Clipping\t\ttrue\n");
@@ -1879,7 +1833,8 @@ public class YFencePlotter
 		// A modeless dialog box that shows up if Adjustments->Scaling is selected.
 		JPanel scale_panel = new JPanel(new BorderLayout());
 	
-		factor_slider = new JSlider(0, 200, 0);
+		value = (int)((scale_factor - 1.) * 100.);	
+		factor_slider = new JSlider(0, 200, value);
 		ChangeListener factor_handler = new ChangeListener()
 		{
 			public void stateChanged(ChangeEvent e)
@@ -1888,11 +1843,6 @@ public class YFencePlotter
 				if (slider.getValueIsAdjusting() == false)
 				{
 					int value = factor_slider.getValue();
-					
-					if(value == 0)
-						data_scaled = false;
-					else
-						data_scaled = true;
 					scale_factor = (double) value / 100 + 1.;
 					data_canvas.repaint();
 				}
@@ -1900,13 +1850,6 @@ public class YFencePlotter
 		};
 		factor_slider.addChangeListener(factor_handler);
 		scale_panel.add(factor_slider, BorderLayout.CENTER);
-		if(data_scaled)
-	    {
-	        value = (int)((scale_factor - 1.) * 100.);	
-	        factor_slider.setValue(value);
-	    }
-		else
-			scale_factor = 1.;
 		scale_dialog = new JDialog(frame, "Scale Factor");
 		scale_dialog.add(scale_panel);
 		
@@ -2694,14 +2637,6 @@ public class YFencePlotter
 					// Redraw resegment data.
 					data_canvas.repaint();
 					
-					
-					// This doesn't always work because
-					// the order that the paint() function
-					// is called is not guaranteed.
-					// Now calling the location canvas paint()
-					// from inside the data canvas paint().
-					//location_canvas.repaint();
-					
 				}
 				else
 				{
@@ -3058,6 +2993,7 @@ public class YFencePlotter
 			// The data array is what we use to construct the graph,
 			// and the relative data array is the information we display in the graph.
 			// Add empty lists at startup.
+			
 			for(int i = 0; i < 5; i++)
 			{
 				ArrayList data_list = new ArrayList();
@@ -3065,6 +3001,7 @@ public class YFencePlotter
 				ArrayList relative_data_list = new ArrayList(); 
 				relative_data_array.add(relative_data_list); 
 			}
+			
 		}
 		
 		public void paint(Graphics g)
@@ -3380,13 +3317,10 @@ public class YFencePlotter
 				maximum_y = seg_max;
 			}
 			
-			// Modify our bounding values.
-			if(data_scaled)
-			{
-				minimum_y /= scale_factor;
-				maximum_y /= scale_factor;
-			}
-			
+			// Modify our bounding values if we're scaling data.
+			// If we aren't, we doing a divide by one.
+			minimum_y /= scale_factor;
+			maximum_y /= scale_factor;
 			
 			// Layout the isometric space.
 			for (int i = 0; i < number_of_segments; i++)
@@ -4439,12 +4373,13 @@ public class YFencePlotter
 			g.drawImage(buffered_image, 0, 0, null);
 			
 			// Restore our bounding values.
-			// Could set this up without any boolean and without modifying global values.
-			if(data_scaled)
-			{
-				minimum_y *= scale_factor;
-				maximum_y *= scale_factor;
-			}
+			// This is important if we're doing any clipping.
+			
+			// If we weren't doing any scaling, 
+			// it's a multiply by one.
+			minimum_y *= scale_factor;
+			maximum_y *= scale_factor;
+		
 			location_canvas.repaint();
 		}
 	}
