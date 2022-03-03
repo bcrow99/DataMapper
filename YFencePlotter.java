@@ -45,6 +45,8 @@ public class YFencePlotter
 	// An array of indices to object locations.
 	public ArrayList   object_index         = new ArrayList();
 	
+	// An index of the endpoints of the unclipped lines.
+	int[][] line_index;
 	
 	public PlotCanvas  data_canvas;
 	public JScrollBar  data_scrollbar;
@@ -203,7 +205,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.0.3 of wand.");
+			System.out.println("This is version 4.0.7 of wand.");
 
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
@@ -482,9 +484,40 @@ public class YFencePlotter
 				{
 					System.out.println("Exception trying to read config file.");
 					System.out.println(e.toString());
-					//Could reset to defaults here.
-					config_file_exists = false;
+					System.out.println("Setting defaults.");
+					data_offset    = .0;
+					data_range     = .004;
 					
+				    raster_overlay = false;
+				    persistent_data = false;
+					relative_mode  = true;
+				    reverse_view   = false;
+				    data_clipped   = false;
+				    color_key      = false;
+				    show_id        = true;
+				    show_label     = false;
+				    show_data      = false;
+				    scale_factor   = 1.;
+				    normal_xstep   = 0.5;
+					normal_ystep   = 0.5;
+					xlocation      = 0.5;
+					ylocation      = 0.5;	
+				    smooth         = 0;
+				    append_data    = false;
+				    startpoint_set = false;
+				    midpoint_set   = false;
+				    endpoint_set   = false;
+					
+					// Only important if clipping is true,
+				    // then they need to be set to actual values.
+					minimum_y      = 0;
+					maximum_y      = 0;
+					
+					// Only important if show_label is true,
+					// although there might be some code that
+					// checks for an empty string.
+					graph_label = new String("");
+					config_file_exists = false;
 				}
 			}
 			
@@ -699,11 +732,91 @@ public class YFencePlotter
 			}
 		}
 		
+		// Get an idex of endpoints by checking when the order of the x-coordinates
+		// changes.
+		int    first_index  = 0;
+		int    last_index   = 4;
+		Sample first_sample = (Sample)relative_data.get(first_index);
+		Sample last_sample  = (Sample)relative_data.get(last_index);
+		
+		boolean init_direction_north = true;
+		boolean headed_north         = true;
+		if(first_sample.x < last_sample.x)
+		{
+			//System.out.println("Flight path is not headed north.");
+			headed_north        = false;
+			init_direction_north = false;
+		}
+		else
+		{
+			//System.out.println("Flight path is headed north.");
+		}
+		
+		ArrayList end_point_index = new ArrayList();
+		
+		while(last_index < relative_data.size() - 5)
+		{
+		    first_index += 5;
+		    last_index  += 5;
+		    first_sample = (Sample)relative_data.get(first_index);
+		    last_sample  = (Sample)relative_data.get(last_index);
+		    if(headed_north)
+		    {
+		    	if(first_sample.x < last_sample.x)
+		    	{
+		    		end_point_index.add(first_index);
+		    	    headed_north = false;
+		    	}
+		    }
+		    else
+		    {
+		    	if(first_sample.x > last_sample.x)
+		    	{
+		    	    end_point_index.add(first_index);
+		    	    headed_north = true;
+		    	}	
+		    }
+		}
+		
+        int number_of_lines = end_point_index.size() + 1;
+		line_index = new int[number_of_lines][2];
+		line_index[0][0] = 0;
+		for(int i = 0; i < number_of_lines - 1; i++)
+		{
+			int index = (int)end_point_index.get(i);
+			line_index[i][1] = index;
+			line_index[i + 1][0] = index;
+		}
+		line_index[number_of_lines - 1][1] = data.size() - 1;
+	    
 		// End file input.
 		
 		// Start gui.
+		
+		// Start out with the maximum area we intend to stake out on the display at startup.
+		// This can be arbitrarily increased afterwards, to any aspect ratio.
+		int data_canvas_xdim = 1000;
+		int data_canvas_ydim = 800;
+		
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		int screen_ydim = (int)screenSize.getHeight();
+		int screen_xdim = (int)screenSize.getWidth();
+		
+		// Mostly we're just concerned with the y dimension.
+		// Our default x dimension works on both laptop and desktops, y is too much.
+		if(screen_ydim - 125 < data_canvas_ydim)
+		{
+			data_canvas_ydim = screen_ydim - 125;
+			
+			// Keep the aspect ratio, although it's not necessary.
+			double value = data_canvas_ydim;
+			value *= 1.25;
+			data_canvas_xdim = (int) value;
+		}
+		
 				
 		frame = new JFrame("Slope Wand Plotter");
+		
 		WindowAdapter window_handler = new WindowAdapter()
 	    {
 	        public void windowClosing(WindowEvent event)
@@ -863,7 +976,7 @@ public class YFencePlotter
 		bounds_button_panel.add(adjust_bounds_button);
 		
 		data_canvas = new PlotCanvas();
-		data_canvas.setSize(1000, 800);
+		data_canvas.setSize(data_canvas_xdim, data_canvas_ydim);
 		MouseHandler mouse_handler = new MouseHandler();
 		data_canvas.addMouseListener(mouse_handler);
 		MouseMotionHandler mouse_motion_handler = new MouseMotionHandler();
@@ -927,7 +1040,7 @@ public class YFencePlotter
 			public void actionPerformed(ActionEvent e)
 			{
 				// Line indices to help us figure out where an index falls.
-				int[][] line = ObjectMapper.getUnclippedLineArray();
+				//int[][] line = ObjectMapper.getUnclippedLineArray();
 		        
 				
 				FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
@@ -2981,7 +3094,7 @@ public class YFencePlotter
 		frame.setJMenuBar(menu_bar);
 		frame.getContentPane().add(data_panel, BorderLayout.CENTER);
 		frame.pack();
-		frame.setLocation(400, 200);
+		frame.setLocation(50, 10);
 	
 		// End constructor.
 	}
@@ -4373,10 +4486,10 @@ public class YFencePlotter
 			g.drawImage(buffered_image, 0, 0, null);
 			
 			// Restore our bounding values.
-			// This is important if we're doing any clipping.
-			
-			// If we weren't doing any scaling, 
-			// it's a multiply by one.
+			// This is important if we're doing any clipping so we save the right
+			// information to the config file--otherwise it gets reinitialized
+			// every time we do a repaint() and we don't have to worry.
+			// If we weren't doing any scaling, it's a multiply by one.
 			minimum_y *= scale_factor;
 			maximum_y *= scale_factor;
 		

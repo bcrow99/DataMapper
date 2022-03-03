@@ -28,10 +28,12 @@ public class XFencePlotter
 	// An index in the vicinity of objects.
 	ArrayList object_index = new ArrayList();
 	
+	// An index of the ends of the clipped lines.
+	int[][] line_index;
+	
 	// Information we collect at start up.
 	public double      global_xmin, global_xmax;
 	public double      global_ymin, global_ymax;
-	//public double      global_intensity_min, global_intensity_max;
 	public double      intensity_min, intensity_max;
 	
 	// Values that determine a data segment in a normal form.
@@ -64,7 +66,6 @@ public class XFencePlotter
 	
 	int     init_line      = 9;
 	boolean autoscale      = false;
-   
     boolean raster_overlay = false;
     boolean persistent_data = false;
 	boolean relative_mode  = true;
@@ -82,11 +83,18 @@ public class XFencePlotter
 	double  xlocation      = 0.5;
 	double  ylocation      = 0.5;	
     int     smooth         = 0;
-    boolean config_file_exists = false;
-    String  config_filename;
-    int     gui_index          = 0;
+    boolean append_data    = false;
+    boolean startpoint_set = false;
+    boolean midpoint_set   = false;
+    boolean endpoint_set   = false;
     
-    boolean            append_data          = false;
+    boolean config_file_exists = false;
+    
+    
+    String  config_filename;
+    int     gui_index  = 0;
+    
+    
 	int                append_line          = 0;
 	int                append_sensor        = 0;
 	double             append_x             = 0;
@@ -106,7 +114,6 @@ public class XFencePlotter
 	int                startpoint_x_position = 0;
 	int                startpoint_y_position = 0;
 	int                startpoint_index = 0;
-	boolean            startpoint_set;
 	
 	double             midpoint_x = 0;
 	double             midpoint_y = 0;
@@ -115,8 +122,8 @@ public class XFencePlotter
 	int                midpoint_y_position = 0;
 	int                midpoint_line = 0;
 	int                midpoint_sensor = 0;
-	int                midpoint_index;
-	boolean            midpoint_set;
+	int                midpoint_index = 0;
+	
 	
 	double             endpoint_x = 0;
 	double             endpoint_y = 0;
@@ -126,7 +133,7 @@ public class XFencePlotter
 	int                endpoint_line = 0;
 	int                endpoint_sensor = 0;
 	int                endpoint_index = 0;
-	boolean            endpoint_set;
+	
 	
     ArrayList     sensor_id   = new ArrayList();
 	
@@ -259,7 +266,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.0.4 of fence.");
+			System.out.println("This is version 4.0.7 of fence.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			try
@@ -461,15 +468,6 @@ public class XFencePlotter
 					    	    xlocation = Double.valueOf(value);
 					        else if(key.equals("YLocation")) 
 					        	ylocation = Double.valueOf(value);
-				            /*
-					        else if(key.equals("Scaling")) 
-					        {
-					        	if(value.equals("true"))
-					        		data_scaled = true;
-					        	else
-					        		data_scaled = false;
-					        } 
-					        */
 					        else if(key.equals("ScaleFactor")) 
 					        	scale_factor = Double.valueOf(value);
 				            else if(key.equals("Clipping")) 
@@ -587,7 +585,46 @@ public class XFencePlotter
 				{
 					System.out.println("Exception reading config file.");
 					System.out.println(e.toString());
-					// Could reset to defaults here.
+					System.out.println("Resetting to defaults.");
+					
+					data_offset    = .0;
+					data_range     = 1.;
+					offset         = 15;
+					range          = 60;
+					init_line      = 9;
+					autoscale      = false;
+				    raster_overlay = false;
+				    persistent_data = false;
+					relative_mode  = true;
+				    reverse_view   = false;
+				    data_clipped   = false;
+				    color_key      = false;
+				    show_id        = true;
+				    show_label     = false;
+				    show_data      = false;
+				    in_order       = true;
+				    scale_factor   = 1.;
+				    normal_xstep   = 0.5;
+					normal_ystep   = 0.5;
+					sort_location  = 0.5;
+					xlocation      = 0.5;
+					ylocation      = 0.5;	
+				    smooth         = 0;
+				    append_data    = false;
+				    startpoint_set = false;
+				    midpoint_set   = false;
+				    endpoint_set   = false;
+					
+					// Only important if clipping is true,
+				    // then they need to be set to actual values.
+					minimum_y      = 0;
+					maximum_y      = 0;
+					
+					// Only important if show_label is true,
+					// although there might be some code that
+					// checks for an empty string.
+					graph_label = new String("");
+					
 					config_file_exists = false;
 				}
 			}
@@ -673,20 +710,72 @@ public class XFencePlotter
 				for(int i = 0; i < 5; i++)
 				{
 					ArrayList data_list = new ArrayList();
-					set_array.add(data_list);
-				}
-				
-				for(int i = 0; i < 5; i++)
-				{
-					ArrayList data_list = (ArrayList)set_array.get(i);
-					
 					for(int j = i; j < data.size(); j += 5)
 					{
 						Sample sample = (Sample)data.get(j);
 						data_list.add(sample);
 					}
+					set_array.add(data_list);
 				}
 				
+				
+				// Get an idex of endpoints by checking when the order of the x-coordinates
+				// changes.
+				int    first_index  = 0;
+				int    last_index   = 4;
+				Sample first_sample = (Sample)data.get(first_index);
+				Sample last_sample  = (Sample)data.get(last_index);
+				
+				boolean init_direction_north = true;
+				boolean headed_north         = true;
+				if(first_sample.x < last_sample.x)
+				{
+					//System.out.println("Flight path is not headed north.");
+					headed_north        = false;
+					init_direction_north = false;
+				}
+				else
+				{
+					//System.out.println("Flight path is headed north.");
+				}
+				
+				ArrayList endpoint_index = new ArrayList();
+				
+				while(last_index < data.size() - 5)
+				{
+				    first_index += 5;
+				    last_index  += 5;
+				    first_sample = (Sample)data.get(first_index);
+				    last_sample  = (Sample)data.get(last_index);
+				    if(headed_north)
+				    {
+				    	if(first_sample.x < last_sample.x)
+				    	{
+				    		endpoint_index.add(first_index);
+				    	    headed_north = false;
+				    	}
+				    }
+				    else
+				    {
+				    	if(first_sample.x > last_sample.x)
+				    	{
+				    	    endpoint_index.add(first_index);
+				    	    headed_north = true;
+				    	}	
+				    }
+				}
+				
+	            int number_of_lines = endpoint_index.size() + 1;
+				line_index = new int[number_of_lines][2];
+				line_index[0][0] = 0;
+				for(int i = 0; i < number_of_lines - 1; i++)
+				{
+					int index = (int)endpoint_index.get(i);
+					line_index[i][1] = index;
+					line_index[i + 1][0] = index;
+				}
+				line_index[number_of_lines - 1][1] = data.size() - 1;
+			    
 				// Create an object index to navigate around the data set.
 				Sample init_sample = (Sample)data.get(2);
 				double init_x      = init_sample.x;
@@ -744,7 +833,6 @@ public class XFencePlotter
 					    }
 					    else
 					    {
-					    	//System.out.println("Data is decreasing.");
 					    	boolean data_in_bounds = false;
 					    	while(!data_in_bounds)
 					    	{
@@ -767,7 +855,6 @@ public class XFencePlotter
 					    Sample next_sample = (Sample)data.get(index + 5);	
 					    if(previous_sample.y < next_sample.y)
 					    {
-					    	//System.out.println("Data is increasing.");
 					    	boolean data_in_bounds = false;
 					    	
 					    	while(!data_in_bounds)
@@ -786,7 +873,6 @@ public class XFencePlotter
 					    }
 					    else
 					    {
-					    	//System.out.println("Data is decreasing.");
 					    	boolean data_in_bounds = false;
 					    	while(!data_in_bounds)
 					    	{
@@ -821,6 +907,10 @@ public class XFencePlotter
 			System.exit(0);
 		}
 
+		
+		// Start gui.
+		
+		
 		frame = new JFrame("XFence Plotter");
 		WindowAdapter window_handler = new WindowAdapter()
 	    {
@@ -885,12 +975,6 @@ public class XFencePlotter
 	            		output.write("ColorKey\t\ttrue\n");
 	            	else
 	            		output.write("ColorKey\t\tfalse\n");
-	            	/*
-	            	if(data_scaled)
-	            		output.write("Scaling\t\t\ttrue\n");
-	            	else
-	            		output.write("Scaling\t\t\tfalse\n");
-	            	*/
 	            	output.write("ScaleFactor\t\t" + String.format("%,.2f", scale_factor) + "\n");
 	            	if(data_clipped)
 	            		output.write("Clipping\t\ttrue\n");
@@ -968,8 +1052,32 @@ public class XFencePlotter
 	    };
 	    frame.addWindowListener(window_handler);
 	    
+	    
+	    // Start out with the maximum area we intend to stake out on the display at startup.
+	 	// This can be arbitrarily increased afterwards, to any aspect ratio.
+	 	int data_canvas_xdim = 1000;
+	 	int data_canvas_ydim = 800;
+	 		
+	 	Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+	 	int screen_ydim = (int)screenSize.getHeight();
+	 	int screen_xdim = (int)screenSize.getWidth();
+	 	//System.out.println("Screen xdim is " + screen_xdim);
+	 	//System.out.println("Screen ydim is "  + screen_ydim);
+	 		
+	 	// Mostly we're just concerned with the y dimension.
+	 	// Our default x dimension works on both laptop and desktops, y is too much.
+	 	if(screen_ydim - 125 < data_canvas_ydim)
+	 	{
+	 		data_canvas_ydim = screen_ydim - 125;
+	 			
+	 		// Keep the aspect ratio, although it's not necessary.
+	 		double value = data_canvas_ydim;
+	 		value *= 1.25;
+	 		data_canvas_xdim = (int) value;
+	 	}
+	
 		data_canvas = new LineCanvas();
-		data_canvas.setSize(900, 700);
+		data_canvas.setSize(data_canvas_xdim, data_canvas_ydim);
 		MouseHandler mouse_handler = new MouseHandler();
 		data_canvas.addMouseListener(mouse_handler);
 		MouseMotionHandler mouse_motion_handler = new MouseMotionHandler();
@@ -1976,12 +2084,6 @@ public class XFencePlotter
 	            		output.write("ColorKey\t\ttrue\n");
 	            	else
 	            		output.write("ColorKey\t\tfalse\n");
-	            	/*
-	            	if(data_scaled)
-	            		output.write("Scaling\t\t\ttrue\n");
-	            	else
-	            		output.write("Scaling\t\t\tfalse\n");
-	            	*/
 	            	output.write("ScaleFactor\t\t" + String.format("%,.2f", scale_factor) + "\n");
 	            	if(data_clipped)
 	            		output.write("Clipping\t\ttrue\n");
@@ -2086,13 +2188,11 @@ public class XFencePlotter
 		// All other changes are now automatically applied.
 		class ApplyHandler implements ActionListener
 		{
-			int[][] line_array;
 			int[] current_line;
 			int[] current_sensor;
 
 			ApplyHandler()
 			{
-				line_array = ObjectMapper.getUnclippedLineArray();
 				current_line = new int[10];
 				current_sensor = new int[10];
 			}
@@ -2180,10 +2280,10 @@ public class XFencePlotter
 				    ArrayList src_list = (ArrayList)set_array.get(current_sensor[i]);
 				    ArrayList dst_list = new ArrayList(); 
 				    int       index    = current_line[i];
-				    
-				    //System.out.println("Current line is " + index);
-				    int       start    = line_array[index][0];
-				    int       stop     = line_array[index][1];
+				    int       start    = line_index[index][0];
+				    int       stop     = line_index[index][1];
+				   
+				    // Adjust the indices for individual sensor lists.
 				    start             /= 5;
 				    stop              /= 5;
 				    if(smooth == 0)
@@ -2504,11 +2604,7 @@ public class XFencePlotter
      	};
 		sort_button.addActionListener(sort_button_handler);
 		order_panel.add(order_canvas);
-		if(!in_order)
-		{
-			double current_location = sort_location * range + offset;
-			System.out.println("Segments are out of order at location y = " + String.format("%.2f", current_location));
-		}
+		
 		order_panel.add(sort_button);
 		sort_button_panel.add(order_scrollpane, BorderLayout.CENTER);
 		sort_button_panel.add(order_panel, BorderLayout.SOUTH);				
@@ -2574,6 +2670,7 @@ public class XFencePlotter
      	};
 		
      	sort_scrollbar.addAdjustmentListener(sort_location_handler);
+     	
 		sort_dialog = new JDialog(frame, "Sort");
 		sort_dialog.add(sort_panel);
 		JMenuItem sort_item = new JMenuItem("Sort");
@@ -4439,7 +4536,6 @@ public class XFencePlotter
 		
 		// End settings menu.
 		
-	
 		frame.setJMenuBar(menu_bar);
 		// Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
 		Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
@@ -4447,16 +4543,19 @@ public class XFencePlotter
 		frame.setCursor(cursor);
 		frame.getContentPane().add(sensor_panel, BorderLayout.SOUTH);
 		frame.pack();
-		frame.setLocation(200, 200);
+		frame.setLocation(50, 10);
+		
 		apply_item.doClick();
-		
-		// Some difficult to spot bug in the sort tool constructors
-		// is setting in_order to true at start up, although the sort
-		// tool fixes it as soon as it's opened up.  We'll keep an eye
-		// out for the bug, but we don't want to trust the config
-		// file anyway.  
-		
-		
+		int current_sort_location = (int)(sort_location * 500);
+     	sort_scrollbar.setValue(current_sort_location);
+     	
+     	if(!in_order)
+		{
+			double current_location = sort_location * range + offset;
+			System.out.println("Segments are out of order at location y = " + String.format("%.2f", current_location));
+		}
+     	
+		//apply_item.doClick();
 		
 		// End gui.
 		
@@ -6268,13 +6367,11 @@ public class XFencePlotter
 		int image_xdim    = xdim + left_margin + right_margin;
 		int image_ydim    = ydim + top_margin  + bottom_margin;
 		
-		int[][] line_array;
 		int[] current_line;
 		int[] current_sensor;
 
 		LineImageCanvas()
 		{
-			line_array = ObjectMapper.getUnclippedLineArray();
 			current_line = new int[10];
 			current_sensor = new int[10];
 			image_grid_data = new ArrayList[image_ydim][image_xdim];
@@ -6389,9 +6486,8 @@ public class XFencePlotter
 			{
 				if (current_line[i] != -1)
 				{
-					int start = line_array[current_line[i]][0];
-					int stop = line_array[current_line[i]][1];
-
+					int start = line_index[current_line[i]][0];
+					int stop  = line_index[current_line[i]][1];
 					if (current_line[i] % 2 == 0)
 					{
 						for (int j = start + current_sensor[i]; j < stop; j += 5)
@@ -6430,16 +6526,14 @@ public class XFencePlotter
 					ArrayList segment_data = new ArrayList();
 					segment_data.add(current_line[i]);
 					segment_data.add(current_sensor[i]);
-
-
-					int start = line_array[current_line[i]][0];
-					int stop = line_array[current_line[i]][1];
+					int start = line_index[current_line[i]][0];
+					int stop  = line_index[current_line[i]][1];
 					if (current_line[i] % 2 == 0)
 					{
 						for (int j = start + current_sensor[i]; j < stop; j += 5)
 						{
 							Sample sample = (Sample) data.get(j);
-					       segment_data.add(sample);
+					        segment_data.add(sample);
 						}
 					} 
 					else
@@ -6788,15 +6882,12 @@ public class XFencePlotter
 			}
 			
 			ArrayList segment = new ArrayList();
-			int[][] line_array = ObjectMapper.getUnclippedLineArray();
-
-
 			for (int i = 0; i < 30; i++)
 			{
 				if(lineIncluded[i] == true)
 				{
-				    int start = line_array[i][0];
-				    int stop = line_array[i][1];
+					int start = line_index[i][0];
+				    int stop  = line_index[i][1];
 				    segment.add(start);
 				    segment.add(stop);
 				}
