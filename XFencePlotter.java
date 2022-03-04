@@ -75,7 +75,7 @@ public class XFencePlotter
     boolean show_id        = true;
     boolean show_label     = false;
     boolean show_data      = false;
-    boolean in_order       = true;
+    boolean in_order       = false;
     double  scale_factor   = 1.;
     double  normal_xstep   = 0.5;
 	double  normal_ystep   = 0.5;
@@ -266,7 +266,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.0.7 of fence.");
+			System.out.println("This is version 4.0.8 of fence.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			try
@@ -457,12 +457,10 @@ public class XFencePlotter
 					        		in_order = true;
 					        	else
 					        		in_order = false;
-					        	//System.out.println("Setting boolean in order to " + in_order);
 					        }
 					        else if(key.equals("SortLocation")) 
 					        {
 					        	sort_location = Double.valueOf(value); 
-					        	//System.out.println("Setting sort location to " + sort_location);
 					        }
 					        else if(key.equals("XLocation"))
 					    	    xlocation = Double.valueOf(value);
@@ -1745,15 +1743,6 @@ public class XFencePlotter
 					        	    smooth = Integer.parseInt(value);
 					        	    smooth_slider.setValue(smooth);
 					            }
-					            /*
-					            else if(key.equals("Scaling")) 
-						        {
-						        	if(value.equals("true"))
-						        		data_scaled = true;
-						        	else
-						        		data_scaled = false;
-						        } 
-						        */
 						        else if(key.equals("ScaleFactor")) 
 						        {
 						        	scale_factor = Double.valueOf(value);
@@ -1891,13 +1880,6 @@ public class XFencePlotter
 					    // We now have current settings for all parameters with dependencies and can make the gui consistent.
 					    // We already reset booleans without dependencies.
 					     
-					    // Alert user they might want to sort overlapping segments.
-					    if(!in_order)
-					    {
-					    	double current_location = sort_location * range + offset;
-					    	System.out.println("The segments are out of order at location y = " + String.format("%.2f", current_location));
-					    }
-					  
 					    // Reset placement scrollbars.
 					    int value = (int)(100. * normal_xstep);
 					    xstep_scrollbar.setValue(value);
@@ -1922,7 +1904,7 @@ public class XFencePlotter
 					    double normal_center_position = normal_start_position + normal_range / 2;
 					    
 					    // The slider will fire the scrollbar and ad infinitum, 
-					    // unless it knows it's being fired by the scrollar and not the user.
+					    // unless it knows it's being fired by the scrollbar and not the user.
 					    range_scrollbar_changing = true;
 					    
 					    // We have to know the current state of the slider to reset it correctly;
@@ -2258,8 +2240,6 @@ public class XFencePlotter
 				        number_of_segments++;
 				    }
 				}
-				//System.out.println();
-				//System.out.println("Number of segments is " + number_of_segments);
 				
 				// We want to clear the entire data array, and not just the lists,
 				// because the number of segments can change.
@@ -2427,13 +2407,21 @@ public class XFencePlotter
 					data_array.add(segment_data);
 				}
 				
+				
+				
+				checkSegmentOrder();
+				if(!in_order)
+				{
+					double current_location = sort_location * range + offset;
+					System.out.println("Segments are out of order at location y = " + String.format("%.2f", current_location));
+				}
+			
 				data_canvas.repaint();
 				placement_canvas.repaint();
 				location_canvas.repaint();
 				sort_canvas.repaint();
 				segment_image_canvas.repaint();
 				line_image_canvas.repaint();
-				
 				offset_information.setText(String.format("%.2f", offset));	
 			}
 		}
@@ -2614,6 +2602,7 @@ public class XFencePlotter
      	{
      		public void adjustmentValueChanged(AdjustmentEvent event)
      		{
+     			//System.out.println("Checking order of segments.");
 				int location = event.getValue();
 				sort_location = (double)location / 500.;
 				
@@ -2890,20 +2879,6 @@ public class XFencePlotter
 		scale_panel.add(factor_slider);
 		int current_value = (int)((scale_factor - 1.) * 100.);	
         factor_slider.setValue(current_value);
-		/*
-		if(data_scaled)
-	    {
-	        int current_value = (int)((scale_factor - 1.) * 100.);	
-	        factor_slider.setValue(current_value);
-	    }
-	    
-	    // Make it consistent with the boolean if it isn't in the config file.
-	    else
-	    {
-	    	factor_slider.setValue(0);
-	    	scale_factor = 1.0;
-	    }
-	    */
 		scale_dialog = new JDialog(frame);
 		scale_dialog.add(scale_panel);
 
@@ -3210,7 +3185,6 @@ public class XFencePlotter
 		triple_start_button.addActionListener(startpoint_handler);
 		triple_button_panel.add(triple_start_button);
 		
-		
 		JButton triple_midpoint_button  = new JButton("Midpoint");
 		ActionListener midpoint_handler = new ActionListener()
 		{
@@ -3260,14 +3234,11 @@ public class XFencePlotter
 		triple_end_button.addActionListener(endpoint_handler);
 		triple_button_panel.add(triple_end_button);
 		
-		
 		JButton triple_apply_button = new JButton("Apply");
 		ActionListener triple_apply_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				
-				
 				if(startpoint_set && midpoint_set && endpoint_set)
 				{
 					triple_slope_output.append(" start_intensity     " + String.format("%.2f",startpoint_intensity) + " nT\n");
@@ -4018,8 +3989,8 @@ public class XFencePlotter
 					// Reset semaphore.
 					range_slider_changing = false;
 					
-					//offset_information.setText(String.format("%.2", offset));				
-					// Resegment and redraw data.
+					offset_information.setText(String.format("%.2f", offset));				
+					// Resegment, redraw, and check order of data segments.
 					apply_item.doClick();
 				}
 				else
@@ -4546,17 +4517,11 @@ public class XFencePlotter
 		frame.setLocation(50, 10);
 		
 		apply_item.doClick();
-		int current_sort_location = (int)(sort_location * 500);
-     	sort_scrollbar.setValue(current_sort_location);
-     	
-     	if(!in_order)
-		{
-			double current_location = sort_location * range + offset;
-			System.out.println("Segments are out of order at location y = " + String.format("%.2f", current_location));
-		}
-     	
-		//apply_item.doClick();
+
 		
+     	
+     	
+     	
 		// End gui.
 		
 	}
@@ -7220,6 +7185,59 @@ public class XFencePlotter
 				} 
 			}
 		}
+	}
+	
+	public void checkSegmentOrder()
+	{
+		double current_position = range * sort_location + offset;
+		xlist.clear();
+		
+		int size = data_array.size();
+		int number_of_segments = size - 4;
+		order_information.append("\n");
+		double previous_x = 0;
+		in_order = true;
+		for(int i = 0; i < number_of_segments; i++)
+		{
+			ArrayList sensor_list    = (ArrayList) data_array.get(i + 4);
+			int       current_line   = (int)sensor_list.get(0);
+			int       current_sensor = (int)sensor_list.get(1);
+			ArrayList sample_list    = (ArrayList)sensor_list.get(4);
+			size                     = sample_list.size();
+			
+			Sample sample = (Sample)sample_list.get(0);
+			int j = 1;
+			while(sample.y < current_position && j < size)
+			{
+				sample = (Sample)sample_list.get(j);
+				j++;
+			}
+			xlist.add(sample.x);
+			
+			if(i == 0)
+			{
+				previous_x = sample.x;  	
+			}
+			else
+			{
+			    if(sample.x < previous_x)
+			    	in_order = false;
+			    previous_x = sample.x;
+			}
+			
+			String data_string       = new String(current_line + ":" + current_sensor);
+			String xstring           = String.format("%,.2f", sample.x);
+			String order_string = new String(data_string + "   " + xstring);
+			if(order_information != null)
+				order_information.append(order_string + "\n");	
+			JScrollBar this_scrollbar = order_scrollpane.getVerticalScrollBar();
+			int max = this_scrollbar.getMaximum();
+			this_scrollbar.setValue(max);
+		}
+		if(sort_canvas != null)
+		    sort_canvas.repaint();
+		if(order_canvas != null)
+		    order_canvas.repaint();	
 	}
 	
 	public double[] smooth(double[] source, int iterations)
