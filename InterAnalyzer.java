@@ -503,6 +503,10 @@ public class InterAnalyzer
 			double raster_ymin = ymin - .0015;
 			double raster_ymax = ymax + .0015;
 			
+			
+			
+			
+			
 			double raster_xlength = raster_xmax - raster_xmin;
 			double raster_ylength = raster_ymax - raster_ymin;
 		    
@@ -526,16 +530,126 @@ public class InterAnalyzer
 				}
 			}
 			
-			
+		    double yrange = ymax - ymin;
+		    double xrange = xmax - xmin;
+		    
+		    double ratio              = 0;
+		    int    number_of_sections = 0;
+		    if(yrange > xrange)
+		    {
+		    	ratio              = yrange / xrange;
+		    	number_of_sections = (int)Math.floor((float)ratio);
+		    }
+		    else if(xrange > yrange)
+			{
+			    ratio              = xrange / yrange;
+			    number_of_sections = (int)Math.floor((float)ratio);
+			}
+		    else 
+		    	number_of_sections = 1;
+		    
+		    ArrayList [][] segment_data = new ArrayList[2][number_of_sections];
+		    for(int i = 0; i < 2; i++)
+		    	for(int j = 0; j < number_of_sections; j++)
+		    		segment_data[i][j] = new ArrayList();
+		    
+		    
+		    // We know our y dimension is always the major one.
+		    /*
+		    if(yrange > xrange)
+		    {
+		    	
+		    }
+		    else
+		    {
+		    	
+		    }
+		    */
+		    
+		    double y_increment = yrange / number_of_sections;
+		    double lower_bound = ymin;
+		    double upper_bound = ymin + y_increment;
+		    
+		    /*
+		    System.out.println("Ymin is " + String.format("%.2f", ymin));
+		    System.out.println();
+		    for(int i = 0; i < number_of_sections; i++)
+		    {
+		    	System.out.println("Lower bound is " + String.format("%.2f", lower_bound));
+		    	System.out.println("Upper bound is " + String.format("%.2f", upper_bound));
+		    	System.out.println();
+		    	lower_bound = upper_bound;
+		    	upper_bound += y_increment;
+		    }
+		    System.out.println("Ymax is " + String.format("%.2f", ymax));
+		    */
+		    
+		    size = first_intersecting_data_list.size();
+	    	for(int j = 0; j < size; j++)
+		    {
+		    	Sample    sample = (Sample)first_intersecting_data_list.get(j);
+		    	int       index  = (int)Math.floor((float)((sample.y - ymin) / yrange) * number_of_sections);
+		    	if(index == number_of_sections)
+		    	{
+		    		//If this is our max value (1), stick it in the final bin.
+		    		index--;
+		    	}
+		    	
+		    	lower_bound = index * y_increment + ymin;
+		    	upper_bound = lower_bound + y_increment;
+		    	
+		    	//System.out.println("Lower bound is " + String.format("%.4f", lower_bound));
+		    	//System.out.println("Value is " + String.format("%.4f", sample.y));
+		    	//System.out.println("Upper bound is " + String.format("%.4f", upper_bound));
+		    	//System.out.println();
+		    	
+		    	
+		    	ArrayList list   = (ArrayList)segment_data[0][index];
+		    	list.add(sample);
+		    }
+		    
+		    
+	    	size = next_intersecting_data_list.size();
+	    	for(int j = 0; j < size; j++)
+		    {
+		    	Sample    sample = (Sample)next_intersecting_data_list.get(j);
+		    	int       index  = (int)Math.floor((float)((sample.y - ymin) / yrange) * number_of_sections);
+		    	if(index == number_of_sections)
+		    	{
+		    		//If this is our max value (1), stick it in the final bin.
+		    		index--;
+		    	}
+		    	
+		    	lower_bound = index * y_increment + ymin;
+		    	upper_bound = lower_bound + y_increment;
+		    	
+		    	System.out.println("Lower bound is " + String.format("%.4f", lower_bound));
+		    	System.out.println("Value is " + String.format("%.4f", sample.y));
+		    	System.out.println("Upper bound is " + String.format("%.4f", upper_bound));
+		    	System.out.println();
+		    	
+		    	
+		    	ArrayList list   = (ArrayList)segment_data[1][index];
+		    	list.add(sample);
+		    }
+		    
+		    
+		    
+		    
+		    
+		    
+		    
+		    /*
+		    
 			size = first_intersecting_data_list.size();
 			for(int i = 0; i < size; i++)
 		    {
 		    	Sample sample = (Sample)first_intersecting_data_list.get(i);
-		    	/*
-		    	double normal_x_location = (sample.x - raster_xmin) / raster_xlength;
-		    	double x_location        = normal_x_location * raster_xdim; 
-		    	int    x_index           = (int)Math.floor(x_location);
-		    	*/
+		    	
+		    	//double normal_x_location = (sample.x - raster_xmin) / raster_xlength;
+		    	//double x_location        = normal_x_location * raster_xdim; 
+		    	//int    x_index           = (int)Math.floor(x_location);
+		    	
 		    	double current_location = raster_xmin + cell_width;
 		    	int    x_index          = 0;
 		    	while(sample.x >= current_location)
@@ -549,11 +663,11 @@ public class InterAnalyzer
 		    	// This breaks, even though it works with x.  A real puzzler, but 
 		    	// there is another method that is just a little less efficient.
 		    	
-		    	/*
-		    	double normal_y_location = (sample.y - raster_ymin) / raster_ylength;
-		    	double y_location        = normal_y_location * raster_ydim; 
-		    	int    y_index           = (int)Math.floor(y_location);
-		    	*/
+		    	
+		    	//double normal_y_location = (sample.y - raster_ymin) / raster_ylength;
+		    	//double y_location        = normal_y_location * raster_ydim; 
+		    	//int    y_index           = (int)Math.floor(y_location);
+		    
 		    	
 		    	current_location = raster_ymin + cell_width;
 		    	int    y_index = 0;
@@ -632,7 +746,7 @@ public class InterAnalyzer
 			}
 			System.out.println("The number of cells populated by the next segment are " + number_of_populated_cells);
 			
-			
+			*/
 			
 			
 			
