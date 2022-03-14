@@ -617,39 +617,40 @@ public class InterAnalyzer
 			    
 			    double x_range = xmax - xmin;
 			    
-			    double cell_width = .025;
-			    double init_value = xmin - cell_width / 2;
-			    double end_value  = xmax + cell_width / 2;
+			    double xcell_width = .125;
+			    double init_value = xmin - xcell_width / 2;
+			    double end_value  = xmax + xcell_width / 2;
 			    int number_of_cells = 0;
 			   
 			    while(init_value < end_value)		
 			    {
 			        number_of_cells++;
-			        init_value += cell_width;
+			        init_value += xcell_width;
 			    }
 			    
 			    System.out.println("Raster xdim is " + number_of_cells);
 			    
 			    int raster_xdim = number_of_cells;
 			    
-			    init_value = ymin - cell_width / 2;
-			    end_value  = ymax + cell_width / 2;
+			    double ycell_width = .025;
+			    init_value = ymin - ycell_width / 2;
+			    end_value  = ymax + ycell_width / 2;
 			    number_of_cells = 0;
 			    
 			    while(init_value < end_value)		
 			    {
 			        number_of_cells++;
-			        init_value += cell_width;
+			        init_value += ycell_width;
 			    }
 			    
 			    System.out.println("Raster ydim is " + number_of_cells);
 			    
 			    int raster_ydim = number_of_cells;
 			    
-			    double raster_xmin = xmin - cell_width / 2;
-				double raster_xmax = xmax + cell_width / 2;
-				double raster_ymin = ymin - cell_width / 2;
-				double raster_ymax = ymax + cell_width / 2;
+			    double raster_xmin = xmin - xcell_width / 2;
+				double raster_xmax = xmax + xcell_width / 2;
+				double raster_ymin = ymin - ycell_width / 2;
+				double raster_ymax = ymax + ycell_width / 2;
 				
 				ArrayList[][] segment1_data = new ArrayList[raster_ydim][raster_xdim];
 				ArrayList[][] segment2_data = new ArrayList[raster_ydim][raster_xdim];
@@ -678,25 +679,25 @@ public class InterAnalyzer
 				for(int j = 0; j < size; j++)
 				{
 					Sample sample = (Sample)segment_list.get(j);
-					double current_location = raster_xmin + cell_width;
+					double current_location = raster_xmin + xcell_width;
 			    	int    x_index          = 0;
 			    	while(sample.x >= current_location)
 			    	{
 			    		x_index++;
-			    		current_location += cell_width;
+			    		current_location += xcell_width;
 			    	}
-			    	double cell_lower_bound  = x_index * cell_width + raster_xmin;
-			    	double cell_upper_bound  = cell_lower_bound + cell_width;
-			    	current_location = raster_ymin + cell_width;
+			    	double cell_lower_bound  = x_index * xcell_width + raster_xmin;
+			    	double cell_upper_bound  = cell_lower_bound + xcell_width;
+			    	current_location = raster_ymin + xcell_width;
 			    	int    y_index = 0;
 			    	while(sample.y > current_location)
 			    	{
 			    		y_index++;
-			    		current_location += cell_width;
+			    		current_location += ycell_width;
 			    	}
 			    	
-			    	cell_lower_bound  = y_index * cell_width + raster_ymin;
-			    	cell_upper_bound  = cell_lower_bound + cell_width;
+			    	cell_lower_bound  = y_index * ycell_width + raster_ymin;
+			    	cell_upper_bound  = cell_lower_bound + ycell_width;
 			    	
 			    	//System.out.println("Cell lower bound is " + String.format("%.5f", cell_lower_bound));
 			    	//System.out.println("Cell upper bound is " + String.format("%.5f", cell_upper_bound));
@@ -728,25 +729,25 @@ public class InterAnalyzer
 				for(int j = 0; j < size; j++)
 				{
 					Sample sample = (Sample)segment_list.get(j);
-					double current_location = raster_xmin + cell_width;
+					double current_location = raster_xmin + xcell_width;
 			    	int    x_index          = 0;
 			    	while(sample.x >= current_location)
 			    	{
 			    		x_index++;
-			    		current_location += cell_width;
+			    		current_location += xcell_width;
 			    	}
-			    	double cell_lower_bound  = x_index * cell_width + raster_xmin;
-			    	double cell_upper_bound  = cell_lower_bound + cell_width;
-			    	current_location = raster_ymin + cell_width;
+			    	double cell_lower_bound  = x_index * xcell_width + raster_xmin;
+			    	double cell_upper_bound  = cell_lower_bound + xcell_width;
+			    	current_location = raster_ymin + ycell_width;
 			    	int    y_index = 0;
 			    	while(sample.y > current_location)
 			    	{
 			    		y_index++;
-			    		current_location += cell_width;
+			    		current_location += ycell_width;
 			    	}
 			    	
-			    	cell_lower_bound  = y_index * cell_width + raster_ymin;
-			    	cell_upper_bound  = cell_lower_bound + cell_width;
+			    	cell_lower_bound  = y_index * ycell_width + raster_ymin;
+			    	cell_upper_bound  = cell_lower_bound + ycell_width;
 			    	ArrayList sample_list = segment2_data[y_index][x_index];
 			    	sample_list.add(sample);
 			    	isPopulated2[y_index][x_index] = true;
@@ -910,10 +911,10 @@ public class InterAnalyzer
 					    	 
 					     }
 					     
-					     xcenter += cell_width;
+					     xcenter += xcell_width;
 					}
 					
-					ycenter += cell_width;
+					ycenter += ycell_width;
 				}
 				System.out.println("Number of unpopulated cells without neighbors is " + number_of_unpopulated_cells_without_neighbors);
                 number_of_populated_cells = 0;
