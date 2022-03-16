@@ -174,6 +174,7 @@ public class YFencePlotter
 	public JTextField  load_config_input;
 	public JTextField  save_config_input;
 	
+	boolean flight_line_odd = false;
 	
 	// Gui components that are fired by load handler.
 	public JCheckBoxMenuItem view_item;
@@ -205,7 +206,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.0.7 of wand.");
+			System.out.println("This is version 4.0.9 of wand.");
 
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
@@ -2885,7 +2886,8 @@ public class YFencePlotter
 					
 					if(append_sensor == 0)
 					{
-						if(reverse_view)
+						//if(reverse_view)
+						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
 						    delta_x =  4 * xstep;
 						    delta_y = -4 * ystep;
@@ -2898,7 +2900,8 @@ public class YFencePlotter
 					}
 					else if(append_sensor == 4)
 					{
-						if(reverse_view)
+						//if(reverse_view)
+						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
 						    delta_x = -4 * xstep;
 						    delta_y =  4 * ystep;
@@ -2911,7 +2914,8 @@ public class YFencePlotter
 					}
 					else if(append_sensor == 1)
 					{
-						if(reverse_view)
+						//if(reverse_view)
+						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
 						    delta_x =  2 * xstep;
 						    delta_y = -2 * ystep;
@@ -2924,7 +2928,8 @@ public class YFencePlotter
 					}
 					else if(append_sensor == 3)
 					{
-						if(reverse_view)
+						//if(reverse_view)
+						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
 						    delta_x = -2 * xstep;
 						    delta_y =  2 * ystep;
@@ -3107,6 +3112,7 @@ public class YFencePlotter
 			// and the relative data array is the information we display in the graph.
 			// Add empty lists at startup.
 			
+		
 			for(int i = 0; i < 5; i++)
 			{
 				ArrayList data_list = new ArrayList();
@@ -3114,7 +3120,6 @@ public class YFencePlotter
 				ArrayList relative_data_list = new ArrayList(); 
 				relative_data_array.add(relative_data_list); 
 			}
-			
 		}
 		
 		public void paint(Graphics g)
@@ -3170,6 +3175,9 @@ public class YFencePlotter
 			double stop_location  = (data_offset + data_range) * 30;
 			start_flight_line = (int)Math.floor(start_location);
 			stop_flight_line = (int)Math.floor(stop_location);
+			flight_line_odd = true;
+	        if(start_flight_line % 2 == 0)
+	            flight_line_odd = false;
 			
 			// Start data segmentation.
 			
@@ -3220,12 +3228,6 @@ public class YFencePlotter
 					}
 				    setting_index = false;
 				}
-				
-				
-				
-				
-				
-				
 				
 				
 				for(int i = 0; i < 5; i++)
@@ -3369,8 +3371,7 @@ public class YFencePlotter
 			
 			//System.out.println("Finished segmenting data.");
 			
-			// Get some information we'll use
-			// to label the x-axis in relative mode.
+			
 			boolean data_increasing = true;
 			ArrayList init_list     = (ArrayList)relative_data_array.get(2);
 			Sample init_sample      = (Sample)init_list.get(0);
@@ -3378,9 +3379,64 @@ public class YFencePlotter
 			Sample end_sample       = (Sample)init_list.get(size - 1);
 			if(end_sample.y < init_sample.y)
 			    data_increasing = false;
-			
-			double relative_start_y = init_sample.y;
-			double relative_end_y   = end_sample.y;
+			double relative_start_y = 0;
+			double relative_end_y   = 0;
+			if(data_increasing)
+			{
+				relative_start_y = init_sample.y;
+				relative_end_y   = end_sample.y;	
+			}
+			else
+			{
+				relative_start_y = end_sample.y;
+				relative_end_y   = init_sample.y;   	
+			}
+			if(!data_increasing)
+			{
+				ArrayList reverse_array = new ArrayList();
+				ArrayList reverse_relative_array = new ArrayList();
+				
+				init_list = (ArrayList)data_array.get(2);
+				init_sample = (Sample)init_list.get(0);
+				size = init_list.size();
+				end_sample       = (Sample)init_list.get(size - 1);
+				
+				double ymin = init_sample.y;
+				double ymax = end_sample.y;
+				for(int i = 0; i < 5; i++)
+				{
+					ArrayList list         = (ArrayList)data_array.get(i);
+					
+					ArrayList reverse_list = new ArrayList();
+					
+					for(int j = list.size() - 1; j >= 0; j--)
+					{
+					    Sample sample = (Sample)list.get(j);
+					    sample.y = (ymax - sample.y) + ymin;
+					    reverse_list.add(sample);
+					}
+					reverse_array.add(reverse_list);
+					
+					list = (ArrayList)relative_data_array.get(i);
+					reverse_list = new ArrayList();
+					for(int j = list.size() - 1; j >= 0; j--)
+					{
+					    Sample sample = (Sample)list.get(j);
+					    reverse_list.add(sample);
+					}
+					reverse_relative_array.add(reverse_list);
+				}
+				
+				data_array.clear();
+				relative_data_array.clear();
+				for(int i = 0; i < 5; i++)
+				{
+					ArrayList list = (ArrayList)reverse_array.get(i);
+					data_array.add(list);
+					list = (ArrayList)reverse_relative_array.get(i);
+					relative_data_array.add(list);
+				}
+			}
 			
 			if(!data_clipped)
 			{
@@ -3518,25 +3574,25 @@ public class YFencePlotter
 		            }
 		            graphics_buffer.drawLine(a1, (int)current_position, a1 - 10, (int)current_position);
 		           
-		            
+		           
 		            if(ystep != 0  && show_id)
 		            {
 		            	graphics_buffer.setColor(Color.BLACK);
 		            	String line_id = new String("foo");
 		            	
-		            	if(!reverse_view)
+		            	if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 		            	{
-        		    	    if(start_flight_line == stop_flight_line)
+		            		if(start_flight_line == stop_flight_line)
         		    	        line_id = new String(start_flight_line + ":" + i);
         		    	    else
-        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);
+        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);	
 		            	}
 		            	else
 		            	{
-		            		if(start_flight_line == stop_flight_line)
-        		    	        line_id = new String(start_flight_line + ":" + (4 - i));
-        		    	    else
-        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + (4 - i));	
+		            		  if(start_flight_line == stop_flight_line)
+	        		    	        line_id = new String(start_flight_line + ":" + (4 - i));
+	        		    	    else
+	        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + (4 - i));
 		            	}
 					    graphics_buffer.drawString(line_id, a2 + 10, (int) current_position + ( 3 * string_height / 4));
 					    graphics_buffer.setColor(new Color(196, 196, 196));
@@ -3594,9 +3650,9 @@ public class YFencePlotter
 		        		    	graphics_buffer.drawLine((int) current_position, b1, (int) current_position, b1 + 10); 
 		        		    	String line_id = new String("foo");
 		        		    	String line_slope = new String("foo");
-		        		    	if(!reverse_view)
+		        		    	if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))	
 		        		    	{
-		        		    	    if(start_flight_line == stop_flight_line)
+		        		    		if(start_flight_line == stop_flight_line)
 		        		    	        line_id = new String(start_flight_line + ":" + i);
 		        		    	    else
 		        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);
@@ -3606,7 +3662,7 @@ public class YFencePlotter
 		        		    		if(start_flight_line == stop_flight_line)
 		        		    	        line_id = new String(start_flight_line + ":" + (4 - i));
 		        		    	    else
-		        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + (4 -i));
+		        		    		    line_id = new String(start_flight_line + "/" + stop_flight_line + ":" + (4 - i));
 		        		    	}
 								if(show_id)
 								    graphics_buffer.drawString(line_id,  (int) current_position + 10, b1 + 10);
@@ -3731,6 +3787,8 @@ public class YFencePlotter
 			        }
 		        }
 			}
+			
+			
 			ArrayList plot_data = new ArrayList();
 			
 			double smooth_maximum_y = -Double.MAX_VALUE;
@@ -3764,7 +3822,6 @@ public class YFencePlotter
 				}
 				ArrayList plot_list = new ArrayList();
 				
-				
 				for(int j = 0; j < data_list.size(); j++)
 				{
 					Sample sample = (Sample)data_list.get(j);
@@ -3787,19 +3844,20 @@ public class YFencePlotter
 			double[]  polygon_min           = new double[number_of_segments];
 			double[]  polygon_max           = new double[number_of_segments];
 			
+			ArrayList data_list;
+			ArrayList relative_data_list;
 			for (int i = 0; i < number_of_segments; i++)
 			{
-				ArrayList data_list;
-				ArrayList relative_data_list;
-				if(reverse_view)
+				// Get the data we used to generate the graph so we can append it later.
+				if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 				{
-					data_list       = (ArrayList)data_array.get(number_of_segments - 1 - i);
-				    relative_data_list = (ArrayList)relative_data_array.get(number_of_segments - 1 - i);	
+				    data_list = (ArrayList)data_array.get(i);
+				    relative_data_list = (ArrayList)relative_data_array.get(i);
 				}
 				else
 				{
-				    data_list       = (ArrayList)data_array.get(i);
-				    relative_data_list = (ArrayList)relative_data_array.get(i);
+					data_list = (ArrayList)data_array.get(4 - i);
+				    relative_data_list = (ArrayList)relative_data_array.get(4 - i);    	
 				}
 				
 				Sample    previous_sample = (Sample)data_list.get(0);
@@ -3832,12 +3890,11 @@ public class YFencePlotter
 				b2 -= yaddend;
 
 				ArrayList segment;
-				if(reverse_view)
-				    segment = (ArrayList)plot_data.get(4 - i);
+				if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
+				    segment = (ArrayList)plot_data.get(i);
 				else
-					segment = (ArrayList)plot_data.get(i);
-				
-
+					segment = (ArrayList)plot_data.get(4 - i);
+		
 				int n   = segment.size() + 3;
 				int[] x = new int[n];
 				int[] y = new int[n];
@@ -3901,7 +3958,7 @@ public class YFencePlotter
 					{
 						pixel_data_list.add(start_flight_line);
 						
-						if(reverse_view)
+						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
 							pixel_data_list.add(4 - i);   	
 						}
@@ -3909,7 +3966,6 @@ public class YFencePlotter
 						{
 						    pixel_data_list.add(i);
 						}
-						
 						pixel_data_list.add(sample);
 					} 
 					else
@@ -3926,7 +3982,8 @@ public class YFencePlotter
 						ArrayList new_pixel_list = new ArrayList();
 						new_pixel_list.add(start_flight_line);
 						
-						if(reverse_view)
+						
+						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
 							new_pixel_list.add(4 - i);   	
 						}
@@ -3955,9 +4012,9 @@ public class YFencePlotter
 					// Assigning neighbor pixels if they are unassigned so that
 					// it isn't hard for the mouse to find an assigned pixel.
 					ArrayList pixel_list = pixel_data[(int) current_y - 1][(int) current_x];
-					int j = i;
-					if(reverse_view)
-						j = 4 - i;
+					int j = 4 - i;
+					if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
+						j = i;
 							
 					if (pixel_list.size() == 0)
 					{
@@ -4041,15 +4098,19 @@ public class YFencePlotter
 				local_max -= yaddend;
 				
 				x[m] = a2;
+				
 				// If we want to set the base to the local min.
 				// y[m] = (int)local_min;
+				
 				// Setting base to global_min.
 				y[m] = b1;
 				m++;
 
 				x[m] = a1;
+				
 				// If we want to set the base to the local min.
 				// y[m] = (int)local_min;
+				
 				// Setting base to global_min.
 				y[m] = b1;
 				m++;
@@ -4059,6 +4120,7 @@ public class YFencePlotter
 				
 				
 				// Color y axis.
+				
 				if(reverse_view)
 				{
 					if(visible[number_of_segments - 1 - i])
@@ -4140,11 +4202,8 @@ public class YFencePlotter
 				        graphics_buffer.drawLine(a2, (int)polygon_min[i], a2, b1);
 				}
 				
-				
 				if(reverse_view)
 				{
-					
-					//if((polygon_zero_crossing[i]  || (xstep == max_xstep  || ystep == max_ystep)) && visible[number_of_segments - 1 - i])
 					if(visible[number_of_segments - 1 - i])
 					{
 						ArrayList plot_list = (ArrayList) plot_data.get(number_of_segments - 1 - i);
@@ -4217,8 +4276,7 @@ public class YFencePlotter
 						graphics_buffer.setStroke(basic_stroke);
 						graphics_buffer.setColor(java.awt.Color.RED);
 						graphics_buffer.drawLine((int) x1, (int) zero_y, (int) x2, (int) zero_y);
-						graphics_buffer.setStroke(new BasicStroke(2));
-							
+						graphics_buffer.setStroke(new BasicStroke(2));	
 					}
 				}
 			}
@@ -4331,11 +4389,7 @@ public class YFencePlotter
 		        	// Hanging locations on frontmost graph or all the graphs if they are laid out in a row.
 		        	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
 		        	current_position += current_position_increment;
-		        	//current_position += current_position_increment;
-		        	if(data_increasing)
-	            		current_value += current_value_increment;
-	            	else
-	            		current_value -= current_value_increment;
+		        	current_value += current_value_increment;
 		            for(int j = 0; j < number_of_units; j++)
 		            {
 		            	if(relative_mode)
@@ -4349,10 +4403,7 @@ public class YFencePlotter
 		            		position_string = String.format("%.0f", current_value);
 		            	graphics_buffer.drawString(position_string, (int) current_position - string_width / 2, ydim + string_height + 12 - bottom_margin);
 		            	current_position += current_position_increment;
-			        	if(data_increasing)
-		            		current_value += current_value_increment;
-		            	else
-		            		current_value -= current_value_increment;
+		            	current_value += current_value_increment;
 		            }
 		        }
 		        
@@ -4402,17 +4453,30 @@ public class YFencePlotter
 				for(int i = 0; i < 5; i++)
 				{
 					String sensor_id = new String("foo");
-					if(stop_flight_line != start_flight_line)
-						sensor_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);
+					if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
+					{
+					    if(stop_flight_line != start_flight_line)
+						    sensor_id = new String(start_flight_line + "/" + stop_flight_line + ":" + i);
+					    else
+						    sensor_id = new String(start_flight_line + ":" + i);
+					}
 					else
-						sensor_id = new String(start_flight_line + ":" + i);
+					{
+						if(stop_flight_line != start_flight_line)
+						    sensor_id = new String(start_flight_line + "/" + stop_flight_line + ":" + (4 - i));
+					    else
+						    sensor_id = new String(start_flight_line + ":" + (4 - i));	
+					}
 					string_width = font_metrics.stringWidth(sensor_id);
 					int x = xdim - (3 * string_width + 10);
 					//int y = ydim - (2 * i * string_height) - bottom_margin;
 					int y = ydim - (2 * i * string_height) - 5;
 					graphics_buffer.setColor(Color.BLACK);
 					graphics_buffer.drawString(sensor_id, x, y);
-					graphics_buffer.setColor(fill_color[i]);
+					if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
+					    graphics_buffer.setColor(fill_color[4 - i]);
+					else
+						graphics_buffer.setColor(fill_color[i]);
 					graphics_buffer.fillRect(x + 2 * string_width, y - string_height, string_width, string_height);
 				}
 			}
