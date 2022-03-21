@@ -632,7 +632,7 @@ public class InterAnalyzer
 			    
 			    int raster_xdim = number_of_cells;
 			    
-			    double ycell_width = .025;
+			    double ycell_width = .03;
 			    init_value = ymin - ycell_width / 2;
 			    end_value  = ymax + ycell_width / 2;
 			    number_of_cells = 0;
@@ -656,6 +656,8 @@ public class InterAnalyzer
 				ArrayList[][] segment2_data = new ArrayList[raster_ydim][raster_xdim];
 				boolean[][] isPopulated1  = new boolean[raster_ydim][raster_xdim];
 				boolean[][] isPopulated2  = new boolean[raster_ydim][raster_xdim];
+				boolean[][] isCentered1  = new boolean[raster_ydim][raster_xdim];
+				boolean[][] isCentered2  = new boolean[raster_ydim][raster_xdim];
 				int[][] sampleNumber1 = new int[raster_ydim][raster_xdim];
 				int [][] sampleNumber2 = new int[raster_ydim][raster_xdim];
 				
@@ -667,6 +669,8 @@ public class InterAnalyzer
 						segment2_data[j][k] = new ArrayList();
 						isPopulated1[j][k]  = false;
 						isPopulated2[j][k]  = false;
+						isCentered1[j][k]  = false;
+						isCentered2[j][k]  = false;
 						sampleNumber1[j][k] = 0;
 						sampleNumber2[j][k] = 0;
 					}
@@ -678,31 +682,54 @@ public class InterAnalyzer
 				System.out.println("The number of samples being assigned to the raster from the first segment is " + size);
 				for(int j = 0; j < size; j++)
 				{
-					Sample sample = (Sample)segment_list.get(j);
-					double current_location = raster_xmin + xcell_width;
-			    	int    x_index          = 0;
-			    	while(sample.x >= current_location)
-			    	{
-			    		x_index++;
-			    		current_location += xcell_width;
-			    	}
+					Sample sample            = (Sample)segment_list.get(j);
+				
+			    	int    x_index           = 0;
 			    	double cell_lower_bound  = x_index * xcell_width + raster_xmin;
 			    	double cell_upper_bound  = cell_lower_bound + xcell_width;
-			    	current_location = raster_ymin + xcell_width;
-			    	int    y_index = 0;
-			    	while(sample.y > current_location)
+			    	/*
+			    	System.out.println("XCell lower bound is " + String.format("%.5f", cell_lower_bound));
+			    	System.out.println("XCell upper bound is " + String.format("%.5f", cell_upper_bound));
+			    	System.out.println("Sample is           " + String.format("%.5f", sample.x));
+			    	System.out.println();
+			    	*/
+			    	while(sample.x > cell_upper_bound)
 			    	{
-			    		y_index++;
-			    		current_location += ycell_width;
+			    		x_index++;
+			    		cell_lower_bound  = x_index * xcell_width + raster_xmin;
+			    		cell_upper_bound  = cell_lower_bound + xcell_width;
 			    	}
 			    	
+			    	/*
+			    	System.out.println("XCell lower bound is " + String.format("%.5f", cell_lower_bound));
+			    	System.out.println("XCell upper bound is " + String.format("%.5f", cell_upper_bound));
+			    	System.out.println("Sample is           " + String.format("%.5f", sample.x));
+			    	System.out.println();
+			    	*/
+			    	
+			    	int    y_index = 0;
 			    	cell_lower_bound  = y_index * ycell_width + raster_ymin;
 			    	cell_upper_bound  = cell_lower_bound + ycell_width;
 			    	
-			    	//System.out.println("Cell lower bound is " + String.format("%.5f", cell_lower_bound));
-			    	//System.out.println("Cell upper bound is " + String.format("%.5f", cell_upper_bound));
-			    	//System.out.println("Sample is           " + String.format("%.5f", sample.y));
-			    	//System.out.println();
+			    	/*
+			    	System.out.println("YCell lower bound is " + String.format("%.5f", cell_lower_bound));
+			    	System.out.println("YCell upper bound is " + String.format("%.5f", cell_upper_bound));
+			    	System.out.println("Sample is           " + String.format("%.5f", sample.y));
+			    	*/
+			    	System.out.println();
+			    	while(sample.y > cell_upper_bound)
+			    	{
+			    		y_index++;
+			    		cell_lower_bound  = y_index * ycell_width + raster_ymin;
+				    	cell_upper_bound  = cell_lower_bound + ycell_width;
+			    	}
+			    	
+			    	/*
+			    	System.out.println("YCell lower bound is " + String.format("%.5f", cell_lower_bound));
+			    	System.out.println("YCell upper bound is " + String.format("%.5f", cell_upper_bound));
+			    	System.out.println("Sample is           " + String.format("%.5f", sample.y));
+			    	System.out.println();
+			    	*/
 			    	
 			    	ArrayList sample_list = segment1_data[y_index][x_index];
 			    	sample_list.add(sample);
@@ -722,52 +749,6 @@ public class InterAnalyzer
 				}
 				System.out.println("The number of populated cells in the first raster is " + number_of_populated_cells);
 				
-				
-				segment_list = segment_data[1][i];
-				size = segment_list.size();
-				System.out.println("The number of samples being assigned to the raster from the second segment is " + size);
-				for(int j = 0; j < size; j++)
-				{
-					Sample sample = (Sample)segment_list.get(j);
-					double current_location = raster_xmin + xcell_width;
-			    	int    x_index          = 0;
-			    	while(sample.x >= current_location)
-			    	{
-			    		x_index++;
-			    		current_location += xcell_width;
-			    	}
-			    	double cell_lower_bound  = x_index * xcell_width + raster_xmin;
-			    	double cell_upper_bound  = cell_lower_bound + xcell_width;
-			    	current_location = raster_ymin + ycell_width;
-			    	int    y_index = 0;
-			    	while(sample.y > current_location)
-			    	{
-			    		y_index++;
-			    		current_location += ycell_width;
-			    	}
-			    	
-			    	cell_lower_bound  = y_index * ycell_width + raster_ymin;
-			    	cell_upper_bound  = cell_lower_bound + ycell_width;
-			    	ArrayList sample_list = segment2_data[y_index][x_index];
-			    	sample_list.add(sample);
-			    	isPopulated2[y_index][x_index] = true;
-			    	sampleNumber2[y_index][x_index]++;
-				}
-				
-
-				number_of_populated_cells = 0;
-				
-				for(int j = 0; j < raster_ydim; j++)
-				{
-				    for(int k = 0; k < raster_xdim; k++)
-				    {
-				        if(isPopulated2[j][k])
-				        	number_of_populated_cells++;
-				    }
-				}
-				System.out.println("The number of populated cells in the second raster is " + number_of_populated_cells);
-				
-				int number_of_unpopulated_cells_without_neighbors = 0;
 				double ycenter = ymin;
 				for(int j = 0; j < raster_ydim; j++)
 				{
@@ -776,86 +757,221 @@ public class InterAnalyzer
 					{
 					     
 						int       location_type = getLocationType(k, j, raster_xdim, raster_ydim);
-						boolean[] isPopulated   = new boolean[9];
-						
-						for(int m = 0; m < 9; m++)
-						{
-							isPopulated[m] = false;
-						}
+					
 						
 						ArrayList sample_list = (ArrayList)segment1_data[j][k];  
 					     
 					    if(sample_list.size() == 0)
 					    {
 					    	// If the cell is unpopulated, we want to find the two closest
-					    	// samples from cells in opposing directions.
+					    	// samples from cells in opposing directions.  If two such 
+					    	// opposing samples exist, we consider that an accurate value 
+					    	// can be interpolated.
+					    	
+					        if(location_type == 4 || location_type == 5 || location_type == 6)
+					        {
+					            
+					            boolean north_populated = false;
+					            ArrayList north_list          = (ArrayList)segment1_data[j - 1][k]; 
+					            if(north_list.size() > 0)
+					            	north_populated = true;
+					            
+					            
+					            boolean   south_populated = false;
+					            ArrayList south_list      = (ArrayList)segment1_data[j + 1][k]; 
+					            if(south_list.size() > 0)
+					            	south_populated = true;
+					            
+					            if(north_populated && south_populated)
+					            {
+					            	Sample north_sample = new Sample();
+					            	Sample south_sample = new Sample();
+					            	
+					            	// Because of the way we set up our grid,
+					            	// we never have more than two samples in a cell on initialization.
+					            	if(north_list.size() > 1)
+					            	{
+					            	     first_sample  = (Sample)north_list.get(0);
+					            	     Sample second_sample = (Sample)north_list.get(1);
+					            	     double first_distance = getDistance(xcenter, ycenter, first_sample.x, first_sample.y);
+					            	     double second_distance = getDistance(xcenter, ycenter, second_sample.x, second_sample.y);
+					            	     // Use whichever sample is closer to the center of the unpopulated cell.
+					            	     if(first_distance < second_distance)
+					            	         north_sample = first_sample;   	 
+					            	     else
+					            	    	 north_sample = second_sample;
+					            	}
+					            	else
+					            		north_sample = (Sample)north_list.get(0);
+					            	
+					            	if(south_list.size() > 1)
+					            	{
+					            	     first_sample  = (Sample)south_list.get(0);
+					            	     Sample second_sample = (Sample)south_list.get(1);
+					            	     double first_distance = getDistance(xcenter, ycenter, first_sample.x, first_sample.y);
+					            	     double second_distance = getDistance(xcenter, ycenter, second_sample.x, second_sample.y);
+					            	     // Use whichever sample is closer to the center of the unpopulated cell.
+					            	     if(first_distance < second_distance)
+					            	         south_sample = first_sample;   	 
+					            	     else
+					            	    	 south_sample = second_sample;
+					            	}
+					            	else
+					            		south_sample = (Sample)south_list.get(0);
+					            	Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
+					            	
+					            	double intensity = DataMapper.getBisectingAverage(north_sample, south_sample, origin);
+					            	System.out.println("Intensity of north sample is " + String.format("%.5f",north_sample.intensity));
+					            	System.out.println("Intensity of south sample is " + String.format("%.5f",south_sample.intensity));
+					            	System.out.println("Intensity of intermediate point is " + String.format("%.5f",intensity));
+					            	Point2D.Double location =  DataMapper.getBisectingPoint(north_sample, south_sample, origin);
+					            	System.out.println("Origin is located at x = " + String.format("%.2f",xcenter) + ", y = " + String.format("%.2f",ycenter));
+					            	System.out.println("North sample is located at x = " + String.format("%.2f",north_sample.x) + ", y = " + String.format("%.2f",north_sample.y));
+					            	System.out.println("South sample is located at x = " + String.format("%.2f",south_sample.x) + ", y = " + String.format("%.2f",south_sample.y));
+					            	
+					            	
+					            	double location_x = location.getX();
+					            	double location_y = location.getY();
+					            	System.out.println("Bisecting point is located at x = " + String.format("%.2f",location_x) + ", y = " + String.format("%.2f",location_y));
+					       
+					            	double delta_x = south_sample.x - north_sample.x;
+					            	double delta_y = south_sample.y - north_sample.y;
+					            	double delta_z = south_sample.intensity - north_sample.intensity;
+					            	double delta_x_prime = Math.abs(xcenter - location_x);
+					            	double delta_y_prime = Math.abs(ycenter - location_y);
+					            	
+					            	System.out.println("X delta is " + String.format("%.5f", delta_x));
+					            	System.out.println("Y delta is " + String.format("%.5f", delta_y));
+					            	System.out.println("Intensity delta is " + String.format("%.5f", delta_z));
+					            	System.out.println("X delta prime is " + String.format("%.5f", delta_x_prime));
+					            	System.out.println("Y delta prime is " + String.format("%.5f", delta_y_prime));
+					            	
+					            	double intensity_increment = 0;
+					            	
+					            	double delta = Math.abs(delta_x) + Math.abs(delta_y);
+					            	
+					            	
+					            	intensity_increment  = (delta_x / delta_x_prime) * (delta_x / delta) * delta_z;
+					            	intensity_increment += (delta_y_prime / delta_y) * (delta_y / delta) * delta_z;
+					            	
+					            	intensity           += intensity_increment;
+					            	
+					            	System.out.println("Intensity increment is " + String.format("%.5f", intensity_increment));
+					            	System.out.println("Intensity of center point is " + String.format("%.5f", intensity));
+					            	System.out.println();
+					            	Sample center_sample = new Sample(xcenter, ycenter, intensity);
+					            	ArrayList list      = (ArrayList)segment1_data[j][k]; 
+					            	list.add(center_sample);
+					            	isPopulated1[j][k] = true;
+					            	isCentered1[j][k]  = true;
+					            	
+					            	/*
+					            	if(isCentered1[j - 1][k] == false)
+					            	{
+					            		// Should check here for the rare instance when a sample falls exactly in 
+					            		// the middle of a cell.
+					            	
+					            		Point2D.Double north_origin = new Point2D.Double(xcenter, ycenter - ycell_width);       	
+					            		intensity = DataMapper.getBisectingAverage(north_sample, center_sample, north_origin);
+						            	System.out.println("Intensity of north sample is " + String.format("%.5f", north_sample.intensity));
+						            	System.out.println("Intensity of center sample is " + String.format("%.5f", center_sample.intensity));
+						            	System.out.println("Intensity of intermediate point is " + String.format("%.5f", intensity));
+						            	location =  DataMapper.getBisectingPoint(north_sample, center_sample, north_origin);
+						            	System.out.println("North origin is located at x = " + String.format("%.2f", xcenter) + ", y = " + String.format("%.2f", (ycenter - ycell_width)));
+						            	System.out.println("North sample is located at x = " + String.format("%.2f", north_sample.x) + ", y = " + String.format("%.2f", north_sample.y));
+             			            	System.out.println("South sample is located at x = " + String.format("%.2f", center_sample.x) + ", y = " + String.format("%.2f", center_sample.y));
+						            	location_x = location.getX();
+						            	location_y = location.getY();
+						            	System.out.println("Bisecting point is located at x = " + String.format("%.2f",location_x) + ", y = " + String.format("%.2f",location_y));
+						            	delta_x = north_sample.x - center_sample.x;
+						            	delta_y = north_sample.y - center_sample.y;
+						            	delta_z = north_sample.intensity - center_sample.intensity;
+						            	delta_x_prime = xcenter - location_x;
+						            	delta_y_prime = (ycenter - ycell_width) - location_y;
+						            	
+						            	System.out.println("X delta is " + String.format("%.5f", delta_x));
+						            	System.out.println("Y delta is " + String.format("%.5f", delta_y));
+						            	System.out.println("Intensity delta is " + String.format("%.5f", delta_z));
+						            	System.out.println("X delta prime is " + String.format("%.5f", delta_x_prime));
+						            	System.out.println("Y delta prime is " + String.format("%.5f", delta_y_prime));
+						            	
+						            	intensity_increment = 0;
+						            	if(delta_x * delta_x_prime < 0)
+						            	    intensity_increment  = (delta_x / delta_x_prime) * (delta_x / (delta_x + delta_y)) * delta_z;
+						            	else
+						            		intensity_increment  = (delta_x / delta_x_prime) * (delta_x / (delta_x + delta_y)) * delta_z;
+						            	
+						            	if(delta_y * delta_x_prime < 0)
+						            	    intensity_increment        += (delta_y_prime / delta_y) * (delta_y / (delta_x + delta_y)) * delta_z;
+						            	else
+						            		intensity_increment        -= (delta_y_prime / delta_y) * (delta_y / (delta_x + delta_y)) * delta_z;
+						            	
+						            	intensity += intensity_increment;
+						            	
+						            	System.out.println("Intensity increment is " + String.format("%.5f", intensity_increment));
+						            	System.out.println("Intensity of center point is " + String.format("%.5f", intensity));
+						            	System.out.println();
+						            	Sample north_center_sample = new Sample(xcenter, ycenter, intensity);
+						            	list      = (ArrayList)segment1_data[j - 1][k]; 
+						            	list.add(north_center_sample);
+						            	isCentered1[j - 1][k]  = true;
+					            	}
+					                System.out.println();
+					                */
+					            }
+					        }
+					        
+					        if(location_type == 2 || location_type == 5 || location_type == 8)
+					        {
+					        	boolean west_populated = false;
+					            ArrayList west_list          = (ArrayList)segment1_data[j][k - 1]; 
+					            if(west_list.size() > 0)
+					            	west_populated = true;
+					            
+					            boolean east_populated = false;
+					            ArrayList east_list          = (ArrayList)segment1_data[j][k + 1]; 
+					            if(east_list.size() > 0)
+					            	east_populated = true;
+					            
+					            if(west_populated && east_populated)
+					            {
+					            	isPopulated1[j][k] = true;
+					            }	
+					        }
+					        
 					        if(location_type == 5)
 					        {
-					            ArrayList neighbor_list = new ArrayList();
+					        	boolean   northwest_populated = false;
+					        	ArrayList northwest_list      = (ArrayList)segment1_data[j - 1][k - 1]; 
+					            if(northwest_list.size() > 0)
+					            	northwest_populated = true;
 					            
-					            ArrayList list          = (ArrayList)segment1_data[j - 1][k - 1]; 
-					            neighbor_list.add(list);
-					            list          = (ArrayList)segment1_data[j - 1][k]; 
-					            neighbor_list.add(list);
-					            list          = (ArrayList)segment1_data[j - 1][k + 1]; 
-					            neighbor_list.add(list);
-					            list          = (ArrayList)segment1_data[j][k - 1]; 
-					            neighbor_list.add(list);
-					            // Include the list from this cell.
-					            neighbor_list.add(sample_list);
-					            list          = (ArrayList)segment1_data[j][k + 1]; 
-					            neighbor_list.add(list);
-					            list          = (ArrayList)segment1_data[j + 1][k - 1]; 
-					            neighbor_list.add(list);
-					            list          = (ArrayList)segment1_data[j + 1][k]; 
-					            neighbor_list.add(list);
-					            list          = (ArrayList)segment1_data[j + 1][k + 1];
-					            neighbor_list.add(list);
+					        	boolean   southeast_populated = false;
+					        	ArrayList southeast_list      = (ArrayList)segment1_data[j + 1][k + 1]; 
+					            if(southeast_list.size() > 0)
+					            	southeast_populated = true;
 					            
-					            for(int m = 0; m < 9; m++)
+					            if(northwest_populated && southeast_populated)
 					            {
-					            	list = (ArrayList)neighbor_list.get(m);
-					            	if(list.size() > 0)
-					            		isPopulated[m] = true;
-					            }
-					            
-					            double current_distance = -1;
-					            
-					            if(!isPopulated[1] && !isPopulated[7])
-					            	number_of_unpopulated_cells_without_neighbors++;
-					            else if(isPopulated[1] && isPopulated[7])
-					            {
-					            	ArrayList north_list = (ArrayList)segment1_data[j - 1][k];
-					            	ArrayList south_list = (ArrayList)segment1_data[j + 1][k];
-					            	// Set the boolean as if we assigned a value;
-					            	isPopulated1[j][k] = true;
-					            	
-					            	
-					            }
-					            if(isPopulated[3] || isPopulated[5])
-					            {
-					            	//System.out.println("Neighborhood contains samples in west or east direction.");	
 					            	isPopulated1[j][k] = true;
 					            }
-					            /*
-					            if(isPopulated[0] && isPopulated[8])
+					            
+					            boolean   northeast_populated = false;
+					        	ArrayList northeast_list      = (ArrayList)segment1_data[j - 1][k + 1]; 
+					            if(northwest_list.size() > 0)
+					            	northwest_populated = true;
+					            
+					        	boolean   southwest_populated = false;
+					        	ArrayList southwest_list      = (ArrayList)segment1_data[j + 1][k - 1]; 
+					            if(southwest_list.size() > 0)
+					            	southwest_populated = true;
+					            
+					            if(southwest_populated && southwest_populated)
 					            {
-					            	System.out.println("Neighborhood contains samples in northwest and southeast direction.");
-					            }
-					            if(isPopulated[1] && isPopulated[7])
-					            {
-					            	System.out.println("Neighborhood contains samples in north and south direction.");	
-					            }
-					            if(isPopulated[2] && isPopulated[6])
-					            {
-					            	System.out.println("Neighborhood contains samples in northwest and southeast direction.");	
-					            }
-					            if(isPopulated[3] && isPopulated[5])
-					            {
-					            	System.out.println("Neighborhood contains samples in west and east direction.");	
-					            }
-					            */
+					            	isPopulated1[j][k] = true;
+					            }	
 					        }
+					        
 					     }
 					     else if(sample_list.size() == 1)
 					     {
@@ -902,7 +1018,6 @@ public class InterAnalyzer
 					        	{
 					        		// We want an opposite sample from NW neighbor.	
 					        	}
-					        
 					        }
 					        
 					     }
@@ -916,7 +1031,7 @@ public class InterAnalyzer
 					
 					ycenter += ycell_width;
 				}
-				System.out.println("Number of unpopulated cells without neighbors is " + number_of_unpopulated_cells_without_neighbors);
+				
                 number_of_populated_cells = 0;
 				
 				for(int j = 0; j < raster_ydim; j++)
@@ -927,9 +1042,146 @@ public class InterAnalyzer
 				        	number_of_populated_cells++;
 				    }
 				}
-				System.out.println("The number of populated cells in the first raster after assigning intermediate values is " + number_of_populated_cells);
+				System.out.println("The number of populated cells in the first raster after assigning values with neighbors is " + number_of_populated_cells);
 				
-				System.out.println();
+				for(int j = 0; j < raster_ydim; j++)
+				{
+				    for(int k = 0; k < raster_xdim; k++)
+				    {
+				    	int       location_type = getLocationType(k, j, raster_xdim, raster_ydim);
+				    	if(location_type == 4 || location_type == 5 || location_type == 6)
+				        {
+				            
+				            boolean north_populated = false;
+				            if(isPopulated1[j - 1][k]); 
+				            	north_populated = true;
+				            
+				            
+				            boolean south_populated = false;
+				            if(isPopulated1[j + 1][k]); 
+				            	south_populated = true;
+				            
+				            if(north_populated && south_populated)
+				            {
+				            	
+				            	isPopulated1[j][k] = true;
+				            }
+				        }
+				        
+				        if(location_type == 2 || location_type == 5 || location_type == 8)
+				        {
+				        	boolean west_populated = false;
+				        	if(isPopulated1[j][k - 1]); 
+				            	west_populated = true;
+				            
+				            boolean east_populated = false;
+				            if(isPopulated1[j][k + 1])
+				            	east_populated = true;
+				            
+				            if(west_populated || east_populated)
+				            {
+				            	isPopulated1[j][k] = true;
+				            }	
+				        }
+				        
+				        if(location_type == 5)
+				        {
+				        	boolean   northwest_populated = false;
+				        	if(isPopulated1[j - 1][k - 1])
+				            	northwest_populated = true;
+				            
+				        	boolean   southeast_populated = false;
+				        	if(isPopulated1[j + 1][k + 1])
+				            	southeast_populated = true;
+				            
+				            if(northwest_populated && southeast_populated)
+				            {
+				            	isPopulated1[j][k] = true;
+				            }
+				            
+				            boolean   northeast_populated = false;
+				            if(isPopulated1[j - 1][k + 1]) 
+				            	northwest_populated = true;
+				            
+				        	boolean   southwest_populated = false;
+				        	if(isPopulated1[j + 1][k - 1])
+				            	southwest_populated = true;
+				            
+				            if(southwest_populated && southwest_populated)
+				            {
+				            	isPopulated1[j][k] = true;
+				            }	
+				        }
+				        
+				    }
+				}
+                
+				number_of_populated_cells = 0;
+				int number_of_centered_cells = 0;
+				
+				for(int j = 0; j < raster_ydim; j++)
+				{
+				    for(int k = 0; k < raster_xdim; k++)
+				    {
+				        if(isPopulated1[j][k])
+				        	number_of_populated_cells++;
+				        if(isCentered1[j][k])
+				        	number_of_centered_cells++;
+				    }
+				}
+				System.out.println("The number of populated cells in the first raster after a dilation is " + number_of_populated_cells);
+				System.out.println("The number of cells with centered samples is " + number_of_centered_cells);
+				
+				segment_list = segment_data[1][i];
+				size = segment_list.size();
+				//System.out.println("The number of samples being assigned to the raster from the second segment is " + size);
+				for(int j = 0; j < size; j++)
+				{
+					Sample sample = (Sample)segment_list.get(j);
+					double current_location = raster_xmin + xcell_width;
+			    	int    x_index          = 0;
+			    	while(sample.x >= current_location)
+			    	{
+			    		x_index++;
+			    		current_location += xcell_width;
+			    	}
+			    	double cell_lower_bound  = x_index * xcell_width + raster_xmin;
+			    	double cell_upper_bound  = cell_lower_bound + xcell_width;
+			    	current_location = raster_ymin + ycell_width;
+			    	int    y_index = 0;
+			    	while(sample.y > current_location)
+			    	{
+			    		y_index++;
+			    		current_location += ycell_width;
+			    	}
+			    	
+			    	cell_lower_bound  = y_index * ycell_width + raster_ymin;
+			    	cell_upper_bound  = cell_lower_bound + ycell_width;
+			    	ArrayList sample_list = segment2_data[y_index][x_index];
+			    	sample_list.add(sample);
+			    	isPopulated2[y_index][x_index] = true;
+			    	sampleNumber2[y_index][x_index]++;
+				}
+				
+
+				number_of_populated_cells = 0;
+				
+				for(int j = 0; j < raster_ydim; j++)
+				{
+				    for(int k = 0; k < raster_xdim; k++)
+				    {
+				        if(isPopulated2[j][k])
+				        	number_of_populated_cells++;
+				    }
+				}
+				//System.out.println("The number of populated cells in the second raster is " + number_of_populated_cells);
+				
+				
+				
+				
+				
+				
+				
 	    	}	
 		}
 	}
