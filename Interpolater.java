@@ -740,8 +740,11 @@ public class Interpolater
 					    if(sample_list.size() == 0)
 					    {
 					    	// If the cell is unpopulated, find an enclosing triangle
-					    	// or quadrangle.  If an eclosing polygon exist, we consider
-					    	// that an accurate value can be interpolated.
+					    	// or quadrangle.  If an enclosing polygon exists, we consider
+					    	// that an accurate value for the center can be interpolated.
+					    	// Otherwise, if a line between two samples passes thru the
+					    	// current cell, find the the bisecting location and average
+					    	// and interpolate a non-centered value.
 					        if(location_type == 5)
 					        {
 					            int number_of_neighbors = 0;
@@ -787,31 +790,23 @@ public class Interpolater
 					            	number_of_neighbors++;   	
 					            }
 					            
-					            /*
-					            if(number_of_neighbors > 0 && i == 33)
-					            {
-					        	    System.out.println("Unpopulated cell has neighbors with samples:");
-					        	    for(int m = 0; m < 8; m++)
-					        	    {
-					        	    	if(neighbor_populated[m])
-					        	    	{
-					        	    		System.out.println("  Neighbor " + m + " populated.");
-					        	    	}
-					        	    }   
-					            }
-					            */
-					           
 					            Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
+					            first_sample          = new Sample();
+				                Sample second_sample  = new Sample();
+				                Sample third_sample   = new Sample();
+				                Sample fourth_sample  = new Sample();
+				                first_list            = new ArrayList();
+				                ArrayList second_list = new ArrayList();
+				                ArrayList third_list  = new ArrayList();
+				                ArrayList fourth_list = new ArrayList();
+				                
+				                
 					            if(number_of_neighbors == 2)
 					            {
 					                if((neighbor_populated[1] && neighbor_populated[6] || (neighbor_populated[3] && neighbor_populated[4]) || 
 					                (neighbor_populated[0] && neighbor_populated[7]) || (neighbor_populated[2] && neighbor_populated[5])))
 					                {
-					                    
 					                    isPopulated1[j][k] = true;
-					                    first_sample = new Sample();
-					                    Sample second_sample = new Sample();
-					                    ArrayList second_list = new ArrayList();
 					                    if(neighbor_populated[1] && neighbor_populated[6])
 					                    {
 					                    	// Reverse the coordinate system so we understand the results easier.
@@ -836,40 +831,28 @@ public class Interpolater
 					                        second_list = segment1_data[j - 1][k + 1];	
 					                    }
 					                    
-					                    // Not worrying about cells with two samples.
-					                    first_sample    = (Sample)first_list.get(0);
-					                    second_sample   = (Sample)second_list.get(0);
-					                    
-					                    double intensity = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
-					                    
-					                    System.out.println("Intensity of north sample is " + String.format("%.5f", second_sample.intensity));
-					                    System.out.println("Intensity of intermediate point is " + String.format("%.5f", intensity));
-					                    System.out.println("Intensity of south sample is " + String.format("%.5f", first_sample.intensity));
-						            	
-						            	Point2D.Double location =  DataMapper.getBisectingPoint(first_sample, second_sample, origin);
-						            	double location_x       = location.getX();
+					                    // Not worrying about cells with more than one samples for now.
+					                    first_sample            = (Sample)first_list.get(0);
+					                    second_sample           = (Sample)second_list.get(0);
+					                    double intensity        = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
+					                    Point2D.Double location = DataMapper.getBisectingPoint(first_sample, second_sample, origin);
+					                    double location_x       = location.getX();
 						            	double location_y       = location.getY();
-						            	
-						            	System.out.println("North sample is located at x = " + String.format("%.2f", second_sample.x) + ", y = " + String.format("%.2f", second_sample.y));
-						            	System.out.println("Bisecting point is located at x = " + String.format("%.2f",location_x) + ", y = " + String.format("%.2f",location_y));
-						            	System.out.println("South sample is located at x = " + String.format("%.2f", first_sample.x) + ", y = " + String.format("%.2f", first_sample.y));
-						            	
-						            	System.out.println("Origin is located at x = " + String.format("%.2f", xcenter) + ", y = " + String.format("%.2f", ycenter));
-						            	
+					                    
+					                    Sample sample = new Sample(location_x, location_y, intensity);
+					                    ArrayList list = segment1_data[j][k];
+					                    list.add(sample);
+					                
+					                    // Some useful information for debugging and possibly
+					                    // other purposes.
+					                    /*
 						            	double delta_x = second_sample.x - first_sample.x;
 						            	double delta_y = second_sample.y - first_sample.y;
 						            	double delta_z = second_sample.intensity - first_sample.intensity;
 						            	
 						            	double delta_x_prime = location_x - xcenter;
 						            	double delta_y_prime = location_y - ycenter;
-						            	
-						            	System.out.println("X delta is " + String.format("%.5f", delta_x));
-						            	System.out.println("Y delta is " + String.format("%.5f", delta_y));
-						            	System.out.println("Intensity delta is " + String.format("%.5f", delta_z));
-						            	System.out.println("X delta prime is " + String.format("%.5f", delta_x_prime));
-						            	System.out.println("Y delta prime is " + String.format("%.5f", delta_y_prime));
-						            	System.out.println();
-						            	
+						            	*/
 					                }
 					            }
 					            
@@ -880,14 +863,35 @@ public class Interpolater
 					                {
 					                	if(neighbor_populated[5] && neighbor_populated[7])
 					                	{
-					                		isPopulated1[j][k] = true;
+							            	first_list         = segment1_data[j - 1][k];
+							            	second_list        = segment1_data[j + 1][k - 1];
+							            	third_list         = segment1_data[j + 1][k + 1];
+							            	first_sample       = (Sample)first_list.get(0);
+							            	second_sample      = (Sample)second_list.get(0);
+							            	third_sample       = (Sample)third_list.get(0);
+							            	double intensity   = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample);
+							            	Sample sample      = new Sample(xcenter, ycenter, intensity);
+							            	ArrayList list     = segment1_data[j][k];
+							            	list.add(sample);	
+							            	
+							            	isPopulated1[j][k] = true;
 							            	isCentered1[j][k]  = true;	
 					                	}
 					                	else if(neighbor_populated[6])
 					                	{
-					                		isPopulated1[j][k] = true;	
-					                		if(neighbor_populated[0] && neighbor_populated[2])
-					                			isCentered1[j][k]  = true;	
+					                		first_list              = segment1_data[j - 1][k];
+							            	second_list             = segment1_data[j + 1][k];
+					                		first_sample            = (Sample)first_list.get(0);
+							                second_sample           = (Sample)second_list.get(0);
+							                double intensity        = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
+							                Point2D.Double location = DataMapper.getBisectingPoint(first_sample, second_sample, origin);
+							                double location_x       = location.getX();
+								            double location_y       = location.getY(); 
+							                Sample sample           = new Sample(location_x, location_y, intensity);
+							                ArrayList list          = segment1_data[j][k];
+							                list.add(sample);
+					                		
+							                isPopulated1[j][k]      = true;	
 					                	}
 					                }
 					                
@@ -895,28 +899,93 @@ public class Interpolater
 					                {
 					                	if(neighbor_populated[2] && neighbor_populated[7])
 					                	{
+					                		first_list         = segment1_data[j][k - 1];
+							            	second_list        = segment1_data[j - 1][k + 1];
+							            	third_list         = segment1_data[j + 1][k + 1];
+							            	first_sample       = (Sample)first_list.get(0);
+							            	second_sample      = (Sample)second_list.get(0);
+							            	third_sample       = (Sample)third_list.get(0);
+							            	double intensity   = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample);
+							            	Sample sample      = new Sample(xcenter, ycenter, intensity);
+							            	ArrayList list     = segment1_data[j][k];
+							            	list.add(sample);	
+					                		
 					                		isPopulated1[j][k] = true;
 							            	isCentered1[j][k]  = true;	
 					                	}
 					                	else if(neighbor_populated[4])
 					                	{
-					                		isPopulated1[j][k] = true;	
-					                		if(neighbor_populated[0] && neighbor_populated[5])
-					                			isCentered1[j][k]  = true;	
+					                		first_list              = segment1_data[j][k - 1];
+							            	second_list             = segment1_data[j][k + 1];
+					                		first_sample            = (Sample)first_list.get(0);
+							                second_sample           = (Sample)second_list.get(0);
+							                double intensity        = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
+							                Point2D.Double location = DataMapper.getBisectingPoint(first_sample, second_sample, origin);
+							                double location_x       = location.getX();
+								            double location_y       = location.getY(); 
+							                Sample sample           = new Sample(location_x, location_y, intensity);
+							                ArrayList list          = segment1_data[j][k];
+							                list.add(sample);
+					                		
+					                		isPopulated1[j][k]      = true;	
 					                	}
 					                }
 				        	    }
 				        	    
 				        	    if(number_of_neighbors == 4)
-				        	    {
-				        	    	isPopulated1[j][k] = true;	
-				        	    	
+				        	    {	
 				        	    	if(!(neighbor_populated[0] && neighbor_populated[1] && neighbor_populated[2] && neighbor_populated[3])
 				        	    		&& !(neighbor_populated[0] && neighbor_populated[1] && neighbor_populated[2] && neighbor_populated[4])
 				        	    		&& !(neighbor_populated[5] && neighbor_populated[6] && neighbor_populated[7] && neighbor_populated[3])
 				        	    		&& !(neighbor_populated[5] && neighbor_populated[6] && neighbor_populated[7] && neighbor_populated[4]))
 				        	    	{
-				        	    		isCentered1[j][k]  = true;    	
+				        	    		if(neighbor_populated[0])
+				        	    		{
+				        	    			first_list = segment1_data[j - 1][k - 1];
+				        	    			if(neighbor_populated[1])
+                                            {
+                                                second_list = segment1_data[j - 1][k];	
+                                            }
+				        	    			else if(neighbor_populated[2])
+				        	    			{
+				        	    				second_list = segment1_data[j - 1][k + 1];	
+				        	    			}
+				        	    			else if(neighbor_populated[4])
+				        	    			{
+				        	    				second_list = segment1_data[j][k + 1];	
+				        	    			}
+				        	    			else if(neighbor_populated[7])
+				        	    			{
+				        	    				second_list = segment1_data[j + 1][k + 1];	   	
+				        	    			}
+				        	    		}
+				        	    		else if(neighbor_populated[1])
+				        	    		{
+				        	    			first_list = segment1_data[j - 1][k];
+				        	    			if(neighbor_populated[2])
+                                            {
+                                                second_list = segment1_data[j - 1][k + 1];	
+                                            }
+				        	    			else if(neighbor_populated[4])
+				        	    			{
+				        	    				second_list = segment1_data[j][k + 1];	
+				        	    			}
+				        	    			else if(neighbor_populated[6])
+				        	    			{
+				        	    				second_list = segment1_data[j + 1][k];	
+				        	    			}    	
+				        	    		}
+				        	    		else if(neighbor_populated[3])
+				        	    		{
+				        	    			first_list  = segment1_data[j][k - 1];
+				        	    			second_list = segment1_data[j][k + 1];
+				        	    			third_list  = segment1_data[j + 1][k + 1];
+				        	    			fourth_list = segment1_data[j + 1][k + 1];
+				        	    		}
+				        	    	}
+				        	    	else
+				        	    	{
+				        	    		isPopulated1[j][k]      = true;	   	
 				        	    	}
 				        	    }
 				        	    	
