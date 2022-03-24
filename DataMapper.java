@@ -292,191 +292,88 @@ public class DataMapper
 		return(location_type);
 	}
     
-    public static double getLinearInterpolation(Point2D.Double point, Sample ... sample)
+    
+	
+	public static double getLinearInterpolation(Point2D.Double point, Sample sample1, Sample sample2, Sample sample3)
     {
-    	if(sample.length == 3)
-    	{
-    		double x1 = sample[0].x;
-	    	double y1 = sample[0].y; 
+		double x1 = sample1.x;
+    	double y1 = sample1.y; 
+    	
+    	double x2 = sample2.x;
+    	double y2 = sample2.y;
+    	
+    	double x3 = sample3.x;
+    	double y3 = sample3.y;  
+    	
+		Point2D.Double base1  = new Point2D.Double(x1, y1);
+        Point2D.Double top    = new Point2D.Double(x2, y2);
+        Point2D.Double base2  = new Point2D.Double(x3, y3); 
+        
+        double area1 = DataMapper.getTriangleArea(point, base2, top);
+        double area2 = DataMapper.getTriangleArea(base1, base2, point);
+        double area3 = DataMapper.getTriangleArea(base1, point, top);
+        
+        double total_area = area1 + area2 + area3;
+        double weight1    = area1 / total_area;
+        double weight2    = area2 / total_area;
+        double weight3    = area3 / total_area;
+        
+        double value = sample1.intensity * weight1 + 
+        		       sample2.intensity * weight2 + 
+        		       sample3.intensity * weight3;	
+        return(value);    	
+    }
+	
+	public static double getLinearInterpolation(Point2D.Double point, Sample sample1, Sample sample2, Sample sample3, Sample sample4)
+    {
+    	double x1 = sample1.x;
+	    double y1 = sample1.y; 
 	    	
-	    	double x2 = sample[1].x;
-	    	double y2 = sample[1].y;
+	    double x2 = sample2.x;
+	    double y2 = sample2.y;
 	    	
-	    	double x3 = sample[2].x;
-	    	double y3 = sample[2].y;
-			
-			Point2D.Double base1  = new Point2D.Double(x1, y1);
-	        Point2D.Double top    = new Point2D.Double(x2, y2);
-	        Point2D.Double base2  = new Point2D.Double(x3, y3); 
-	        
-	        
-	        double area1 = DataMapper.getTriangleArea(point, base2, top);
-	        double area2 = DataMapper.getTriangleArea(base1, base2, point);
-	        double area3 = DataMapper.getTriangleArea(base1, point, top);
-	        
-	        double total_area = area1 + area2 + area3;
-	        double weight1    = area1 / total_area;
-	        double weight2    = area2 / total_area;
-	        double weight3    = area3 / total_area;
-	        
-	        double value = sample[0].intensity * weight1 + 
-	        		       sample[1].intensity * weight2 + 
-	        		       sample[2].intensity * weight3;	
-	        return(value);
-    	}
-    	// Implement this later.
-    	else if(sample.length == 4)
-    	{
-    		double x1 = sample[0].x;
-	    	double y1 = sample[0].y; 
+	    double x3 = sample3.x;
+	    double y3 = sample3.y;
 	    	
-	    	double x2 = sample[1].x;
-	    	double y2 = sample[1].y;
+	    double x4 = sample4.x;
+	    double y4 = sample4.y;
 	    	
-	    	double x3 = sample[2].x;
-	    	double y3 = sample[2].y;
-	    	
-	    	double x4 = sample[3].x;
-	    	double y4 = sample[3].y;
-	    	
-	    	Point2D.Double upper_left  = new Point2D.Double(x1, y1);
-	    	Point2D.Double upper_right = new Point2D.Double(x2, y2);
-	    	Point2D.Double lower_right = new Point2D.Double(x3, y3);
-	    	Point2D.Double lower_left  = new Point2D.Double(x4, y4);  
-	    	
+	    Point2D.Double upper_left    = new Point2D.Double(x1, y1);
+	    Point2D.Double upper_right   = new Point2D.Double(x2, y2);
+	    Point2D.Double lower_right   = new Point2D.Double(x3, y3);
+	    Point2D.Double lower_left    = new Point2D.Double(x4, y4);  
 	    	    		          
-	    	Line2D.Double top      = new Line2D.Double(upper_left, upper_right);
-	    	Line2D.Double left     = new Line2D.Double(upper_left, lower_left);
-	    	Line2D.Double bottom   = new Line2D.Double(lower_left, lower_right);
-	    	Line2D.Double right    = new Line2D.Double(lower_right, upper_right);
-	    	    		    	
-	    	//We need to get four more points to do our bilinear interpolation.
-	    	double x5, y5, x6, y6;
-	        /*
-	    	double slope = DataMapper.getSlope(top);
-	    	if(slope == 0)
-	    	{
-	    		y5 = y1;
-	    	}
-	    	else
-	    	{
-	    	    double y_intercept = DataMapper.getYIntercept(upper_left, slope);
-	    	    y5 = slope * point.getX() + y_intercept;
-	    	}
-	    	slope = DataMapper.getSlope(bottom);
-	    	if(slope == 0)
-	    	{
-	    		y6 = y4;
-	    	}
-	    	else
-	    	{
-	    	    double y_intercept = DataMapper.getYIntercept(lower_left, slope);
-	    	    y6 = slope * point.getX() + y_intercept;
-	    	}
-	    	    			    
-	    	if(x2 != x3)
-	    	{
-	    	    slope = DataMapper.getSlope(right);
-	    	    double y_intercept = DataMapper.getYIntercept(upper_right, slope);
-	    	    x5 = (point.getY() - y_intercept) / slope;
-	    	}
-	    	else
-	    	{
-	    	    double distance = right.ptSegDist(point);
-	    	    x5              = point.getY() + distance;
-	    	}
-	    	    			    
-	    	if(x1 != x4)
-	    	{
-	    	    slope = DataMapper.getSlope(left);
-	    	    double y_intercept = DataMapper.getYIntercept(lower_left, slope);
-	    	    x6 = (point.getY() - y_intercept) / slope;
-	    	}
-	    	else
-	    	{
-	    	    double distance = left.ptSegDist(point);
-	    	    x6              = point.getX() - distance;
-	    	}
-	    	*/
-	    	//We need to get four more points to do our bilinear interpolation.
-  	        //I'm using the perpendicular bisector instead of finding the point on the line orthogonal to the center.
-  	        //Not sure which is better but will use this for now.
-	    	if(x2 == x3)
-  	         {
-  	             x5 = x2;	 
-  	         }
-  	         else 
-  	         {
-  	        	double distance = right.ptSegDist(point.getX(), point.getY());
-  	        	x5              = point.getX() + distance;
-  	         }
-  	         
-  	         if(x1 == x4)
-	         {
-	             x6 = x1;	 
-	         }
-	         else 
-	         {
-	        	 double distance = left.ptSegDist(point.getX(), point.getY());
-	        	 x6              = point.getX() - distance;
-	         }
-  	              
-  	        if(y1 == y2)
-  	        {
-  	            y5 = y1;	
-  	        }
-  	        else 
-  	        {
-  	        	double distance  = top.ptSegDist(point.getX(), point.getY());
-  	        	y5 = point.getY() + distance;
-  	        }
-  	        
-  	        if(y3 == y4)
-  	        {
-  		         y6 = y3;
-  	        }
-  	        else
-  	        {
-  	        	double distance  = bottom.ptSegDist(point.getX(), point.getY());
-  	        	y6 = point.getY() - distance;
-  	        }
-  	        // Might want to revisit how we choose our proportional areas,
-   	        // but we're producing a coherent result with the bisector.
-   	        /*
-   	        System.out.println("x2 = " + x2 + ", x5 = " + x5 + " x3 = " + x3);
-   	        System.out.println("x1 = " + x1 + ", x6 = " + x6 + " x4 = " + x4);
-   	        System.out.println("y1 = " + y1 + ", y5 = " + y5 + " y2 = " + y2);
-   	        System.out.println("y4 = " + y4 + ", y6 = " + y6 + " y3 = " + y3);
-   	        */    			      
+	    Line2D.Double top            = new Line2D.Double(upper_left, upper_right);
+	    Line2D.Double left           = new Line2D.Double(upper_left, lower_left);
+	    Line2D.Double bottom         = new Line2D.Double(lower_left, lower_right);
+	    Line2D.Double right          = new Line2D.Double(lower_right, upper_right);
+	    	 	
+	    Point2D.Double middle_top    =  getBisectingPoint(x1, y1, x2, y2, point);
+	    Point2D.Double middle_left   =  getBisectingPoint(x4, y4, x1, y1, point);
+	    Point2D.Double middle_right  =  getBisectingPoint(x3, y3, x2, y2, point);
+	    Point2D.Double middle_bottom =  getBisectingPoint(x4, y4, x2, y2, point);
 	    	
-  	        
-  	        Point2D.Double middle_top    = new Point2D.Double(point.getX(), y5);
-	    	Point2D.Double middle_bottom = new Point2D.Double(point.getX(), y6);
-	    	Point2D.Double middle_right  = new Point2D.Double(x5, point.getY());
-	    	Point2D.Double middle_left   = new Point2D.Double(x6, point.getY()); 
+	    // We need to get four more points to do our bilinear interpolation.
+  	    // We're using the perpendicular bisector instead of finding the point on the line orthogonal to the center.
+  	    // Seems like this should produce a consistent result regardless of the orientation of the coordinate system.	 	
+	    double area1 = DataMapper.getQuadrilateralArea(middle_left, upper_left, middle_top, point);
+	    double area2 = DataMapper.getQuadrilateralArea(point, middle_top, upper_right, middle_right);
+	    double area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
+	    double area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
+	    double total_area = area1 + area2 + area3 + area4;
 	    	    		        
-	    	double area1 = DataMapper.getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	    	double area2 = DataMapper.getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	    	double area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
-	    	double area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-	    	double total_area = area1 + area2 + area3 + area4;
-	    	    		        
-	    	total_area =  DataMapper.getQuadrilateralArea(lower_left, upper_left, upper_right, lower_right);
+	    total_area =  DataMapper.getQuadrilateralArea(lower_left, upper_left, upper_right, lower_right);
 	    	    		
-	    	double weight1 = area3 / total_area;
-	    	double weight2 = area4 / total_area;
-	    	double weight3 = area1 / total_area;
-	    	double weight4 = area2 / total_area;
+	    double weight1 = area3 / total_area;
+	    double weight2 = area4 / total_area;
+	    double weight3 = area1 / total_area;
+	    double weight4 = area2 / total_area;
 	    	    		        
-	    	double value = sample[0].intensity * weight1 + 
-	    	    		   sample[1].intensity * weight2 + 
-	    	    		   sample[2].intensity * weight3 +
-	    	    		   sample[3].intensity * weight4;
-	    	return(value);
-	    	
-    	}
-    	else
-    		return(0.);
+	    double value = sample1.intensity * weight1 + 
+	    	    	   sample2.intensity * weight2 + 
+	    	    	   sample3.intensity * weight3 +
+	    	    	   sample4.intensity * weight4;
+	    return(value);
     }
     
     
@@ -696,7 +593,6 @@ public class DataMapper
 		}
 		else
 		{
-			System.out.println("Got here.");
 			double        a_radians = DataMapper.getSlopeRadians(line);   
 			double        a_degrees        = DataMapper.getDegrees(a_radians); 	
 			Line2D.Double hypotenuse = new Line2D.Double(x1, y1, x3, y3);
@@ -743,7 +639,131 @@ public class DataMapper
 			return(bisecting_point); 
 		}
 	}
+	
+	// This returns the bisecting point from a line determined by two samples, or the nearest endpoint location if no bisecting line from the point exists.
+	public static Point2D.Double getBisectingPoint(double x1, double y1, double x2, double y2, Point2D.Double point)
+	{ 
+		double x3 = point.getX();
+		double y3 = point.getY();
+				
+		double xmin = Double.MAX_VALUE;
+		double ymin = Double.MAX_VALUE;
+			
+		if(x1 < xmin)
+		{
+			xmin = x1;
+		}
+		if(x2 < xmin)
+		{
+			xmin = x2;
+		}
+		if(x3 < xmin)
+		{
+			xmin = x3;
+		}
+			
+		if(y1 < ymin)
+		{
+			ymin = y1;
+		}
+		if(y2 < ymin)
+		{
+			ymin = y2;
+		}
+		if(y3 < ymin)
+		{
+			ymin = y3;
+		}
+			
+		x1 -= xmin;
+		x2 -= xmin;
+		x3 -= xmin;
+			
+		y1 -= ymin;
+		y2 -= ymin;
+		y3 -= ymin;
+			
+		Line2D.Double line     = new Line2D.Double(x1, y1, x2, y2);
+		double        distance = line.ptSegDist(x3, y3);
+		double        length   = DataMapper.getLength(line);
 		
+		Line2D.Double endpoint_line1 = new Line2D.Double(x1, y1, x3, y3);
+		Line2D.Double endpoint_line2 = new Line2D.Double(x2, y2, x3, y3);
+		double length1 = DataMapper.getLength(endpoint_line1);
+		double length2 = DataMapper.getLength(endpoint_line2);
+		if(distance == length1 || distance == length2) 
+		{
+			if(distance == length1)
+			{
+				Point2D.Double bisecting_point = new  Point2D.Double(x1 + xmin, y1 + ymin);
+				return(bisecting_point);
+			}
+			else
+			{
+				Point2D.Double bisecting_point = new  Point2D.Double(x2 + xmin, y2 + ymin);
+				return(bisecting_point);  
+			}
+		}
+
+		if(x1 == x2)
+		{
+			Point2D.Double bisecting_point = new  Point2D.Double(x1 + xmin, y3 + ymin);
+			return(bisecting_point);    
+		}
+		else if(y1 == y2)
+		{
+			Point2D.Double bisecting_point = new  Point2D.Double(x3 + xmin, y1 + ymin);
+			return(bisecting_point);  	
+		}
+		else
+		{
+			double        a_radians = DataMapper.getSlopeRadians(line);   
+			double        a_degrees        = DataMapper.getDegrees(a_radians); 	
+			Line2D.Double hypotenuse = new Line2D.Double(x1, y1, x3, y3);
+			double        hypotenuse_length  = DataMapper.getLength(hypotenuse);
+			double        b_degrees    = 0.0; 
+			double        b_radians    = 0;
+			if(x1 == x3)
+			{
+				b_degrees = 90.;
+			    b_radians = Math.PI / 2;
+			}
+		    else if(y1 == y3)
+		    {
+				b_degrees = 0;
+				b_radians = 0;
+			}
+			else
+			{
+				b_radians = DataMapper.getSlopeRadians(hypotenuse);	
+				b_degrees = DataMapper.getDegrees(b_radians);               
+			}
+				   
+			double  c_degrees        = 0; 
+			double  c_radians        = 0;
+			if(b_degrees < a_degrees)
+			{
+				c_degrees = a_degrees - b_degrees;
+				c_radians = a_radians - b_radians;
+			}
+			else
+			{
+				c_degrees = b_degrees - a_degrees;
+				c_radians = b_radians - a_radians;
+			}
+				    
+			double d_degrees      =  90 - c_degrees; 
+			double d_radians      = Math.PI / 2 - c_radians;    
+			double segment_length = hypotenuse_length * Math.sin(d_radians);
+			double x4             = Math.cos(a_radians) * segment_length;
+			double y4             = Math.sin(a_radians) * segment_length;
+			x4                   += xmin;
+			y4                   += ymin;
+			Point2D.Double bisecting_point = new  Point2D.Double(x4, y4);
+			return(bisecting_point); 
+		}
+	}
+			
 	public static Point[]  getOrderedPositionList(int xdimension, int ydimension, int direction)
 	{
 		int number_of_positions = xdimension * ydimension;
