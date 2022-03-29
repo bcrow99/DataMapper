@@ -719,15 +719,16 @@ public class Interpolater
 
 						if (sample_list.size() == 0)
 						{
-							// If the cell is unpopulated, find an enclosing triangle
-							// or quadrangle. If an enclosing polygon exists, we consider
+							// If the cell is unpopulated, find an enclosing triangle.
+							// If an enclosing triangle exists, we consider
 							// that an accurate value for the center can be interpolated.
 							// Otherwise, if a line between two samples passes thru the
-							// current cell, find the the bisecting location and average
+							// current cell, find the the bisecting location 
 							// and interpolate a non-centered value.
+							int number_of_neighbors = 0;
+							
 							if (location_type == 5)
 							{
-								int number_of_neighbors = 0;
 								if (isPopulated1[j - 1][k - 1])
 								{
 									ArrayList list = segment1_data[j - 1][k - 1];
@@ -864,85 +865,293 @@ public class Interpolater
 								} 
 								else
 									neighbor_populated[7] = false;
-
-								Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
-								first_sample = new Sample();
-								Sample second_sample = new Sample();
-								Sample third_sample = new Sample();
-								Sample fourth_sample = new Sample();
-								first_list = new ArrayList();
-								ArrayList second_list = new ArrayList();
-								ArrayList third_list = new ArrayList();
-								ArrayList fourth_list = new ArrayList();
-
-								if(number_of_neighbors == 2)
+							}
+							else if (location_type == 4)
+							{
+								if(isPopulated1[j - 1][k])
 								{
-									ArrayList neighbor_list = new ArrayList();
-									ArrayList list          = new ArrayList();
-									for(int m = 0; m < 8; m++)
+									neighbor_populated[1] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j - 1][k + 1])
+								{
+									neighbor_populated[2] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j + 1][k])
+								{
+									neighbor_populated[6] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j + 1][k + 1])
+								{
+									neighbor_populated[7] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k + 1])
+								{
+									neighbor_populated[4] = true;
+									number_of_neighbors++;
+								}
+								
+							}
+							else if(location_type == 6)
+							{
+								if(isPopulated1[j - 1][k])
+								{
+									neighbor_populated[1] = true;
+									number_of_neighbors++;
+								} 
+								if(isPopulated1[j - 1][k - 1])
+								{
+									neighbor_populated[0] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j + 1][k])
+								{
+									neighbor_populated[6] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j + 1][k - 1])
+								{
+									neighbor_populated[5] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k - 1])
+								{
+									neighbor_populated[3] = true;
+									number_of_neighbors++;
+								}
+							}
+							else if (location_type == 4)
+							{
+								if(isPopulated1[j - 1][k])
+								{
+									neighbor_populated[1] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j - 1][k + 1])
+								{
+									neighbor_populated[2] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j + 1][k])
+								{
+									neighbor_populated[6] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j + 1][k + 1])
+								{
+									neighbor_populated[7] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k + 1])
+								{
+									neighbor_populated[4] = true;
+									number_of_neighbors++;
+								}
+								
+							}
+							else if(location_type == 2)
+							{
+								if(isPopulated1[j + 1][k])
+								{
+									neighbor_populated[6] = true;
+									number_of_neighbors++;
+								} 
+								if(isPopulated1[j + 1][k - 1])
+								{
+									neighbor_populated[5] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j + 1][k + 1])
+								{
+									neighbor_populated[7] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k - 1])
+								{
+									neighbor_populated[3] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k + 1])
+								{
+									neighbor_populated[4] = true;
+									number_of_neighbors++;
+								}
+							}
+							else if(location_type == 8)
+							{
+								if(isPopulated1[j - 1][k])
+								{
+									neighbor_populated[1] = true;
+									number_of_neighbors++;
+								} 
+								if(isPopulated1[j - 1][k - 1])
+								{
+									neighbor_populated[0] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j - 1][k + 1])
+								{
+									neighbor_populated[2] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k - 1])
+								{
+									neighbor_populated[3] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k + 1])
+								{
+									neighbor_populated[4] = true;
+									number_of_neighbors++;
+								}
+							}
+							else if(location_type == 1)
+							{
+								if(isPopulated1[j + 1][k])
+								{
+									neighbor_populated[6] = true;
+									number_of_neighbors++;
+								} 
+								if(isPopulated1[j + 1][k + 1])
+								{
+									neighbor_populated[7] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k + 1])
+								{
+									neighbor_populated[4] = true;
+									number_of_neighbors++;
+								}	
+							}
+							else if(location_type == 3)
+							{
+								if(isPopulated1[j + 1][k])
+								{
+									neighbor_populated[6] = true;
+									number_of_neighbors++;
+								} 
+								if(isPopulated1[j + 1][k - 1])
+								{
+									neighbor_populated[5] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k - 1])
+								{
+									neighbor_populated[3] = true;
+									number_of_neighbors++;
+								}	
+							}	
+							else if(location_type == 7)
+							{
+								if(isPopulated1[j - 1][k])
+								{
+									neighbor_populated[1] = true;
+									number_of_neighbors++;
+								} 
+								if(isPopulated1[j - 1][k + 1])
+								{
+									neighbor_populated[2] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k + 1])
+								{
+									neighbor_populated[4] = true;
+									number_of_neighbors++;
+								}	
+							}
+							else if(location_type == 9)
+							{
+								if(isPopulated1[j - 1][k])
+								{
+									neighbor_populated[1] = true;
+									number_of_neighbors++;
+								} 
+								if(isPopulated1[j - 1][k - 1])
+								{
+									neighbor_populated[0] = true;
+									number_of_neighbors++;
+								}
+								if(isPopulated1[j][k - 1])
+								{
+									neighbor_populated[3] = true;
+									number_of_neighbors++;
+								}	
+							}
+							
+							Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
+							first_sample = new Sample();
+							Sample second_sample = new Sample();
+							Sample third_sample = new Sample();
+							Sample fourth_sample = new Sample();
+							first_list = new ArrayList();
+							ArrayList second_list = new ArrayList();
+							ArrayList third_list = new ArrayList();
+							ArrayList fourth_list = new ArrayList();
+
+							if(number_of_neighbors == 2)
+							{
+								ArrayList neighbor_list = new ArrayList();
+								ArrayList list          = new ArrayList();
+								for(int m = 0; m < 8; m++)
+								{
+									if(neighbor_populated[m])
 									{
-										if(neighbor_populated[m])
-										{
-											if(m == 0)
-											    list = segment1_data[j - 1][k - 1];
-											else if(m == 1)
-												list = segment1_data[j - 1][k];
-											else if(m == 2)
-												list = segment1_data[j - 1][k + 1];
-											else if(m == 3)
-												list = segment1_data[j][k - 1];
-											else if(m == 4)
-												list = segment1_data[j][k + 1];
-											else if(m == 5)
-												list = segment1_data[j + 1][k - 1];
-											else if(m == 6)
-												list = segment1_data[j + 1][k];
-											else if(m == 7)
-												list = segment1_data[j + 1][k + 1];
-											Sample sample = (Sample)list.get(0);
-											neighbor_list.add(sample);
-										}
-									}
-									
-									if(neighbor_list.size() != 2)
-									{
-										System.out.println("List size is not 2.");
-									}
-									else
-									{
-									
-										first_sample = (Sample) neighbor_list.get(0);
-										second_sample = (Sample) neighbor_list.get(1);
-										Path2D.Double cell = new Path2D.Double();
-										double x1 = xcenter - xcell_width / 2;
-										double x2 = x1 + xcell_width;
-										double y1 = ycenter - ycell_width / 2;
-										double y2 = y1 + ycell_width;
-    	    	        		        cell.moveTo(x1, y1);
-    	    	        		        cell.lineTo(x1 , y2);
-    	    	        		        cell.lineTo(x2 , y2);
-    	    	        		        cell.lineTo(x2 , y1);
-    	    	        		        cell.closePath();
-    	    	        		        Point2D.Double location = DataMapper.getBisectingPoint(first_sample, second_sample, origin);
-    	    	        		        double         location_x = location.getX();
-										double         location_y = location.getY();
-										//System.out.println("First sample is at x = " + String.format("%.2f", first_sample.x) + ", y = " + String.format("%.2f", first_sample.y));
-										//System.out.println("Second sample is at x = " + String.format("%.2f", second_sample.x) + ", y = " + String.format("%.2f", second_sample.y));
-										//System.out.println("Bisecting point is at x = " + String.format("%.2f", location_x) + ", y = " + String.format("%.2f", location_y));
-										//System.out.println("Lower left is " + String.format("%.2f", x1) + ", " + String.format("%.2f", y1));
-										//System.out.println("Upper right is " + String.format("%.2f", x2) + ", " + String.format("%.2f", y2));
-    	    	        		        if(cell.contains(location_x, location_y))
-										{
-    	    	        		        	//System.out.println("Bisecting point was inside cell.");
-    	    	        		        	//System.out.println();
-										    double intensity = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
-										    Sample sample = new Sample(location_x, location_y, intensity);
-										    list = segment1_data[j][k];
-											list.add(sample);
-											isPopulated1[j][k] = true;
-										}
+										if(m == 0)
+											list = segment1_data[j - 1][k - 1];
+										else if(m == 1)
+											list = segment1_data[j - 1][k];
+										else if(m == 2)
+											list = segment1_data[j - 1][k + 1];
+										else if(m == 3)
+											list = segment1_data[j][k - 1];
+										else if(m == 4)
+											list = segment1_data[j][k + 1];
+										else if(m == 5)
+											list = segment1_data[j + 1][k - 1];
+										else if(m == 6)
+											list = segment1_data[j + 1][k];
+										else if(m == 7)
+											list = segment1_data[j + 1][k + 1];
+										Sample sample = (Sample)list.get(0);
+										neighbor_list.add(sample);
 									}
 								}
+									
+								if(neighbor_list.size() != 2)
+								{
+									System.out.println("List size is not 2.");
+								}
+								else
+								{
+									
+									first_sample = (Sample) neighbor_list.get(0);
+									second_sample = (Sample) neighbor_list.get(1);
+									Path2D.Double cell = new Path2D.Double();
+									double x1 = xcenter - xcell_width / 2;
+									double x2 = x1 + xcell_width;
+									double y1 = ycenter - ycell_width / 2;
+									double y2 = y1 + ycell_width;
+    	    	        		    cell.moveTo(x1, y1);
+    	    	        		    cell.lineTo(x1 , y2);
+    	    	        		    cell.lineTo(x2 , y2);
+    	    	        		    cell.lineTo(x2 , y1);
+    	    	        		    cell.closePath();
+    	    	        		    Point2D.Double location = DataMapper.getBisectingPoint(first_sample, second_sample, origin);
+    	    	        		    double         location_x = location.getX();
+							        double         location_y = location.getY();
+    	    	        		    if(cell.contains(location_x, location_y))
+									{
+										double intensity = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
+										Sample sample = new Sample(location_x, location_y, intensity);
+										list = segment1_data[j][k];
+									    list.add(sample);
+										isPopulated1[j][k] = true;
+									}
+								}
+							}
 								
 								
 						        if(number_of_neighbors == 3)
@@ -1090,7 +1299,6 @@ public class Interpolater
 										}
 									}
 									
-									
 									if(neighbor_list.size() != number_of_neighbors)
 									{
 										System.out.println("List size is not equal to number of neighbors.");
@@ -1154,7 +1362,7 @@ public class Interpolater
 												
 												double triangle_area = DataMapper.getTriangleArea(first_point, second_point, third_point);
 												double perimeter     = DataMapper.getTrianglePerimeter(first_point, second_point, third_point);
-												measure[m]           = triangle_area / perimeter;
+												measure[m]           = triangle_area * perimeter;
 											}
 											int    triangle_index = 0;
 											double least_measure = measure[0];
@@ -1226,7 +1434,7 @@ public class Interpolater
 										}
 								    }    	
 							    }
-							}
+							
 						} 
 						else if (sample_list.size() == 1)
 						{
