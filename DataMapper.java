@@ -292,7 +292,36 @@ public class DataMapper
 		return(location_type);
 	}
     
-    
+	public static double getLinearExtrapolation(Point2D.Double point, Sample interior, Sample corner1, Sample corner2)
+    {
+		double x1 = point.x;
+    	double y1 = point.y; 
+    	
+    	double x2 = corner1.x;
+    	double y2 = corner1.y;
+    	
+    	double x3 = corner2.x;
+    	double y3 = corner2.y;  
+    	
+    	Point2D.Double interior_point = new Point2D.Double(interior.x, interior.y); 
+    	
+		Point2D.Double base1  = new Point2D.Double(x1, y1);
+        Point2D.Double top    = new Point2D.Double(x2, y2);
+        Point2D.Double base2  = new Point2D.Double(x3, y3); 
+        
+        double area1 = DataMapper.getTriangleArea(interior_point, base2, top);
+        double area2 = DataMapper.getTriangleArea(base1, base2, interior_point);
+        double area3 = DataMapper.getTriangleArea(base1, interior_point, top);
+        
+        double total_area = area1 + area2 + area3;
+        double weight1    = area1 / total_area;
+        double weight2    = area2 / total_area;
+        double weight3    = area3 / total_area;
+        
+        double value = (total_area * interior.intensity - (corner1.intensity * area2 + corner2.intensity * area3)) / area1;
+        return(value);    	
+    }
+	
 	
 	public static double getLinearInterpolation(Point2D.Double point, Sample sample1, Sample sample2, Sample sample3)
     {
