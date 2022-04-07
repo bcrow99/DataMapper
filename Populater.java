@@ -1991,14 +1991,336 @@ public class Populater
 				
 				
 				// Now do a third pass and look for border cells.
-
+				ycenter = ymin;
 				for (int j = 0; j < raster_ydim; j++)
-				{
+	 			{
+					double xcenter = xmin;
 					for (int k = 0; k < raster_xdim; k++)
 					{
-						if (isCentered1[j][k])
-							number_of_centered_cells++;
+						boolean[] neighbor_populated = new boolean[8];
+						for (int m = 0; m < 8; m++)
+							neighbor_populated[m] = false;
+						int location_type = getLocationType(k, j, raster_xdim, raster_ydim);
+						ArrayList cell_list = (ArrayList) segment1_data[j][k];
+						int number_of_neighbors = 0;
+
+						if (location_type == 5)
+						{
+							if (isPopulated1[j - 1][k - 1])
+							{
+								neighbor_populated[0] = true;
+								number_of_neighbors++;
+							}
+
+							if (isPopulated1[j - 1][k])
+							{
+								neighbor_populated[1] = true;
+								number_of_neighbors++;
+							}
+
+							if (isPopulated1[j - 1][k + 1])
+							{
+								neighbor_populated[2] = true;
+								number_of_neighbors++;
+							}
+
+							if (isPopulated1[j][k - 1])
+							{
+								neighbor_populated[3] = true;
+								number_of_neighbors++;
+							}
+
+							if (isPopulated1[j][k + 1])
+							{
+								neighbor_populated[4] = true;
+								number_of_neighbors++;
+							}
+
+							if (isPopulated1[j + 1][k - 1])
+							{
+								neighbor_populated[5] = true;
+								number_of_neighbors++;
+							}
+
+							if (isPopulated1[j + 1][k])
+							{
+								neighbor_populated[6] = true;
+								number_of_neighbors++;
+							}
+
+							if (isPopulated1[j + 1][k + 1])
+							{
+								neighbor_populated[7] = true;
+								number_of_neighbors++;
+							}
+						} 
+						else if (location_type == 4)
+						{
+							if (isPopulated1[j - 1][k])
+							{
+								neighbor_populated[1] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j - 1][k + 1])
+							{
+								neighbor_populated[2] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k])
+							{
+								neighbor_populated[6] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k + 1])
+							{
+								neighbor_populated[7] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k + 1])
+							{
+								neighbor_populated[4] = true;
+								number_of_neighbors++;
+							}
+
+						} 
+						else if (location_type == 6)
+						{
+							if (isPopulated1[j - 1][k])
+							{
+								neighbor_populated[1] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j - 1][k - 1])
+							{
+								neighbor_populated[0] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k])
+							{
+								neighbor_populated[6] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k - 1])
+							{
+								neighbor_populated[5] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k - 1])
+							{
+								neighbor_populated[3] = true;
+								number_of_neighbors++;
+							}
+						}
+						else if (location_type == 4)
+						{
+							if (isPopulated1[j - 1][k])
+							{
+								neighbor_populated[1] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j - 1][k + 1])
+							{
+								neighbor_populated[2] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k])
+							{
+								neighbor_populated[6] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k + 1])
+							{
+								neighbor_populated[7] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k + 1])
+							{
+								neighbor_populated[4] = true;
+								number_of_neighbors++;
+							}
+						} 
+						else if (location_type == 2)
+						{
+							if (isPopulated1[j + 1][k])
+							{
+								neighbor_populated[6] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k - 1])
+							{
+								neighbor_populated[5] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k + 1])
+							{
+								neighbor_populated[7] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k - 1])
+							{
+								neighbor_populated[3] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k + 1])
+							{
+								neighbor_populated[4] = true;
+								number_of_neighbors++;
+							}
+						} 
+						else if (location_type == 8)
+						{
+							if (isPopulated1[j - 1][k])
+							{
+								neighbor_populated[1] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j - 1][k - 1])
+							{
+								neighbor_populated[0] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j - 1][k + 1])
+							{
+								neighbor_populated[2] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k - 1])
+							{
+								neighbor_populated[3] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k + 1])
+							{
+								neighbor_populated[4] = true;
+								number_of_neighbors++;
+							}
+						} 
+						else if (location_type == 1)
+						{
+							if (isPopulated1[j + 1][k])
+							{
+								neighbor_populated[6] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k + 1])
+							{
+								neighbor_populated[7] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k + 1])
+							{
+								neighbor_populated[4] = true;
+								number_of_neighbors++;
+							}
+						} 
+						else if (location_type == 3)
+						{
+							if (isPopulated1[j + 1][k])
+							{
+								neighbor_populated[6] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j + 1][k - 1])
+							{
+								neighbor_populated[5] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k - 1])
+							{
+								neighbor_populated[3] = true;
+								number_of_neighbors++;
+							}
+						} 
+						else if (location_type == 7)
+						{
+							if (isPopulated1[j - 1][k])
+							{
+								neighbor_populated[1] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j - 1][k + 1])
+							{
+								neighbor_populated[2] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k + 1])
+							{
+								neighbor_populated[4] = true;
+								number_of_neighbors++;
+							}
+						} 
+						else if (location_type == 9)
+						{
+							if (isPopulated1[j - 1][k])
+							{
+								neighbor_populated[1] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j - 1][k - 1])
+							{
+								neighbor_populated[0] = true;
+								number_of_neighbors++;
+							}
+							if (isPopulated1[j][k - 1])
+							{
+								neighbor_populated[3] = true;
+								number_of_neighbors++;
+							}
+						}
+
+						ArrayList neighbor_list = new ArrayList();
+						ArrayList list = new ArrayList();
+						for (int m = 0; m < 8; m++)
+						{
+							if (neighbor_populated[m])
+							{
+								if (m == 0)
+									list = segment1_data[j - 1][k - 1];
+								else if (m == 1)
+									list = segment1_data[j - 1][k];
+								else if (m == 2)
+									list = segment1_data[j - 1][k + 1];
+								else if (m == 3)
+									list = segment1_data[j][k - 1];
+								else if (m == 4)
+									list = segment1_data[j][k + 1];
+								else if (m == 5)
+									list = segment1_data[j + 1][k - 1];
+								else if (m == 6)
+									list = segment1_data[j + 1][k];
+								else if (m == 7)
+									list = segment1_data[j + 1][k + 1];
+								Sample sample = (Sample) list.get(0);
+								neighbor_list.add(sample);
+							}
+						}
+
+						Point2D.Double origin = new Point2D.Double(xcenter, ycenter);
+						
+						Path2D.Double cell = new Path2D.Double();
+						double x1 = xcenter - xcell_width / 2;
+						double x2 = x1 + xcell_width;
+						double y1 = ycenter - ycell_width / 2;
+						double y2 = y1 + ycell_width;
+						cell.moveTo(x1, y1);
+						cell.lineTo(x1, y2);
+						cell.lineTo(x2, y2);
+						cell.lineTo(x2, y1);
+						cell.closePath();
+						
+						int cell_list_size = cell_list.size();
+						int neighbor_list_size = neighbor_list.size();
+						ArrayList triangle_list = new ArrayList();
+						
+						if(location_type == 1 || location_type == 3 || location_type == 7 || location_type == 9)
+						{
+							System.out.println("Location " + location_type + " has " + neighbor_list_size + " neighbors in section " + i);
+							System.out.println();
+						}
+						
+						xcenter += xcell_width;
 					}
+					ycenter += ycell_width;
 				}
 				
 				
