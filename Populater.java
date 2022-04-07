@@ -1021,7 +1021,7 @@ public class Populater
 								cell.lineTo(x2, y1);
 								cell.closePath();
 								
-
+								
 								if(number_of_neighbors == 2 && !isPopulated1[j][k])
 								{
 									first_sample = (Sample) neighbor_list.get(0);
@@ -1561,11 +1561,9 @@ public class Populater
 															list = segment1_data[j][k];
 															list.add(sample);
 															isPopulated1[j][k] = true;
-															// System.out.println("Populated a cell with more than 3
-															// neighbors with a bisecting value.");
+															//System.out.println("Populated a cell with more than 3 neighbors with a bisecting value.");
 														}
 													}
-
 												}
 											}
 										}
@@ -1602,9 +1600,7 @@ public class Populater
 							number_of_centered_cells++;
 					}
 				}
-				System.out.println(
-						"The number of populated cells in the first raster after assigning values with neighbors is "
-								+ number_of_populated_cells);
+				System.out.println("The number of populated cells in the first raster after assigning values with neighbors is " + number_of_populated_cells);
 				System.out.println("The number of cells with centered samples is " + number_of_centered_cells);
 				System.out.println();
 
@@ -1935,366 +1931,40 @@ public class Populater
 							int neighbor_list_size = neighbor_list.size();
 							ArrayList triangle_list = new ArrayList();
 							
-							if(cell_list_size == 1)
-							{
-							    if(neighbor_list_size < 2)	
-							    {
-							        //System.out.println("Not enough samples to populate center.");	
-							    }
-							    else
-							    {
-							    	first_sample = (Sample) cell_list.get(0);
-							    	if(neighbor_list_size == 2)
-							    	{
-							    		Sample second_sample = (Sample) neighbor_list.get(0);
-							    		Sample third_sample  = (Sample) neighbor_list.get(1);
-							    		Path2D.Double triangle = new Path2D.Double();
-							    		triangle.moveTo(first_sample.x, first_sample.y);
-							    		triangle.lineTo(second_sample.x, second_sample.y);
-							    		triangle.lineTo(third_sample.x, third_sample.y);
-							    		triangle.closePath();
-							    		if(triangle.contains(xcenter, ycenter))
-							    		{
-							    			list = new ArrayList();
-							    			list.add(first_sample);
-							    			list.add(second_sample); 
-							    			list.add(third_sample);
-							    			triangle_list.add(list);
-							    		}
-							    	}
-							    	else
-							    	{
-							    		for(int m = 0; m < neighbor_list_size; m++)
-							    		{
-							    			for(int n = 0; n < neighbor_list_size; n++)
-							    			{
-							    				if(m != n)
-							    				{
-							    					Sample second_sample = (Sample) neighbor_list.get(m);
-										    		Sample third_sample  = (Sample) neighbor_list.get(n);
-										    		Path2D.Double triangle = new Path2D.Double();
-										    		triangle.moveTo(first_sample.x, first_sample.y);
-										    		triangle.lineTo(second_sample.x, second_sample.y);
-										    		triangle.lineTo(third_sample.x, third_sample.y);
-										    		triangle.closePath();
-										    		if(triangle.contains(xcenter, ycenter))
-										    		{
-										    			list = new ArrayList();
-										    			list.add(first_sample);
-										    			list.add(second_sample); 
-										    			list.add(third_sample);
-										    			triangle_list.add(list);
-										    		}
-							    				}
-							    			}
-							    		}
-							    	}
-							    }
-							}
-							else if(cell_list_size == 2)
-							{
-							    if(neighbor_list_size == 0)	
-							    {
-							        //System.out.println("Not enough samples to populate center.");	
-							    }
-							    else
-							    {
-							        // First try using both samples inside the cell.
-							    	first_sample = (Sample) cell_list.get(0);
-							    	Sample second_sample = (Sample)cell_list.get(1);
-							    	for(int m = 0; m < neighbor_list_size; m++)
-							    	{
-							    		Sample third_sample = (Sample) neighbor_list.get(m);
-							    		Path2D.Double triangle = new Path2D.Double();
-							    		triangle.moveTo(first_sample.x, first_sample.y);
-							    		triangle.lineTo(second_sample.x, second_sample.y);
-							    		triangle.lineTo(third_sample.x, third_sample.y);
-							    		triangle.closePath();
-							    		if(triangle.contains(xcenter, ycenter))
-							    		{
-							    			list = new ArrayList();
-							    			list.add(first_sample);
-							    			list.add(second_sample); 
-							    			list.add(third_sample);
-							    			triangle_list.add(list);
-							    		}
-							    	}
-							    	
-							    	// Just use one sample from inside the cell.
-							    	for(int m = 0; m < neighbor_list_size; m++)
-							    	{
-							    		for(int n = 0; n < neighbor_list_size; n++)
-							    		{
-							    			if(m != n)
-							    			{
-							    				second_sample = (Sample) neighbor_list.get(m);
-									    		Sample third_sample  = (Sample) neighbor_list.get(n);
-									    		Path2D.Double triangle = new Path2D.Double();
-									    		triangle.moveTo(first_sample.x, first_sample.y);
-									    		triangle.lineTo(second_sample.x, second_sample.y);
-									    		triangle.lineTo(third_sample.x, third_sample.y);
-									    		triangle.closePath();
-									    		if(triangle.contains(xcenter, ycenter))
-									    		{
-									    			list = new ArrayList();
-									    			list.add(first_sample);
-									    			list.add(second_sample); 
-									    			list.add(third_sample);
-									    			triangle_list.add(list);
-									    		}	
-							    			}
-							    		}
-							    	}
-							    	
-							    	first_sample = (Sample)cell_list.get(1);
-							    	for(int m = 0; m < neighbor_list_size; m++)
-							    	{
-							    		for(int n = 0; n < neighbor_list_size; n++)
-							    		{
-							    			if(m != n)
-							    			{
-							    				second_sample = (Sample) neighbor_list.get(m);
-									    		Sample third_sample  = (Sample) neighbor_list.get(n);
-									    		Path2D.Double triangle = new Path2D.Double();
-									    		triangle.moveTo(first_sample.x, first_sample.y);
-									    		triangle.lineTo(second_sample.x, second_sample.y);
-									    		triangle.lineTo(third_sample.x, third_sample.y);
-									    		triangle.closePath();
-									    		if(triangle.contains(xcenter, ycenter))
-									    		{
-									    			list = new ArrayList();
-									    			list.add(first_sample);
-									    			list.add(second_sample); 
-									    			list.add(third_sample);
-									    			triangle_list.add(list);
-									    		}	
-							    			}
-							    		}
-							    	}
-							    }
-							}
-							else if(cell_list_size == 3)
-							{
-							    first_sample         = (Sample) cell_list.get(0);
-							    Sample second_sample = (Sample) cell_list.get(1);
-							    Sample third_sample  = (Sample) cell_list.get(2);
-							    Path2D.Double triangle = new Path2D.Double();
-					    		triangle.moveTo(first_sample.x, first_sample.y);
-					    		triangle.lineTo(second_sample.x, second_sample.y);
-					    		triangle.lineTo(third_sample.x, third_sample.y);
-					    		triangle.closePath();
-					    		if(triangle.contains(xcenter, ycenter))
-					    		{
-					    			list = new ArrayList();
-					    			list.add(first_sample);
-					    			list.add(second_sample); 
-					    			list.add(third_sample);
-					    			triangle_list.add(list);
-					    		}	
-							    
-					    		for(int m = 0; m < neighbor_list_size; m++)
-						    	{
-					    			third_sample = (Sample)neighbor_list.get(m);
-					    			triangle = new Path2D.Double();
-						    		triangle.moveTo(first_sample.x, first_sample.y);
-						    		triangle.lineTo(second_sample.x, second_sample.y);
-						    		triangle.lineTo(third_sample.x, third_sample.y);
-						    		triangle.closePath();
-						    		if(triangle.contains(xcenter, ycenter))
-						    		{
-						    			list = new ArrayList();
-						    			list.add(first_sample);
-						    			list.add(second_sample); 
-						    			list.add(third_sample);
-						    			triangle_list.add(list);
-						    		}	
-						    	}
-					    		
-					    		first_sample  = (Sample) cell_list.get(1);
-					    		second_sample = (Sample) cell_list.get(2);
-					    		for(int m = 0; m < neighbor_list_size; m++)
-						    	{
-					    			third_sample = (Sample)neighbor_list.get(m);
-					    			triangle = new Path2D.Double();
-						    		triangle.moveTo(first_sample.x, first_sample.y);
-						    		triangle.lineTo(second_sample.x, second_sample.y);
-						    		triangle.lineTo(third_sample.x, third_sample.y);
-						    		triangle.closePath();
-						    		if(triangle.contains(xcenter, ycenter))
-						    		{
-						    			list = new ArrayList();
-						    			list.add(first_sample);
-						    			list.add(second_sample); 
-						    			list.add(third_sample);
-						    			triangle_list.add(list);
-						    		}	
-						    	}
-					    		
-					    		first_sample  = (Sample) cell_list.get(0);
-					    		second_sample = (Sample) cell_list.get(2);
-					    		for(int m = 0; m < neighbor_list_size; m++)
-						    	{
-					    			third_sample = (Sample)neighbor_list.get(m);
-					    			triangle = new Path2D.Double();
-						    		triangle.moveTo(first_sample.x, first_sample.y);
-						    		triangle.lineTo(second_sample.x, second_sample.y);
-						    		triangle.lineTo(third_sample.x, third_sample.y);
-						    		triangle.closePath();
-						    		if(triangle.contains(xcenter, ycenter))
-						    		{
-						    			list = new ArrayList();
-						    			list.add(first_sample);
-						    			list.add(second_sample); 
-						    			list.add(third_sample);
-						    			triangle_list.add(list);
-						    		}	
-						    	}
-					    		
-					    		first_sample = (Sample)cell_list.get(0);
-					    		for(int m = 0; m < neighbor_list_size; m++)
-						    	{
-						    		for(int n = 0; n < neighbor_list_size; n++)
-						    		{
-						    			if(m != n)
-						    			{
-						    				second_sample = (Sample) neighbor_list.get(m);
-								    		third_sample  = (Sample) neighbor_list.get(n);
-								    		triangle = new Path2D.Double();
-								    		triangle.moveTo(first_sample.x, first_sample.y);
-								    		triangle.lineTo(second_sample.x, second_sample.y);
-								    		triangle.lineTo(third_sample.x, third_sample.y);
-								    		triangle.closePath();
-								    		if(triangle.contains(xcenter, ycenter))
-								    		{
-								    			list = new ArrayList();
-								    			list.add(first_sample);
-								    			list.add(second_sample); 
-								    			list.add(third_sample);
-								    			triangle_list.add(list);
-								    		}	
-						    			}
-						    		}
-						    	}
-					    		
-
-					    		first_sample = (Sample)cell_list.get(0);
-					    		for(int m = 0; m < neighbor_list_size; m++)
-						    	{
-						    		for(int n = 0; n < neighbor_list_size; n++)
-						    		{
-						    			if(m != n)
-						    			{
-						    				second_sample = (Sample) neighbor_list.get(m);
-								    		third_sample  = (Sample) neighbor_list.get(n);
-								    		triangle = new Path2D.Double();
-								    		triangle.moveTo(first_sample.x, first_sample.y);
-								    		triangle.lineTo(second_sample.x, second_sample.y);
-								    		triangle.lineTo(third_sample.x, third_sample.y);
-								    		triangle.closePath();
-								    		if(triangle.contains(xcenter, ycenter))
-								    		{
-								    			list = new ArrayList();
-								    			list.add(first_sample);
-								    			list.add(second_sample); 
-								    			list.add(third_sample);
-								    			triangle_list.add(list);
-								    		}	
-						    			}
-						    		}
-						    	}
-					    		
-
-					    		first_sample = (Sample)cell_list.get(1);
-					    		for(int m = 0; m < neighbor_list_size; m++)
-						    	{
-						    		for(int n = 0; n < neighbor_list_size; n++)
-						    		{
-						    			if(m != n)
-						    			{
-						    				second_sample = (Sample) neighbor_list.get(m);
-								    		third_sample  = (Sample) neighbor_list.get(n);
-								    		triangle = new Path2D.Double();
-								    		triangle.moveTo(first_sample.x, first_sample.y);
-								    		triangle.lineTo(second_sample.x, second_sample.y);
-								    		triangle.lineTo(third_sample.x, third_sample.y);
-								    		triangle.closePath();
-								    		if(triangle.contains(xcenter, ycenter))
-								    		{
-								    			list = new ArrayList();
-								    			list.add(first_sample);
-								    			list.add(second_sample); 
-								    			list.add(third_sample);
-								    			triangle_list.add(list);
-								    		}	
-						    			}
-						    		}
-						    	}
-					    		
-
-					    		first_sample = (Sample)cell_list.get(2);
-					    		for(int m = 0; m < neighbor_list_size; m++)
-						    	{
-						    		for(int n = 0; n < neighbor_list_size; n++)
-						    		{
-						    			if(m != n)
-						    			{
-						    				second_sample = (Sample) neighbor_list.get(m);
-								    		third_sample  = (Sample) neighbor_list.get(n);
-								    		triangle = new Path2D.Double();
-								    		triangle.moveTo(first_sample.x, first_sample.y);
-								    		triangle.lineTo(second_sample.x, second_sample.y);
-								    		triangle.lineTo(third_sample.x, third_sample.y);
-								    		triangle.closePath();
-								    		if(triangle.contains(xcenter, ycenter))
-								    		{
-								    			list = new ArrayList();
-								    			list.add(first_sample);
-								    			list.add(second_sample); 
-								    			list.add(third_sample);
-								    			triangle_list.add(list);
-								    		}	
-						    			}
-						    		}
-						    	}
-							}
 							
-							if(triangle_list.size() > 0)
+							// Look for extrapolating triangles to center samples that were
+							// original data or obtained using a bisecting value.
+							for(int m = 0; m < cell_list_size; m++)
 							{
-								isCentered1[j][k] = true;
-							}
-							else
-							{
-								// No interpolating triangles, look for extrapolating ones.
-								for(int m = 0; m < cell_list_size; m++)
+								Sample interior = (Sample)cell_list.get(m);
+								for(int n = 0; n < neighbor_list_size; n++)
 								{
-									Sample interior = (Sample)cell_list.get(m);
-									for(int n = 0; n < neighbor_list_size; n++)
+									for(int p = 0; p < neighbor_list_size; p++)
 									{
-										for(int p = 0; p < neighbor_list_size; p++)
+										if(n != p)
 										{
-											if(n != p)
+											Sample corner1 = (Sample) neighbor_list.get(n);
+											Sample corner2 = (Sample) neighbor_list.get(p);
+											Path2D.Double triangle = new Path2D.Double();
+											triangle.moveTo(xcenter, ycenter);
+											triangle.lineTo(corner1.x, corner1.y);
+											triangle.lineTo(corner2.x, corner2.y);
+											triangle.closePath();
+											if(triangle.contains(interior.x, interior.y))
 											{
-												Sample corner1 = (Sample) neighbor_list.get(n);
-												Sample corner2 = (Sample) neighbor_list.get(p);
-												Path2D.Double triangle = new Path2D.Double();
-												triangle.moveTo(xcenter, ycenter);
-												triangle.lineTo(corner1.x, corner1.y);
-												triangle.lineTo(corner2.x, corner2.y);
-												triangle.closePath();
-												if(triangle.contains(interior.x, interior.y))
-												{
-													list = new ArrayList();
-													list.add(interior);
-													list.add(corner1);
-													list.add(corner2);
-													triangle_list.add(list);
-												}
+												list = new ArrayList();
+												list.add(interior);
+												list.add(corner1);
+												list.add(corner2);
+												triangle_list.add(list);
 											}
 										}
 									}
 								}
-								if(triangle_list.size() > 0)
-									isCentered1[j][k] = true;
+							}
+							if(triangle_list.size() > 0)
+							{
+								isCentered1[j][k] = true;
 							}
 							
 						}
@@ -2303,6 +1973,7 @@ public class Populater
 					ycenter += ycell_width;
 				}
 
+				
 				number_of_centered_cells = 0;
 
 				for (int j = 0; j < raster_ydim; j++)
@@ -2317,6 +1988,35 @@ public class Populater
 				System.out.println("The number of cells with centered samples after second pass is " + number_of_centered_cells);
 				System.out.println();
 
+				
+				
+				// Now do a third pass and look for border cells.
+
+				for (int j = 0; j < raster_ydim; j++)
+				{
+					for (int k = 0; k < raster_xdim; k++)
+					{
+						if (isCentered1[j][k])
+							number_of_centered_cells++;
+					}
+				}
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
 				segment_list = segment_data[1][i];
 				size = segment_list.size();
 				// System.out.println("The number of samples being assigned to the raster from
