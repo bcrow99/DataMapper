@@ -284,7 +284,8 @@ public class Populater
 					Sample sample = (Sample) data.get(j);
 					line_list.add(sample);
 				}
-			} else
+			} 
+			else
 			{
 				for (int j = stop - 1; j >= start; j--)
 				{
@@ -390,7 +391,8 @@ public class Populater
 		if (intersecting_area.isEmpty())
 		{
 			System.out.println("Line " + line_of_interest + " does not intersect line " + (line_of_interest + 1));
-		} else
+		} 
+		else
 		{
 			double xmax = -Double.MAX_VALUE;
 			double xmin = Double.MAX_VALUE;
@@ -419,8 +421,7 @@ public class Populater
 						ymax = sample.y;
 				}
 			}
-			System.out.println(
-					"Number of samples in intersecting area in line " + line_of_interest + " is " + number_of_samples);
+			System.out.println("Number of samples in intersecting area in line " + line_of_interest + " is " + number_of_samples);
 
 			line_list = (ArrayList) line_data.get(line_of_interest + 1);
 			ArrayList next_intersecting_data_list = new ArrayList();
@@ -433,6 +434,7 @@ public class Populater
 				{
 					number_of_samples++;
 					next_intersecting_data_list.add(sample);
+					
 					if (sample.x < xmin)
 						xmin = sample.x;
 					else if (sample.x > xmax)
@@ -441,6 +443,7 @@ public class Populater
 						ymin = sample.y;
 					else if (sample.y > ymax)
 						ymax = sample.y;
+					
 				}
 			}
 			System.out.println("Number of samples in intersecting area in line " + (line_of_interest + 1) + " is "
@@ -456,12 +459,14 @@ public class Populater
 				ratio = yrange / xrange;
 				number_of_sections = (int) ratio;
 				number_of_sections++;
-			} else if (xrange > yrange)
+			} 
+			else if (xrange > yrange)
 			{
 				ratio = xrange / yrange;
 				number_of_sections = (int) ratio;
 				number_of_sections++;
-			} else
+			} 
+			else
 				number_of_sections = 1;
 
 			ArrayList[][] segment_data = new ArrayList[2][number_of_sections];
@@ -584,8 +589,12 @@ public class Populater
 				double x_range = xmax - xmin;
 
 				double xcell_width = .25;
-				double init_value = xmin - xcell_width / 2;
-				double end_value = xmax + xcell_width / 2;
+				//double init_value = xmin - xcell_width / 2;
+				double init_value = xmin;
+				//double end_value = xmax + xcell_width / 2;
+				double end_value = xmax;
+				
+				
 				int number_of_cells = 0;
 
 				while (init_value < end_value)
@@ -594,13 +603,16 @@ public class Populater
 					init_value += xcell_width;
 				}
 
+			
 				System.out.println("Raster xdim is " + number_of_cells);
 
 				int raster_xdim = number_of_cells;
 
 				double ycell_width = .03;
-				init_value = ymin - ycell_width / 2;
-				end_value = ymax + ycell_width / 2;
+				//init_value = ymin - ycell_width / 2;
+				init_value = ymin;
+				//end_value = ymax + ycell_width / 2;
+				end_value = ymax;
 				number_of_cells = 0;
 
 				while (init_value < end_value)
@@ -612,11 +624,24 @@ public class Populater
 				System.out.println("Raster ydim is " + number_of_cells);
 
 				int raster_ydim = number_of_cells;
-
+				
+				if(raster_xdim < 3)
+				{
+				    System.out.println();	
+				}
+				else
+				{
+				/*
 				double raster_xmin = xmin - xcell_width / 2;
 				double raster_xmax = xmax + xcell_width / 2;
 				double raster_ymin = ymin - ycell_width / 2;
 				double raster_ymax = ymax + ycell_width / 2;
+				*/
+				double raster_xmin = xmin;
+				double raster_xmax = xmax;
+				double raster_ymin = ymin;
+				double raster_ymax = ymax;
+				
 
 				ArrayList[][] segment1_data = new ArrayList[raster_ydim][raster_xdim];
 				ArrayList[][] segment2_data = new ArrayList[raster_ydim][raster_xdim];
@@ -689,7 +714,7 @@ public class Populater
 						if (isPopulated1[j][k])
 						{
 							number_of_populated_cells++;
-							if(i == 32)
+							if(i == 33)
 							{
 								if(isCentered1[j][k])
 									System.out.print("+ ");
@@ -699,11 +724,11 @@ public class Populater
 						}
 						else
 						{
-							if(i == 32)
+							if(i == 33)
 							    System.out.print("o ");	
 						}
 					}
-					if(i == 32)
+					if(i == 33)
 					   System.out.println();
 				}
 				System.out.println("The number of populated cells in the first raster is " + number_of_populated_cells);
@@ -928,7 +953,7 @@ public class Populater
 										neighbor_populated[6] = true;
 										number_of_neighbors++;
 									}
-									if (isPopulated1[j + 1][k + 1])
+									if(isPopulated1[j + 1][k + 1])
 									{
 										neighbor_populated[7] = true;
 										number_of_neighbors++;
@@ -1121,7 +1146,7 @@ public class Populater
 											triangle_list.add(list);
 										}
 
-										if (triangle_list.size() == 1)
+										if(triangle_list.size() == 1)
 										{
 											// System.out.println("Found a containing triangle.");
 											list = (ArrayList) triangle_list.get(0);
@@ -1138,7 +1163,7 @@ public class Populater
 											isPopulated1[j][k] = true;
 											isCentered1[j][k] = true;
 										} 
-										else if (triangle_list.size() > 1)
+										else if(triangle_list.size() > 1)
 										{
 											// System.out.println("Found a containing triangle.");
 											size = triangle_list.size();
@@ -1615,7 +1640,7 @@ public class Populater
 							number_of_populated_cells++;
 						    if(isCentered1[j][k])
 							    number_of_centered_cells++;
-						    if(i == 32)
+						    if(i == 33)
 						    {
 							    if(isCentered1[j][k])
 								    System.out.print("+ ");
@@ -1623,10 +1648,10 @@ public class Populater
 								    System.out.print("x ");
 						    }
 						}
-						else if(i == 32)
+						else if(i == 33)
 							System.out.print("o ");
 					}
-					if(i == 32)
+					if(i == 33)
 						System.out.println();
 				}
 				System.out.println("The number of populated cells in the first raster after assigning values with neighbors is " + number_of_populated_cells);
@@ -2043,16 +2068,16 @@ public class Populater
 							if(isCentered1[j][k])
 							{
 								number_of_centered_cells++;
-								if(i == 32)
+								if(i == 33)
 								    System.out.print("+ ");
 							}
-							else if(i == 32)
+							else if(i == 33)
 								System.out.print("x ");
 						}
-						else if(i == 32)
+						else if(i == 33)
 							System.out.print("o ");
 					}
-					if(i == 32)
+					if(i == 33)
 						System.out.println();
 				}
 				System.out.println("The number of cells with centered samples after second pass is " + number_of_centered_cells);
@@ -2383,27 +2408,28 @@ public class Populater
 								// the neighbor lists to pick up the remaining ones with
 								// interpolating or extrapolating triangles.
 
+								// Extending neighbor lists.
 								if (location_type == 4)
 								{
 									if (k < raster_xdim - 2)
 									{
-									list = segment1_data[j + 1][k + 2];
-									size = list.size();
-									if (size != 0)
-										first_sample = (Sample) list.get(size - 1);
-									neighbor_list.add(first_sample);
+									    list = segment1_data[j + 1][k + 2];
+									    size = list.size();
+									    if (size != 0)
+										   first_sample = (Sample) list.get(size - 1);
+									    neighbor_list.add(first_sample);
 									
-									list = segment1_data[j][k + 2];
-									size = list.size();
-									if (size != 0)
-										first_sample = (Sample) list.get(size - 1);
-									neighbor_list.add(first_sample);
+									    list = segment1_data[j][k + 2];
+									    size = list.size();
+									    if (size != 0)
+										    first_sample = (Sample) list.get(size - 1);
+									    neighbor_list.add(first_sample);
 									
-									list = segment1_data[j - 1][k + 2];
-									size = list.size();
-									if (size != 0)
-										first_sample = (Sample) list.get(size - 1);
-									neighbor_list.add(first_sample);
+									    list = segment1_data[j - 1][k + 2];
+									    size = list.size();
+									    if (size != 0)
+										    first_sample = (Sample) list.get(size - 1);
+									    neighbor_list.add(first_sample);
 									}
 									
 									if (j > 2)
@@ -2535,15 +2561,19 @@ public class Populater
 								{
 									if (j < raster_ydim - 2)
 									{
+										list = segment1_data[j + 2][k - 1];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
 										list = segment1_data[j + 2][k];
 										size = list.size();
 										if (size != 0)
 											first_sample = (Sample) list.get(size - 1);
 										neighbor_list.add(first_sample);
-									}
-									if (k < raster_xdim - 2)
-									{
-										list = segment1_data[j][k + 2];
+										
+										list = segment1_data[j + 2][k + 1];
 										size = list.size();
 										if (size != 0)
 											first_sample = (Sample) list.get(size - 1);
@@ -2556,21 +2586,64 @@ public class Populater
 										if (size != 0)
 											first_sample = (Sample) list.get(size - 1);
 										neighbor_list.add(first_sample);
+										
+										list = segment1_data[j + 1][k - 2];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
+										if(j < raster_ydim - 2)
+										{
+											list = segment1_data[j + 2][k - 2];
+											size = list.size();
+											if (size != 0)
+												first_sample = (Sample) list.get(size - 1);
+											neighbor_list.add(first_sample);	
+										}
+									}
+									
+									if (k < raster_xdim - 2)
+									{
+										list = segment1_data[j][k + 2];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
+										list = segment1_data[j + 1][k + 2];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
+										if(j < raster_ydim - 2)
+										{
+											list = segment1_data[j + 2][k + 2];
+											size = list.size();
+											if (size != 0)
+												first_sample = (Sample) list.get(size - 1);
+											neighbor_list.add(first_sample);	
+										}
 									}
 								} 
 								else if (location_type == 8)
 								{
-									if (j > 2)
+									if (j < 2)
 									{
+										list = segment1_data[j - 2][k - 1];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
 										list = segment1_data[j - 2][k];
 										size = list.size();
 										if (size != 0)
 											first_sample = (Sample) list.get(size - 1);
 										neighbor_list.add(first_sample);
-									}
-									if (k < raster_xdim - 2)
-									{
-										list = segment1_data[j][k + 2];
+										
+										list = segment1_data[j - 2][k + 1];
 										size = list.size();
 										if (size != 0)
 											first_sample = (Sample) list.get(size - 1);
@@ -2583,7 +2656,46 @@ public class Populater
 										if (size != 0)
 											first_sample = (Sample) list.get(size - 1);
 										neighbor_list.add(first_sample);
+										
+										list = segment1_data[j - 1][k - 2];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
+										if(j > 2)
+										{
+											list = segment1_data[j - 2][k - 2];
+											size = list.size();
+											if (size != 0)
+												first_sample = (Sample) list.get(size - 1);
+											neighbor_list.add(first_sample);	
+										}
 									}
+									
+									if (k < raster_xdim - 2)
+									{
+										list = segment1_data[j][k + 2];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
+										list = segment1_data[j - 1][k + 2];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
+										if(j > 2)
+										{
+											list = segment1_data[j - 2][k + 2];
+											size = list.size();
+											if (size != 0)
+												first_sample = (Sample) list.get(size - 1);
+											neighbor_list.add(first_sample);	
+										}
+									}	
 								}
 								else if(location_type == 5) 
 								{ 
@@ -3275,6 +3387,83 @@ public class Populater
 									    }
 									}
 								}
+								else if(location_type == 7)
+								{
+									System.out.println("Got here.");
+									for (int m = 0; m < cell_list_size; m++)
+									{
+										Sample interior = (Sample) cell_list.get(m);
+										for (int n = 0; n < neighbor_list_size; n++)
+										{
+											for (int p = 0; p < neighbor_list_size; p++)
+											{
+												if (n != p)
+												{
+													Sample corner1 = (Sample) neighbor_list.get(n);
+													Sample corner2 = (Sample) neighbor_list.get(p);
+													Path2D.Double triangle = new Path2D.Double();
+													triangle.moveTo(xcenter, ycenter);
+													triangle.lineTo(corner1.x, corner1.y);
+													triangle.lineTo(corner2.x, corner2.y);
+													triangle.closePath();
+													if (triangle.contains(interior.x, interior.y))
+													{
+														list = new ArrayList();
+														list.add(interior);
+														list.add(corner1);
+														list.add(corner2);
+														triangle_list.add(list);
+													}
+												}
+											}
+										}
+									}
+									size = triangle_list.size();
+									if (size != 0)
+									{
+										//System.out.println("Found " + size + " extrapolating triangle(s).");
+										double[] measure = new double[size];
+										for (int m = 0; m < size; m++)
+										{
+											list = (ArrayList) triangle_list.get(m);
+											first_sample = (Sample) list.get(0);
+											Sample second_sample = (Sample) list.get(1);
+											Sample third_sample = (Sample) list.get(2);
+
+											Point2D.Double first_point = new Point2D.Double(xcenter, ycenter);
+											Point2D.Double second_point = new Point2D.Double(second_sample.x, second_sample.y);
+											Point2D.Double third_point = new Point2D.Double(third_sample.x, third_sample.y);
+
+											double triangle_area = DataMapper.getTriangleArea(first_point, second_point,
+													third_point);
+											double perimeter = DataMapper.getTrianglePerimeter(first_point, second_point,
+													third_point);
+											measure[m] = triangle_area * perimeter;
+										}
+
+										int triangle_index = 0;
+										double least_measure = measure[0];
+										for (int m = 1; m < size; m++)
+										{
+											if (measure[m] < least_measure)
+											{
+												least_measure = measure[m];
+												triangle_index = m;
+											}
+										}
+
+										list = (ArrayList) triangle_list.get(triangle_index);
+										first_sample = (Sample) list.get(0);
+										Sample second_sample = (Sample) list.get(1);
+										Sample third_sample = (Sample) list.get(2);
+										double intensity = DataMapper.getLinearExtrapolation(origin, first_sample, second_sample, third_sample);
+										Sample sample = new Sample(xcenter, ycenter, intensity);
+										list = segment1_data[j][k];
+										list.add(sample);
+
+										isCentered1[j][k] = true;	
+									}
+								}
 							}
 							xcenter += xcell_width;
 						}
@@ -3304,16 +3493,16 @@ public class Populater
 							if(isCentered1[j][k])
 							{
 							    number_of_centered_cells++;
-							    if(i == 32)
+							    if(i == 33)
 							       System.out.print("+ ");
 							}
-							else if(i == 32)
+							else if(i == 33)
 								System.out.print("x ");	
 						}
-						else if(i == 32)
+						else if(i == 33)
 							System.out.print("o ");	
 					}
-					if(i == 32)
+					if(i == 33)
 					    System.out.println();
 				}
 
@@ -3367,6 +3556,7 @@ public class Populater
 				// System.out.println("The number of populated cells in the second raster is " +
 				// number_of_populated_cells);
 
+			}
 			}
 		}
 	}
