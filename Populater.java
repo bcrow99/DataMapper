@@ -1059,7 +1059,7 @@ public class Populater
 								cell.lineTo(x2, y1);
 								cell.closePath();
 
-								if (number_of_neighbors == 2 && !isPopulated1[j][k])
+								if(number_of_neighbors == 2 && !isPopulated1[j][k])
 								{
 									first_sample = (Sample) neighbor_list.get(0);
 									Sample second_sample = (Sample) neighbor_list.get(1);
@@ -1495,7 +1495,8 @@ public class Populater
 
 										isPopulated1[j][k] = true;
 										isCentered1[j][k] = true;
-									} else
+									} 
+									else
 									{
 										// Look for a triangle that includes the origin and contains one of the
 										// neighboring points.
@@ -1588,16 +1589,13 @@ public class Populater
 													{
 														first_sample = (Sample) neighbor_list.get(m);
 														Sample second_sample = (Sample) neighbor_list.get(n);
-														Point2D.Double location = DataMapper
-																.getBisectingPoint(first_sample, second_sample, origin);
+														Point2D.Double location = DataMapper.getBisectingPoint(first_sample, second_sample, origin);
 														double location_x = location.getX();
 														double location_y = location.getY();
 														if (cell.contains(location_x, location_y))
 														{
-															double intensity = DataMapper.getBisectingAverage(
-																	first_sample, second_sample, origin);
-															Sample sample = new Sample(location_x, location_y,
-																	intensity);
+															double intensity = DataMapper.getBisectingAverage(first_sample, second_sample, origin);
+															Sample sample = new Sample(location_x, location_y, intensity);
 															list = segment1_data[j][k];
 															list.add(sample);
 															isPopulated1[j][k] = true;
@@ -2085,8 +2083,12 @@ public class Populater
 
 				// Now do a third pass and interpolate values for remaining cells.
 				previous_number_of_populated_cells = 0;
-				while (previous_number_of_populated_cells != number_of_populated_cells)
+				int previous_number_of_centered_cells = 0;
+				int iteration = 1;
+				while (previous_number_of_populated_cells != number_of_populated_cells || previous_number_of_centered_cells != number_of_centered_cells)
 				{
+					System.out.println("Iteration " + iteration);
+					iteration++;
 					ycenter = ymin;
 					for (int j = 0; j < raster_ydim; j++)
 					{
@@ -2406,12 +2408,14 @@ public class Populater
 								// the cells now have centered samples on opposite sides
 								// and we can use the simple average but we need to extend
 								// the neighbor lists to pick up the remaining ones with
-								// interpolating or extrapolating triangles.
+								// interpolating or extrapolating triangles.  We'll also
+								// assign remaining corner values with a bisecting value
+								// is there are no containing triangles.
 
 								// Extending neighbor lists.
 								if (location_type == 4)
 								{
-									if (k < raster_xdim - 2)
+									if(k < raster_xdim - 2)
 									{
 									    list = segment1_data[j + 1][k + 2];
 									    size = list.size();
@@ -2805,6 +2809,47 @@ public class Populater
 										}
 									}
 								}
+								else if(location_type == 7)
+								{
+									if(j > raster_ydim - 2)
+									{
+										list = segment1_data[j - 2][k];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
+										list = segment1_data[j - 2][k + 1];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
+										if(k < raster_xdim - 2)
+										{
+											list = segment1_data[j - 2][k + 2];
+											size = list.size();
+											if (size != 0)
+												first_sample = (Sample) list.get(size - 1);
+											neighbor_list.add(first_sample);	
+										}
+										
+									}
+									if(k < raster_xdim - 2)
+									{
+										list = segment1_data[j][k + 2];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);
+										
+										list = segment1_data[j - 1][k + 2];
+										size = list.size();
+										if (size != 0)
+											first_sample = (Sample) list.get(size - 1);
+										neighbor_list.add(first_sample);	
+									}
+								}
                                 
 								int neighbor_list_size = neighbor_list.size();
 								if (location_type == 4 || location_type == 6)
@@ -2847,25 +2892,28 @@ public class Populater
 									{
 										if(isPopulated1[j][k])
 										{
-											//System.out.println("Cell has " + cell_list_size + " sample(s).");
+											// To a limited extent, the quadrant where the sample is
+											// determines whether an interpolating or extrapolating
+											// triangle will produce a value for the center--
+											// depending on where neighboring samples are located.
 											
 											Sample sample = (Sample)cell_list.get(0);
 											
 											if(sample.x > xcenter && sample.y > ycenter)
 											{
-												//System.out.println("Sample is in first quadrant.");     	
+												//System.out.println("Sample is in fourth quadrant.");     	
 											}
 											else if(sample.x < xcenter && sample.y > ycenter)
 											{
-												//System.out.println("Sample is in second quadrant.");	
+												//System.out.println("Sample is in third quadrant.");	
 											}
 											else if(sample.x < xcenter && sample.y < ycenter)
 											{
-												//System.out.println("Sample is in third quadrant.");	
+												//System.out.println("Sample is in second quadrant.");	
 											}
 											else if(sample.x > xcenter && sample.y < ycenter)
 											{
-												//System.out.println("Sample is in fourth quadrant.");
+												//System.out.println("Sample is in first quadrant.");
 											}
 											
 											for (int m = 0; m < cell_list_size; m++)
@@ -2975,11 +3023,53 @@ public class Populater
 														}
 													}
 												}
-												/*
 												if(triangle_list.size() != 0)
-													System.out.println("Found interpolating triangles.");	
-												*/
-												//System.out.println();
+												{
+												
+														System.out.println("Found interpolating triangles.");	
+														size = triangle_list.size();
+														double[] measure = new double[size];
+														for (int m = 0; m < size; m++)
+														{
+															list = (ArrayList) triangle_list.get(m);
+															first_sample = (Sample) list.get(0);
+															Sample second_sample = (Sample) list.get(1);
+															Sample third_sample = (Sample) list.get(2);
+
+															Point2D.Double first_point = new Point2D.Double(first_sample.x, first_sample.y);
+															Point2D.Double second_point = new Point2D.Double(second_sample.x, second_sample.y);
+															Point2D.Double third_point = new Point2D.Double(third_sample.x, third_sample.y);
+
+															double triangle_area = DataMapper.getTriangleArea(first_point, second_point,
+																	third_point);
+															double perimeter = DataMapper.getTrianglePerimeter(first_point, second_point,
+																	third_point);
+															measure[m] = triangle_area * perimeter;
+														}
+
+														int triangle_index = 0;
+														double least_measure = measure[0];
+														for (int m = 0; m < size; m++)
+														{
+															if (measure[m] < least_measure)
+															{
+																least_measure = measure[m];
+																triangle_index = m;
+															}
+														}
+
+														list = (ArrayList) triangle_list.get(triangle_index);
+														first_sample = (Sample) list.get(0);
+														Sample second_sample = (Sample) list.get(1);
+														Sample third_sample = (Sample) list.get(2);
+														double intensity = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample);
+														sample = new Sample(xcenter, ycenter, intensity);
+														list = segment1_data[j][k];
+														list.add(sample);
+
+														isCentered1[j][k] = true;	
+												}
+												
 											}
 										} 
 										else
@@ -3125,7 +3215,82 @@ public class Populater
 											}
 											else
 											{
-												//System.out.println("Did not find extrapolating triangles.");
+                                                //System.out.println("Did not find extrapolating triangles.");
+												// Look for interpolating triangles.
+												for (int m = 0; m < cell_list_size; m++)
+												{
+													first_sample = (Sample) cell_list.get(m);
+													for (int n = 0; n < neighbor_list_size; n++)
+													{
+														for (int p = 0; p < neighbor_list_size; p++)
+														{
+															if (n != p)
+															{
+																Sample second_sample = (Sample) neighbor_list.get(n);
+																Sample third_sample  = (Sample) neighbor_list.get(p);
+																Path2D.Double triangle = new Path2D.Double();
+																triangle.moveTo(first_sample.x, first_sample.y);
+																triangle.lineTo(second_sample.x, second_sample.y);
+																triangle.lineTo(third_sample.x, third_sample.y);
+																triangle.closePath();
+																if (triangle.contains(xcenter, ycenter))
+																{
+																	list = new ArrayList();
+																	list.add(first_sample);
+																	list.add(second_sample);
+																	list.add(third_sample);
+																	triangle_list.add(list);
+																}
+															}
+														}
+													}
+												}
+												if(triangle_list.size() != 0)
+												{
+												
+														System.out.println("Found interpolating triangles.");	
+														size = triangle_list.size();
+														double[] measure = new double[size];
+														for (int m = 0; m < size; m++)
+														{
+															list = (ArrayList) triangle_list.get(m);
+															first_sample = (Sample) list.get(0);
+															Sample second_sample = (Sample) list.get(1);
+															Sample third_sample = (Sample) list.get(2);
+
+															Point2D.Double first_point = new Point2D.Double(first_sample.x, first_sample.y);
+															Point2D.Double second_point = new Point2D.Double(second_sample.x, second_sample.y);
+															Point2D.Double third_point = new Point2D.Double(third_sample.x, third_sample.y);
+
+															double triangle_area = DataMapper.getTriangleArea(first_point, second_point,
+																	third_point);
+															double perimeter = DataMapper.getTrianglePerimeter(first_point, second_point,
+																	third_point);
+															measure[m] = triangle_area * perimeter;
+														}
+
+														int triangle_index = 0;
+														double least_measure = measure[0];
+														for (int m = 0; m < size; m++)
+														{
+															if (measure[m] < least_measure)
+															{
+																least_measure = measure[m];
+																triangle_index = m;
+															}
+														}
+
+														list = (ArrayList) triangle_list.get(triangle_index);
+														first_sample = (Sample) list.get(0);
+														Sample second_sample = (Sample) list.get(1);
+														Sample third_sample = (Sample) list.get(2);
+														double intensity = DataMapper.getLinearInterpolation(origin, first_sample, second_sample, third_sample);
+														sample = new Sample(xcenter, ycenter, intensity);
+														list = segment1_data[j][k];
+														list.add(sample);
+
+														isCentered1[j][k] = true;	
+												}
 											}
 										} 
 										else
@@ -3320,7 +3485,7 @@ public class Populater
 																		triangle.lineTo(corner1.x, corner1.y);
 																		triangle.lineTo(corner2.x, corner2.y);
 																		triangle.closePath();
-																		if (triangle.contains(xcenter, ycenter))
+																		if (triangle.contains(interior.x, interior.y))
 																		{
 																			list = new ArrayList();
 																			list.add(interior);
@@ -3389,80 +3554,295 @@ public class Populater
 								}
 								else if(location_type == 7)
 								{
-									System.out.println("Got here.");
-									for (int m = 0; m < cell_list_size; m++)
+									System.out.println("Proccessing lower corner cell in section " + i);
+									//System.out.println("Neighbor list size is " + neighbor_list_size);
+									//System.out.println("Neighbor list size is " + neighbor_list.size());
+									System.out.println("Cell list size is " + cell_list.size());
+									
+									
+									if(isCentered1[j][k + 1] && isCentered1[j - 1][k])
 									{
-										Sample interior = (Sample) cell_list.get(m);
-										for (int n = 0; n < neighbor_list_size; n++)
-										{
-											for (int p = 0; p < neighbor_list_size; p++)
+									    //System.out.println("North and east neighbors are centered.");	
+									    if(isPopulated1[j][k])
+									    {
+									    	list = segment1_data[j][k];
+									    	size = list.size();
+									    	first_sample = (Sample) list.get(size - 1);
+									    	System.out.println("Xcenter = " + String.format("%.3f", xcenter) + ", ycenter = " + String.format("%.3f", ycenter));
+									    	//System.out.println("Cell sample is located at x = " + String.format("%.3f", first_sample.x) + ", y = " + String.format("%.3f", first_sample.y));
+									    	
+									    	list = segment1_data[j][k + 1];
+									    	size = list.size();
+									    	Sample second_sample = (Sample) list.get(size - 1);
+									    	//System.out.println("East sample is located at x = " + String.format("%.3f", second_sample.x) + ", y = " + String.format("%.3f", second_sample.y));
+									    	
+									    	list = segment1_data[j - 1][k];
+									    	size = list.size();
+									    	Sample third_sample = (Sample) list.get(size - 1);
+									    	//System.out.println("North sample is located at x = " + String.format("%.3f", third_sample.x) + ", y = " + String.format("%.3f", third_sample.y));
+									    	
+									    	Path2D.Double triangle = new Path2D.Double();
+											triangle.moveTo(xcenter, ycenter);
+											triangle.lineTo(second_sample.x, second_sample.y);
+											triangle.lineTo(third_sample.x, third_sample.y);
+											triangle.closePath();
+											if (triangle.contains(first_sample.x, first_sample.y))
 											{
-												if (n != p)
+												double intensity = DataMapper.getLinearExtrapolation(origin, first_sample,second_sample, third_sample);
+												Sample sample = new Sample(xcenter, ycenter, intensity);
+												list = segment1_data[j][k];
+												isCentered1[j][k] = true;	
+												//System.out.println("Found extrapolating triangle.");
+											}
+											else
+											{
+											    triangle.reset();
+											    triangle.moveTo(first_sample.x, first_sample.y);
+											    triangle.lineTo(second_sample.x, second_sample.y);
+												triangle.lineTo(third_sample.x, third_sample.y);
+												triangle.closePath();
+												
+												if (triangle.contains(xcenter, ycenter))
 												{
-													Sample corner1 = (Sample) neighbor_list.get(n);
-													Sample corner2 = (Sample) neighbor_list.get(p);
-													Path2D.Double triangle = new Path2D.Double();
-													triangle.moveTo(xcenter, ycenter);
-													triangle.lineTo(corner1.x, corner1.y);
-													triangle.lineTo(corner2.x, corner2.y);
-													triangle.closePath();
-													if (triangle.contains(interior.x, interior.y))
-													{
-														list = new ArrayList();
-														list.add(interior);
-														list.add(corner1);
-														list.add(corner2);
-														triangle_list.add(list);
-													}
+													double intensity = DataMapper.getLinearInterpolation(origin, first_sample,second_sample, third_sample);
+													Sample sample = new Sample(xcenter, ycenter, intensity);
+													list = segment1_data[j][k];
+													list.add(sample);
+													isCentered1[j][k] = true;
+													//System.out.println("Found interpolating triangle.");
+												}
+												else
+												{
+													//System.out.println("Did not find extrapolating or interpolating triangle.");
+													// If there are no triangles, get the bisecting average between the cell sample
+													// and the north sample, and then do a simple extrapolation from the 
+													// bisecting average and the east sample.
+													Point2D.Double location = DataMapper.getBisectingPoint(first_sample, third_sample, origin);
+													double location_x = location.getX();
+													double location_y = location.getY();
+													double intensity = DataMapper.getBisectingAverage(first_sample, third_sample, origin);
+													
+													double intensity_delta = (intensity - second_sample.intensity) / (second_sample.x - location_x);
+													double intensity_increment = (xcenter - location_x) * intensity_delta;
+													intensity += intensity_increment;
+													Sample sample = new Sample(xcenter, ycenter, intensity);
+                                                    list = segment1_data[j][k];
+												    list.add(sample);
+													isCentered1[j][k] = true;
+													//System.out.println("Centered a corner cell with an adjusted bisecting value.");
 												}
 											}
-										}
+									    }
 									}
-									size = triangle_list.size();
-									if (size != 0)
+									
+									else if(isPopulated1[j][k])
 									{
-										//System.out.println("Found " + size + " extrapolating triangle(s).");
-										double[] measure = new double[size];
-										for (int m = 0; m < size; m++)
+										//System.out.println("Did not find centered neighbors.");
+										Sample sample = (Sample)cell_list.get(0);
+										
+										if(sample.x > xcenter && sample.y > ycenter)
 										{
-											list = (ArrayList) triangle_list.get(m);
-											first_sample = (Sample) list.get(0);
-											Sample second_sample = (Sample) list.get(1);
-											Sample third_sample = (Sample) list.get(2);
-
-											Point2D.Double first_point = new Point2D.Double(xcenter, ycenter);
-											Point2D.Double second_point = new Point2D.Double(second_sample.x, second_sample.y);
-											Point2D.Double third_point = new Point2D.Double(third_sample.x, third_sample.y);
-
-											double triangle_area = DataMapper.getTriangleArea(first_point, second_point,
-													third_point);
-											double perimeter = DataMapper.getTrianglePerimeter(first_point, second_point,
-													third_point);
-											measure[m] = triangle_area * perimeter;
+											System.out.println("Sample is in fourth quadrant.");     	
 										}
-
-										int triangle_index = 0;
-										double least_measure = measure[0];
-										for (int m = 1; m < size; m++)
+										else if(sample.x < xcenter && sample.y > ycenter)
 										{
-											if (measure[m] < least_measure)
+											System.out.println("Sample is in third quadrant.");	
+										}
+										else if(sample.x < xcenter && sample.y < ycenter)
+										{
+											System.out.println("Sample is in second quadrant.");	
+										}
+										else if(sample.x > xcenter && sample.y < ycenter)
+										{
+											System.out.println("Sample is in first quadrant.");
+										}
+									} 
+									else
+									{
+										//System.out.println("Cell is not populated.");
+									}	
+								}
+								else if(location_type == 3)
+								{
+									System.out.println("Processing upper right corner cell in section " + i);
+									//System.out.println("Neighbor list size is " + neighbor_list_size);
+									//System.out.println("Neighbor list size is " + neighbor_list.size());
+									System.out.println("Cell list size is " + cell_list.size());
+									
+									if(isCentered1[j][k - 1] && isCentered1[j + 1][k])
+									{
+									    System.out.println("South and west neighbors are centered.");	
+									    if(isPopulated1[j][k])
+									    {
+									    	list = segment1_data[j][k];
+									    	size = list.size();
+									    	first_sample = (Sample) list.get(size - 1);
+									    	System.out.println("Xcenter = " + String.format("%.3f", xcenter) + ", ycenter = " + String.format("%.3f", ycenter));
+									    	System.out.println("Cell sample is located at x = " + String.format("%.3f", first_sample.x) + ", y = " + String.format("%.3f", first_sample.y));
+									    	
+									    	list = segment1_data[j][k - 1];
+									    	size = list.size();
+									    	Sample second_sample = (Sample) list.get(size - 1);
+									    	System.out.println("West sample is located at x = " + String.format("%.3f", second_sample.x) + ", y = " + String.format("%.3f", second_sample.y));
+									    	
+									    	list = segment1_data[j + 1][k];
+									    	size = list.size();
+									    	Sample third_sample = (Sample) list.get(size - 1);
+									    	System.out.println("South sample is located at x = " + String.format("%.3f", third_sample.x) + ", y = " + String.format("%.3f", third_sample.y));
+									    	
+									    	Path2D.Double triangle = new Path2D.Double();
+											triangle.moveTo(xcenter, ycenter);
+											triangle.lineTo(second_sample.x, second_sample.y);
+											triangle.lineTo(third_sample.x, third_sample.y);
+											triangle.closePath();
+											if (triangle.contains(first_sample.x, first_sample.y))
 											{
-												least_measure = measure[m];
-												triangle_index = m;
+												double intensity = DataMapper.getLinearExtrapolation(origin, first_sample,second_sample, third_sample);
+												Sample sample = new Sample(xcenter, ycenter, intensity);
+												list = segment1_data[j][k];
+												isCentered1[j][k] = true;	
+												System.out.println("Found extrapolating triangle.");
 											}
-										}
-
-										list = (ArrayList) triangle_list.get(triangle_index);
-										first_sample = (Sample) list.get(0);
-										Sample second_sample = (Sample) list.get(1);
-										Sample third_sample = (Sample) list.get(2);
-										double intensity = DataMapper.getLinearExtrapolation(origin, first_sample, second_sample, third_sample);
-										Sample sample = new Sample(xcenter, ycenter, intensity);
-										list = segment1_data[j][k];
-										list.add(sample);
-
-										isCentered1[j][k] = true;	
+											else
+											{
+											    triangle.reset();
+											    triangle.moveTo(first_sample.x, first_sample.y);
+											    triangle.lineTo(second_sample.x, second_sample.y);
+												triangle.lineTo(third_sample.x, third_sample.y);
+												triangle.closePath();
+												
+												if (triangle.contains(xcenter, ycenter))
+												{
+													double intensity = DataMapper.getLinearInterpolation(origin, first_sample,second_sample, third_sample);
+													Sample sample = new Sample(xcenter, ycenter, intensity);
+													list = segment1_data[j][k];
+													list.add(sample);
+													isCentered1[j][k] = true;
+													System.out.println("Found interpolating triangle.");
+												}
+												else
+												{
+													System.out.println("Did not find extrapolating or interpolating triangle.");
+													// If there are no triangles, get the bisecting average between the cell sample
+													// and the north sample, and then do a simple extrapolation from the 
+													// bisecting average and the east sample.
+													Point2D.Double location = DataMapper.getBisectingPoint(first_sample, third_sample, origin);
+													double location_x = location.getX();
+													double location_y = location.getY();
+													double intensity = DataMapper.getBisectingAverage(first_sample, third_sample, origin);
+													
+													double intensity_delta = (intensity - second_sample.intensity) / (location_x - second_sample.x);
+													double intensity_increment = (location_x - xcenter) * intensity_delta;
+													intensity += intensity_increment;
+													Sample sample = new Sample(xcenter, ycenter, intensity);
+                                                    list = segment1_data[j][k];
+												    list.add(sample);
+													isCentered1[j][k] = true;
+													System.out.println("Centered a corner cell with an adjusted bisecting value.");
+												}
+											}
+									    }
 									}
+									else if(isCentered1[j][k - 1] && isCentered1[j + 1][k - 1])
+									{
+									    System.out.println("West and southwest neighbors are centered.");	
+									    if(isPopulated1[j][k])
+									    {
+									    	list = segment1_data[j][k];
+									    	size = list.size();
+									    	first_sample = (Sample) list.get(size - 1);
+									    	System.out.println("Xcenter = " + String.format("%.3f", xcenter) + ", ycenter = " + String.format("%.3f", ycenter));
+									    	System.out.println("Cell sample is located at x = " + String.format("%.3f", first_sample.x) + ", y = " + String.format("%.3f", first_sample.y));
+									    	
+									    	list = segment1_data[j][k - 1];
+									    	size = list.size();
+									    	Sample second_sample = (Sample) list.get(size - 1);
+									    	System.out.println("West sample is located at x = " + String.format("%.3f", second_sample.x) + ", y = " + String.format("%.3f", second_sample.y));
+									    	
+									    	list = segment1_data[j + 1][k - 1];
+									    	size = list.size();
+									    	Sample third_sample = (Sample) list.get(size - 1);
+									    	System.out.println("Southwest sample is located at x = " + String.format("%.3f", third_sample.x) + ", y = " + String.format("%.3f", third_sample.y));
+									    	
+									    	Path2D.Double triangle = new Path2D.Double();
+											triangle.moveTo(xcenter, ycenter);
+											triangle.lineTo(second_sample.x, second_sample.y);
+											triangle.lineTo(third_sample.x, third_sample.y);
+											triangle.closePath();
+											if (triangle.contains(first_sample.x, first_sample.y))
+											{
+												double intensity = DataMapper.getLinearExtrapolation(origin, first_sample,second_sample, third_sample);
+												Sample sample = new Sample(xcenter, ycenter, intensity);
+												list = segment1_data[j][k];
+												isCentered1[j][k] = true;	
+												//System.out.println("Found extrapolating triangle.");
+											}
+											else
+											{
+											    triangle.reset();
+											    triangle.moveTo(first_sample.x, first_sample.y);
+											    triangle.lineTo(second_sample.x, second_sample.y);
+												triangle.lineTo(third_sample.x, third_sample.y);
+												triangle.closePath();
+												
+												if (triangle.contains(xcenter, ycenter))
+												{
+													double intensity = DataMapper.getLinearInterpolation(origin, first_sample,second_sample, third_sample);
+													Sample sample = new Sample(xcenter, ycenter, intensity);
+													list = segment1_data[j][k];
+													list.add(sample);
+													isCentered1[j][k] = true;
+													//System.out.println("Found interpolating triangle.");
+												}
+												else
+												{
+													//System.out.println("Did not find extrapolating or interpolating triangle.");
+													// If there are no triangles, get the bisecting average between the cell sample
+													// and the north sample, and then do a simple extrapolation from the 
+													// bisecting average and the east sample.
+													Point2D.Double location = DataMapper.getBisectingPoint(first_sample, third_sample, origin);
+													double location_x = location.getX();
+													double location_y = location.getY();
+													double intensity = DataMapper.getBisectingAverage(first_sample, third_sample, origin);
+													
+													double intensity_delta = (intensity - second_sample.intensity) / (second_sample.x - location_x);
+													double intensity_increment = (xcenter - location_x) * intensity_delta;
+													intensity += intensity_increment;
+													Sample sample = new Sample(xcenter, ycenter, intensity);
+                                                    list = segment1_data[j][k];
+												    list.add(sample);
+													isCentered1[j][k] = true;
+													//System.out.println("Centered a corner cell with an adjusted bisecting value.");
+												}
+											}
+									    }
+									}
+									else if(isPopulated1[j][k])
+									{
+										System.out.println("Did not find centered neighbors.");
+										Sample sample = (Sample)cell_list.get(0);
+										
+										if(sample.x > xcenter && sample.y > ycenter)
+										{
+											System.out.println("Sample is in fourth quadrant.");     	
+										}
+										else if(sample.x < xcenter && sample.y > ycenter)
+										{
+											System.out.println("Sample is in third quadrant.");	
+										}
+										else if(sample.x < xcenter && sample.y < ycenter)
+										{
+											System.out.println("Sample is in second quadrant.");	
+										}
+										else if(sample.x > xcenter && sample.y < ycenter)
+										{
+											System.out.println("Sample is in first quadrant.");
+										}
+									} 
+									else
+									{
+										System.out.println("Cell is not populated.");
+									}	
 								}
 							}
 							xcenter += xcell_width;
@@ -3470,13 +3850,17 @@ public class Populater
 						ycenter += ycell_width;
 					}
 					previous_number_of_populated_cells = number_of_populated_cells;
+					previous_number_of_centered_cells = number_of_centered_cells;
 					number_of_populated_cells = 0;
+					number_of_centered_cells = 0;
 					for (int m = 0; m < raster_ydim; m++)
 					{
 						for (int n = 0; n < raster_xdim; n++)
 						{
 							if (isPopulated1[m][n])
 								number_of_populated_cells++;
+							if (isCentered1[m][n])
+								number_of_centered_cells++;
 						}
 					}
 				}
