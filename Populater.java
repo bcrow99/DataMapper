@@ -707,24 +707,24 @@ public class Populater
 							if (isPopulated1[j][k])
 							{
 								number_of_populated_cells++;
-								if (i == 5)
+								if (i == 33)
 								{
 									if (isCentered1[j][k])
 										System.out.print("+ ");
 									else
 										System.out.print("x ");
 								}
-							} else
+							} 
+							else
 							{
-								if (i == 5)
+								if (i == 33)
 									System.out.print("o ");
 							}
 						}
-						if (i == 5)
+						if (i == 33)
 							System.out.println();
 					}
-					System.out.println(
-							"The number of populated cells in the first raster is " + number_of_populated_cells);
+					System.out.println("The number of populated cells in the first raster is " + number_of_populated_cells);
 					System.out.println();
 
 					double ycenter = ymin;
@@ -1194,7 +1194,8 @@ public class Populater
 												isCentered1[j][k] = true;
 											}
 										}
-									} else if (number_of_neighbors == 3)
+									} 
+									else if (number_of_neighbors == 3)
 									{
 										first_sample = (Sample) neighbor_list.get(0);
 										Sample second_sample = (Sample) neighbor_list.get(1);
@@ -1277,7 +1278,8 @@ public class Populater
 
 												isPopulated1[j][k] = true;
 												isCentered1[j][k] = true;
-											} else if (triangle_list.size() > 1)
+											} 
+											else if (triangle_list.size() > 1)
 											{
 												// System.out.println("Found a containing triangle.");
 												size = triangle_list.size();
@@ -1325,7 +1327,8 @@ public class Populater
 
 												isPopulated1[j][k] = true;
 												isCentered1[j][k] = true;
-											} else if (triangle_list.size() == 0)
+											} 
+											else if (triangle_list.size() == 0)
 											{
 												first_sample = (Sample) neighbor_list.get(0);
 												second_sample = (Sample) neighbor_list.get(1);
@@ -1385,7 +1388,8 @@ public class Populater
 												}
 											}
 										}
-									} else if (number_of_neighbors > 3)
+									} 
+									else if (number_of_neighbors > 3)
 									{
 										Path2D.Double triangle = new Path2D.Double();
 										ArrayList triangle_list = new ArrayList();
@@ -1555,7 +1559,8 @@ public class Populater
 
 												isPopulated1[j][k] = true;
 												isCentered1[j][k] = true;
-											} else // If there is none, look for a bisecting value.
+											} 
+											else // If there is none, look for a bisecting value.
 											{
 												for (int m = 0; m < neighbor_list.size(); m++)
 												{
@@ -1630,9 +1635,7 @@ public class Populater
 						if (i == 33)
 							System.out.println();
 					}
-					System.out.println(
-							"The number of populated cells in the first raster after assigning values with neighbors is "
-									+ number_of_populated_cells);
+					System.out.println("The number of populated cells in the first raster after assigning values with neighbors is " + number_of_populated_cells);
 					System.out.println("The number of cells with centered samples is " + number_of_centered_cells);
 					System.out.println();
 
@@ -2057,8 +2060,7 @@ public class Populater
 						if (i == 33)
 							System.out.println();
 					}
-					System.out.println("The number of cells with centered samples after second pass is "
-							+ number_of_centered_cells);
+					System.out.println("The number of cells with centered samples after second pass is " + number_of_centered_cells);
 					System.out.println();
 
 					// Now do a third pass and interpolate values for remaining cells.
@@ -2845,13 +2847,13 @@ public class Populater
 												size = list.size();
 												Sample second_sample = (Sample) list.get(size - 1);
 
-												double intensity = (first_sample.intensity + second_sample.intensity)
-														/ 2;
+												double intensity = (first_sample.intensity + second_sample.intensity) / 2;
 												Sample sample = new Sample(xcenter, ycenter, intensity);
 												list = segment1_data[j][k];
 												list.add(sample);
 												isPopulated1[j][k] = true;
-											} else
+											} 
+											else
 											{
 												first_sample = (Sample) cell_list.get(0);
 												list = segment1_data[j - 1][k];
@@ -2867,7 +2869,8 @@ public class Populater
 												list.add(sample);
 											}
 											isCentered1[j][k] = true;
-										} else if (isCentered1[j][k - 1] && isCentered1[j][k + 1])
+										} 
+										else if (isCentered1[j][k - 1] && isCentered1[j][k + 1])
 										{
 											// System.out.println("Found centered samples west and east.");
 											// System.out.println();
@@ -2886,7 +2889,8 @@ public class Populater
 												list = segment1_data[j][k];
 												list.add(sample);
 												isPopulated1[j][k] = true;
-											} else
+											} 
+											else
 											{
 												first_sample = (Sample) cell_list.get(0);
 												list = segment1_data[j][k - 1];
@@ -2902,7 +2906,8 @@ public class Populater
 												list.add(sample);
 											}
 											isCentered1[j][k] = true;
-										} else if (!isPopulated1[j][k])
+										} 
+										else if (!isPopulated1[j][k])
 										{
 											neighbor_list_size = neighbor_list.size();
 											if (neighbor_list_size >= 3)
@@ -2995,12 +3000,10 @@ public class Populater
 
 													isPopulated1[j][k] = true;
 													isCentered1[j][k] = true;
-												} else
+												} 
+												else
 												{
-													// Look for a triangle that includes the origin and contains one of
-													// the
-													// neighboring points.
-													triangle_list.clear();
+													//triangle_list.clear();
 													for (int m = 0; m < number_of_neighbors; m++)
 													{
 														for (int n = 0; n < number_of_neighbors; n++)
@@ -3084,9 +3087,8 @@ public class Populater
 												}
 											}
 										}
-
-									} else if (location_type == 4 || location_type == 6 || location_type == 2
-											|| location_type == 8)
+									} 
+									else if (location_type == 4 || location_type == 6 || location_type == 2 || location_type == 8)
 									{
 										first_sample = new Sample();
 										Sample second_sample = new Sample();
@@ -3511,11 +3513,8 @@ public class Populater
 																	double location_y = location.getY();
 																	if (cell.contains(location_x, location_y))
 																	{
-																		double intensity = DataMapper
-																				.getBisectingAverage(first_sample,
-																						second_sample, origin);
-																		Sample sample = new Sample(location_x,
-																				location_y, intensity);
+																		double intensity = DataMapper.getBisectingAverage(first_sample,second_sample, origin);
+																		Sample sample = new Sample(location_x, location_y, intensity);
 																		list = segment1_data[j][k];
 																		list.add(sample);
 
@@ -3530,8 +3529,8 @@ public class Populater
 												}
 											}
 										}
-									} else if (location_type == 1 || location_type == 3 || location_type == 7
-											|| location_type == 9)
+									} 
+									else if (location_type == 1 || location_type == 3 || location_type == 7 || location_type == 9)
 									{
 										first_sample = new Sample();
 										Sample second_sample = new Sample();
@@ -3542,7 +3541,12 @@ public class Populater
 
 										if (location_type == 1)
 										{
-											if (isCentered1[j][k + 1] && isCentered1[j + 1][k])
+											if(isCentered1[j][k + 1] && isCentered1[j + 1][k] && isCentered1[j + 1][k + 1])
+											{
+											    System.out.println("All adjacent cells have centered samples.");	
+											    assigned_value = true;
+											}
+											if(isCentered1[j][k + 1] && isCentered1[j + 1][k])
 											{
 												// System.out.println("East and south neighbors are centered.");
 												centered_neighbors = true;
@@ -3560,7 +3564,8 @@ public class Populater
 													size = list.size();
 													third_sample = (Sample) list.get(size - 1);
 												}
-											} else if (isCentered1[j][k + 1] && isCentered1[j + 1][k + 1])
+											} 
+											else if(isCentered1[j][k + 1] && isCentered1[j + 1][k + 1])
 											{
 												// System.out.println("East and southeast neighbors are centered.");
 												centered_neighbors = true;
@@ -3579,7 +3584,8 @@ public class Populater
 													third_sample = (Sample) list.get(size - 1);
 												}
 											}
-										} else if (location_type == 3)
+										} 
+										else if (location_type == 3)
 										{
 											if (isCentered1[j][k - 1] && isCentered1[j + 1][k])
 											{
@@ -3697,6 +3703,9 @@ public class Populater
 												}
 											}
 										}
+										
+										if(!assigned_value)
+										{
 
 										if (centered_neighbors)
 										{
@@ -4136,6 +4145,10 @@ public class Populater
 											}
 										}
 									}
+									else
+										System.out.println("Assigned value.");	
+									}
+									
 								}
 								xcenter += xcell_width;
 							}
