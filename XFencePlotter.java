@@ -1064,9 +1064,9 @@ public class XFencePlotter
 	 		
 	 	// Mostly we're just concerned with the y dimension.
 	 	// Our default x dimension works on both laptop and desktops, y is too much.
-	 	if(screen_ydim - 125 < data_canvas_ydim)
+	 	if(screen_ydim - 180 < data_canvas_ydim)
 	 	{
-	 		data_canvas_ydim = screen_ydim - 125;
+	 		data_canvas_ydim = screen_ydim - 180;
 	 			
 	 		// Keep the aspect ratio, although it's not necessary.
 	 		double value = data_canvas_ydim;
