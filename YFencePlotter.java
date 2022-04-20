@@ -274,7 +274,7 @@ public class YFencePlotter
 			File config_file = new File(config_filename);
 			if(config_file.exists())
 			{
-			    // System.out.println("Loading config file.");
+			    System.out.println("Loading config file.");
 				config_file_exists = true;
 				try
 				{
@@ -477,8 +477,10 @@ public class YFencePlotter
 				            	endpoint_y_position = Integer.parseInt(value);
 				            else if(key.equals("EndIndex")) 
 				            	endpoint_index = Integer.parseInt(value); 
+				            
 				        }
 				    }
+				    System.out.println("Finished reading config file.");
 					config_reader.close();  
 				}
 				catch(Exception e)
@@ -818,6 +820,7 @@ public class YFencePlotter
 				
 		frame = new JFrame("Slope Wand Plotter");
 		
+		System.out.println("Starting to construct gui.");
 		WindowAdapter window_handler = new WindowAdapter()
 	    {
 	        public void windowClosing(WindowEvent event)
@@ -1000,6 +1003,7 @@ public class YFencePlotter
 		}
 		JMenuBar menu_bar = new JMenuBar();
 		
+		System.out.println("Finished constructing gui.");
 		
 		// End gui.
 		
@@ -3100,7 +3104,8 @@ public class YFencePlotter
 		frame.getContentPane().add(data_panel, BorderLayout.CENTER);
 		frame.pack();
 		frame.setLocation(50, 10);
-	
+	    data_canvas.repaint();
+		System.out.println("Finished Y Fence constructor.");
 		// End constructor.
 	}
 	
