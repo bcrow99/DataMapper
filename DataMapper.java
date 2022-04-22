@@ -148,48 +148,90 @@ public class DataMapper
 		
 		// Return 0 if the points are on a line.	
 		if((x1 == x2) && (x2 == x3))
-		    return(0);
-		if((y1 == y2) && (y2 == y3))
-			return(0);
-
-		Line2D.Double base = new Line2D.Double(base1, base2);
-		Line2D.Double height;
-		double base_slope, base_intercept, perpendicular_slope, area, base_length, height_length;
-		
-		if(x1 == x2)
 		{
-			//Base slope is undefined.  
-		    double x_intersect           = x1;	
-		    double y_intersect           = top.getY();
-		    Point2D.Double top_intersect = new Point2D.Double(x_intersect, y_intersect);
-		    height                       = new Line2D.Double(top, top_intersect); 
+			System.out.println("Not a triangle.");
+		    return(0);
 		}
-		else
-		{ 
-			base_slope = (y2 - y1)/(x2 - x1);
-			if(base_slope != 0.)
-			{	
-				//Base slope is defined and non-zero.
-				base_intercept               = getYIntercept(base1, base_slope);		
-			    perpendicular_slope          = -1. / base_slope;
-		        double top_intercept         = getYIntercept(top, perpendicular_slope);
-		        double x_intersect           = (base_intercept - top_intercept)/(perpendicular_slope - base_slope);
-		        double y_intersect           = base_slope * x_intersect + base_intercept;
-		        Point2D.Double top_intersect = new Point2D.Double(x_intersect, y_intersect);
-		        height                       = new Line2D.Double(top, top_intersect);  
-			}
-			else
+		if((y1 == y2) && (y2 == y3))
+		{
+			System.out.println("Not a triangle.");
+			return(0);
+		}
+		
+		double         width    = 0;
+		double         height   = 0;
+		Point2D.Double location = new Point2D.Double();
+		
+		if(x1 != x2)
+		{
+		    if(x1 > x3 && x2 > x3)
+		    {
+		        if(x1 < x2)	
+		        {
+		        	     	
+		        }
+		        else
+		        {
+		        	
+		        }
+		    }
+		    else if (x1 < x3 && x2 < x3)
 			{
-				//Base slope is zero.
-				double y_intersect           = base1.getY();
-				double x_intersect           = top.getX();
-				Point2D.Double top_intersect = new Point2D.Double(x_intersect, y_intersect);
-				height                       = new Line2D.Double(top, top_intersect);
-			}	
+		    	if(x1 > x2)	
+		        {
+		    		  	
+		        }
+		        else
+		        {
+		        	
+		        }	
+			}
+		    else
+		    { 
+		    	
+		    }
+		    double location_x = location.getX();
+			double location_y = location.getY();
+			height            = DataMapper.getDistance(x3, y3, location_x, location_y);
 		}
-		base_length   = getLength(base);
-        height_length = getLength(height);
-        area          = base_length * height_length * .5;
+		else // y1 can't be equal to y2
+		{
+			if(y1 > y3 && y2 > y3)
+		    {
+		        if(y1 < y2)	
+		        {
+		        	     	
+		        }
+		        else
+		        {
+		        	
+		        }
+		    }
+		    else if (y1 < y3 && y2 < y3)
+			{
+		    	if(y1 > y2)	
+		        {
+		    		  	
+		        }
+		        else
+		        {
+		        	
+		        }	
+			}
+		    else
+		    { 
+		    	
+		    }	
+		}
+		
+		System.out.println("Height is " + height);
+		System.out.println("Width is " + width);
+		double area = height * width / 2;
+        if(area == 0)
+        {
+        	System.out.println("Calculated a zero area.");
+        	System.out.println("x1 = " + x1 + ", y1 = " + y1 + " x2 = " + x2 + ",  y2 = " +  y2 + " x3 = " +  x3 + ", y3 = " +  y3);
+        }
 	    return(area);
 	}	
 	
@@ -291,7 +333,8 @@ public class DataMapper
 		}
 		return(location_type);
 	}
-    
+   
+	/*
 	public static double getLinearExtrapolation(Point2D.Double point, Sample interior, Sample corner1, Sample corner2)
     {
 		double x1 = point.x;
@@ -318,6 +361,54 @@ public class DataMapper
         double weight2    = area2 / total_area;
         double weight3    = area3 / total_area;
         
+        double value = (total_area * interior.intensity - (corner1.intensity * area2 + corner2.intensity * area3)) / area1;
+        return(value);    	
+    }
+    */
+	
+	public static double getLinearExtrapolation(Point2D.Double point, Sample interior, Sample corner1, Sample corner2)
+    {
+		double x1 = point.x;
+    	double y1 = point.y; 
+    	
+    	double x2 = corner1.x;
+    	double y2 = corner1.y;
+    	
+    	double x3 = corner2.x;
+    	double y3 = corner2.y;  
+    	
+    	Point2D.Double interior_point = new Point2D.Double(interior.x, interior.y); 
+    	
+		Point2D.Double base1  = new Point2D.Double(x1, y1);
+        Point2D.Double top    = new Point2D.Double(x2, y2);
+        Point2D.Double base2  = new Point2D.Double(x3, y3); 
+        
+        double area1 = DataMapper.getTriangleArea(interior_point, base2, top);
+        double area2 = DataMapper.getTriangleArea(base1, base2, interior_point);
+        double area3 = DataMapper.getTriangleArea(base1, interior_point, top);
+        
+        double total_area = area1 + area2 + area3;
+        double weight1    = area1 / total_area;
+        double weight2    = area2 / total_area;
+        double weight3    = area3 / total_area;
+        
+        if(area1 == 0)
+        {
+        	System.out.println("Area 1 is not a triangle.");
+        	System.out.println("Interior x is " + String.format("%.2f", interior.x));
+        	System.out.println("Corner 1 x is " + String.format("%.2f", corner1.x));
+        	System.out.println("Corner 2 x is " + String.format("%.2f", corner2.x));
+        	System.out.println("Interior y is " + String.format("%.2f", interior.y));
+        	System.out.println("Corner 1 y is " + String.format("%.2f", corner1.y));
+        	System.out.println("Corner 2 y is " + String.format("%.2f", corner2.y));
+        	System.out.println();
+        }
+        /*
+        if(area2 == 0)
+        	System.out.println("Area 2 is not a triangle.");
+        if(area3 == 0)
+        	System.out.println("Area 3 is not a triangle.");
+        */
         double value = (total_area * interior.intensity - (corner1.intensity * area2 + corner2.intensity * area3)) / area1;
         return(value);    	
     }
