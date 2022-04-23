@@ -155,8 +155,27 @@ public class DataMapper
 		if((y1 == y2) && (y2 == y3))
 		{
 			System.out.println("Not a triangle.");
-			return(0);
+		    return(0);
 		}
+		if((x1 == x2 && y1 == y2) || (x1 == x3 && y1 == y3) || (x1 == x3 && y1 == y3))
+		{
+			System.out.println("Not a triangle.");
+		    return(0);   	
+		}
+		
+		double a      = DataMapper.getDistance(x1, y1, x2, y2);
+		double b      = DataMapper.getDistance(x2, y2, x3, y3);
+		double c      = DataMapper.getDistance(x3, y3, x1, y1);
+		double s      = (a + b + c) / 2;
+		double square = s * (s - a) * (s - b) * (s - c); 
+		double area   = Math.sqrt(square);
+		
+		
+		/*
+		// The values produced by Heron's formula and the bisecting formula are slightly different.
+		// Will use the formula until we understand why--the result from the formula does not
+		// look like a natural number but has been well tested, to say the least.
+		System.out.println("The value produced by Heron's formula is " + area);
 		
 		double         width    = 0;
 		double         height   = 0;
@@ -168,31 +187,49 @@ public class DataMapper
 		    {
 		        if(x1 < x2)	
 		        {
-		        	     	
+		        	location          = DataMapper.getBisectingPoint(x3, y3, x2, y2, base1);
+			        double location_x = location.getX();
+					double location_y = location.getY();
+					height            = DataMapper.getDistance(x1, y1, location_x, location_y);	
+					width             = DataMapper.getDistance(x2, y2, x3, y3);
 		        }
 		        else
 		        {
-		        	
+		        	location          = DataMapper.getBisectingPoint(x3, y3, x1, y1, base2);
+			        double location_x = location.getX();
+					double location_y = location.getY();
+					height            = DataMapper.getDistance(x2, y2, location_x, location_y); 
+					width             = DataMapper.getDistance(x1, y1, x3, y3);
 		        }
 		    }
 		    else if (x1 < x3 && x2 < x3)
 			{
 		    	if(x1 > x2)	
 		        {
-		    		  	
+		    		location          = DataMapper.getBisectingPoint(x3, y3, x2, y2, base1);
+		    		double location_x = location.getX();
+					double location_y = location.getY();
+					height            = DataMapper.getDistance(x1, y1, location_x, location_y);	
+					width             = DataMapper.getDistance(x2, y2, x3, y3);
 		        }
 		        else
 		        {
-		        	
+		        	location          = DataMapper.getBisectingPoint(x3, y3, x1, y1, base2);
+			        double location_x = location.getX();
+					double location_y = location.getY();
+					height            = DataMapper.getDistance(x2, y2, location_x, location_y); 
+					width             = DataMapper.getDistance(x1, y1, x3, y3);   	
 		        }	
 			}
 		    else
 		    { 
-		    	
+		        location          = DataMapper.getBisectingPoint(x1, y1, x2, y2, top);
+		        double location_x = location.getX();
+				double location_y = location.getY();
+				height            = DataMapper.getDistance(x3, y3, location_x, location_y);
+				width             = DataMapper.getDistance(x1, y1, x2, y2);
 		    }
-		    double location_x = location.getX();
-			double location_y = location.getY();
-			height            = DataMapper.getDistance(x3, y3, location_x, location_y);
+		    
 		}
 		else // y1 can't be equal to y2
 		{
@@ -200,38 +237,56 @@ public class DataMapper
 		    {
 		        if(y1 < y2)	
 		        {
-		        	     	
+		        	location          = DataMapper.getBisectingPoint(x3, y3, x2, y2, base1);
+		    		double location_x = location.getX();
+					double location_y = location.getY();
+					height            = DataMapper.getDistance(x1, y1, location_x, location_y);	
+					width             = DataMapper.getDistance(x2, y2, x3, y3);	     	
 		        }
 		        else
 		        {
-		        	
+		        	location          = DataMapper.getBisectingPoint(x3, y3, x1, y1, base2);
+			        double location_x = location.getX();
+					double location_y = location.getY();
+					height            = DataMapper.getDistance(x2, y2, location_x, location_y); 
+					width             = DataMapper.getDistance(x1, y1, x3, y3);   	
 		        }
 		    }
 		    else if (y1 < y3 && y2 < y3)
 			{
 		    	if(y1 > y2)	
 		        {
-		    		  	
+		    		location          = DataMapper.getBisectingPoint(x3, y3, x2, y2, base1);
+		    		double location_x = location.getX();
+					double location_y = location.getY();
+					height            = DataMapper.getDistance(x1, y1, location_x, location_y);	
+					width             = DataMapper.getDistance(x2, y2, x3, y3);		 	  	
 		        }
 		        else
 		        {
-		        	
+		        	location          = DataMapper.getBisectingPoint(x3, y3, x1, y1, base2);
+			        double location_x = location.getX();
+					double location_y = location.getY();
+					height            = DataMapper.getDistance(x2, y2, location_x, location_y); 
+					width             = DataMapper.getDistance(x1, y1, x3, y3);   	
 		        }	
 			}
 		    else
 		    { 
-		    	
+		    	location          = DataMapper.getBisectingPoint(x1, y1, x2, y2, top);
+		        double location_x = location.getX();
+				double location_y = location.getY();
+				height            = DataMapper.getDistance(x3, y3, location_x, location_y);
+				width             = DataMapper.getDistance(x1, y1, x2, y2);	  	
 		    }	
 		}
 		
-		System.out.println("Height is " + height);
-		System.out.println("Width is " + width);
-		double area = height * width / 2;
-        if(area == 0)
-        {
-        	System.out.println("Calculated a zero area.");
-        	System.out.println("x1 = " + x1 + ", y1 = " + y1 + " x2 = " + x2 + ",  y2 = " +  y2 + " x3 = " +  x3 + ", y3 = " +  y3);
-        }
+		//System.out.println("Height is " + height);
+		//System.out.println("Width is " + width);
+		area = height * width / 2;
+		System.out.println("The value produced using the bisecting location is " + area);
+		
+		*/
 	    return(area);
 	}	
 	
