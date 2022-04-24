@@ -149,33 +149,37 @@ public class DataMapper
 		// Return 0 if the points are on a line.	
 		if((x1 == x2) && (x2 == x3))
 		{
-			System.out.println("Not a triangle.");
+			System.out.println("Not a triangle: x-values collinear.");
 		    return(0);
 		}
 		if((y1 == y2) && (y2 == y3))
 		{
-			System.out.println("Not a triangle.");
+			System.out.println("Not a triangle: y-values collinear.");
 		    return(0);
 		}
 		if((x1 == x2 && y1 == y2) || (x1 == x3 && y1 == y3) || (x1 == x3 && y1 == y3))
 		{
-			System.out.println("Not a triangle.");
+			System.out.println("Not a triangle: duplicate points.");
 		    return(0);   	
 		}
 		
+		/*
 		double a      = DataMapper.getDistance(x1, y1, x2, y2);
 		double b      = DataMapper.getDistance(x2, y2, x3, y3);
 		double c      = DataMapper.getDistance(x3, y3, x1, y1);
 		double s      = (a + b + c) / 2;
 		double square = s * (s - a) * (s - b) * (s - c); 
 		double area   = Math.sqrt(square);
+		*/
 		
 		
-		/*
 		// The values produced by Heron's formula and the bisecting formula are slightly different.
-		// Will use the formula until we understand why--the result from the formula does not
+		// The result from the formula does not
 		// look like a natural number but has been well tested, to say the least.
-		System.out.println("The value produced by Heron's formula is " + area);
+		//System.out.println("The value produced by Heron's formula is " + area);
+		
+		// Using the bisector because it sometimes produces a non-zero result when
+		// the formula goes to 0.  
 		
 		double         width    = 0;
 		double         height   = 0;
@@ -283,10 +287,20 @@ public class DataMapper
 		
 		//System.out.println("Height is " + height);
 		//System.out.println("Width is " + width);
-		area = height * width / 2;
-		System.out.println("The value produced using the bisecting location is " + area);
+		double area = height * width / 2;
+		//System.out.println("The value produced using the bisecting location is " + area);
 		
-		*/
+		if(area == 0)
+		{
+			System.out.println("Calculated a zero area.");
+			System.out.println("x1 = " + x1 + ", y1 = " + y1);
+			System.out.println("x2 = " + x2 + ", y2 = " + y2);
+			System.out.println("x3 = " + x3 + ", y3 = " + y3);
+		}
+		if(Double.isNaN(area))
+		{
+			System.out.println("Result from bisecting location was not a number.");
+		}
 	    return(area);
 	}	
 	
@@ -434,36 +448,45 @@ public class DataMapper
     	
     	Point2D.Double interior_point = new Point2D.Double(interior.x, interior.y); 
     	
-		Point2D.Double base1  = new Point2D.Double(x1, y1);
-        Point2D.Double top    = new Point2D.Double(x2, y2);
+    	Point2D.Double top    = new Point2D.Double(x1, y2);
+		Point2D.Double base1  = new Point2D.Double(x2, y2);
         Point2D.Double base2  = new Point2D.Double(x3, y3); 
         
-        double area1 = DataMapper.getTriangleArea(interior_point, base2, top);
-        double area2 = DataMapper.getTriangleArea(base1, base2, interior_point);
-        double area3 = DataMapper.getTriangleArea(base1, interior_point, top);
+        double area1 = DataMapper.getTriangleArea(interior_point, base1, base2);
+        double area2 = DataMapper.getTriangleArea(top, interior_point, base2);
+        double area3 = DataMapper.getTriangleArea(top, interior_point, base1);
         
         double total_area = area1 + area2 + area3;
         double weight1    = area1 / total_area;
         double weight2    = area2 / total_area;
         double weight3    = area3 / total_area;
         
-        if(area1 == 0)
+        if(area1 == 0  || Double.isNaN(area1))
         {
         	System.out.println("Area 1 is not a triangle.");
-        	System.out.println("Interior x is " + String.format("%.2f", interior.x));
-        	System.out.println("Corner 1 x is " + String.format("%.2f", corner1.x));
-        	System.out.println("Corner 2 x is " + String.format("%.2f", corner2.x));
-        	System.out.println("Interior y is " + String.format("%.2f", interior.y));
-        	System.out.println("Corner 1 y is " + String.format("%.2f", corner1.y));
-        	System.out.println("Corner 2 y is " + String.format("%.2f", corner2.y));
-        	System.out.println();
+        	System.out.println("Interior x = " + String.format("%.2f", interior.x) + ", y = " + String.format("%.2f", interior.y));
+        	System.out.println("Corner 1 x = " + String.format("%.2f", x2) + ", y = " + String.format("%.2f", y2));
+        	System.out.println("Corner 2 x = " + String.format("%.2f", x3) + ", y = " + String.format("%.2f", y3));
+        	return(Double.NaN);
         }
-        /*
-        if(area2 == 0)
+        
+        if(area2 == 0 || Double.isNaN(area2))
+        {
         	System.out.println("Area 2 is not a triangle.");
-        if(area3 == 0)
+        	System.out.println("Top x = " + String.format("%.2f", x1) + ", y = " + String.format("%.2f", y1));
+        	System.out.println("Interior x = " + String.format("%.2f", interior.x) + ", y = " + String.format("%.2f", interior.y));
+        	System.out.println("Corner 2 x = " + String.format("%.2f", x3) + ", y = " + String.format("%.2f", y3));
+        	return(Double.NaN);
+        }
+        
+        if(area3 == 0 || Double.isNaN(area3))
+        {
         	System.out.println("Area 3 is not a triangle.");
-        */
+        	System.out.println("Top x = " + String.format("%.2f", x2) + ", y = " + String.format("%.2f", y2));
+        	System.out.println("Interior x = " + String.format("%.2f", interior.x) + ", y = " + String.format("%.2f", interior.y));
+        	System.out.println("Corner 1 x = " + String.format("%.2f", x2) + ", y = " + String.format("%.2f", y2));
+        	return(Double.NaN);
+        }
         double value = (total_area * interior.intensity - (corner1.intensity * area2 + corner2.intensity * area3)) / area1;
         return(value);    	
     }
@@ -487,6 +510,24 @@ public class DataMapper
         double area1 = DataMapper.getTriangleArea(point, base2, top);
         double area2 = DataMapper.getTriangleArea(base1, base2, point);
         double area3 = DataMapper.getTriangleArea(base1, point, top);
+        
+        if(area1 == 0  || Double.isNaN(area1))
+        {
+        	System.out.println("Area 1 is 0.");
+        	return(Double.NaN);
+        }
+        
+        if(area2 == 0 || Double.isNaN(area2))
+        {
+        	System.out.println("Area 2 is 0.");
+        	return(Double.NaN);
+        }
+        
+        if(area3 == 0 || Double.isNaN(area3))
+        {
+        	System.out.println("Area 3 is 0.");
+        	return(Double.NaN);
+        }
         
         double total_area = area1 + area2 + area3;
         double weight1    = area1 / total_area;
@@ -609,12 +650,17 @@ public class DataMapper
 		Line2D.Double endpoint_line2 = new Line2D.Double(x2, y2, x3, y3);
 		double        length1 = DataMapper.getLength(endpoint_line1);
 		double        length2 = DataMapper.getLength(endpoint_line2);
-		if(distance == length1 || distance == length2) // No biscecting line, return one of the endpoint values.
+		if(distance == length1 || distance == length2) // No bisecting line, return not a number.
 		{
+			/*
 			if(distance == length1)
 				return(sample1.intensity);
 			else
 				return(sample2.intensity);
+			*/
+			// It might be useful to return the value of the near endpoint.
+			// Returning not a number makes it easier to debug programs.
+			return(Double.NaN);
 		}
 
 		if(x1 == x2)
@@ -675,10 +721,7 @@ public class DataMapper
 		    double d_degrees =  90 - c_degrees; 
 		    double d_radians = Math.PI / 2 - c_radians; 
 		    double segment_length = hypotenuse_length * Math.sin(d_radians);
-		    /*
-		    double weight1 = segment_length /length;
-		    double weight2 = (length - segment_length) / length;
-		    */
+		    
 		    double weight1 = (length - segment_length) / length;
 		    double weight2 = segment_length /length;
 		    double value = weight1 * sample1.intensity + weight2 * sample2.intensity;
@@ -754,6 +797,8 @@ public class DataMapper
 				Point2D.Double bisecting_point = new  Point2D.Double(x2 + xmin, y2 + ymin);
 				return(bisecting_point);  
 			}
+			// Returning an error code instead of the endpoint would make it easier to debug programs.
+			// Another alternative is extending the line, but that involves a lot of extra logic.
 		}
 
 		if(x1 == x2)
