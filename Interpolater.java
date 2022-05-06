@@ -339,9 +339,7 @@ public class Interpolater
 		}
 		System.out.println("Xmax for clipped data = " + String.format("%.2f", global_xmax) + ", xmin = " + String.format("%.2f", global_xmin));
 		System.out.println("Ymax for clipped data = " + String.format("%.2f", global_ymax) + ", ymin = " + String.format("%.2f", global_ymin)); 
-		
-		
-		
+	
 		double xrange = global_xmax - global_xmin;
 		double yrange = global_ymax - global_ymin;
 			
@@ -393,6 +391,16 @@ public class Interpolater
 		int line_ydim = (int)(yrange / .04);
 		System.out.println("The ideal raster for this flight line has xdim = " + line_xdim + ", ydim = " + line_ydim);
 		
+		// Replace actual intensity values with a gray scale to help evaluate algorithms.
+		for(int i = 0; i < clipped_list.size(); i++)
+		{
+			Sample sample = (Sample) clipped_list.get(i);
+			double synthetic_intensity = (sample.y - ymin) / (ymax - ymin);
+			synthetic_intensity       *= 200;
+			synthetic_intensity       -= 100;
+			sample.intensity = synthetic_intensity;
+		}
+		
 		for(int i = 0; i < clipped_list.size() - 5; i += 5)
 		{
 		    for(int j = i; j < i + 4; j++)
@@ -407,6 +415,7 @@ public class Interpolater
 		    	Point2D.Double upper_left_point  = new Point2D.Double(upper_left.x, upper_left.y);
 		    	Point2D.Double upper_right_point = new Point2D.Double(upper_right.x, upper_right.y);
 		    	
+		    	/*
 		    	if(lower_left.x < upper_left.x)
 		    		xmin = lower_left.x;
 		    	else
@@ -423,49 +432,124 @@ public class Interpolater
 		    		ymin = lower_left.y;
 		    	else
 		    		ymin = lower_right.y;
+		    	*/
 		    	
-		    	ArrayList xlist = new ArrayList();
+		    	if(lower_left.x < upper_left.x)
+		    		xmin = upper_left.x;
+		    	else
+		    		xmin = lower_left.x;
+		    	if(lower_right.x > upper_right.x)
+		    		xmax = upper_right.x;
+		    	else
+		    		xmax = lower_right.x;
+		    	if(upper_left.y > upper_right.y)
+		    	    ymax = upper_right.y;
+		    	else
+		    		ymax = upper_left.y;
+		    	if(lower_left.y < lower_right.y)
+		    		ymin = lower_right.y;
+		    	else
+		    		ymin = lower_left.y;
 		    	
-		    	// Still not handling cases where the original data location
-		    	// is the same as the ideal data location.  
 		    	
 		    	int start_whole_part = (int)Math.floor(xmin);
 		    	double start_fractional_part = xmin - start_whole_part;
 		    	
-		    	if(start_fractional_part < .25)
+		    	if(start_fractional_part != .25 && start_fractional_part != .75)
 		    	{
-		    		start_fractional_part = .25;
-		    	}
-		    	else if(start_fractional_part < .75)
-		    	{
-		    		start_fractional_part = .75;   
-		    	}
-		    	else
-		    	{
-		    		start_fractional_part = .25; 
-		    		start_whole_part++;
+		    	    if(start_fractional_part < .25)
+		    	    {
+		    		    start_fractional_part = .25;
+		    	    }
+		    	    else if(start_fractional_part < .75)
+		    	    {
+		    		    start_fractional_part = .75;   
+		    	    }
+		    	    else
+		    	    {
+		    		    start_fractional_part = .25; 
+		    		    start_whole_part++;
+		    	    }
 		    	}
 		    	
 		    	double x_value = start_whole_part + start_fractional_part;
 		    	
-		    	/*
 		    	start_whole_part = (int)Math.floor(ymin);
 		    	start_fractional_part = ymin - start_whole_part;
-		    	
-		    	if(start_whole_part % 2 == 0)
+		    	if(start_fractional_part % .04 != 0)
 		    	{
-		    	  	
+		    		double modulus         = start_fractional_part % .04;
+	    	  	    double increment       = .04 - modulus;
+	    	  	    start_fractional_part += increment;  
+		    	}
+		    	double y_value = start_whole_part + start_fractional_part;
+		    	
+		    	int x_index = 0;
+		    	double current_location = global_xmin;
+		    	while(current_location < x_value)
+		    	{
+		    		x_index++;
+		    		current_location += .5;
+		    	}
+		    	
+		    	int y_index = 0;
+		    	current_location = global_ymin;
+		    	while(current_location < y_value)
+		    	{
+		    		y_index++;
+		    		current_location += .04;
+		    	}
+		    	
+		    	Path2D.Double cell = new Path2D.Double();
+		    	cell.moveTo(lower_left.x, lower_left.y);
+				cell.lineTo(upper_left.x, upper_left.y);
+				cell.lineTo(upper_right.x, upper_right.y);
+				cell.lineTo(lower_right.x, lower_right.y);
+				cell.closePath();
+				
+				if(cell.contains(x_value, y_value))
+				{
+				    //System.out.println("Cell contains calculated ideal location.");	
+				}
+				else
+				{
+					System.out.println("Calculated ideal location is not within cell at j = " + j);
+				}
+				
+		    	ArrayList cell_list = global_raster[y_index][x_index];
+		    	
+		    	// One or both of the left hand values fall on an ideal location.
+		    	if(x_value == xmin && y_value == ymin)
+		    	{
+		    	     // Find out if lower left hand value falls on an ideal location.
+		    		 if(lower_left.x == xmin && lower_left.y == ymin)
+		    		 {
+		    			 cell_list.add(lower_left);
+		    		 }
+		    		 // 
+		    		 else if(lower_left.x == xmin)
+		    		 {
+		    			 
+		    		 }
+		    		 else if(lower_left.y == ymin)
+		    		 {
+		    			 
+		    		 }
+		    	}
+		    	else if(x_value == xmin)
+		    	{
+		    		
+		    	}
+		    	else if(y_value == ymin)
+		    	{
+		    		
 		    	}
 		    	else
 		    	{
 		    		
 		    	}
 		    	
-		    	double y_value = start_whole_part + start_fractional_part;
-		    	*/
-		    	
-		    	
-		    	if(j == 0)
+		    	if(j == 1)
 		    	{
 		    		System.out.println("Lower left x = "  + String.format("%.2f", lower_left.x)  + ", y = " + String.format("%.2f", lower_left.y));
 		    		System.out.println("Upper left x = "  + String.format("%.2f", upper_left.x)  + ", y = " + String.format("%.2f", upper_left.y));
@@ -473,7 +557,7 @@ public class Interpolater
 		    		System.out.println("Lower right x = " + String.format("%.2f", lower_right.x) + ", y = " + String.format("%.2f", lower_right.y));
 		    		
 		    		System.out.println("Xmin = " + String.format("%.3f", xmin) + ", xmid = " + String.format("%.3f", x_value) + ", xmax = " + String.format("%.3f", xmax));
-		    		
+		    		System.out.println("Ymin = " + String.format("%.3f", ymin) + ", ymid = " + String.format("%.3f", y_value) + ", ymax = " + String.format("%.3f", ymax));
 		    		double area = DataMapper.getQuadrilateralArea(lower_left_point, upper_left_point, upper_right_point, lower_right_point);
 		    		System.out.println("The area of the quadrilateral is " + String.format("%.2f", area));
 		    	}
@@ -628,6 +712,44 @@ public class Interpolater
 	    	}
 	    }
 	    return(neighbor_list);
+	}
+	
+	public Point2D.Double getIdealLocation(double start_x, double start_y, double global_xmin, double global_ymin)
+	{
+		int start_whole_part = (int)Math.floor(start_x);
+    	double start_fractional_part = start_x - start_whole_part;
+    	
+    	if(start_fractional_part != .25 && start_fractional_part != .75)
+    	{
+    	    if(start_fractional_part < .25)
+    	    {
+    		    start_fractional_part = .25;
+    	    }
+    	    else if(start_fractional_part < .75)
+    	    {
+    		    start_fractional_part = .75;   
+    	    }
+    	    else
+    	    {
+    		    start_fractional_part = .25; 
+    		    start_whole_part++;
+    	    }
+    	}
+    	
+    	double x_value = start_whole_part + start_fractional_part;
+    	
+    	start_whole_part = (int)Math.floor(start_y);
+    	start_fractional_part = start_y - start_whole_part;
+    	if(start_fractional_part % .04 != 0)
+    	{
+    		double modulus         = start_fractional_part % .04;
+	  	    double increment       = .04 - modulus;
+	  	    start_fractional_part += increment;  
+    	}
+    	double y_value = start_whole_part + start_fractional_part;
+    	
+	    Point2D.Double location = new Point2D.Double(x_value, y_value);	
+	    return(location);
 	}
 	
 	public int getLocationType(int xindex, int yindex, int xdim, int ydim)
