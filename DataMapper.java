@@ -1073,12 +1073,8 @@ public class DataMapper
 	    	else
 	    	    theta2 = DataMapper.getSlopeRadians(hypotenuse);
 	    	
-	    	double r1     = getLength(x1, y1, x3, y3);
-	    	double r2     = getLength(x1, y1, x2, y2);
 	    	double _x1    = 0;
 	    	double _y1    = 0;
-	    	double _x2    = 0;
-	    	double _y2    = 0;
 	    	double _x3    = 0;
 	    	double _y3    = 0;
 	    	double xshift = 0;
@@ -1087,19 +1083,15 @@ public class DataMapper
 	    	{
 	    		_x1 = x1;
 	    		_y1 = y1;
-	    		_x2 = x2;
-	    		_y2 = y2;
 	    		_x3 = x3;
 	    		_y3 = y3;
 	    	}
 	    	else
 	    	{
-	    		_x1 = 0;
-	    		_y1 = 0;
-	    		_x2 = r2;
-	    		_y2 = 0;
-	    		_x3 = r1 * Math.cos(theta2 - theta1);
-	    		_y3 = r1 * Math.sin(theta2 - theta1);
+	    		_x1    = 0;
+	    		_y1    = 0;
+	    		_x3    = distance2 * Math.cos(theta2 - theta1);
+	    		_y3    = distance2 * Math.sin(theta2 - theta1);
 	    		xshift = x1;
 	    		yshift = y1;
 	    	}
@@ -1113,10 +1105,22 @@ public class DataMapper
 			else
 				a_radians = DataMapper.getSlopeRadians(hypotenuse);
 		    double b_radians      = Math.PI / 2 - a_radians;    
-			double segment_length = r1 * Math.sin(b_radians);
-			double x4             = segment_length * Math.cos(theta1) + xshift;
-			double y4             = segment_length * Math.sin(theta1) + yshift;
-		
+			double base_length    = distance2 * Math.sin(b_radians);
+			double x4             = base_length * Math.cos(theta1) + xshift;
+			double y4             = base_length * Math.sin(theta1) + yshift;
+			
+			double distance4 = getLength(x4, y4, x3, y3);
+			//System.out.println("The distance returned by line.ptSegDist() = " + distance1);
+		    //System.out.println("The distance calculated with the law of sines = " + distance4);
+		    double difference = Math.abs(distance1 - distance4);
+		    if(difference > .1)
+		    {
+		    	System.out.println("Discrepancy in calculating bisecting point.");
+		    	System.out.println("x1 = " + x1 + ", y1 = " + y1);
+		    	System.out.println("x2 = " + x2 + ", y2 = " + y2);
+		    	System.out.println("x3 = " + x3 + ", y3 = " + y3);
+		    }
+			
 			Point2D.Double bisecting_point = new  Point2D.Double(x4, y4);
 			return(bisecting_point);
 	    }
