@@ -142,7 +142,159 @@ public class DataMapper
 		return(perimeter);	
 	}
 	
-	
+
+	public static Point2D.Double getNearestPoint(double x1, double y1, double x2, double y2, Point2D.Double point)
+	{ 
+		double         x3       = point.getX();
+		double         y3       = point.getY();
+		Line2D.Double line      = new Line2D.Double(x1, y1, x2, y2);
+		double        distance1 = line.ptSegDist(x3, y3);
+		double        distance2 = getLength(x1, y1, x3, y3);
+		double        distance3 = getLength(x2, y2, x3, y3);
+		
+		
+		if(distance1 == distance2)
+	    {
+	    	Point2D.Double end_point = new  Point2D.Double(x1, y1);	
+	    	return(end_point);
+	    }
+	    else if(distance1 == distance3)
+	    {
+	    	Point2D.Double end_point = new  Point2D.Double(x2, y2);	
+	    	return(end_point);	
+	    }
+	    else if(x1 == x2)
+		{
+			Point2D.Double bisecting_point = new  Point2D.Double(x1, y3);	
+	    	return(bisecting_point);   	
+		}
+		else if(y1 == y2)
+		{
+			Point2D.Double bisecting_point = new  Point2D.Double(x3, y1);	
+	    	return(bisecting_point);	
+		} 
+		
+	    else
+	    {
+	    	/*
+	    	if(y1 == y3)
+			{
+				if(x2 == x3)
+				{
+					double temp = x1;
+					x1          = x2;
+					x2          = temp;
+					
+					temp = y1;
+					y1          = y2;
+					y2          = temp;
+					
+				}
+			}
+			else if(y2 == y3)
+			{
+				if(x1 == x3)
+				{
+					double temp = x1;
+					x1          = x2;
+					x2          = temp;
+					
+					temp = y1;
+					y1          = y2;
+					y2          = temp;
+				}
+			}
+			*/
+	    	
+	    	double theta1 = DataMapper.getSlopeRadians(line);
+	    	
+	    	
+	    	Line2D.Double hypotenuse = new Line2D.Double(x1, y1, x3, y3);
+	    	double theta2 = 0;
+	    	if(x1 == x3)
+	    	{
+	    		if(y1 < y2)
+	    		    theta2 = Math.PI / 2;
+	    		else
+	    			theta2 = -Math.PI / 2;	
+	    	}
+	    	else
+	    	    theta2 = DataMapper.getSlopeRadians(hypotenuse);
+	    	
+	    	double _x1    = 0;
+	    	double _y1    = 0;
+	    	double _x3    = 0;
+	    	double _y3    = 0;
+	    	double xshift = 0;
+	    	double yshift = 0;
+	    	if(theta1 == 0)
+	    	{
+	    		_x1 = x1;
+	    		_y1 = y1;
+	    		_x3 = x3;
+	    		_y3 = y3;
+	    	}
+	    	else
+	    	{
+	    		_x1    = 0;
+	    		_y1    = 0;
+	    		_x3    = distance2 * Math.cos(theta2 - theta1);
+	    		_y3    = distance2 * Math.sin(theta2 - theta1);
+	    		xshift = x1;
+	    		yshift = y1;
+	    	}
+	    	
+	    	hypotenuse       = new Line2D.Double(_x1, _y1, _x3, _y3);
+	    	double a_radians = 0;
+		    if(_x1 == _x3)
+			    a_radians = Math.PI / 2;
+		    else if(_y1 == _y3)
+		    {
+				a_radians = 0;
+				System.out.println("Got here1.");
+		    }
+		    /*
+		    else if(y1 == y3)
+		    {
+		    	System.out.println("Got here2.");	
+		    }
+		    */
+			else
+				a_radians = DataMapper.getSlopeRadians(hypotenuse);
+		    double b_radians      = Math.PI / 2 - a_radians;    
+			double base_length    = distance2 * Math.sin(b_radians);
+			double x4             = base_length * Math.cos(theta1) + xshift;
+			double y4             = base_length * Math.sin(theta1) + yshift;
+			double distance4      = getLength(x4, y4, x3, y3);
+		    double difference     = Math.abs(distance1 - distance4);
+		    if(difference > .1)
+		    {
+		    	System.out.println("Discrepancy in calculating nearest_location.");
+		    	System.out.println("The distance returned by line.ptSegDist() = " + distance1);
+			    System.out.println("The distance calculated with the law of sines = " + distance4);
+		    	System.out.println("x1 = " + x1 + ", y1 = " + y1);
+		    	System.out.println("x2 = " + x2 + ", y2 = " + y2);
+		    	System.out.println("x3 = " + x3 + ", y3 = " + y3);
+		    	
+		    	System.out.println("_x1 = " + _x1 + ", _y1 = " + _y1);
+		        System.out.println("_x3 = " + _x3 + ", _y3 = " + _y3);
+		    	
+		    	
+		    	if(x1 == x2)
+		    		System.out.println("x1 == x2");
+		    	else
+		    		System.out.println("x1 != x2");
+		    	if(y1 == y2)
+		    		System.out.println("y1 == y2");
+		    	else
+		    		System.out.println("y1 != y2");
+		    	System.out.println();
+		    }
+			
+			Point2D.Double bisecting_point = new  Point2D.Double(x4, y4);
+			return(bisecting_point);
+	    }
+	}
 	
 	public static double getTriangleArea(Point2D.Double point1, Point2D.Double point2, Point2D.Double point3)
 	{
@@ -186,63 +338,64 @@ public class DataMapper
 		double square = s * (s - a) * (s - b) * (s - c); 
 		double area   = Math.sqrt(square);
 		
-		System.out.println("The value produced using Heron's formula is " + area);
+		//System.out.println("The value produced using Heron's formula is " + area);
 		
 		// The values produced by Heron's formula and the bisecting formula are slightly different.
-		// The result from Heron's formula does not
-		// look like a natural number but has been well tested, to say the least.
-		// The bisecting formula is subject to constraints that are probably best
-		// satisfied by rotating the points to a standard orientation, not yet implemented.
+		// The result from Heron's formula does not look like a natural number but has been well tested,
+		// to say the least.
+		
+		// The perpendicular bisector approach is subject to constraints that are probably best
+		// satisfied by rotating the points to a standard orientation.
 		
 		//The bisector is useful because it sometimes produces a non-zero result when
 		// the formula goes to 0 and it might be more accurate.  
-		// For now, sticking with Heron's formula and seeing if the interpolation 
-		// can work.
-	    
-		
-		
-		
-		
-		
-		
-		
-		
 		
 		double         width    = 0;
 		double         height   = 0;
 		Point2D.Double location = new Point2D.Double();
 		
-		// Find the longest or equal to the longest side that is bound to have a perpendicular bisector.
-		if(a >= b && a >= c)
+		
+		double length1 = DataMapper.getLength(x1, y1, x2, y2);
+		double length2 = DataMapper.getLength(x2, y2, x3, y3);
+		double length3 = DataMapper.getLength(x3, y3, x1, y1);
+		
+		if(x1 == x2 && ((x1 <= x3 && x3 <= x2) ||  (x1 >= x3 && x3 >= x2)))
+			location = new  Point2D.Double(x1, y3);	
+		else if(y1 == y2 && ((y1 <= y3 && y3 <= y2) ||  (y1 >= y3 && y3 >= y2)))
+			location = new  Point2D.Double(x3, y1);	
+		else
+		    location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
+		double x4 = location.getX();
+		double y4 = location.getY();
+		double distance = DataMapper.getDistance(x4, y4, x3, y3);
+		if(distance != length2 && distance != length3)
 		{
-			//location          = DataMapper.getBisectingPoint(x1, y1, x2, y2, point3); 
-			location          = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
-			double location_x = location.getX();
-			double location_y = location.getY();
-			height            = DataMapper.getDistance(x3, y3, location_x, location_y);	
-			width             = DataMapper.getDistance(x1, y1, x2, y2);
-		}
-		else if(b >= c)
-		{
-			//location          = DataMapper.getBisectingPoint(x2, y2, x3, y3, point1);
-			location          = DataMapper.getNearestPoint(x2, y2, x3, y3, point1);
-			double location_x = location.getX();
-			double location_y = location.getY();
-			height            = DataMapper.getDistance(x1, y1, location_x, location_y);	
-			width             = DataMapper.getDistance(x2, y2, x3, y3);
+			height            = DataMapper.getDistance(x3, y3, x4, y4);	
+			width             = DataMapper.getDistance(x1, y1, x2, y2);	
 		}
 		else
 		{
-			//location          = DataMapper.getBisectingPoint(x1, y1, x3, y3, point2);
-			location          = DataMapper.getNearestPoint(x1, y1, x3, y3, point2);
-			double location_x = location.getX();
-			double location_y = location.getY();
-			height            = DataMapper.getDistance(x2, y2, location_x, location_y);	
-			width             = DataMapper.getDistance(x1, y1, x3, y3);
+			location = DataMapper.getNearestPoint(x2, y2, x3, y3, point1);
+			x4 = location.getX();
+			y4 = location.getY();
+			distance = DataMapper.getDistance(x4, y4, x1, y1);
+			if(distance != length1 && distance != length3)
+			{
+				height            = DataMapper.getDistance(x1, y1, x4, y4);	
+				width             = DataMapper.getDistance(x2, y2, x3, y3);	
+			}
+			else
+			{
+				location = DataMapper.getNearestPoint(x3, y3, x1, y1, point2);
+				x4 = location.getX();
+				y4 = location.getY();   
+				height            = DataMapper.getDistance(x2, y2, x4, y4);	
+				width             = DataMapper.getDistance(x3, y3, x1, y1);
+			}
 		}
 		
 		area = height * width / 2;
-	    System.out.println("The value produced using the bisecting location is " + area);
+	    //System.out.println("The value produced using the bisecting location is " + area);
 		
 		if(area == 0)
 		{
@@ -259,6 +412,35 @@ public class DataMapper
 		
 	    return(area);
 	}	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	public static double getQuadrilateralPerimeter(Point2D.Double lower_left, Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right)
 	{
@@ -287,11 +469,11 @@ public class DataMapper
 		
 		
 	    double area1 = getTriangleArea(upper_left, lower_left, upper_right);
-	    System.out.println("Top triangle area is " + area1);
-	    System.out.println("Base 1 = " + upper_left + ", base 2 = " + lower_left + ", top = " + upper_right);
+	    //System.out.println("Top triangle area is " + area1);
+	    //System.out.println("Base 1 = " + upper_left + ", base 2 = " + lower_left + ", top = " + upper_right);
 	    double area2 = getTriangleArea(upper_right, lower_right, lower_left);
-	    System.out.println("Bottom triangle area is " + area2);
-	    System.out.println("Base 1 = " + upper_right + ", base 2 = " + lower_right + ", top = " + lower_left);
+	    //System.out.println("Bottom triangle area is " + area2);
+	    //System.out.println("Base 1 = " + upper_right + ", base 2 = " + lower_right + ", top = " + lower_left);
 	    double area = area1 + area2;
 	    return(area);
 	}
@@ -497,7 +679,7 @@ public class DataMapper
 	    boolean area3IsTriangle = false;
 	    boolean area4IsTriangle = false;
 	    
-	    Point2D.Double middle_top    =  getBisectingPoint(x1, y1, x2, y2, point);
+	    Point2D.Double middle_top    =  getNearestPoint(x1, y1, x2, y2, point);
 	    
 	    double x = middle_top.getX();
 	    double y = middle_top.getY(); 
@@ -514,26 +696,24 @@ public class DataMapper
 	    	}
 	    }
 	    
-	    Point2D.Double middle_left   =  getBisectingPoint(x4, y4, x1, y1, point);
+	    Point2D.Double middle_left   =  getNearestPoint(x4, y4, x1, y1, point);
 	    x = middle_left.getX();
 	    y = middle_left.getY(); 
 	    
 	    if((x == x1 && y == y1) || (x == x4 && y == y4))
 	    {
-	    	System.out.println("Bisecting point for left is actually an endpoint.");
-	    	System.out.println("x1 = " + x4 + ", y1 = " + y4 + ", x2 = " + x1 + ", y2 = " + y1);
+	    	//System.out.println("Bisecting point for left is actually an endpoint.");
+	    	//System.out.println("x1 = " + x4 + ", y1 = " + y4 + ", x2 = " + x1 + ", y2 = " + y1);
 	   
 	    	x = point.getX();
 	    	y = point.getY();
-	    	System.out.println("x = " + x + ", y = " + y);
-	    	System.out.println();
 	    	if(x == x1 && y == y1)
 	    	    area1IsTriangle = true;
 	    	else
 	    	    area4IsTriangle = true;
 	    }
 	    
-	    Point2D.Double middle_right  =  getBisectingPoint(x3, y3, x2, y2, point);
+	    Point2D.Double middle_right  =  getNearestPoint(x3, y3, x2, y2, point);
 	    x = middle_right.getX();
 	    y = middle_right.getY(); 
 	    if((x == x2 && y == y2) || (x == x3 && y == y3))
@@ -545,7 +725,7 @@ public class DataMapper
 	    		area3IsTriangle = true;
 	    }
 	    
-	    Point2D.Double middle_bottom =  getBisectingPoint(x4, y4, x3, y3, point);
+	    Point2D.Double middle_bottom =  getNearestPoint(x4, y4, x3, y3, point);
 	    x = middle_bottom.getX();
 	    y = middle_bottom.getY(); 
 	    if((x == x2 && y == y2) || (x == x4 && y == y4))
@@ -571,10 +751,10 @@ public class DataMapper
 	        area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
 	        
 	        total_area =  getQuadrilateralArea(lower_left, upper_left, upper_right, lower_right);
-		    System.out.println("Total area calculated from cell directly is " + total_area);
-		    System.out.println("Total area calculated by summing seperate areas is " + (area1 + area2 + area3 + area4));
-		    System.out.println("Area 1 = " + area1 + ", area2 = " + area2 + ", area3 = " + area3 + ", area4 is " + area4);
-		    System.out.println();
+		    //System.out.println("Total area calculated from cell directly is " + total_area);
+		    //System.out.println("Total area calculated by summing seperate areas is " + (area1 + area2 + area3 + area4));
+		    //System.out.println("Area 1 = " + area1 + ", area2 = " + area2 + ", area3 = " + area3 + ", area4 is " + area4);
+		    //System.out.println();
 	    }
 	    else if(area1IsTriangle)
 	    {
@@ -640,11 +820,11 @@ public class DataMapper
 	    
 	  
 	    total_area =  DataMapper.getQuadrilateralArea(lower_left, upper_left, upper_right, lower_right);
-	    /*
-	    System.out.println("Total area calculated from cell directly is " + total_area);
-	    System.out.println("Total area calculated by summing seperate areas is " + (area1 + area2 + area3 + area4));
-	    System.out.println();
-	    */
+	    
+	    //System.out.println("Total area calculated from cell directly is " + total_area);
+	    //System.out.println("Total area calculated by summing seperate areas is " + (area1 + area2 + area3 + area4));
+	    //System.out.println();
+	   
 	    	    		
 	    double weight1 = area3 / total_area;
 	    double weight2 = area4 / total_area;
@@ -964,101 +1144,6 @@ public class DataMapper
 	    return(bisecting_point); 
 	}
 	
-	public static Point2D.Double getNearestPoint(double x1, double y1, double x2, double y2, Point2D.Double point)
-	{ 
-		double         x3       = point.getX();
-		double         y3       = point.getY();
-		Line2D.Double line      = new Line2D.Double(x1, y1, x2, y2);
-		double        distance1 = line.ptSegDist(x3, y3);
-		double        distance2 = getLength(x1, y1, x3, y3);
-		double        distance3 = getLength(x2, y2, x3, y3);
-		if(distance1 == distance2)
-	    {
-	    	Point2D.Double end_point = new  Point2D.Double(x1, y1);	
-	    	return(end_point);
-	    }
-	    else if(distance1 == distance3)
-	    {
-	    	Point2D.Double end_point = new  Point2D.Double(x2, y2);	
-	    	return(end_point);	
-	    }
-	    else
-	    {
-	    	double theta1 = 0;
-	    	if(x1 == x2)
-	    	{
-	    		if(y1 < y2)
-	    		    theta1 = Math.PI / 2;
-	    		else
-	    			theta1 = -Math.PI / 2;	
-	    	}
-	    	else
-	    	    theta1 = DataMapper.getSlopeRadians(line);
-	    	
-	    	Line2D.Double hypotenuse = new Line2D.Double(x1, y1, x3, y3);
-	    	double theta2 = 0;
-	    	if(x1 == x3)
-	    	{
-	    		if(y1 < y2)
-	    		    theta2 = Math.PI / 2;
-	    		else
-	    			theta2 = -Math.PI / 2;	
-	    	}
-	    	else
-	    	    theta2 = DataMapper.getSlopeRadians(hypotenuse);
-	    	
-	    	double _x1    = 0;
-	    	double _y1    = 0;
-	    	double _x3    = 0;
-	    	double _y3    = 0;
-	    	double xshift = 0;
-	    	double yshift = 0;
-	    	if(theta1 == 0)
-	    	{
-	    		_x1 = x1;
-	    		_y1 = y1;
-	    		_x3 = x3;
-	    		_y3 = y3;
-	    	}
-	    	else
-	    	{
-	    		_x1    = 0;
-	    		_y1    = 0;
-	    		_x3    = distance2 * Math.cos(theta2 - theta1);
-	    		_y3    = distance2 * Math.sin(theta2 - theta1);
-	    		xshift = x1;
-	    		yshift = y1;
-	    	}
-	    	
-	    	hypotenuse       = new Line2D.Double(_x1, _y1, _x3, _y3);
-	    	double a_radians = 0;
-		    if(_x1 == _x3)
-			    a_radians = Math.PI / 2;
-		    else if(_y1 == _y3)
-				a_radians = 0;
-			else
-				a_radians = DataMapper.getSlopeRadians(hypotenuse);
-		    double b_radians      = Math.PI / 2 - a_radians;    
-			double base_length    = distance2 * Math.sin(b_radians);
-			double x4             = base_length * Math.cos(theta1) + xshift;
-			double y4             = base_length * Math.sin(theta1) + yshift;
-			
-			double distance4 = getLength(x4, y4, x3, y3);
-			System.out.println("The distance returned by line.ptSegDist() = " + distance1);
-		    System.out.println("The distance calculated with the law of sines = " + distance4);
-		    double difference = Math.abs(distance1 - distance4);
-		    if(difference > .1)
-		    {
-		    	System.out.println("Discrepancy in calculating bisecting point.");
-		    	System.out.println("x1 = " + x1 + ", y1 = " + y1);
-		    	System.out.println("x2 = " + x2 + ", y2 = " + y2);
-		    	System.out.println("x3 = " + x3 + ", y3 = " + y3);
-		    }
-			
-			Point2D.Double bisecting_point = new  Point2D.Double(x4, y4);
-			return(bisecting_point);
-	    }
-	}
 	
 	public static Point[]  getOrderedPositionList(int xdimension, int ydimension, int direction)
 	{
