@@ -22,8 +22,8 @@ public class DataMapper
 	public static double cos(double degrees)
 	{
 	    double radians = StrictMath.toRadians(degrees);
-	    double sin     = StrictMath.cos(radians);
-	    return(sin);
+	    double cos     = StrictMath.cos(radians);
+	    return(cos);
 	}
 	
 	public static double getSlope(Line2D.Double line)
@@ -49,6 +49,24 @@ public class DataMapper
 	    double y1 = line.getY1();
 	    double x2 = line.getX2();
 	    double y2 = line.getY2();  
+	    double slope;
+	    
+	    if(y1 == y2)
+	    	return(0);
+	    else if(x1 == x2)
+	    	return(Double.NaN);
+	    else
+	    {
+	    	double rise = y2 - y1;
+	    	double run  = x2 - x1;
+	    	
+	    	double radians       = Math.atan2(rise, run);
+	    	return(radians);
+	    }
+	}
+	
+	public static double getSlopeRadians(double x1, double y1, double x2, double y2)
+	{
 	    double slope;
 	    
 	    if(y1 == y2)
@@ -153,62 +171,82 @@ public class DataMapper
 		double        distance3 = getLength(x2, y2, x3, y3);
 		
 		
-		if(distance1 == distance2)
+		//if(distance1 == distance2)
+		if(distance1 == distance2 && !(((x1 < x3) && (x3 < x2)) || ((x1 > x3) && (x3 > x2))))
 	    {
-	    	Point2D.Double end_point = new  Point2D.Double(x1, y1);	
-	    	return(end_point);
+			// We still end up returning the end point when we do our usual calculations, at least some of the time.
+			// The error might be minimized by trying not to use square root functions.
+			/*
+		    if(((x1 < x3) && (x3 < x2)) || ((x1 > x3) && (x3 > x2)))
+		    {
+		    	System.out.println("False equivalence.");
+		    	double difference = Math.abs(x1 - x3);
+		    	System.out.println("Difference in x is " + difference);
+		    	System.out.println();
+		    	Point2D.Double end_point = new  Point2D.Double(x1, y1);	
+	    	    return(end_point);
+		    }
+		    else
+		    {
+		    	
+			    //System.out.println("No perpendicular bisector.");
+	    	    Point2D.Double end_point = new  Point2D.Double(x1, y1);	
+	    	    return(end_point);
+		    }
+		    */
+			//System.out.println("No perpendicular bisector.");
+    	    Point2D.Double end_point = new  Point2D.Double(x1, y1);	
+    	    return(end_point);
 	    }
-	    else if(distance1 == distance3)
+		else if(distance1 == distance3 && !(((x1 < x3) && (x3 < x2)) || ((x1 > x3) && (x3 > x2))))
 	    {
-	    	Point2D.Double end_point = new  Point2D.Double(x2, y2);	
-	    	return(end_point);	
+			/*
+	    	if(((x1 < x3) && (x3 < x2)) || ((x1 > x3) && (x3 > x2)))
+		    {
+		    	System.out.println("False equivalence.");
+                double difference = Math.abs(x2 - x3);
+		    	System.out.println("Difference in x is " + difference);
+		    	System.out.println();
+		    	Point2D.Double end_point = new  Point2D.Double(x2, y2);	
+	    	    return(end_point);
+		    }
+		    else
+		    {
+			    //System.out.println("No perpendicular bisector.");
+	    	    Point2D.Double end_point = new  Point2D.Double(x2, y2);	
+	    	    return(end_point);
+		    }
+		    */
+			//System.out.println("No perpendicular bisector.");
+    	    Point2D.Double end_point = new  Point2D.Double(x2, y2);	
+    	    return(end_point);
 	    }
 	    else if(x1 == x2)
 		{
+	    	//System.out.println("Simple bisector.");
 			Point2D.Double bisecting_point = new  Point2D.Double(x1, y3);	
 	    	return(bisecting_point);   	
 		}
 		else if(y1 == y2)
 		{
+			//System.out.println("Simple bisector.");
 			Point2D.Double bisecting_point = new  Point2D.Double(x3, y1);	
 	    	return(bisecting_point);	
 		} 
-		
 	    else
 	    {
-	    	/*
-	    	if(y1 == y3)
-			{
-				if(x2 == x3)
-				{
-					double temp = x1;
-					x1          = x2;
-					x2          = temp;
-					
-					temp = y1;
-					y1          = y2;
-					y2          = temp;
-					
-				}
-			}
-			else if(y2 == y3)
-			{
-				if(x1 == x3)
-				{
-					double temp = x1;
-					x1          = x2;
-					x2          = temp;
-					
-					temp = y1;
-					y1          = y2;
-					y2          = temp;
-				}
-			}
-			*/
+	    	if(x2 < x1)
+	    	{
+	    		double temp = x1;
+	    		x1   = x2;
+	    		x2   = temp;
+	    		
+	    		temp = y1;
+	    		y1   = y2;
+	    		y2   = temp;
+	    	}
 	    	
-	    	double theta1 = DataMapper.getSlopeRadians(line);
-	    	
-	    	
+	    	double theta1 = DataMapper.getSlopeRadians(x1, y1, x2, y2);
 	    	Line2D.Double hypotenuse = new Line2D.Double(x1, y1, x3, y3);
 	    	double theta2 = 0;
 	    	if(x1 == x3)
@@ -251,14 +289,7 @@ public class DataMapper
 		    else if(_y1 == _y3)
 		    {
 				a_radians = 0;
-				System.out.println("Got here1.");
 		    }
-		    /*
-		    else if(y1 == y3)
-		    {
-		    	System.out.println("Got here2.");	
-		    }
-		    */
 			else
 				a_radians = DataMapper.getSlopeRadians(hypotenuse);
 		    double b_radians      = Math.PI / 2 - a_radians;    
@@ -266,6 +297,8 @@ public class DataMapper
 			double x4             = base_length * Math.cos(theta1) + xshift;
 			double y4             = base_length * Math.sin(theta1) + yshift;
 			double distance4      = getLength(x4, y4, x3, y3);
+			//System.out.println("The distance returned by line.ptSegDist() = " + distance1);
+		    //System.out.println("The distance calculated with the law of sines = " + distance4);
 		    double difference     = Math.abs(distance1 - distance4);
 		    if(difference > .1)
 		    {
@@ -275,11 +308,9 @@ public class DataMapper
 		    	System.out.println("x1 = " + x1 + ", y1 = " + y1);
 		    	System.out.println("x2 = " + x2 + ", y2 = " + y2);
 		    	System.out.println("x3 = " + x3 + ", y3 = " + y3);
-		    	
+		    	/*
 		    	System.out.println("_x1 = " + _x1 + ", _y1 = " + _y1);
 		        System.out.println("_x3 = " + _x3 + ", _y3 = " + _y3);
-		    	
-		    	
 		    	if(x1 == x2)
 		    		System.out.println("x1 == x2");
 		    	else
@@ -288,6 +319,7 @@ public class DataMapper
 		    		System.out.println("y1 == y2");
 		    	else
 		    		System.out.println("y1 != y2");
+		    	*/
 		    	System.out.println();
 		    }
 			
@@ -347,9 +379,14 @@ public class DataMapper
 		// The perpendicular bisector approach is subject to constraints that are probably best
 		// satisfied by rotating the points to a standard orientation.
 		
-		//The bisector is useful because it sometimes produces a non-zero result when
-		// the formula goes to 0 and it might be more accurate.  
+		// The bisector is useful because it sometimes produces a non-zero result when
+		// the formula goes to 0 and it might be more accurate. 
 		
+		// Tricky bug in here that seems to be related to a false equivalence when
+		// a small difference gets reduced to 0.  Using Heron's formula until we
+		// can figure it out.
+		
+		/*
 		double         width    = 0;
 		double         height   = 0;
 		Point2D.Double location = new Point2D.Double();
@@ -409,7 +446,7 @@ public class DataMapper
 		{
 			System.out.println("Result from bisecting location was not a number.");
 		}
-		
+		*/
 	    return(area);
 	}	
 	
@@ -467,7 +504,12 @@ public class DataMapper
 		double x4 = lower_left.getX();
 		double y4 = lower_left.getY();
 		
-		
+		System.out.println("Getting area for quadrilateral.");
+		System.out.println("x1 = " + x1 + ", y1 = " + y1);
+		System.out.println("x2 = " + x2 + ", y2 = " + y2);
+		System.out.println("x3 = " + x3 + ", y3 = " + y3);
+		System.out.println("x4 = " + x4 + ", y4 = " + y4);
+		System.out.println();
 	    double area1 = getTriangleArea(upper_left, lower_left, upper_right);
 	    //System.out.println("Top triangle area is " + area1);
 	    //System.out.println("Base 1 = " + upper_left + ", base 2 = " + lower_left + ", top = " + upper_right);
