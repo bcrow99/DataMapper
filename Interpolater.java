@@ -409,6 +409,11 @@ public class Interpolater
 	    	    Sample lower_right = (Sample)clipped_list.get(j + 1);
 	    	    Sample upper_left  = (Sample)clipped_list.get(j + 5);
 	    	    Sample upper_right = (Sample)clipped_list.get(j + 6);
+	    	    
+	    	    if(lower_left.x == upper_left.x && lower_left.y == upper_left.y)
+	    	    {
+	    	    	System.out.println("Different samples have the same location");
+	    	    }
 		    	
 		    	Point2D.Double lower_left_point  = new Point2D.Double(lower_left.x, lower_left.y);
 		    	Point2D.Double lower_right_point = new Point2D.Double(lower_right.x, lower_right.y);
@@ -448,7 +453,16 @@ public class Interpolater
 		    	    if(cell.contains(x_value, y_value))
 				    {
 		    	    	/*
-				        System.out.println("Cell contains calculated ideal location.");	
+		    	    	double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
+		    	    	Sample sample        = new Sample(intensity, x_value, y_value);
+		    	    	ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
+		    			int x_index          = (int)index_list.get(0);
+		    		    int y_index          = (int)index_list.get(1);
+		    		    ArrayList cell_list  = global_raster[y_index][x_index];
+		    		    cell_list.add(sample);
+		    		    */
+		    	    	
+				        /*
 				        double area = DataMapper.getQuadrilateralArea(lower_left_point, upper_left_point, upper_right_point, lower_right_point);
 			    		System.out.println("The area of the quadrilateral is " + String.format("%.2f", area));
 			    		System.out.println();
@@ -456,8 +470,6 @@ public class Interpolater
 				    }
 				    else
 				    {
-					    //System.out.println("Calculated ideal location is not within cell at j = " + j);
-					    // Try changing ymin.
 					    if(lower_left.y < lower_right.y)
 			    		    ymin = lower_right.y;
 			    	    else
@@ -467,6 +479,15 @@ public class Interpolater
 			    	    y_value = location.getY();
 			    	    if(cell.contains(x_value, y_value))
 					    {
+			    	    	double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
+			    	    	Sample sample        = new Sample(intensity, x_value, y_value);
+			    	    	ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
+			    			int x_index          = (int)index_list.get(0);
+			    		    int y_index          = (int)index_list.get(1);
+			    		    ArrayList cell_list  = global_raster[y_index][x_index];
+			    		    cell_list.add(lower_left);
+			    		    
+			    	    	
 			    	    	/*
 					        System.out.println("Cell contains calculated ideal location starting from larger ymin.");
 					        double area = DataMapper.getQuadrilateralArea(lower_left_point, upper_left_point, upper_right_point, lower_right_point);
@@ -485,125 +506,37 @@ public class Interpolater
 				    	    y_value = location.getY();
 				    	    if(cell.contains(x_value, y_value))
 						    {
+				    	    	double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
+				    	    	Sample sample        = new Sample(intensity, x_value, y_value);
+				    	    	ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
+				    			int x_index          = (int)index_list.get(0);
+				    		    int y_index          = (int)index_list.get(1);
+				    		    ArrayList cell_list  = global_raster[y_index][x_index];
+				    		    cell_list.add(lower_left);
+				    		    
 				    	    	/*
 						        System.out.println("Cell contains calculated ideal location starting from larger xmin.");
 						        double area = DataMapper.getQuadrilateralArea(lower_left_point, upper_left_point, upper_right_point, lower_right_point);
 					    		System.out.println("The area of the quadrilateral is " + String.format("%.2f", area));
 					    		System.out.println();
 					    		*/
+					    		
 						    }
-				    	    else
-				    	    {
-				    		    System.out.println("Did not find ideal location inside cell.");
-				    		    if(x_value >= xmax)
-				    		    {
-				    		        System.out.println("X value is greater than or equal to xmax.")	;
-				    		    }
-				    		    if(y_value >= ymax)
-				    		    {
-				    		    	System.out.println("Y value is greater than or equal to yxmax.")	;   	
-				    		    }
-				    		    
-				    		    if(y_value < ymax && x_value < xmax)
-				    		    {
-				    		    	System.out.println("Lower left x = "  + String.format("%.2f", lower_left.x)  + ", y = " + String.format("%.2f", lower_left.y));
-						    		System.out.println("Upper left x = "  + String.format("%.2f", upper_left.x)  + ", y = " + String.format("%.2f", upper_left.y));
-						    		System.out.println("Upper right x = " + String.format("%.2f", upper_right.x) + ", y = " + String.format("%.2f", upper_right.y));
-						    		System.out.println("Lower right x = " + String.format("%.2f", lower_right.x) + ", y = " + String.format("%.2f", lower_right.y));
-						    		
-						    		System.out.println("Xmin = " + String.format("%.3f", xmin) + ", xmid = " + String.format("%.3f", x_value) + ", xmax = " + String.format("%.3f", xmax));
-						    		System.out.println("Ymin = " + String.format("%.3f", ymin) + ", ymid = " + String.format("%.3f", y_value) + ", ymax = " + String.format("%.3f", ymax));
-						    		double area = DataMapper.getQuadrilateralArea(lower_left_point, upper_left_point, upper_right_point, lower_right_point);
-						    		System.out.println("The area of the quadrilateral is " + String.format("%.2f", area));	
-				    		    }
-				    		    
-				    		    
-				    		    //System.out.println("j = " + j);
-				    		    System.out.println();
-				    	    }
 			    	    }
 				    }
 		    	}
 		    	else if(x_value == xmin && y_value == ymin)
 		    	{
-		    	     // Find out if lower left hand value falls on an ideal location.
-		    		 if(lower_left.x == xmin && lower_left.y == ymin)
-		    		 {
-		    			 //cell_list.add(lower_left);
-		    		 }
-		    		 else if(lower_left.x == xmin)
-		    		 {
-		    			 
-		    		 }
-		    		 else if(lower_left.y == ymin)
-		    		 {
-		    			 
-		    		 }
+		    		if(lower_left.x == xmin && lower_left.y == ymin)
+		    		{
+		    			System.out.println("Lower left sample is at ideal location.");
+		    			ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
+		    			int x_index = (int)index_list.get(0);
+		    		    int y_index = (int)index_list.get(1);
+		    		    ArrayList cell_list = global_raster[y_index][x_index];
+		    		    cell_list.add(lower_left);
+		    		}
 		    	}
-		    	else if(x_value == xmin)
-		    	{
-		    		
-		    	}
-		    	else if(y_value == ymin)
-		    	{
-		    		
-		    	}
-		    	
-		    	/*
-		    	if(lower_left.x < upper_left.x)
-		    		xmin = upper_left.x;
-		    	else
-		    		xmin = lower_left.x;
-		    	if(lower_right.x > upper_right.x)
-		    		xmax = upper_right.x;
-		    	else
-		    		xmax = lower_right.x;
-		    	if(upper_left.y > upper_right.y)
-		    	    ymax = upper_right.y;
-		    	else
-		    		ymax = upper_left.y;
-		    	if(lower_left.y < lower_right.y)
-		    		ymin = lower_right.y;
-		    	else
-		    		ymin = lower_left.y;
-		    	*/
-		    	
-		    	
-		    	
-		    	/*
-		    	int start_whole_part = (int)Math.floor(xmin);
-		    	double start_fractional_part = xmin - start_whole_part;
-		    	
-		    	if(start_fractional_part != .25 && start_fractional_part != .75)
-		    	{
-		    	    if(start_fractional_part < .25)
-		    	    {
-		    		    start_fractional_part = .25;
-		    	    }
-		    	    else if(start_fractional_part < .75)
-		    	    {
-		    		    start_fractional_part = .75;   
-		    	    }
-		    	    else
-		    	    {
-		    		    start_fractional_part = .25; 
-		    		    start_whole_part++;
-		    	    }
-		    	}
-		    	
-		    	double x_value = start_whole_part + start_fractional_part;
-		    	
-		    	start_whole_part = (int)Math.floor(ymin);
-		    	start_fractional_part = ymin - start_whole_part;
-		    	if(start_fractional_part % .04 != 0)
-		    	{
-		    		double modulus         = start_fractional_part % .04;
-	    	  	    double increment       = .04 - modulus;
-	    	  	    start_fractional_part += increment;  
-		    	}
-		    	double y_value = start_whole_part + start_fractional_part;
-		    	*/
-		    	
 		    	
 		    	int x_index = 0;
 		    	double current_location = global_xmin;
@@ -620,23 +553,6 @@ public class Interpolater
 		    		y_index++;
 		    		current_location += .04;
 		    	}
-				
-		    	ArrayList cell_list = global_raster[y_index][x_index];
-		    	
-		    	/*
-		    	if(j == 3530)
-		    	{
-		    		System.out.println("Lower left x = "  + String.format("%.2f", lower_left.x)  + ", y = " + String.format("%.2f", lower_left.y));
-		    		System.out.println("Upper left x = "  + String.format("%.2f", upper_left.x)  + ", y = " + String.format("%.2f", upper_left.y));
-		    		System.out.println("Upper right x = " + String.format("%.2f", upper_right.x) + ", y = " + String.format("%.2f", upper_right.y));
-		    		System.out.println("Lower right x = " + String.format("%.2f", lower_right.x) + ", y = " + String.format("%.2f", lower_right.y));
-		    		
-		    		System.out.println("Xmin = " + String.format("%.3f", xmin) + ", xmid = " + String.format("%.3f", x_value) + ", xmax = " + String.format("%.3f", xmax));
-		    		System.out.println("Ymin = " + String.format("%.3f", ymin) + ", ymid = " + String.format("%.3f", y_value) + ", ymax = " + String.format("%.3f", ymax));
-		    		double area = DataMapper.getQuadrilateralArea(lower_left_point, upper_left_point, upper_right_point, lower_right_point);
-		    		System.out.println("The area of the quadrilateral is " + String.format("%.2f", area));
-		    	}
-		    	*/
 		    }
 		}
 	}
@@ -789,7 +705,31 @@ public class Interpolater
 	    }
 	    return(neighbor_list);
 	}
-	
+
+    public ArrayList getIndex(double x_value, double y_value, double global_xmin, double global_ymin)
+    {
+    	ArrayList index_list = new ArrayList();
+    	int x_index = 0;
+    	double current_location = global_xmin;
+    	while(current_location < x_value)
+    	{
+    		x_index++;
+    		current_location += .5;
+    	}
+    	index_list.add(x_index);
+    	
+    	int y_index = 0;
+    	current_location = global_ymin;
+    	while(current_location < y_value)
+    	{
+    		y_index++;
+    		current_location += .04;
+    	}
+    	index_list.add(y_index);
+    	
+    	return(index_list);
+    }
+    
 	public Point2D.Double getIdealLocation(double start_x, double start_y, double global_xmin, double global_ymin)
 	{
 		int start_whole_part = (int)Math.floor(start_x);
