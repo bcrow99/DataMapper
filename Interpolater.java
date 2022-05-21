@@ -343,10 +343,16 @@ public class Interpolater
 		double xrange = global_xmax - global_xmin;
 		double yrange = global_ymax - global_ymin;
 			
-		int global_xdim = (int)(xrange / .5);
-		int global_ydim = (int)(yrange / .04);
+		int global_xdim = (int)(xrange / .5 + 2);
+		int global_ydim = (int)(yrange / .04 + 2);
 		System.out.println("The ideal raster for this data set has xdim = " + global_xdim + ", ydim = " + global_ydim);
 		System.out.println();
+		
+		ArrayList list =  getIndex(global_xmax, global_ymax, global_xmin, global_ymin);
+	        
+	    int _xmax = (int)list.get(0);
+	    int _ymax = (int)list.get(1);
+	    //System.out.println("The max xindex = " + _xmax + ", yindex = " + _ymax);
 		
 		xmax = -Double.MAX_VALUE;
 		xmin = Double.MAX_VALUE;
@@ -362,199 +368,239 @@ public class Interpolater
 			}
 		}
 		
-		ArrayList clipped_list = (ArrayList)clipped_data.get(line_number);
-		System.out.println("Size of clipped data list is " + clipped_list.size());
-		int number_of_samples = 0;
-		for(int i = 0; i < clipped_list.size(); i++)
+		for(int i = 0; i < number_of_lines; i++)
 		{
-			Sample sample = (Sample) clipped_list.get(i);
-			number_of_samples++;
-			if(sample.x < xmin)
-				xmin = sample.x;
-			if(sample.x > xmax)
-				xmax = sample.x;
-			if (sample.y < ymin)
-				ymin = sample.y;
-			if (sample.y > ymax)
-				ymax = sample.y;
-		}
-		System.out.println("Number of samples in unclipped area of line " + line_number + " is " + number_of_samples);
-		System.out.println("Number of rows of data in unclipped area of line " + line_number + " is " + (number_of_samples / 5));
-		
-		System.out.println("Xmax = " + String.format("%.2f", xmax) + ", xmin = " + String.format("%.2f", xmin));
-		System.out.println("Ymax = " + String.format("%.2f", ymax) + ", ymin = " + String.format("%.2f", ymin));
-
-	    xrange = xmax - xmin;
-		yrange = ymax - ymin;
-			
-		int line_xdim = (int)(xrange / .5);
-		int line_ydim = (int)(yrange / .04);
-		System.out.println("The ideal raster for this flight line has xdim = " + line_xdim + ", ydim = " + line_ydim);
-		
-		// Replace actual intensity values with a gray scale to help evaluate algorithms.
-		for(int i = 0; i < clipped_list.size(); i++)
-		{
-			Sample sample = (Sample) clipped_list.get(i);
-			double synthetic_intensity = (sample.y - ymin) / (ymax - ymin);
-			synthetic_intensity       *= 200;
-			synthetic_intensity       -= 100;
-			sample.intensity = synthetic_intensity;
-		}
-		
-		for(int i = 0; i < clipped_list.size() - 5; i += 5)
-		{
-		    for(int j = i; j < i + 4; j++)
+		    ArrayList clipped_list = (ArrayList)clipped_data.get(i);
+		    // System.out.println("Size of clipped data list is " + clipped_list.size());
+		    int number_of_samples = 0;
+		    for(int j = 0; j < clipped_list.size(); j++)
 		    {
-	    	    Sample lower_left  = (Sample)clipped_list.get(j);
-	    	    Sample lower_right = (Sample)clipped_list.get(j + 1);
-	    	    Sample upper_left  = (Sample)clipped_list.get(j + 5);
-	    	    Sample upper_right = (Sample)clipped_list.get(j + 6);
+			    Sample sample = (Sample) clipped_list.get(j);
+			    number_of_samples++;
+			    if(sample.x < xmin)
+				    xmin = sample.x;
+			    if(sample.x > xmax)
+			        xmax = sample.x;
+			    if (sample.y < ymin)
+			        ymin = sample.y;
+			    if (sample.y > ymax)
+			        ymax = sample.y;
+			}
+		    //System.out.println("Number of samples in unclipped area of line " + line_number + " is " + number_of_samples);
+		    //System.out.println("Number of rows of data in unclipped area of line " + line_number + " is " + (number_of_samples / 5));
+		    //System.out.println("Xmax = " + String.format("%.2f", xmax) + ", xmin = " + String.format("%.2f", xmin));
+		    //System.out.println("Ymax = " + String.format("%.2f", ymax) + ", ymin = " + String.format("%.2f", ymin));
+
+	        xrange = xmax - xmin;
+	        yrange = ymax - ymin;
+			
+	        int line_xdim = (int)(xrange / .5);
+	        int line_ydim = (int)(yrange / .04);
+	        //System.out.println("The ideal raster for this flight line has xdim = " + line_xdim + ", ydim = " + line_ydim);
+	      
+		
+	        // Replace actual intensity values with a gray scale to help evaluate algorithms.
+	        for(int j = 0; j < clipped_list.size(); j++)
+	        {
+	            Sample sample = (Sample) clipped_list.get(j);
+	            double synthetic_intensity = (sample.y - ymin) / (ymax - ymin);
+	            synthetic_intensity       *= 200;
+	            synthetic_intensity       -= 100;
+	            sample.intensity = synthetic_intensity;
+	        }
+		
+	        for(int j = 0; j < clipped_list.size() - 5; j += 5)
+	        {
+	            for(int k = j; k < j + 4; k++)
+	            {
+	                Sample lower_left  = (Sample)clipped_list.get(k);
+	                Sample lower_right = (Sample)clipped_list.get(k + 1);
+	                Sample upper_left  = (Sample)clipped_list.get(k + 5);
+	                Sample upper_right = (Sample)clipped_list.get(k + 6);
 	    	    
-	    	    if(lower_left.x == upper_left.x && lower_left.y == upper_left.y)
-	    	    {
-	    	    	System.out.println("Different samples have the same location");
-	    	    }
+	                if(lower_left.x == upper_left.x && lower_left.y == upper_left.y)
+	                {
+	                    System.out.println("Different samples have the same location");
+	                }
 		    	
-		    	Point2D.Double lower_left_point  = new Point2D.Double(lower_left.x, lower_left.y);
-		    	Point2D.Double lower_right_point = new Point2D.Double(lower_right.x, lower_right.y);
-		    	Point2D.Double upper_left_point  = new Point2D.Double(upper_left.x, upper_left.y);
-		    	Point2D.Double upper_right_point = new Point2D.Double(upper_right.x, upper_right.y);
+	                Point2D.Double lower_left_point  = new Point2D.Double(lower_left.x, lower_left.y);
+	                Point2D.Double lower_right_point = new Point2D.Double(lower_right.x, lower_right.y);
+	                Point2D.Double upper_left_point  = new Point2D.Double(upper_left.x, upper_left.y);
+	                Point2D.Double upper_right_point = new Point2D.Double(upper_right.x, upper_right.y);
 		    	
-		    	Path2D.Double cell = new Path2D.Double();
-		    	cell.moveTo(lower_left.x, lower_left.y);
-				cell.lineTo(upper_left.x, upper_left.y);
-				cell.lineTo(upper_right.x, upper_right.y);
-				cell.lineTo(lower_right.x, lower_right.y);
-				cell.closePath();
+	                Path2D.Double cell = new Path2D.Double();
+	                cell.moveTo(lower_left.x, lower_left.y);
+	                cell.lineTo(upper_left.x, upper_left.y);
+	                cell.lineTo(upper_right.x, upper_right.y);
+	                cell.lineTo(lower_right.x, lower_right.y);
+	                cell.closePath();
 		    	
-		    	if(lower_left.x < upper_left.x)
-		    		xmin = lower_left.x;
-		    	else
-		    		xmin = upper_left.x;
-		    	if(lower_right.x > upper_right.x)
-		    		xmax = lower_right.x;
-		    	else
-		    		xmax = upper_right.x;
-		    	if(upper_left.y > upper_right.y)
-		    	    ymax = upper_left.y;
-		    	else
-		    		ymax = upper_right.y;
-		    	if(lower_left.y < lower_right.y)
-		    		ymin = lower_left.y;
-		    	else
-		    		ymin = lower_right.y;
+	                if(lower_left.x < upper_left.x)
+	                    xmin = lower_left.x;
+	                else
+	                    xmin = upper_left.x;
+	                if(lower_right.x > upper_right.x)
+	                    xmax = lower_right.x;
+	                else
+	                    xmax = upper_right.x;
+	                if(upper_left.y > upper_right.y)
+	                    ymax = upper_left.y;
+	                else
+	                    ymax = upper_right.y;
+	                if(lower_left.y < lower_right.y)
+	                    ymin = lower_left.y;
+	                else
+	                    ymin = lower_right.y;
 		    	
 		    	
-		    	Point2D.Double location = getIdealLocation(xmin, ymin, global_xmin, global_ymin);
-		    	double x_value = location.getX();
-		    	double y_value = location.getY();
-		    	if(x_value != xmin && y_value != ymin)
-		    	{
-		    	    if(cell.contains(x_value, y_value))
-				    {
-		    	    	/*
-		    	    	double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
-		    	    	Sample sample        = new Sample(intensity, x_value, y_value);
-		    	    	ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
-		    			int x_index          = (int)index_list.get(0);
-		    		    int y_index          = (int)index_list.get(1);
-		    		    ArrayList cell_list  = global_raster[y_index][x_index];
-		    		    cell_list.add(sample);
-		    		    */
-		    	    	
-				        /*
-				        double area = DataMapper.getQuadrilateralArea(lower_left_point, upper_left_point, upper_right_point, lower_right_point);
-			    		System.out.println("The area of the quadrilateral is " + String.format("%.2f", area));
-			    		System.out.println();
-			    		*/
-				    }
-				    else
-				    {
-					    if(lower_left.y < lower_right.y)
-			    		    ymin = lower_right.y;
-			    	    else
-			    		    ymin = lower_left.y;
-					    location = getIdealLocation(xmin, ymin, global_xmin, global_ymin);
-			    	    x_value = location.getX();
-			    	    y_value = location.getY();
-			    	    if(cell.contains(x_value, y_value))
-					    {
-			    	    	double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
-			    	    	Sample sample        = new Sample(intensity, x_value, y_value);
-			    	    	ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
-			    			int x_index          = (int)index_list.get(0);
-			    		    int y_index          = (int)index_list.get(1);
-			    		    ArrayList cell_list  = global_raster[y_index][x_index];
-			    		    cell_list.add(lower_left);
-			    		    
-			    	    	
-			    	    	/*
-					        System.out.println("Cell contains calculated ideal location starting from larger ymin.");
-					        double area = DataMapper.getQuadrilateralArea(lower_left_point, upper_left_point, upper_right_point, lower_right_point);
-				    		System.out.println("The area of the quadrilateral is " + String.format("%.2f", area));
-				    		System.out.println();
-				    		*/
-					    }
-			    	    else
-			    	    {
-			    		    if(lower_left.x < upper_left.x)
-				    		    xmin = upper_left.x;
-				    	    else
-				    		    xmin = lower_left.x;	
-			    		    location = getIdealLocation(xmin, ymin, global_xmin, global_ymin);
-				    	    x_value = location.getX();
-				    	    y_value = location.getY();
-				    	    if(cell.contains(x_value, y_value))
-						    {
-				    	    	double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
-				    	    	Sample sample        = new Sample(intensity, x_value, y_value);
-				    	    	ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
-				    			int x_index          = (int)index_list.get(0);
-				    		    int y_index          = (int)index_list.get(1);
-				    		    ArrayList cell_list  = global_raster[y_index][x_index];
-				    		    cell_list.add(lower_left);
-				    		    
-				    	    	/*
-						        System.out.println("Cell contains calculated ideal location starting from larger xmin.");
-						        double area = DataMapper.getQuadrilateralArea(lower_left_point, upper_left_point, upper_right_point, lower_right_point);
-					    		System.out.println("The area of the quadrilateral is " + String.format("%.2f", area));
-					    		System.out.println();
-					    		*/
-					    		
-						    }
-			    	    }
-				    }
-		    	}
-		    	else if(x_value == xmin && y_value == ymin)
-		    	{
-		    		if(lower_left.x == xmin && lower_left.y == ymin)
-		    		{
-		    			System.out.println("Lower left sample is at ideal location.");
-		    			ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
-		    			int x_index = (int)index_list.get(0);
-		    		    int y_index = (int)index_list.get(1);
-		    		    ArrayList cell_list = global_raster[y_index][x_index];
-		    		    cell_list.add(lower_left);
-		    		}
-		    	}
+	                Point2D.Double location = getIdealLocation(xmin, ymin, global_xmin, global_ymin);
+	                double x_value = location.getX();
+	                double y_value = location.getY();
+	                if(x_value != xmin && y_value != ymin)
+	                {
+		    	        if(cell.contains(x_value, y_value))
+		    	        {
+		    	            double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
+		    	            Sample sample        = new Sample(intensity, x_value, y_value);
+		    	            ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
+		    	            int x_index          = (int)index_list.get(0);
+		    	            int y_index          = (int)index_list.get(1);
+		    	            ArrayList cell_list  = global_raster[y_index][x_index];
+		    	            cell_list.add(sample);
+				        }
+		    	        else
+		    	        {
+		    	            if(lower_left.y < lower_right.y)
+		    	                ymin = lower_right.y;
+		    	            else
+		    	                ymin = lower_left.y;
+		    	            location = getIdealLocation(xmin, ymin, global_xmin, global_ymin);
+		    	            x_value = location.getX();
+		    	            y_value = location.getY();
+		    	            if(cell.contains(x_value, y_value))
+		    	            {
+			    	    	    double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
+			    	    	    Sample sample        = new Sample(intensity, x_value, y_value);
+			    	    	    ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
+			    	    	    int x_index          = (int)index_list.get(0);
+			    	    	    int y_index          = (int)index_list.get(1);
+			    	    	    ArrayList cell_list  = global_raster[y_index][x_index];
+			    	    	    cell_list.add(lower_left);
+			    	    	}
+		    	            else
+		    	            {
+		    	                if(lower_left.x < upper_left.x)
+		    	                    xmin = upper_left.x;
+		    	                else
+		    	                    xmin = lower_left.x;	
+		    	                location = getIdealLocation(xmin, ymin, global_xmin, global_ymin);
+		    	                x_value = location.getX();
+		    	                y_value = location.getY();
+		    	                if(cell.contains(x_value, y_value))
+		    	                {
+				    	    	    double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
+				    	    	    Sample sample        = new Sample(intensity, x_value, y_value);
+				    	    	    ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
+				    	    	    int x_index          = (int)index_list.get(0);
+				    	    	    int y_index          = (int)index_list.get(1);
+				    	    	    ArrayList cell_list  = global_raster[y_index][x_index];
+				    	    	    cell_list.add(lower_left);
+				    	    	}
+		    	            }
+				        }
+		    	    }
+		    	    else if(x_value == xmin && y_value == ymin)
+		    	    {
+		    		    if(lower_left.x == xmin && lower_left.y == ymin)
+		    		    {
+		    			    //System.out.println("Lower left sample is at ideal location.");
+		    			    ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
+		    			    int x_index = (int)index_list.get(0);
+		    		        int y_index = (int)index_list.get(1);
+		    		        ArrayList cell_list = global_raster[y_index][x_index];
+		    		        cell_list.add(lower_left);
+		    		    }
+		    	    }
 		    	
-		    	int x_index = 0;
-		    	double current_location = global_xmin;
-		    	while(current_location < x_value)
-		    	{
-		    		x_index++;
-		    		current_location += .5;
-		    	}
+	                int x_index = 0;
+	                double current_location = global_xmin;
+	                while(current_location < x_value)
+	                {
+		    		    x_index++;
+		    		    current_location += .5;
+		    	    }
 		    	
-		    	int y_index = 0;
-		    	current_location = global_ymin;
-		    	while(current_location < y_value)
-		    	{
-		    		y_index++;
-		    		current_location += .04;
+	                int y_index = 0;
+	                current_location = global_ymin;
+	                while(current_location < y_value)
+	                {
+		    		    y_index++;
+		    		    current_location += .04;
+	                }
 		    	}
 		    }
 		}
+		
+		int    number_of_interpolated_values = 0;
+		double intensity_min                 = Double.MAX_VALUE;
+		double intensity_max                 = -Double.MAX_VALUE;
+		
+		for(int i = 0; i < global_ydim; i++)
+		{
+			for(int j = 0; j < global_xdim; j++)
+			{
+				ArrayList cell_list  = global_raster[i][j];
+				if(cell_list.size() != 0)
+				{
+					number_of_interpolated_values++;
+					Sample sample = (Sample)cell_list.get(0);
+					if(sample.intensity < intensity_min)
+						intensity_min = sample.intensity;
+					if(sample.intensity > intensity_max)
+						intensity_max = sample.intensity;
+				}
+			}
+		}
+		System.out.println("Number of interpolated values is " + number_of_interpolated_values);
+		System.out.println("Intensity min = " + intensity_min + " , intensity max = " + intensity_max);
+	    double intensity_range = intensity_max - intensity_min;
+		int _data_image[][] = new int[global_ydim][global_xdim];
+		
+		for(int i = 0; i < global_ydim; i++)
+		{
+			for(int j = 0; j < global_xdim; j++)
+			{
+				ArrayList cell_list  = global_raster[i][j];
+				if(cell_list.size() != 0)
+				{
+					Sample sample = (Sample)cell_list.get(0);
+					int value = (int)((sample.intensity - intensity_min) / intensity_range * 255);
+					_data_image[i][j] = value;
+				}
+			}
+		}
+		
+		BufferedImage data_image = new BufferedImage(global_xdim, global_ydim, BufferedImage.TYPE_INT_RGB);
+        for(int i = 0; i < global_ydim; i++)
+        {
+            for(int j = 0; j < global_xdim; j++)
+            {  	
+                int gray_value        = _data_image[i][j];;
+        	    int rgb_value = ((gray_value&0x0ff)<<16)|((gray_value&0x0ff)<<8)|(gray_value&0x0ff);
+        	    data_image.setRGB(j, i, rgb_value);  
+            }
+        }
+        String file_string = new String("C:/Users/Brian Crowley/Desktop/foo.jpg");
+        try 
+        {  
+            ImageIO.write(data_image, "jpg", new File(file_string)); 
+        } 
+        catch(IOException e) 
+        {  
+            e.printStackTrace(); 
+        }        
+		
+		
 	}
 
 	double getDistance(double x1, double y1, double x2, double y2)
