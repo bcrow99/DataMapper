@@ -19,20 +19,30 @@ public class DataMapper
 	    double x2 = line.getX2();
 	    double y2 = line.getY2();  
 	    
-	    if(y1 == y2)
-	    	return(Double.NaN);
-	    else if(x1 == x2)
-	    	return(0);
+	    if(x1 == x2)
+	    {
+	    	if(y1 < y2)
+	    		return(Double.POSITIVE_INFINITY);
+	    	else if(y1 > y2)
+	    		return(Double.NEGATIVE_INFINITY);
+	    	else
+	    		return(Double.NaN);
+	    }
 	    else
 	    	return((y2 - y1) / (x2 - x1));
 	}
 	
 	public static double getSlope(double x1, double y1, double x2, double y2)
 	{
-	    if(y1 == y2)
-	    	return(Double.NaN);
-	    else if(x1 == x2)
-	    	return(0);
+	    if(x1 == x2)
+	    {
+	    	if(y1 < y2)
+	    		return(Double.POSITIVE_INFINITY);
+	    	else if(y1 > y2)
+	    		return(Double.NEGATIVE_INFINITY);
+	    	else
+	    		return(Double.NaN);
+	    }
 	    else
 	    	return((y2 - y1) / (x2 - x1));
 	}
