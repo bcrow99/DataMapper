@@ -6,10 +6,26 @@ import java.awt.Point;
 
 public class DataMapper
 {
-	public static double getDistance(double x, double y, double x_origin, double y_origin)
+	public static double getDistance(double x1, double y1, double x2, double y2)
 	{
-	    double distance  = Math.sqrt((x - x_origin) * (x - x_origin) + (y - y_origin) * (y - y_origin));
+	    double distance  = StrictMath.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 	    return(distance);
+	}
+	
+	public static double getLength(double x1, double y1, double x2, double y2)
+	{
+	    double length = StrictMath.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+	    return(length);
+	}
+	
+	public static double getLength(Line2D.Double line)
+	{
+	    double x1     = line.getX1();
+	    double y1     = line.getY1();
+	    double x2     = line.getX2();
+	    double y2     = line.getY2(); 
+	    double length = StrictMath.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+	    return(length);
 	}
 	
 	public static double getSlope(Line2D.Double line)
@@ -47,36 +63,56 @@ public class DataMapper
 	    	return((y2 - y1) / (x2 - x1));
 	}
 	
-	public static double getSlopeRadians(Line2D.Double line)
+	public static double getAngleRadians(Line2D.Double line)
 	{
 		double x1 = line.getX1();
 	    double y1 = line.getY1();
 	    double x2 = line.getX2();
 	    double y2 = line.getY2();  
-	    double slope;
 	    
-	    if(y1 == y2)
-	    	return(0);
+	    if(x1 == x2 && y1 == y2)
+	    	return(Double.NaN);
+	    else if(y1 == y2)
+	    {
+	    	if(x1 < x2)
+	    	    return(0);
+	    	else
+	    		return(Math.PI);
+	    }
 	    else if(x1 == x2)
-	    	return(Math.PI / 2);
+	    {
+	    	if(y1 < y2)
+	    	    return(Math.PI / 2);
+	    	else
+	    		return(-Math.PI / 2);
+	    }
 	    else
 	    {
-	    	double rise = y2 - y1;
-	    	double run  = x2 - x1;
-	    	
-	    	double radians       = Math.atan2(rise, run);
+	    	double rise    = y2 - y1;
+	    	double run     = x2 - x1;
+	    	double radians = Math.atan2(rise, run);
 	    	return(radians);
 	    }
 	}
 	
-	public static double getSlopeRadians(double x1, double y1, double x2, double y2)
+	public static double getAngleRadians(double x1, double y1, double x2, double y2)
 	{
-	    double slope;
-	    
-	    if(y1 == y2)
-	    	return(0);
+	    if(x1 == x2 && y1 == y2)
+	    	return(Double.NaN);
+	    else if(y1 == y2)
+	    {
+	    	if(x1 < x2)
+	    	    return(0);
+	    	else
+	    		return(Math.PI);
+	    }
 	    else if(x1 == x2)
-	    	return(Math.PI / 2);
+	    {
+	    	if(y1 < y2)
+	    	    return(Math.PI / 2);
+	    	else
+	    		return(-Math.PI / 2);
+	    }
 	    else
 	    {
 	    	double rise    = y2 - y1;
@@ -92,22 +128,6 @@ public class DataMapper
 		return(degrees);
 	}
 	
-	public static double getLength(double x1, double y1, double x2, double y2)
-	{
-	    double length = StrictMath.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-	    return(length);
-	}
-	
-	public static double getLength(Line2D.Double line)
-	{
-	    double x1     = line.getX1();
-	    double y1     = line.getY1();
-	    double x2     = line.getX2();
-	    double y2     = line.getY2(); 
-	    double length = StrictMath.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-	    return(length);
-	}
-	
 	public static double getYIntercept(Point2D.Double point, double slope)
 	{
 		double x           = point.getX();
@@ -116,35 +136,32 @@ public class DataMapper
 		return (y_intercept);
 	}
 	
-	
 	public static Point2D.Double getIntersection(Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right, Point2D.Double lower_left)
 	{
-		Line2D.Double base     = new Line2D.Double(lower_left,  lower_right);
+		Line2D.Double base        = new Line2D.Double(lower_left,  lower_right);
+		Line2D.Double diagonal1   = new Line2D.Double(lower_left,  upper_right);
+		Line2D.Double diagonal2   = new Line2D.Double(upper_left,  lower_right);
 		
-		Line2D.Double diagonal1 = new Line2D.Double(lower_left,  upper_right);
+		double base_radians       = getAngleRadians(base);
+		double diagonal1_radians  = getAngleRadians(diagonal1);
+		double diagonal2_radians  = getAngleRadians(diagonal2);
 		
-		Line2D.Double diagonal2 = new Line2D.Double(upper_left,  lower_right);
-		
-		double base_radians      = getSlopeRadians(base);
-		double diagonal1_radians = getSlopeRadians(diagonal1);
-		double diagonal2_radians = getSlopeRadians(diagonal2);
-		
-		double theta1 = diagonal1_radians - base_radians;
-		double theta2 = -diagonal2_radians + base_radians;
-		double theta3 = Math.PI - (theta1 + theta2);
+		double theta1             = diagonal1_radians - base_radians;
+		double theta2             = -diagonal2_radians + base_radians;
+		double theta3             = Math.PI - (theta1 + theta2);
 		
 		double base_length        = getLength(base);
 		double determinant_length = Math.sin(theta2) / Math.sin(theta3) * base_length;
 		double delta_x            = determinant_length * Math.cos(theta1);
 		double delta_y            = determinant_length * Math.sin(theta1);
 		
-		double x1 = lower_left.getX();
-		double y1 = lower_left.getY();
-		double x2 = x1 + delta_x;
-		double y2 = y1 + delta_y;
+		double x1                 = lower_left.getX();
+		double y1                 = lower_left.getY();
+		double x2                 = x1 + delta_x;
+		double y2                 = y1 + delta_y;
 		
-		Point2D.Double intersect_point  = new Point2D.Double(x2, y2);
-		return(intersect_point);
+		Point2D.Double intersection_point = new Point2D.Double(x2, y2);
+		return(intersection_point);
 	}
 	
 	
@@ -209,7 +226,8 @@ public class DataMapper
 	    		y2   = temp;
 	    	}
 	    	
-	    	double theta1 = DataMapper.getSlopeRadians(x1, y1, x2, y2);
+	    	double theta1 = getAngleRadians(x1, y1, x2, y2);
+	    	
 	    	Line2D.Double hypotenuse = new Line2D.Double(x1, y1, x3, y3);
 	    	double theta2 = 0;
 	    	if(x1 == x3)
@@ -220,7 +238,7 @@ public class DataMapper
 	    			theta2 = -Math.PI / 2;	
 	    	}
 	    	else
-	    	    theta2 = DataMapper.getSlopeRadians(hypotenuse);
+	    	    theta2 = getAngleRadians(hypotenuse);
 	    	
 	    	double _x1    = 0;
 	    	double _y1    = 0;
@@ -252,7 +270,7 @@ public class DataMapper
 		    else if(_y1 == _y3)
 		    	theta3 = 0;
 			else
-				theta3 = DataMapper.getSlopeRadians(hypotenuse);
+				theta3 = DataMapper.getAngleRadians(hypotenuse);
 		    double theta4      = Math.PI / 2 - theta3;    
 			double base_length    = distance2 * Math.sin(theta4);
 			double x4             = base_length * Math.cos(theta1) + xshift;
@@ -390,19 +408,6 @@ public class DataMapper
 	    return(area);
 	}	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	public static double getQuadrilateralPerimeter(Point2D.Double lower_left, Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right)
 	{
 		Line2D.Double first_side    = new Line2D.Double(lower_left,  upper_left);	
@@ -427,24 +432,14 @@ public class DataMapper
 		double y3 = lower_right.getY();
 		double x4 = lower_left.getX();
 		double y4 = lower_left.getY();
-		/*
-		System.out.println("Getting area for quadrilateral.");
-		System.out.println("x1 = " + x1 + ", y1 = " + y1);
-		System.out.println("x2 = " + x2 + ", y2 = " + y2);
-		System.out.println("x3 = " + x3 + ", y3 = " + y3);
-		System.out.println("x4 = " + x4 + ", y4 = " + y4);
-		System.out.println();
-		*/
+		
 		
 	    double area1 = getTriangleArea(upper_left, lower_left, upper_right);
-	    //System.out.println("Top triangle area is " + area1);
-	    //System.out.println("Base 1 = " + upper_left + ", base 2 = " + lower_left + ", top = " + upper_right);
 	    double area2 = getTriangleArea(upper_right, lower_right, lower_left);
-	    //System.out.println("Bottom triangle area is " + area2);
-	    //System.out.println("Base 1 = " + upper_right + ", base 2 = " + lower_right + ", top = " + lower_left);
 	    double area = area1 + area2;
 	    return(area);
 	}
+	
 	public static boolean containsPoint(Point2D.Double point, Sample ... sample)
     {
     	boolean contains      = false;
@@ -726,85 +721,80 @@ public class DataMapper
 	    double total_area = 0;
 	    if(!area1IsTriangle && !area2IsTriangle && !area3IsTriangle && !area4IsTriangle)
 	    {
-	        //area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	        //area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	        //area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
-	        //area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-	        
+	        area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
+	        area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
+	        area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
+	        area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom); 
 	        total_area =  getQuadrilateralArea(lower_left, upper_left, upper_right, lower_right);
-		    //System.out.println("Total area calculated from cell directly is " + total_area);
-		    //System.out.println("Total area calculated by summing seperate areas is " + (area1 + area2 + area3 + area4));
-		    //System.out.println("Area 1 = " + area1 + ", area2 = " + area2 + ", area3 = " + area3 + ", area4 is " + area4);
-		    //System.out.println();
 	    }
 	    else if(area1IsTriangle)
 	    {
-	    	//System.out.println("Got here 1.");
 	    	x = middle_top.getX();
 	 	    y = middle_top.getY(); 
 	 	    
 	 	    if(x == x1 && y == y1) 
 	 	    {
-	 	    	//area1 = DataMapper.getTriangleArea(middle_left, upper_left, point); 
-	 	    	//area2 = DataMapper.getQuadrilateralArea(point, upper_left, upper_right, middle_right);
+	 	    	area1 = DataMapper.getTriangleArea(middle_left, upper_left, point); 
+	 	    	area2 = DataMapper.getQuadrilateralArea(point, upper_left, upper_right, middle_right);
+	 	    	// Check if area3 is a triangle.
 	 	    }
 	 	    else
 	 	    {
-	 	    	//area1 = DataMapper.getTriangleArea(middle_top, upper_left, point);
-	 	    	//area4 = DataMapper.getQuadrilateralArea(lower_left, upper_left, point, middle_bottom);
+	 	    	area1 = DataMapper.getTriangleArea(middle_top, upper_left, point);
+	 	    	area4 = DataMapper.getQuadrilateralArea(lower_left, upper_left, point, middle_bottom);
+	 	    	// Check if area3 is a triangle.
+	 	    	
 	 	    }
 	    }
 	    else if(area2IsTriangle)
 	    {
-	    	//System.out.println("Got here 2.");
 	    	x = middle_top.getX();
 	 	    y = middle_top.getY(); 
 	 	    
 	 	    if(x == x2 && y == y2) 
 	 	    {
-	 	    	//area2 = DataMapper.getTriangleArea(middle_right, upper_right, point);
-	 	    	//area1 = DataMapper.getQuadrilateralArea(middle_left, upper_left, upper_right, point);
-	 	    	
+	 	    	area2 = DataMapper.getTriangleArea(middle_right, upper_right, point);
+	 	    	area1 = DataMapper.getQuadrilateralArea(middle_left, upper_left, upper_right, point);
+	 	        // Check if area4 is a triangle.
 	 	    }
 	 	    else
 	 	    {
-	 	    	//area2 = DataMapper.getTriangleArea(middle_top, upper_right, point);
-	 	    	//area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
+	 	    	area2 = DataMapper.getTriangleArea(middle_top, upper_right, point);
+	 	    	area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
+	 	        // Check if area4 is a triangle.
 	 	    }	
 	    }
 	    else if(area3IsTriangle)
 	    {
-	    	//System.out.println("Got here 3.");
 	    	x = middle_bottom.getX();
 	 	    y = middle_bottom.getY(); 
 	 	  
 	 	    if(x == x3 && y == y3)
 	 	    {
-	 	        //area3 = DataMapper.getTriangleArea(middle_right, lower_right, point);
-	 	        //area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, lower_right);
+	 	        area3 = DataMapper.getTriangleArea(middle_right, lower_right, point);
+	 	        area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, lower_right);
 	 	    }
 	 	    else
 	 	    {
-	 	    	//area3 = DataMapper.getTriangleArea(middle_bottom, lower_right, point);	
-	 	    	//area2 = DataMapper.getQuadrilateralArea(point, middle_top, upper_right, lower_right);
+	 	    	area3 = DataMapper.getTriangleArea(middle_bottom, lower_right, point);	
+	 	    	area2 = DataMapper.getQuadrilateralArea(point, middle_top, upper_right, lower_right);
 	 	    }
 	    }
 	    else if(area4IsTriangle)
 	    {
-	    	//System.out.println("Got here 4.");
 	    	x = middle_bottom.getX();
 	 	    y = middle_bottom.getY();
 	 	 
 	 	    if(x == x4 && y == y4)
 	 	    {
 	 	    	
-	 	    	//area4 = DataMapper.getTriangleArea(lower_left, middle_right, point);	
-	 	    	//area3 = DataMapper.getQuadrilateralArea(lower_left, point, middle_right, lower_right);
+	 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_right, point);	
+	 	    	area3 = DataMapper.getQuadrilateralArea(lower_left, point, middle_right, lower_right);
 	 	    }
 	 	    else
 	 	    {
-	 	    	//area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
-	 	    	//area1 = DataMapper.getQuadrilateralArea(lower_left, upper_left, middle_top, point);
+	 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
+	 	    	area1 = DataMapper.getQuadrilateralArea(lower_left, upper_left, middle_top, point);
 	 	    }
 	    }
 	    
@@ -821,10 +811,7 @@ public class DataMapper
 	    double weight3 = area1 / total_area;
 	    double weight4 = area2 / total_area;
 	    	    		        
-	    double value = sample1.intensity * weight1 + 
-	    	    	   sample2.intensity * weight2 + 
-	    	    	   sample3.intensity * weight3 +
-	    	    	   sample4.intensity * weight4;
+	    double value = sample1.intensity * weight1 + sample2.intensity * weight2 + sample3.intensity * weight3 + sample4.intensity * weight4;
 	    return(value);
     }
     
@@ -919,7 +906,7 @@ public class DataMapper
 		else
 		{
 			// We know the slope is neither 0 nor infinity.
-			double        a_radians = DataMapper.getSlopeRadians(line);       
+			double        a_radians = DataMapper.getAngleRadians(line);       
 		    double        a_degrees  = DataMapper.getDegrees(a_radians);           
 			
 		    Line2D.Double hypotenuse    = new Line2D.Double(x1, y1, x3, y3);
@@ -938,7 +925,7 @@ public class DataMapper
 		    }
 		    else
 		    {
-		    	b_radians = DataMapper.getSlopeRadians(hypotenuse);	
+		    	b_radians = DataMapper.getAngleRadians(hypotenuse);	
 		    	b_degrees = DataMapper.getDegrees(b_radians); 
 		    }
 		       
