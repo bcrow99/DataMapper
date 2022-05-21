@@ -203,49 +203,28 @@ public class DataMapper
 	    }
 	    else if(x1 == x2)
 		{
-	    	//System.out.println("Simple bisector.");
-			Point2D.Double bisecting_point = new  Point2D.Double(x1, y3);	
-	    	return(bisecting_point);   	
+	    	//System.out.println("Simple perpendicular_bisector.");
+			Point2D.Double perpendicular_bisector = new  Point2D.Double(x1, y3);	
+	    	return(perpendicular_bisector);   	
 		}
 		else if(y1 == y2)
 		{
-			//System.out.println("Simple bisector.");
-			Point2D.Double bisecting_point = new  Point2D.Double(x3, y1);	
-	    	return(bisecting_point);	
+			//System.out.println("Simple perpendicular_bisector.");
+			Point2D.Double perpendicular_bisector = new  Point2D.Double(x3, y1);	
+	    	return(perpendicular_bisector);	
 		} 
 	    else
 	    {
-	    	if(x2 < x1)
-	    	{
-	    		double temp = x1;
-	    		x1   = x2;
-	    		x2   = temp;
-	    		
-	    		temp = y1;
-	    		y1   = y2;
-	    		y2   = temp;
-	    	}
-	    	
-	    	double theta1 = getAngleRadians(x1, y1, x2, y2);
-	    	
+	    	double        theta1     = getAngleRadians(x1, y1, x2, y2);
 	    	Line2D.Double hypotenuse = new Line2D.Double(x1, y1, x3, y3);
-	    	double theta2 = 0;
-	    	if(x1 == x3)
-	    	{
-	    		if(y1 < y2)
-	    		    theta2 = Math.PI / 2;
-	    		else
-	    			theta2 = -Math.PI / 2;	
-	    	}
-	    	else
-	    	    theta2 = getAngleRadians(hypotenuse);
+	    	double        theta2     = getAngleRadians(hypotenuse);
+	    	double        _x1        = 0;
+	    	double        _y1        = 0;
+	    	double        _x3        = 0;
+	    	double        _y3        = 0;
+	    	double        xshift     = 0;
+	    	double        yshift     = 0;
 	    	
-	    	double _x1    = 0;
-	    	double _y1    = 0;
-	    	double _x3    = 0;
-	    	double _y3    = 0;
-	    	double xshift = 0;
-	    	double yshift = 0;
 	    	if(theta1 == 0)
 	    	{
 	    		_x1 = x1;
@@ -263,20 +242,15 @@ public class DataMapper
 	    		yshift = y1;
 	    	}
 	    	
-	    	hypotenuse       = new Line2D.Double(_x1, _y1, _x3, _y3);
-	    	double theta3 = 0;
-		    if(_x1 == _x3)
-		    	theta3 = Math.PI / 2;
-		    else if(_y1 == _y3)
-		    	theta3 = 0;
-			else
-				theta3 = DataMapper.getAngleRadians(hypotenuse);
+	    	hypotenuse         = new Line2D.Double(_x1, _y1, _x3, _y3);
+	    	double theta3      = DataMapper.getAngleRadians(hypotenuse);
 		    double theta4      = Math.PI / 2 - theta3;    
-			double base_length    = distance2 * Math.sin(theta4);
-			double x4             = base_length * Math.cos(theta1) + xshift;
-			double y4             = base_length * Math.sin(theta1) + yshift;
-			double distance4      = getLength(x4, y4, x3, y3);
-		    double difference     = Math.abs(distance1 - distance4);
+			double base_length = distance2 * Math.sin(theta4);
+			double x4          = base_length * Math.cos(theta1) + xshift;
+			double y4          = base_length * Math.sin(theta1) + yshift;
+			
+			double distance4   = getLength(x4, y4, x3, y3);
+		    double difference  = Math.abs(distance1 - distance4);
 		    if(difference > .1)
 		    {
 		    	System.out.println("Discrepancy in calculating nearest_location.");
@@ -288,8 +262,8 @@ public class DataMapper
 		    	System.out.println();
 		    }
 			
-			Point2D.Double bisecting_point = new  Point2D.Double(x4, y4);
-			return(bisecting_point);
+			Point2D.Double perpendicular_bisector = new  Point2D.Double(x4, y4);
+			return(perpendicular_bisector);
 	    }
 	}
 	
