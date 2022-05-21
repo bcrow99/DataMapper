@@ -12,35 +12,29 @@ public class DataMapper
 	    return(distance);
 	}
 	
-	public static double sin(double degrees)
-	{
-	    double radians = StrictMath.toRadians(degrees);
-	    double sin     = StrictMath.sin(radians);
-	    return(sin);
-	}
-
-	public static double cos(double degrees)
-	{
-	    double radians = StrictMath.toRadians(degrees);
-	    double cos     = StrictMath.cos(radians);
-	    return(cos);
-	}
-	
 	public static double getSlope(Line2D.Double line)
 	{
-	    
 		double x1 = line.getX1();
 	    double y1 = line.getY1();
 	    double x2 = line.getX2();
 	    double y2 = line.getY2();  
-	    double slope;
 	    
 	    if(y1 == y2)
 	    	return(Double.NaN);
 	    else if(x1 == x2)
 	    	return(0);
 	    else
-	    	return(slope = (y2 - y1) / (x2 - x1));
+	    	return((y2 - y1) / (x2 - x1));
+	}
+	
+	public static double getSlope(double x1, double y1, double x2, double y2)
+	{
+	    if(y1 == y2)
+	    	return(Double.NaN);
+	    else if(x1 == x2)
+	    	return(0);
+	    else
+	    	return((y2 - y1) / (x2 - x1));
 	}
 	
 	public static double getSlopeRadians(Line2D.Double line)
@@ -54,7 +48,7 @@ public class DataMapper
 	    if(y1 == y2)
 	    	return(0);
 	    else if(x1 == x2)
-	    	return(Double.NaN);
+	    	return(Math.PI / 2);
 	    else
 	    {
 	    	double rise = y2 - y1;
@@ -72,13 +66,12 @@ public class DataMapper
 	    if(y1 == y2)
 	    	return(0);
 	    else if(x1 == x2)
-	    	return(Double.NaN);
+	    	return(Math.PI / 2);
 	    else
 	    {
-	    	double rise = y2 - y1;
-	    	double run  = x2 - x1;
-	    	
-	    	double radians       = Math.atan2(rise, run);
+	    	double rise    = y2 - y1;
+	    	double run     = x2 - x1;
+	    	double radians = Math.atan2(rise, run);
 	    	return(radians);
 	    }
 	}
@@ -122,22 +115,18 @@ public class DataMapper
 		
 		Line2D.Double diagonal2 = new Line2D.Double(upper_left,  lower_right);
 		
-		double base_radians     = getSlopeRadians(base);
+		double base_radians      = getSlopeRadians(base);
 		double diagonal1_radians = getSlopeRadians(diagonal1);
 		double diagonal2_radians = getSlopeRadians(diagonal2);
 		
-		double base_degrees     = getDegrees(base_radians);
-		double diagonal1_degrees = getDegrees(diagonal1_radians);
-		double diagonal2_degrees = getDegrees(diagonal2_radians);
+		double theta1 = diagonal1_radians - base_radians;
+		double theta2 = -diagonal2_radians + base_radians;
+		double theta3 = Math.PI - (theta1 + theta2);
 		
-		double a_degrees = diagonal1_degrees - base_degrees;
-		double b_degrees = -diagonal2_degrees + base_degrees;
-		double c_degrees = 180 - (a_degrees + b_degrees);
-		
-		double base_length     = getLength(base);
-		double determinant_length = sin(b_degrees) / sin(c_degrees) * base_length;
-		double delta_x = determinant_length * cos(a_degrees);
-		double delta_y = determinant_length * sin(a_degrees);
+		double base_length        = getLength(base);
+		double determinant_length = Math.sin(theta2) / Math.sin(theta3) * base_length;
+		double delta_x            = determinant_length * Math.cos(theta1);
+		double delta_y            = determinant_length * Math.sin(theta1);
 		
 		double x1 = lower_left.getX();
 		double y1 = lower_left.getY();
@@ -147,6 +136,7 @@ public class DataMapper
 		Point2D.Double intersect_point  = new Point2D.Double(x2, y2);
 		return(intersect_point);
 	}
+	
 	
 	public static double getTrianglePerimeter(Point2D.Double base1, Point2D.Double base2, Point2D.Double top)
 	{
@@ -389,22 +379,6 @@ public class DataMapper
 		
 	    return(area);
 	}	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	
 	
