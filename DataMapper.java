@@ -301,7 +301,7 @@ public class DataMapper
 		double square = s * (s - a) * (s - b) * (s - c); 
 		double area   = Math.sqrt(square);
 		
-		//System.out.println("The value produced using Heron's formula is " + area);
+		System.out.println("The value produced using Heron's formula is " + area);
 		
 		// The values produced by Heron's formula and the bisecting formula are very similar.	
 		
@@ -313,7 +313,7 @@ public class DataMapper
 		
 		// It breaks somehow when used in interpolater program.  
 		
-		/*
+		
 		double         width    = 0;
 		double         height   = 0;
 		Point2D.Double location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
@@ -358,9 +358,9 @@ public class DataMapper
 		}
 		
 		area = height * width / 2;
-	    //System.out.println("The value produced using the bisecting location is " + area);
+	    System.out.println("The value produced using the perpendicular bisector is " + area);
+		System.out.println();
 		
-		*/
 		
 		if(area == 0)
 		{
