@@ -122,20 +122,6 @@ public class DataMapper
 	    }
 	}
 	
-	public static double getDegrees(double radians)
-	{
-		double degrees = radians / 0.0174533;
-		return(degrees);
-	}
-	
-	public static double getYIntercept(Point2D.Double point, double slope)
-	{
-		double x           = point.getX();
-		double y           = point.getY();
-		double y_intercept = y - slope * x;
-		return (y_intercept);
-	}
-	
 	public static Point2D.Double getIntersection(Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right, Point2D.Double lower_left)
 	{
 		Line2D.Double base        = new Line2D.Double(lower_left,  lower_right);
@@ -303,16 +289,7 @@ public class DataMapper
 		
 		System.out.println("The value produced using Heron's formula is " + area);
 		
-		// The values produced by Heron's formula and the bisecting formula are very similar.	
-		
-		// The perpendicular bisector approach is subject to constraints that are probably best
-		// satisfied by rotating the points to a standard orientation.
-		
-		// It sometimes produces a non-zero result when
-		// the formula goes to 0 and it might be more accurate. 
-		
-		// It breaks somehow when used in interpolater program.  
-		
+		// The values produced by Heron's formula and the bisecting formula are very similar.	  
 		
 		double         width    = 0;
 		double         height   = 0;
@@ -790,43 +767,8 @@ public class DataMapper
     }
     
     
-    public static boolean areSameSide(Line2D.Double line, double x1, double y1, double x2, double y2)
-    {
-        double a = DataMapper.getSlope(line);
-        if(Double.isNaN(a))
-        {
-        	//Get an endpoint and check x1 and x2.
-        	double endpoint = line.getX1();
-        	if((x1 < endpoint && x2 < endpoint) || (x1 > endpoint && x2 > endpoint))
-        		return true;
-        	else
-        		return false;
-        }
-        else if(a == 0)
-        {
-        	//Get an endpoint and check y1 and y2.
-        	double endpoint = line.getY1();
-        	if((y1 < endpoint && y2 < endpoint) || (y1 > endpoint && y2 > endpoint))
-            	return true;
-            else
-            	return false;
-        }
-        else
-        {
-            double b = -1;
-            double x3 = line.getX1();
-            double y3 = line.getY1();
-            Point2D.Double endpoint = new Point2D.Double(x3, y3);
-            double c = getYIntercept(endpoint, a);
-            c = -c;
-            double fx1 = a * x1 + b * y1 - c; 
-            double fx2 = a * x2 + b * y2 - c; 
-            if((fx1 * fx2) > 0) 
-                return true; 
-            return false;
-        }
-    }
-    
+ 
+    /*
     // This returns the bisecting average from a line determined by two samples, or the nearest endpoint sample value if no bisecting line from the point exists.
 	public static double getBisectingAverage(Sample sample1, Sample sample2, Point2D.Double point)
 	{ 
@@ -849,12 +791,6 @@ public class DataMapper
 		double        length2 = DataMapper.getLength(endpoint_line2);
 		if(distance == length1 || distance == length2) // No bisecting line, return not a number.
 		{
-			/*
-			if(distance == length1)
-				return(sample1.intensity);
-			else
-				return(sample2.intensity);
-			*/
 			// It might be useful to return the value of the near endpoint.
 			// Returning not a number makes it easier to debug programs.
 			return(Double.NaN);
@@ -925,6 +861,7 @@ public class DataMapper
 		    return(value);
 		}
 	}
+	*/
 	
 	public static Point[]  getOrderedPositionList(int xdimension, int ydimension, int direction)
 	{
