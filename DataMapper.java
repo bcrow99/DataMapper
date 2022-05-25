@@ -736,7 +736,7 @@ public class DataMapper
 	 	    	    // In this case, we need to find out if we lack a middle bottom or a middle right.
 	 	    		x = middle_right.getX();
 	 	    		y = middle_right.getY();
-	 	    		if((x == x2 && y == y2) || (x == x3 && y == y3))
+	 	    		if(x == x3 && y == y3)
 	 	    		{
 	 	    			// We lack a middle right.
 	 	    			area3 = DataMapper.getTriangleArea(middle_bottom, lower_right, point);
@@ -798,7 +798,7 @@ public class DataMapper
 	 	    		// In this case, we need to find out if we lack a middle bottom or a middle right.
 	 	    		x = middle_right.getX();
 	 	    		y = middle_right.getY();
-	 	    		if((x == x2 && y == y2) || (x == x3 && y == y3))
+	 	    		if(x == x3 && y == y3)
 	 	    		{
 	 	    			// We lack a middle right.
 	 	    			area3 = DataMapper.getTriangleArea(middle_bottom, lower_right, point);
@@ -819,31 +819,6 @@ public class DataMapper
 	 	    	}
 	 	    	else
 	 	    	{
-	 	    	    // We lack a middle left.
-	 	    		/*
-	 	    		x = middle_right.getX();
-	 	    		y = middle_right.getY();
-	 	    		if(x == x2 && y == y2)
-	 	    		    System.out.println("Middle right is same as upper right.");
-	 	    		else if(x == x3 && y == y3)
-	 	    			System.out.println("Middle right is same as lower right.");
-	 	    		
-	 	    		x = middle_top.getX();
-	 	    		y = middle_top.getY();
-	 	    		if(x == x1 && y == y1)
-	 	    		    System.out.println("Middle top is same as upper left.");
-	 	    		else if(x == x2 && y == y2)
-	 	    			System.out.println("Middle top is same as upper right.");
-	 	    		
-	 	    		x = middle_left.getX();
-	 	    		y = middle_left.getY();
-	 	    		if(x == x1 && y == y1)
-	 	    		    System.out.println("Middle left is same as upper left.");
-	 	    		else if(x == x4 && y == y4)
-	 	    			System.out.println("Middle left is same as lower left.");
-	 	    	    //System.out.println("Point is " + point +", middle top is " + middle_top + ", upper right is " + upper_right + ", middle right is " + middle_right);
-	 	    	    
-	 	    	    */
 	 	    		area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
 	 	    		area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);	
 	 	    		
@@ -868,7 +843,7 @@ public class DataMapper
 	 	    		x = middle_bottom.getX();
 	 		 	    y = middle_bottom.getY(); 
 	 		 	    
-	 		 	    if((x == x3 && y == y3) || (x == x4 && y == y4)) 
+	 		 	    if(x == x3 && y == y3) 
 	 		 	    {
 	 		 	    	// Area 3 lacks a middle bottom.
 	 	    		    area3 = DataMapper.getTriangleArea(lower_left, middle_right, point);
@@ -907,6 +882,11 @@ public class DataMapper
 	 		 	    {
 	 		 	        // Area 4 lacks a middle left.
 	 		 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
+	 		 	    	
+	 		 	    	// Get odd shaped quad for area 1.
+	 		 	    	area1 = getQuadrilateralArea(lower_left, upper_left, upper_right, point);
+	 		 	    	
+	 		 	    	area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
 	 		 	    }	
 	 	    	}
 	 	    	else
@@ -921,21 +901,45 @@ public class DataMapper
 	 	    }
 	 	    else
 	 	    {
+	 	    	// Area2 lacks a middle right.
 	 	    	area2 = DataMapper.getTriangleArea(middle_top, upper_right, point);
-	 	    	area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
 	 	    	if(area4IsTriangle)
 	 	    	{
-	 	    		//System.out.println("Areas 2 and 4 are triangles.");
-	 	    		//area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
-	 	    		//area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
-		 	    	//area1 = DataMapper.getQuadrilateralArea(lower_left, upper_left, middle_top, point);	
-		 	    	
+	 	    		
+	 	    		x = middle_bottom.getX();
+	 		 	    y = middle_bottom.getY(); 
+	 		 	    System.out.println("Areas 2 and 4 are triangles.");
+	 		 	    if(x == x4 && y == y4)
+	 		 	    {
+	 		 	    	
+	 		 	    	// Area 4 lacks a middle bottom.
+	 		 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);
+	 		 	        // Get quad for area1.
+			 	    	area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
+			 	    	// Get odd shaped quad for  area3.
+			 	    	area3 = DataMapper.getQuadrilateralArea(lower_left, point, upper_right, lower_right);
+	 		 	    }
+	 		 	    else
+	 		 	    {
+	 		 	        // Area 4 lacks a middle left.
+	 		 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point); 
+	 		 	        // Get odd shaped quad for area1.
+			 	    	area1 = getQuadrilateralArea(lower_left, upper_left, upper_right, point);
+			 	        // Get quad for area3.
+			 	    	area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
+			 	    	
+	 		 	    }
 	 	    	}
 	 	    	else
 	 	    	{
-	 	    		//System.out.println("Area 2 is a triangle.");
-	 	    		//area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-		 	    	//area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);	
+	 	    		// No middle right.
+	 	    		System.out.println("Area 2 is a triangle.");
+	 	    		
+	 	    		// Get odd shaped shaped quad for area3.
+	 	    		area3 = getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
+	 	    		
+	 	    		area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
+	 	    		area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);	
 	 	    	}
 	 	    	
 	 	    }	
@@ -948,50 +952,115 @@ public class DataMapper
 	 	    
 	 	    if(x == x3 && y == y3)
 	 	    {
-	 	        //area3 = DataMapper.getTriangleArea(middle_right, lower_right, point);
-	 	        //area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, lower_right);
-	 	        //System.out.println("Area 3 is a triangle.");
+	 	    	// Area3 lacks a middle bottom.
+	 	    	
+	 	        area3 = DataMapper.getTriangleArea(middle_right, lower_right, point);
 	 	        
-	 	        //area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-		        //area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
+	 	        if(area4IsTriangle)
+	 	        {
+	 	        	System.out.println("Area 3 and 4 are triangles.");
+	 	        	
+	 	        	// We already know it uses the lower right, so it must be lacking
+	 	        	// a middle left.
+	 	        	area4 = DataMapper.getTriangleArea(lower_left, lower_right, point);
+	 	        	
+	 	        	// Get the odd shaped quad for area1.
+	 	        	area1 = getQuadrilateralArea(lower_left, upper_left, middle_top, point);
+	 	        	
+	 	        	area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
+	 	        }
+	 	        else
+	 	        {
+	 	        	System.out.println("Area 3 is a triangle.");
+	 	        	// Get the odd shaped quad for area4.
+	 	        	area4 = getQuadrilateralArea(lower_left, middle_left, point, lower_right);
+	 	        	
+                    area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
+	 	        	area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
+	 	        }
 	 	    }
 	 	    else
 	 	    {
-	 	    	//System.out.println("Area 3 is a triangle.");
+	 	        // Area3 lacks a middle right.
+                area3 = DataMapper.getTriangleArea(middle_bottom, lower_right, point);
+	 	        
+	 	        if(area4IsTriangle)
+	 	        {
+	 	        	System.out.println("Area 3 and 4 are triangles.");
+	 	        	
+	 	        	
+	 	        	if(x == x3 && y == y3)
+	 	        	{
+	 	        		// No middle right or bottom.
+	 	        		area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);
+	 	        		
+	 	        	    // Get the odd shaped quad for area2.
+	 	        		area2 = getQuadrilateralArea(lower_right, upper_right, middle_top, point);
+	 	        		
+	 	        		area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
+	 	        	}
+	 	        	else
+	 	        	{
+	 	        		// No middle right or middle left.
+	 	        		area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
+	 	        		
+	 	        	    // Get the odd shaped quads for area1 and area2.
+	 	        		area1 = getQuadrilateralArea(lower_left, upper_left, middle_top, point);
+	 	        		area2 = getQuadrilateralArea(lower_right, upper_right, middle_top, point);
+	 	        	}
+	 	        }
+	 	        else
+	 	        {
+	 	        	System.out.println("Area 3 is a triangle.");
+	 	        	
+	 	        	// Get the odd shaped quad for area4.
+	 	        	area4 = getQuadrilateralArea(lower_left, middle_left, point, lower_right);
+	 	        	
+                    area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
+	 	        	area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
+	 	        }
 	 	    	
-	 	    	//area3 = DataMapper.getTriangleArea(middle_bottom, lower_right, point);	
-	 	    	//area2 = DataMapper.getQuadrilateralArea(point, middle_top, upper_right, lower_right);
 	 	    	
-	 	    	/*
-	 	    	area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	 	    	area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom); 
-	 	    	*/
+	 	    	
+	 	    	
+	 	    	
+	 	    	
+	 	    	
+	 	    	
+	 	    	
+	 	    	
+	 	    	
+	 	    	
+	 	    	
 	 	    }
 	    }
 	    else if(area4IsTriangle)
 	    {
+	    	System.out.println("Area 4 is a triangle.");
 	    	x = middle_bottom.getX();
 	 	    y = middle_bottom.getY();
 	 	 
 	 	    if(x == x4 && y == y4)
 	 	    {
-	 	    	/*
-	 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_right, point);	
+	 	    	// Area4 lacks a middle bottom.
+	 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);	
+	 	    	
+	 	    	// Get the odd shaped quad for area3.
 	 	    	area3 = DataMapper.getQuadrilateralArea(lower_left, point, middle_right, lower_right);
 	 	    	
 	 	    	area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
 	 	        area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	 	        */
 	 	    }
 	 	    else
 	 	    {
-	 	    	/*
-	 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
+	 	        // Area4 lacks a middle right.
+	 	    	area4 = DataMapper.getTriangleArea(lower_right, middle_bottom, point);
+	 	    	
+	 	    	// Get the odd shaped quad for area1.
 	 	    	area1 = DataMapper.getQuadrilateralArea(lower_left, upper_left, middle_top, point);
 
 	 	    	area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-		        area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
-		        */	
+		        area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);	
 	 	    }
 	    }
 	    
