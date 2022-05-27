@@ -291,7 +291,7 @@ public class DataMapper
 		double s      = (a + b + c) / 2;
 		double square = s * (s - a) * (s - b) * (s - c); 
 		double h_area = Math.sqrt(square);
-		// This turns out to be zero with our data set, when it should be non-zero.
+		// This turns out to be zero sometimes with our data set, when it should be non-zero.
 		//System.out.println("The value produced using Heron's formula is " + h_area);
 	 
 		// The values produced by dropping an altitude and Heron's formula are very
@@ -343,70 +343,43 @@ public class DataMapper
 				}
 				else
 				{
-					// In fact, there still might be a perpendicular bisector in the case of right angles,
-					// as well as triangles that are extremely close to right angles because
-					// of a false equivalence in the calculations.  In that case, the area is
-					// an approximation that might be improved but the error might not be significant
-					// for our purposes.  For example, x = 74.92 and x = 74.92000000015832
-					// produce identical results.
-					
-					// Find out which side of the triangle is longer than the others, and then
-					// use the two other ones for height and width.
-					if((length1 > length2) && (length1 > length3))
+					// Could be a false equivalence because one side is so much 
+					// shorter than the others.  Find the shortest side, and 
+					// find the distance from the opposing vertex as the height
+					// and use the shortest side as the width.
+					//System.out.println("Assuming a false equivalence.");
+					if((length1 < length2) && (length1 < length3))
 					{
-						// The hypotenuse is formed by x1, y1, and x2, y2.	
-						//System.out.println("Found a right triangle.");
-						height = length2;
-						width  = length3;
+						// The short side is formed by x1, y1, and x2, y2.	
+						location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
+						x4 = location.getX();
+						y4 = location.getY(); 
+						height = getDistance(x3, y3, x4, y4);
+						width  = length1;
 					}
-					else if((length2 > length1) && (length2 > length3))
+					else if((length2 < length1) && (length2 < length3))
 					{
-						// The hypotenuse is formed by x2, y2,  and x3, y3.
-						//System.out.println("Found a right triangle.");
-						height = length1;
-						width  = length3;
-					}
-					else if((length3 > length1) && (length3 > length2))
-					{
-						// The hypotenuse is formed by x3, y3,  and x1, y1.
-						//System.out.println("Found a right triangle.");
-						height = length1;
+						// The  short side is formed by x2, y2, and x3, y3.
+						location = DataMapper.getNearestPoint(x2, y2, x3, y3, point1);
+						x4 = location.getX();
+						y4 = location.getY(); 
+						height = getDistance(x1, y1, x4, y4);
 						width  = length2;
+					}
+					else if((length3 < length1) && (length3 < length2))
+					{
+						// The  short side is formed by x3, y3,  and x1, y1.
+						location = DataMapper.getNearestPoint(x3, y3, x1, y1, point2);
+						x4 = location.getX();
+						y4 = location.getY(); 
+						height = getDistance(x2, y2, x4, y4);
+						width  = length3;
 					}
 					else
 					{
-						// Could be a false equivalence because one side is so much 
-						// shorter than the others.  Find the shortest side, and 
-						// find the distance from the opposing vertex as the height
-						// and use the shortest side as the width.
-						//System.out.println("Assuming a false equivalence.");
-						if((length1 < length2) && (length1 < length3))
-						{
-							// The short side is formed by x1, y1, and x2, y2.	
-							location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
-							x4 = location.getX();
-							y4 = location.getY(); 
-							height = getDistance(x3, y3, x4, y4);
-							width  = length1;
-						}
-						else if((length2 < length1) && (length2 < length3))
-						{
-							// The  short side is formed by x2, y2, and x3, y3.
-							location = DataMapper.getNearestPoint(x2, y2, x3, y3, point1);
-							x4 = location.getX();
-							y4 = location.getY(); 
-							height = getDistance(x1, y1, x4, y4);
-							width  = length2;
-						}
-						else if((length3 < length1) && (length3 < length2))
-						{
-							// The  short side is formed by x3, y3,  and x1, y1.
-							location = DataMapper.getNearestPoint(x3, y3, x1, y1, point2);
-							x4 = location.getX();
-							y4 = location.getY(); 
-							height = getDistance(x2, y2, x4, y4);
-							width  = length3;
-						}
+						// Shouldn't happen, but return 0 in unexpected cases.
+						height = 0;
+						width  = 0;
 					}
 				}
 			}
