@@ -888,7 +888,7 @@ public class DataMapper
 	 	    	
 	 	    	if(area3IsTriangle)
 	 	    	{
-	 	    		//System.out.println("Areas 2 and 3 are triangles.");
+	 	    		// System.out.println("Areas 2 and 3 are triangles.");
 	 	    		x = middle_bottom.getX();
 	 		 	    y = middle_bottom.getY(); 
 	 		 	    
@@ -914,7 +914,7 @@ public class DataMapper
 	 	    	}
 	 	    	else if(area4IsTriangle)
 	 	    	{
-	 	    		System.out.println("Areas 2 and 4 are triangles.");
+	 	    		//System.out.println("Areas 2 and 4 are triangles.(1)");
 	 	    		x = middle_bottom.getX();
 	 		 	    y = middle_bottom.getY(); 
 	 		 	    
@@ -957,10 +957,10 @@ public class DataMapper
 	 	    		
 	 	    		x = middle_bottom.getX();
 	 		 	    y = middle_bottom.getY(); 
-	 		 	    //System.out.println("Areas 2 and 4 are triangles.");
+	 		 	    
 	 		 	    if(x == x4 && y == y4)
 	 		 	    {
-	 		 	    	
+	 		 	    	//System.out.println("Areas 2 and 4 are triangles(2).");
 	 		 	    	// Area 4 lacks a middle bottom.
 	 		 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);
 	 		 	        // Get quad for area1.
@@ -970,11 +970,12 @@ public class DataMapper
 	 		 	    }
 	 		 	    else
 	 		 	    {
+	 		 	    	//System.out.println("Areas 2 and 4 are triangles(3).");
 	 		 	        // Area 4 lacks a middle left.
 	 		 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point); 
-	 		 	        // Get odd shaped quad for area1.
-			 	    	area1 = getQuadrilateralArea(lower_left, upper_left, upper_right, point);
-			 	        // Get quad for area3.
+	 		 	        
+	 		 	    	// Get odd shaped quads for area1 and area3.
+			 	    	area1 = getQuadrilateralArea(lower_left, upper_left, middle_top, point);
 			 	    	area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
 			 	    	
 	 		 	    }
@@ -1020,7 +1021,7 @@ public class DataMapper
 	 	        }
 	 	        else
 	 	        {
-	 	        	//System.out.println("Area 3 is a triangle.");
+	 	        	//System.out.println("Area 3 is a triangle (1).");
 	 	        	// Get the odd shaped quad for area4.
 	 	        	area4 = getQuadrilateralArea(lower_left, middle_left, point, lower_right);
 	 	        	
@@ -1058,24 +1059,26 @@ public class DataMapper
 	 	        }
 	 	        else
 	 	        {
-	 	        	//System.out.println("Area 3 is a triangle.");
-	 	        	// Get the odd shaped quad for area4.
-	 	        	area4 = getQuadrilateralArea(lower_left, middle_left, point, lower_right);
+	 	        	//System.out.println("Area 3 is a triangle (2).");
+	 	            
+	 	        	// Get the odd shaped quad for area2. 
+	 	        	area2 = getQuadrilateralArea(point, middle_top, upper_right, lower_right);
 	 	        	
-                    area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	 	        	area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
+	 	        	area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
+	 	        	area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
 	 	        }
 
 	 	    }
 	    }
 	    else if(area4IsTriangle)
 	    {
-	    	//System.out.println("Area 4 is a triangle.");
+	    	
 	    	x = middle_bottom.getX();
 	 	    y = middle_bottom.getY();
 	 	 
 	 	    if(x == x4 && y == y4)
 	 	    {
+	 	    	//System.out.println("Area 4 is a triangle(1).");
 	 	    	// Area4 lacks a middle bottom.
 	 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);	
 	 	    	
@@ -1087,8 +1090,10 @@ public class DataMapper
 	 	    }
 	 	    else
 	 	    {
-	 	        // Area4 lacks a middle right.
-	 	    	area4 = DataMapper.getTriangleArea(lower_right, middle_bottom, point);
+	 	    	//System.out.println("Area 4 is a triangle(2).");
+	 	        
+	 	    	// Area4 lacks a middle left.
+	 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
 	 	    	
 	 	    	// Get the odd shaped quad for area1.
 	 	    	area1 = DataMapper.getQuadrilateralArea(lower_left, upper_left, middle_top, point);
@@ -1100,6 +1105,12 @@ public class DataMapper
 	    
 	  
 	    total_area =  DataMapper.getQuadrilateralArea(lower_left, upper_left, upper_right, lower_right);
+	    double sum_of_areas = area1 + area2 + area3 + area4;
+	    
+	    double difference = Math.abs(total_area - sum_of_areas);
+	    
+	    //System.out.println("Difference between areas is " + difference);
+	    
 	    
 	    //System.out.println("Total area calculated from cell directly is " + total_area);
 	    //System.out.println("Total area calculated by summing seperate areas is " + (area1 + area2 + area3 + area4));
