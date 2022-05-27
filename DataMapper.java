@@ -290,16 +290,16 @@ public class DataMapper
 	
 		double s      = (a + b + c) / 2;
 		double square = s * (s - a) * (s - b) * (s - c); 
-		double area   = Math.sqrt(square);
-		
-		//System.out.println("The value produced using Heron's formula is " + area);
-		
-		// The values produced by Heron's formula and the bisecting formula are very similar.	  
-		
+		double h_area = Math.sqrt(square);
+		// This turns out to be zero with our data set, when it should be non-zero.
+		//System.out.println("The value produced using Heron's formula is " + h_area);
+	 
+		// The values produced by dropping an altitude and Heron's formula are very
+		// similar, but the formula goes to zero before the algorithm.
+		// The formula also produces floating point numbers at times with lots of empty space in
+		// the fractional part, with numbers in the least significant places, which looks like noise.
 		double         width    = 0;
 		double         height   = 0;
-		Point2D.Double location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
-		
 		
 		double length1 = DataMapper.getLength(x1, y1, x2, y2);
 		double length2 = DataMapper.getLength(x2, y2, x3, y3);
@@ -307,39 +307,115 @@ public class DataMapper
 		
 		// Find a side of the triangle that has a 
 		// perpendicular line to the opposing vertex.
+		Point2D.Double location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
 		double x4 = location.getX();
 		double y4 = location.getY();
 		double distance = DataMapper.getDistance(x4, y4, x3, y3);
 		if(distance != length2 && distance != length3)
 		{
+			//System.out.println("Dropping an altitude to side 1.");
 			height            = DataMapper.getDistance(x3, y3, x4, y4);	
 			width             = DataMapper.getDistance(x1, y1, x2, y2);	
 		}
 		else
 		{
-		    //System.out.println("No perpendicular bisector to side 1.");
 			location = DataMapper.getNearestPoint(x2, y2, x3, y3, point1);
 			x4 = location.getX();
 			y4 = location.getY();
 			distance = DataMapper.getDistance(x4, y4, x1, y1);
 			if(distance != length1 && distance != length3)
 			{
+				//System.out.println("Dropping an altitude to side 2.");
 				height            = DataMapper.getDistance(x1, y1, x4, y4);	
 				width             = DataMapper.getDistance(x2, y2, x3, y3);	
 			}
 			else
 			{
-			    //System.out.println("No perpendicular bisector to side 2.");
 				location = DataMapper.getNearestPoint(x3, y3, x1, y1, point2);
 				x4 = location.getX();
 				y4 = location.getY();   
-				height            = DataMapper.getDistance(x2, y2, x4, y4);	
-				width             = DataMapper.getDistance(x3, y3, x1, y1);
+				distance = DataMapper.getDistance(x4, y4, x2, y2);
+				if(distance != length1 && distance != length3)
+				{
+					//System.out.println("Dropping an altitude to side 3.");
+					height            = DataMapper.getDistance(x2, y2, x4, y4);	
+					width             = DataMapper.getDistance(x3, y3, x1, y1);	
+				}
+				else
+				{
+					// In fact, there still might be a perpendicular bisector in the case of right angles,
+					// as well as triangles that are extremely close to right angles because
+					// of a false equivalence in the calculations.  In that case, the area is
+					// an approximation that might be improved but the error might not be significant
+					// for our purposes.  For example, x = 74.92 and x = 74.92000000015832
+					// produce identical results.
+					
+					// Find out which side of the triangle is longer than the others, and then
+					// use the two other ones for height and width.
+					if((length1 > length2) && (length1 > length3))
+					{
+						// The hypotenuse is formed by x1, y1, and x2, y2.	
+						//System.out.println("Found a right triangle.");
+						height = length2;
+						width  = length3;
+					}
+					else if((length2 > length1) && (length2 > length3))
+					{
+						// The hypotenuse is formed by x2, y2,  and x3, y3.
+						//System.out.println("Found a right triangle.");
+						height = length1;
+						width  = length3;
+					}
+					else if((length3 > length1) && (length3 > length2))
+					{
+						// The hypotenuse is formed by x3, y3,  and x1, y1.
+						//System.out.println("Found a right triangle.");
+						height = length1;
+						width  = length2;
+					}
+					else
+					{
+						// Could be a false equivalence because one side is so much 
+						// shorter than the others.  Find the shortest side, and 
+						// find the distance from the opposing vertex as the height
+						// and use the shortest side as the width.
+						//System.out.println("Assuming a false equivalence.");
+						if((length1 < length2) && (length1 < length3))
+						{
+							// The short side is formed by x1, y1, and x2, y2.	
+							location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
+							x4 = location.getX();
+							y4 = location.getY(); 
+							height = getDistance(x3, y3, x4, y4);
+							width  = length1;
+						}
+						else if((length2 < length1) && (length2 < length3))
+						{
+							// The  short side is formed by x2, y2, and x3, y3.
+							location = DataMapper.getNearestPoint(x2, y2, x3, y3, point1);
+							x4 = location.getX();
+							y4 = location.getY(); 
+							height = getDistance(x1, y1, x4, y4);
+							width  = length2;
+						}
+						else if((length3 < length1) && (length3 < length2))
+						{
+							// The  short side is formed by x3, y3,  and x1, y1.
+							location = DataMapper.getNearestPoint(x3, y3, x1, y1, point2);
+							x4 = location.getX();
+							y4 = location.getY(); 
+							height = getDistance(x2, y2, x4, y4);
+							width  = length3;
+						}
+					}
+				}
 			}
 		}
 		
-		area = height * width / 2;
-	    //System.out.println("The value produced using the perpendicular bisector is " + area);
+		double area = height * width / 2;
+		
+		double difference = Math.abs(h_area - area);
+	    //System.out.println("The difference between Heron's formula and dropping an altitude is " + difference);
 		//System.out.println();
 		
 		
@@ -604,20 +680,20 @@ public class DataMapper
 	    
 	    double x = middle_top.getX();
 	    double y = middle_top.getY(); 
-	    System.out.println("Checking midpoints: ");
+	    //System.out.println("Checking midpoints: ");
 	    if((x == x1 && y == y1) || (x == x2 && y == y2))
 	    {
-	    	System.out.println("Middle top is an endpoint.");
+	    	//System.out.println("Middle top is an endpoint.");
 	    	number_of_triangles++;
 	    	if(x == x1 && y == y1)
 	    	{
-	    		System.out.println("Area 1 is a triangle.");
+	    		//System.out.println("Area 1 is a triangle.");
 	    		area1IsTriangle = true;
 	    		
 	    	}
 	    	else
 	    	{
-	    		System.out.println("Area 2 is a triangle.");
+	    		//System.out.println("Area 2 is a triangle.");
 	    		area2IsTriangle = true;	
 	    	}
 	    }
@@ -628,17 +704,17 @@ public class DataMapper
 	    
 	    if((x == x1 && y == y1) || (x == x4 && y == y4))
 	    {
-	    	System.out.println("Middle left is an endpoint.");
+	    	//System.out.println("Middle left is an endpoint.");
 	    	number_of_triangles++;
 	    	if(x == x1 && y == y1)
 	    	{
 	    	    area1IsTriangle = true;
-	    	    System.out.println("Area 1 is a triangle.");
+	    	    //System.out.println("Area 1 is a triangle.");
 	    	}
 	    	else
 	    	{
 	    	    area4IsTriangle = true;
-	    	    System.out.println("Area 4 is a triangle.");
+	    	    //System.out.println("Area 4 is a triangle.");
 	    	}
 	    }
 	    
@@ -648,17 +724,17 @@ public class DataMapper
 	    
 	    if((x == x2 && y == y2) || (x == x3 && y == y3))
 	    {
-	    	System.out.println("Middle right is an endpoint.");
+	    	//System.out.println("Middle right is an endpoint.");
 	    	number_of_triangles++;
 	    	if(x == x2 && y == y2)
 	    	{
 	    	    area2IsTriangle = true;
-	    	    System.out.println("Area 2 is a triangle.");
+	    	    //System.out.println("Area 2 is a triangle.");
 	    	}
 	    	else
 	    	{
 	    		area3IsTriangle = true;
-	    		System.out.println("Area 3 is a triangle.");
+	    		//System.out.println("Area 3 is a triangle.");
 	    	}
 	    }
 	    
@@ -667,22 +743,22 @@ public class DataMapper
 	    y = middle_bottom.getY(); 
 	    if((x == x3 && y == y3) || (x == x4 && y == y4))
 	    {
-	    	System.out.println("Middle bottom is an endpoint.");
+	    	//System.out.println("Middle bottom is an endpoint.");
 	    	number_of_triangles++;
 	    	if(x == x3 && y == y3)
 	    	{
 	    	    area3IsTriangle = true;
-	    	    System.out.println("Area 3 is a triangle.");
+	    	    //System.out.println("Area 3 is a triangle.");
 	    	}
 	    	else
 	    	{
 	    		area4IsTriangle = true;
-	    		System.out.println("Area 4 is a triangle with 3.");
+	    		//System.out.println("Area 4 is a triangle with 3.");
 	    	}
 	    }
 	    
-	    System.out.println("Finished checking midpoints.");
-	    System.out.println();
+	    //System.out.println("Finished checking midpoints.");
+	    //System.out.println();
 	    //System.out.println("Number of triangle areas in quadrilateral are " + number_of_triangles);
 	    //System.out.println();
 	    	
@@ -839,7 +915,7 @@ public class DataMapper
 	 	    	
 	 	    	if(area3IsTriangle)
 	 	    	{
-	 	    		System.out.println("Areas 2 and 3 are triangles.");
+	 	    		//System.out.println("Areas 2 and 3 are triangles.");
 	 	    		x = middle_bottom.getX();
 	 		 	    y = middle_bottom.getY(); 
 	 		 	    
@@ -891,7 +967,7 @@ public class DataMapper
 	 	    	}
 	 	    	else
 	 	    	{
-	 	    		System.out.println("Area 2 is a triangle.");
+	 	    		//System.out.println("Area 2 is a triangle.");
 	 	    	    // Get odd shaped quad for area1, which we know is not a triangle.
 		 	    	area1 = getQuadrilateralArea(middle_left, upper_left, upper_right, point);	
 		 	    	
@@ -908,7 +984,7 @@ public class DataMapper
 	 	    		
 	 	    		x = middle_bottom.getX();
 	 		 	    y = middle_bottom.getY(); 
-	 		 	    System.out.println("Areas 2 and 4 are triangles.");
+	 		 	    //System.out.println("Areas 2 and 4 are triangles.");
 	 		 	    if(x == x4 && y == y4)
 	 		 	    {
 	 		 	    	
@@ -933,7 +1009,7 @@ public class DataMapper
 	 	    	else
 	 	    	{
 	 	    		// No middle right.
-	 	    		System.out.println("Area 2 is a triangle.");
+	 	    		//System.out.println("Area 2 is a triangle.");
 	 	    		
 	 	    		// Get odd shaped shaped quad for area3.
 	 	    		area3 = getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
@@ -958,7 +1034,7 @@ public class DataMapper
 	 	        
 	 	        if(area4IsTriangle)
 	 	        {
-	 	        	System.out.println("Area 3 and 4 are triangles.");
+	 	        	//System.out.println("Area 3 and 4 are triangles.");
 	 	        	
 	 	        	// We already know it uses the lower right, so it must be lacking
 	 	        	// a middle left.
@@ -971,7 +1047,7 @@ public class DataMapper
 	 	        }
 	 	        else
 	 	        {
-	 	        	System.out.println("Area 3 is a triangle.");
+	 	        	//System.out.println("Area 3 is a triangle.");
 	 	        	// Get the odd shaped quad for area4.
 	 	        	area4 = getQuadrilateralArea(lower_left, middle_left, point, lower_right);
 	 	        	
@@ -986,10 +1062,8 @@ public class DataMapper
 	 	        
 	 	        if(area4IsTriangle)
 	 	        {
-	 	        	System.out.println("Area 3 and 4 are triangles.");
-	 	        	
-	 	        	
-	 	        	if(x == x3 && y == y3)
+	 	        	//System.out.println("Area 3 and 4 are triangles.");
+	 	        	if(x == x4 && y == y4)
 	 	        	{
 	 	        		// No middle right or bottom.
 	 	        		area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);
@@ -1011,32 +1085,19 @@ public class DataMapper
 	 	        }
 	 	        else
 	 	        {
-	 	        	System.out.println("Area 3 is a triangle.");
-	 	        	
+	 	        	//System.out.println("Area 3 is a triangle.");
 	 	        	// Get the odd shaped quad for area4.
 	 	        	area4 = getQuadrilateralArea(lower_left, middle_left, point, lower_right);
 	 	        	
                     area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
 	 	        	area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
 	 	        }
-	 	    	
-	 	    	
-	 	    	
-	 	    	
-	 	    	
-	 	    	
-	 	    	
-	 	    	
-	 	    	
-	 	    	
-	 	    	
-	 	    	
-	 	    	
+
 	 	    }
 	    }
 	    else if(area4IsTriangle)
 	    {
-	    	System.out.println("Area 4 is a triangle.");
+	    	//System.out.println("Area 4 is a triangle.");
 	    	x = middle_bottom.getX();
 	 	    y = middle_bottom.getY();
 	 	 
