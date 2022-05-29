@@ -337,14 +337,14 @@ public class Interpolater
 			}
 			clipped_data.add(clipped_list);
 		}
-		System.out.println("Xmax for clipped data = " + String.format("%.2f", global_xmax) + ", xmin = " + String.format("%.2f", global_xmin));
-		System.out.println("Ymax for clipped data = " + String.format("%.2f", global_ymax) + ", ymin = " + String.format("%.2f", global_ymin)); 
+		//System.out.println("Xmax for clipped data = " + String.format("%.2f", global_xmax) + ", xmin = " + String.format("%.2f", global_xmin));
+		//System.out.println("Ymax for clipped data = " + String.format("%.2f", global_ymax) + ", ymin = " + String.format("%.2f", global_ymin)); 
 	
-		double xrange = global_xmax - global_xmin;
-		double yrange = global_ymax - global_ymin;
+		double global_xrange = global_xmax - global_xmin;
+		double global_yrange = global_ymax - global_ymin;
 			
-		int global_xdim = (int)(xrange / .5 + 2);
-		int global_ydim = (int)(yrange / .04 + 2);
+		int global_xdim = (int)(global_xrange / .5 + 2);
+		int global_ydim = (int)(global_yrange / .04 + 2);
 		System.out.println("The ideal raster for this data set has xdim = " + global_xdim + ", ydim = " + global_ydim);
 		System.out.println();
 		
@@ -391,23 +391,24 @@ public class Interpolater
 		    //System.out.println("Xmax = " + String.format("%.2f", xmax) + ", xmin = " + String.format("%.2f", xmin));
 		    //System.out.println("Ymax = " + String.format("%.2f", ymax) + ", ymin = " + String.format("%.2f", ymin));
 
-	        xrange = xmax - xmin;
-	        yrange = ymax - ymin;
+	        double xrange = xmax - xmin;
+	        double yrange = ymax - ymin;
 			
-	        int line_xdim = (int)(xrange / .5);
-	        int line_ydim = (int)(yrange / .04);
+	        //int line_xdim = (int)(xrange / .5 + 2);
+	        //int line_ydim = (int)(yrange / .04 + 2);
 	        //System.out.println("The ideal raster for this flight line has xdim = " + line_xdim + ", ydim = " + line_ydim);
 	      
-		
+		    /*
 	        // Replace actual intensity values with a gray scale to help evaluate algorithms.
 	        for(int j = 0; j < clipped_list.size(); j++)
 	        {
-	            Sample sample = (Sample) clipped_list.get(j);
-	            double synthetic_intensity = (sample.y - ymin) / (ymax - ymin);
-	            synthetic_intensity       *= 200;
-	            synthetic_intensity       -= 100;
-	            sample.intensity = synthetic_intensity;
+	            //Sample sample              = (Sample) clipped_list.get(j);
+	            //double synthetic_intensity = (sample.y - global_ymin) / global_yrange;
+	            //synthetic_intensity       *= 255;
+	            //sample.intensity           = synthetic_intensity;
+	            //System.out.println("Sample x = " + sample.x + ", y = " + sample.y + ", intensity = " + sample.intensity);
 	        }
+	        */
 		
 	        for(int j = 0; j < clipped_list.size() - 5; j += 5)
 	        {
@@ -461,7 +462,12 @@ public class Interpolater
 		    	        if(cell.contains(x_value, y_value))
 		    	        {
 		    	            double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
-		    	            Sample sample        = new Sample(intensity, x_value, y_value);
+		    	        	//double intensity = ((y_value - global_ymin) / global_yrange) * 255.;
+		    	        	//System.out.println("Lower left y = " + lower_left.y + ", upper left y = " + upper_left.y);
+		    	        	//System.out.println("Y value is " + y_value);
+		    	        	//System.out.println();
+		    	        	
+		    	            Sample sample        = new Sample(x_value, y_value, intensity);
 		    	            ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
 		    	            int x_index          = (int)index_list.get(0);
 		    	            int y_index          = (int)index_list.get(1);
@@ -480,6 +486,8 @@ public class Interpolater
 		    	            if(cell.contains(x_value, y_value))
 		    	            {
 			    	    	    double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
+			    	    	    //double intensity = ((y_value - global_ymin) / global_yrange) * 255.;
+		    	            	
 			    	    	    Sample sample        = new Sample(intensity, x_value, y_value);
 			    	    	    ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
 			    	    	    int x_index          = (int)index_list.get(0);
@@ -499,6 +507,8 @@ public class Interpolater
 		    	                if(cell.contains(x_value, y_value))
 		    	                {
 				    	    	    double intensity     = DataMapper.getLinearInterpolation(location, upper_left, upper_right, lower_right, lower_left);
+				    	    	    //double intensity = ((y_value - global_ymin) / global_yrange) * 255.;
+				    	    	    
 				    	    	    Sample sample        = new Sample(intensity, x_value, y_value);
 				    	    	    ArrayList index_list = getIndex(x_value, y_value, global_xmin, global_ymin);
 				    	    	    int x_index          = (int)index_list.get(0);
@@ -521,27 +531,12 @@ public class Interpolater
 		    		        cell_list.add(lower_left);
 		    		    }
 		    	    }
-		    	
-	                int x_index = 0;
-	                double current_location = global_xmin;
-	                while(current_location < x_value)
-	                {
-		    		    x_index++;
-		    		    current_location += .5;
-		    	    }
-		    	
-	                int y_index = 0;
-	                current_location = global_ymin;
-	                while(current_location < y_value)
-	                {
-		    		    y_index++;
-		    		    current_location += .04;
-	                }
 		    	}
 		    }
 		}
 		
 		int    number_of_interpolated_values = 0;
+		int    number_of_occupied_cells = 0;
 		double intensity_min                 = Double.MAX_VALUE;
 		double intensity_max                 = -Double.MAX_VALUE;
 		
@@ -553,17 +548,34 @@ public class Interpolater
 				if(cell_list.size() != 0)
 				{
 					number_of_interpolated_values++;
+					number_of_occupied_cells++;
 					Sample sample = (Sample)cell_list.get(0);
 					if(sample.intensity < intensity_min)
 						intensity_min = sample.intensity;
 					if(sample.intensity > intensity_max)
 						intensity_max = sample.intensity;
+					if(cell_list.size() == 2)
+					{
+						number_of_interpolated_values++;
+						sample = (Sample)cell_list.get(1);
+						if(sample.intensity < intensity_min)
+							intensity_min = sample.intensity;
+						if(sample.intensity > intensity_max)
+							intensity_max = sample.intensity;	
+					}
 				}
 			}
 		}
+		
 		System.out.println("Number of interpolated values is " + number_of_interpolated_values);
-		System.out.println("Intensity min = " + intensity_min + " , intensity max = " + intensity_max);
+		System.out.println("Number of occupied cells is " + number_of_occupied_cells);
+		int total_number_of_cells = global_xdim * global_ydim;
+		System.out.println("Number of total cells is " + total_number_of_cells);
+		
+		//System.out.println("Intensity min = " + intensity_min + " , intensity max = " + intensity_max);
 	    double intensity_range = intensity_max - intensity_min;
+	    //System.out.println("Intensity range = " + intensity_range);
+	    
 		int _data_image[][] = new int[global_ydim][global_xdim];
 		
 		for(int i = 0; i < global_ydim; i++)
@@ -573,10 +585,31 @@ public class Interpolater
 				ArrayList cell_list  = global_raster[i][j];
 				if(cell_list.size() != 0)
 				{
-					Sample sample = (Sample)cell_list.get(0);
-					int value = (int)((sample.intensity - intensity_min) / intensity_range * 255);
+					double current_intensity = 0;
+					if(cell_list.size() > 1)
+					{
+						Sample sample1    = (Sample)cell_list.get(0);
+						Sample sample2    = (Sample)cell_list.get(1);
+						current_intensity = sample1.intensity;
+						
+						//current_intensity = (sample1.intensity + sample2.intensity) / 2;
+						//current_intensity = ((sample1.y - global_ymin) / global_yrange) * 255;
+						
+					}
+					else
+					{
+					    Sample sample = (Sample)cell_list.get(0);
+					    current_intensity = sample.intensity;
+					    
+					    //current_intensity = ((sample.y - global_ymin) / global_yrange) * 255;
+					}
+					
+					double normal_value = ((current_intensity - intensity_min) / intensity_range);
+					int value = (int)(normal_value * 255);
 					_data_image[i][j] = value;
 				}
+				else
+					_data_image[i][j] = 0;
 			}
 		}
 		
@@ -585,8 +618,8 @@ public class Interpolater
         {
             for(int j = 0; j < global_xdim; j++)
             {  	
-                int gray_value        = _data_image[i][j];;
-        	    int rgb_value = ((gray_value&0x0ff)<<16)|((gray_value&0x0ff)<<8)|(gray_value&0x0ff);
+                int gray_value = _data_image[i][j];
+        	    int rgb_value  = ((gray_value&0x0ff)<<16)|((gray_value&0x0ff)<<8)|(gray_value&0x0ff);
         	    data_image.setRGB(j, i, rgb_value);  
             }
         }
@@ -599,57 +632,6 @@ public class Interpolater
         {  
             e.printStackTrace(); 
         }        
-		
-		
-	}
-
-	double getDistance(double x1, double y1, double x2, double y2)
-	{
-		double distance = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-		return (distance);
-	}
-
-	double getPerimeter(PathIterator path_iterator)
-	{
-		double[] coords = new double[6];
-		double perimeter = 0;
-		double previous_x = 0;
-		double previous_y = 0;
-		double current_x = 0;
-		double current_y = 0;
-
-		int segment_type = path_iterator.currentSegment(coords);
-		if (segment_type == PathIterator.SEG_MOVETO)
-		{
-			// System.out.println("Coordinates start at " + coords[0] + ", " + coords[1]);
-			previous_x = coords[0];
-			previous_y = coords[1];
-			path_iterator.next();
-		} else
-		{
-			System.out.println("Unexpected format.");
-			return (perimeter);
-		}
-
-		while (path_iterator.isDone() == false)
-		{
-
-			segment_type = path_iterator.currentSegment(coords);
-			if (segment_type == PathIterator.SEG_LINETO)
-			{
-				current_x = coords[0];
-				current_y = coords[1];
-
-				double length = getDistance(previous_x, previous_y, current_x, current_y);
-				perimeter += length;
-
-				previous_x = current_x;
-				previous_y = current_y;
-			}
-			path_iterator.next();
-		}
-
-		return (perimeter);
 	}
 
 	public double[] smooth(double[] source, int iterations)
@@ -671,87 +653,7 @@ public class Interpolater
 		return (dst);
 	}
 
-	public ArrayList getNeighborList(int j, int k,  ArrayList data[][])
-	{
-		int ydim                = data.length;
-		int xdim                = data[0].length;
-		int location_type       = getLocationType(k, j, xdim, ydim);
-	    
-		ArrayList neighbor_list = new ArrayList();
-	    
-	    Sample    sample;
-	    ArrayList sample_list;
-	    int       size;
-	    
-	    if(location_type == 5)
-	    {
-	    	sample_list = data[j - 1][k - 1];
-	    	size        = sample_list.size();
-	    	if(size != 0)
-	    	{
-	    		sample = (Sample)sample_list.get(size - 1);
-	    		neighbor_list.add(sample);
-	    	}
-	    	
-	    	sample_list = data[j - 1][k];
-	    	size        = sample_list.size();
-	    	if(size != 0)
-	    	{
-	    		sample = (Sample)sample_list.get(size - 1);
-	    		neighbor_list.add(sample);
-	    	}
-			
-	    	sample_list = data[j - 1][k + 1];
-	    	size        = sample_list.size();
-	    	if(size != 0)
-	    	{
-	    		sample = (Sample)sample_list.get(size - 1);
-	    		neighbor_list.add(sample);
-	    	}
-	    	
-	    	sample_list = data[j][k - 1];
-	    	size        = sample_list.size();
-	    	if(size != 0)
-	    	{
-	    		sample = (Sample)sample_list.get(size - 1);
-	    		neighbor_list.add(sample);
-	    	}
-	    	
-	    	sample_list = data[j][k + 1];
-	    	size        = sample_list.size();
-	    	if(size != 0)
-	    	{
-	    		sample = (Sample)sample_list.get(size - 1);
-	    		neighbor_list.add(sample);
-	    	}
-	    	
-	    	sample_list = data[j + 1][k - 1];
-	    	size        = sample_list.size();
-	    	if(size != 0)
-	    	{
-	    		sample = (Sample)sample_list.get(size - 1);
-	    		neighbor_list.add(sample);
-	    	}
-	    			
-	    	sample_list = data[j + 1][k];
-	    	size        = sample_list.size();
-	    	if(size != 0)
-	    	{
-	    		sample = (Sample)sample_list.get(size - 1);
-	    		neighbor_list.add(sample);
-	    	}
-			
-	    	sample_list = data[j + 1][k + 1];
-	    	size        = sample_list.size();
-	    	if(size != 0)
-	    	{
-	    		sample = (Sample)sample_list.get(size - 1);
-	    		neighbor_list.add(sample);
-	    	}
-	    }
-	    return(neighbor_list);
-	}
-
+	
     public ArrayList getIndex(double x_value, double y_value, double global_xmin, double global_ymin)
     {
     	ArrayList index_list = new ArrayList();
@@ -761,6 +663,10 @@ public class Interpolater
     	{
     		x_index++;
     		current_location += .5;
+    		
+    		//System.out.println("x index = " + x_index);
+    		//System.out.println("location = " + current_location);
+    		//System.out.println();
     	}
     	index_list.add(x_index);
     	
@@ -772,7 +678,10 @@ public class Interpolater
     		current_location += .04;
     	}
     	index_list.add(y_index);
-    	
+    	//System.out.println("x location = " + x_value + ", y location = " + y_value);
+    	//System.out.println("x index = " + x_index + ", y index = " + y_index);
+    	//System.out.println("x min = " + global_xmin + ", y min = " + global_ymin);
+    	//System.out.println();
     	return(index_list);
     }
     
@@ -810,58 +719,10 @@ public class Interpolater
     	}
     	double y_value = start_whole_part + start_fractional_part;
     	
+    	//System.out.println("Start x = " + start_x + ", start y = " + start_y);
+    	//System.out.println("Ideal x = " + x_value + ", ideal y = " + y_value);
+    	//System.out.println();
 	    Point2D.Double location = new Point2D.Double(x_value, y_value);	
 	    return(location);
-	}
-	
-	public int getLocationType(int xindex, int yindex, int xdim, int ydim)
-	{
-		int location_type = 0;
-		if (yindex == 0)
-		{
-			if (xindex == 0)
-			{
-				location_type = 1;
-			} 
-			else if (xindex % xdim != xdim - 1)
-			{
-				location_type = 2;
-			} 
-			else
-			{
-				location_type = 3;
-			}
-		} 
-		else if(yindex % ydim != ydim - 1)
-		{
-			if (xindex == 0)
-			{
-				location_type = 4;
-			} 
-			else if (xindex % xdim != xdim - 1)
-			{
-				location_type = 5;
-			} 
-			else
-			{
-				location_type = 6;
-			}
-		} 
-		else
-		{
-			if (xindex == 0)
-			{
-				location_type = 7;
-			} 
-			else if (xindex % xdim != xdim - 1)
-			{
-				location_type = 8;
-			} 
-			else
-			{
-				location_type = 9;
-			}
-		}
-		return (location_type);
 	}
 }
