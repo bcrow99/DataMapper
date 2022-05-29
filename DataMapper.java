@@ -291,6 +291,7 @@ public class DataMapper
 		double s      = (a + b + c) / 2;
 		double square = s * (s - a) * (s - b) * (s - c); 
 		double h_area = Math.sqrt(square);
+		
 		// This turns out to be zero sometimes with our data set, when it should be non-zero.
 		//System.out.println("The value produced using Heron's formula is " + h_area);
 	 
@@ -388,8 +389,14 @@ public class DataMapper
 		double area = height * width / 2;
 		
 		double difference = Math.abs(h_area - area);
-	    //System.out.println("The difference between Heron's formula and dropping an altitude is " + difference);
-		//System.out.println();
+		
+		//System.out.println("The difference between Heron's formula and dropping an altitude is " + difference);
+		
+		if((h_area == 0) && (area != 0))
+		{
+	        System.out.println("Zero h value, non-zero p value.");
+		    System.out.println();
+		}
 		
 		
 		if(area == 0)
@@ -1109,7 +1116,7 @@ public class DataMapper
 	    
 	    double difference = Math.abs(total_area - sum_of_areas);
 	    
-	    //System.out.println("Difference between areas is " + difference);
+	    //System.out.println("Difference between total area and separate areas is " + difference);
 	    
 	    
 	    //System.out.println("Total area calculated from cell directly is " + total_area);
@@ -1117,12 +1124,15 @@ public class DataMapper
 	    //System.out.println();
 	   
 	    	    		
-	    double weight1 = area3 / total_area;
-	    double weight2 = area4 / total_area;
-	    double weight3 = area1 / total_area;
-	    double weight4 = area2 / total_area;
-	    	    		        
+	    double weight1 = area3 / sum_of_areas;
+	    double weight2 = area4 / sum_of_areas;
+	    double weight3 = area1 / sum_of_areas;
+	    double weight4 = area2 / sum_of_areas;
 	    double value = sample1.intensity * weight1 + sample2.intensity * weight2 + sample3.intensity * weight3 + sample4.intensity * weight4;
+	    
+	    //System.out.println("Intensity 1 = " + sample1.intensity + ", intensity 2 = " +  sample2.intensity);
+	    //System.out.println("Intensity 3 = " + sample3.intensity + ", intensity 4 = " +  sample4.intensity);
+	    //System.out.println("Resulting value = " + value);
 	    return(value);
     }
     
