@@ -1717,144 +1717,57 @@ public class ImageMapper
 		return (dest);
 	}
 	
-
-	public ArrayList adaptive_interpolate(double[] x, double[] y, double[] z, double distance)
+	public static int[][] expandX(int src[][], int x_expand)
 	{
-		// We'll get three lists of original data with new interpolated values included.
-		ArrayList interpolated_data = new ArrayList();
+		int ydim = src.length;
+		int xdim = src[0].length;
 		
-		// Use z as the discriminant, and process x and y accordingly.
-		double[] src   = z;
+		int new_xdim = (xdim - 1) * x_expand + xdim;
 		
-		
-		ArrayList x_dst = new ArrayList();
-		ArrayList y_dst = new ArrayList();
-		ArrayList z_dst = new ArrayList();
-		
-		
-		for(int i = 0; i < src.length; i++)
+		System.out.println("The old xdim is " + xdim);
+		System.out.println("The new xdim is " + new_xdim);
+		int [][] dst = new int[ydim][new_xdim];
+		for(int i = 0; i < ydim; i++)
 		{
-		    x_dst.add(x[i]);
-		    y_dst.add(y[i]);
-		    z_dst.add(z[i]);
-		    
-		    // If that was the last point, don't
-		    // bother interpolating.
-		    if(i != src.length - 1)
-		    {
-		    	// The range of the jitter is about 6 nT,
-		    	// so we don't want to interpolate when points
-		    	// are that close because it will affect
-		    	// the result of the averaging we do later.
-		    	// We'll try to interpolate a point at least every
-		    	// 12 nT, so the gap we're looking for is
-		    	// at least 24 nT.
-		    	// That's being conservative, although it would
-		    	// be even more conservative to only interpolate
-		    	// one point.
-		    	
-		    	double discriminant = Math.abs(src[i + 1] - src[i]);
-		    	if(discriminant > distance)
+			int k = 0;
+			int end_value = 0;
+			for(int j = 0; j < xdim - 1; j++)
+			{
+				int start_value  = src[i][j];
+				end_value        = src[i][j + 1];
+				dst[i][k++]      = start_value;
+				double delta     = start_value - end_value;
+				double increment = delta / (x_expand + 1);
+				for(int m = 0; m < x_expand; m++)
 				{
-		    		// This does something crazy.
-		    		/*
-		    		// Find out how large the gap is, and if we
-		    		// want to interpolate multiple values.
-		    		int number_of_points = (int)Math.floor(discriminant / distance);
-		    		// Take care of the simple case.
-		    		if(number_of_points == 1)
-		    		{
-		    		    x_dst.add((x[i] + x[i + 1]) / 2);
-		    		    y_dst.add((y[i] + y[i + 1]) / 2);
-		    		    z_dst.add((z[i] + z[i + 1]) / 2);
-		    		}
-		    		else
-		    		{
-		    			double increment = 1. / (number_of_points + 1);
-		    			double factor    = increment;
-		    		    for(int j = 0; j < number_of_points; j++)
-		    		    {
-		    		        double first_value  = (1 - factor) * x[i + 1];		
-		    		        double second_value = factor * x[i];
-		    		        x_dst.add((first_value + second_value) / 2);
-		    		        
-		    		        first_value  = (1 - factor) * y[i + 1];
-		    		        second_value = factor * y[i];
-		    		        y_dst.add((first_value + second_value) / 2);
-		    		        
-		    		        first_value  = (1 - factor) * z[i + 1];
-		    		        second_value = factor * z[i];
-		    		        z_dst.add((first_value + second_value) / 2);
-		    		        
-		    		        factor += increment;
-		    		    }
-		    		}
-		    		*/
-		    		
-		    		// Try simple.
-		    		x_dst.add((x[i] + x[i + 1]) / 2);
-	    		    y_dst.add((y[i] + y[i + 1]) / 2);
-	    		    z_dst.add((z[i] + z[i + 1]) / 2);
+					start_value += increment;
+					dst[i][k++]  = start_value;
 				}
-		    }
+			}
+			dst[i][k] = end_value;
 		}
-		
-		interpolated_data.add(x_dst);
-		interpolated_data.add(y_dst);
-		interpolated_data.add(z_dst);
-		
-		return(interpolated_data);
+		return(dst);
 	}
 	
-	
-	public ArrayList adaptive_smooth(double[] x, double[] y, double[] z, int iterations, double amount)
+	public static int[][] shrinkAvg(int src[][]) 
 	{
-		ArrayList smooth_data = new ArrayList();
+		int ydim = src.length;
+		int xdim = src[0].length;
 		
-		// Use z as the discriminant, and process x and y accordingly.
-		double[] src   = z;
-		int dst_length = z.length - 1;
-		int final_length = z.length - iterations;
-		double[] x_dst = new double[dst_length];
-		double[] y_dst = new double[dst_length];
-		double[] z_dst = new double[dst_length];
-		while (dst_length >= final_length)
+		int _xdim = xdim / 2;
+		int _ydim = ydim / 2;
+		
+		int [][] dst = new int[_ydim][_xdim];
+		
+		for(int i = 0; i < ydim - 1; i += 2)
 		{
-			for (int i = 0; i < dst_length; i++)
+			int k = i / 2;
+			for(int j = 0; j < xdim - 1; j += 2)
 			{
-				if(Math.abs(src[i + 1] - src[i]) > amount)
-				{
-				    x_dst[i] = (x[i] + x[i + 1]) / 2;
-				    y_dst[i] = (y[i] + y[i + 1]) / 2;
-				    z_dst[i] = (z[i] + z[i + 1]) / 2;
-				}
-				else
-				{
-				    x_dst[i] = x[i];
-				    y_dst[i] = y[i];
-				    z_dst[i] = z[i];
-				}
-			}
-			src = z_dst;
-			x   = x_dst;
-			y   = y_dst;
-			z   = z_dst;
-			dst_length--;
-			if(dst_length >= final_length)
-			{
-			    x_dst = new double[dst_length];
-			    y_dst = new double[dst_length];
-				z_dst = new double[dst_length];
-			}
-			else
-			{
-			    smooth_data.add(x);
-			    smooth_data.add(y);
-			    smooth_data.add(z);
+			    int m = j / 2;
+			    dst[k][m] = (src[i][j] + src[i][j + 1] + src[i + 1][j] + src[i + 1][j + 1]) / 4;   
 			}
 		}
-		return(smooth_data);
+		return(dst);
 	}
-	
-	
 }
