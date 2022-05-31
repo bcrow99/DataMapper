@@ -779,13 +779,27 @@ public class Analyzer
 		}
 	
 		
-		int[][] expanded_data_image1 = ImageMapper.expandX(data_image1, 12);
-		int[][] expanded_data_image2 = ImageMapper.expandX(data_image1, 12);
-		int[][] shrunken_expanded_data_image1 = ImageMapper.shrinkAvg(expanded_data_image1);
-		int[][] shrunken_expanded_data_image2 = ImageMapper.shrinkAvg(expanded_data_image2);
+		double[][] expanded_data1 = ImageMapper.expandX(data1, 12);
+		double[][] expanded_data2 = ImageMapper.expandX(data2, 12);
+		double[][] shrunken_expanded_data1 = ImageMapper.shrinkAvg(expanded_data1);
+		double[][] shrunken_expanded_data2 = ImageMapper.shrinkAvg(expanded_data2);
 		
-		//double[] result              = ImageMapper.getTranslation(shrunken_expanded_data_image1, shrunken_expanded_data_image2);
-		double[] result              = ImageMapper.getTranslation(expanded_data_image1, expanded_data_image2);
+		int _ydim = shrunken_expanded_data1.length;
+		int _xdim = shrunken_expanded_data1[0].length;
+		
+		int[][] _data1 = new int[_ydim][_xdim];
+		int[][] _data2 = new int[_ydim][_xdim];
+		
+		for(int i = 0; i < _ydim; i++)
+		{
+			for(int j = 0; j < _xdim; j++)
+			{
+				_data1[i][j] = (int) (shrunken_expanded_data1[i][j] * 100);
+				_data2[i][j] = (int) (shrunken_expanded_data2[i][j] * 100);
+			}
+		}
+		
+		double[] result              = ImageMapper.getTranslation(_data1, _data2);
 		//double[] result              = ImageMapper.getTranslation(data_image1, data_image2);
 		
 		System.out.println("Result was type " + result[0]);
