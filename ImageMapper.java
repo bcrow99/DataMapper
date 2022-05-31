@@ -122,6 +122,92 @@ public class ImageMapper
 		return (location_type);
 	}
 
+	
+	public static double[][] getImageDilation(double src[][], boolean isInterpolated[][])
+	{
+		int ydim = src.length;
+		int xdim = src[0].length;
+		
+		double dst[][] = new double[ydim][xdim];
+
+		
+		double source[];
+		double dest[];
+		double gray1[] = new double[xdim * ydim];
+		double gray2[] = new double[xdim * ydim];
+		boolean isAssigned[] = new boolean[xdim * ydim];
+		int number_of_uninterpolated_cells = 0;
+		int number_of_iterations = 0;
+		
+		// Reformat data for low level code that uses a single index.
+		for (int i = 0; i < ydim; i++)
+		{
+			for (int j = 0; j < xdim; j++)
+			{
+				int k = i * xdim + j;
+				gray1[k] = src[i][j];
+				isAssigned[k] = isInterpolated[i][j];
+				if (isAssigned[k] == false)
+					number_of_uninterpolated_cells++;
+			}
+		}
+		// System.out.println("Origninal number of uninterpolated_cells is " +
+		// number_of_uninterpolated_cells);
+		boolean even = true; // Keep track of which buffer is the source and which is the destination.
+		while(number_of_uninterpolated_cells != 0)
+		{
+			number_of_iterations++;
+			if (even == true)
+			{
+				source = gray1;
+				dest = gray2;
+				even = false;
+			} 
+			else
+			{
+				source = gray2;
+				dest = gray1;
+				even = true;
+			}
+			dilateImage(source, isAssigned, xdim, ydim, dest);
+			number_of_uninterpolated_cells = 0;
+			for (int i = 0; i < xdim * ydim; i++)
+			{
+				if (isAssigned[i] == false)
+					number_of_uninterpolated_cells++;
+			}
+			// System.out.println("The number of uninterpolated cells after dilation was " +
+			// number_of_uninterpolated_cells);
+		}
+
+		if(even == true)
+		{
+			int k = 0;
+			for (int i = 0; i < ydim; i++)
+			{
+				for (int j = 0; j < xdim; j++)
+				{
+					dst[i][j] = gray1[k++];
+				}
+			}
+		} 
+		else
+		{
+			int k = 0;
+			for (int i = 0; i < ydim; i++)
+			{
+				for (int j = 0; j < xdim; j++)
+				{
+					dst[i][j] = gray2[k++];
+				}
+			}
+		}
+		System.out.println("The number of iterations was " + number_of_iterations);
+		return dst;
+	}
+    
+    
+	/*
 	public static void getImageDilation(double src[][], boolean isInterpolated[][], double dst[][])
 	{
 		int ydim = src.length;
@@ -196,7 +282,8 @@ public class ImageMapper
 		}
 		System.out.println("The number of iterations was " + number_of_iterations);
 	}
-
+    */
+    
 	// This function modifies values in isInterpolated and dst, and can be called
 	// multiple times
 	// until all the values in isInterpolated are true.
@@ -1438,6 +1525,7 @@ public class ImageMapper
 		double b2 = 0;
 
 		ArrayList[][] gradient = getSmoothGradient(estimate);
+		//ArrayList[][] gradient = getGradient(estimate);
 		for (int i = 1; i < src_ydim - 1; i++)
 		{
 			for (int j = 1; j < src_xdim - 1; j++)
@@ -1717,16 +1805,14 @@ public class ImageMapper
 		return (dest);
 	}
 	
-	public static int[][] expandX(int src[][], int x_expand)
+	public static int[][] expandX(int src[][], int expand)
 	{
 		int ydim = src.length;
 		int xdim = src[0].length;
 		
-		int new_xdim = (xdim - 1) * x_expand + xdim;
+		int _xdim = (xdim - 1) * expand + xdim;
 		
-		System.out.println("The old xdim is " + xdim);
-		System.out.println("The new xdim is " + new_xdim);
-		int [][] dst = new int[ydim][new_xdim];
+		int [][] dst = new int[ydim][_xdim];
 		for(int i = 0; i < ydim; i++)
 		{
 			int k = 0;
@@ -1737,8 +1823,38 @@ public class ImageMapper
 				end_value        = src[i][j + 1];
 				dst[i][k++]      = start_value;
 				double delta     = start_value - end_value;
-				double increment = delta / (x_expand + 1);
-				for(int m = 0; m < x_expand; m++)
+				double increment = delta / (expand + 1);
+				for(int m = 0; m < expand; m++)
+				{
+					start_value += increment;
+					dst[i][k++]  = start_value;
+				}
+			}
+			dst[i][k] = end_value;
+		}
+		return(dst);
+	}
+	
+	public static double[][] expandX(double src[][], int expand)
+	{
+		int ydim = src.length;
+		int xdim = src[0].length;
+		
+		int _xdim = (xdim - 1) * expand + xdim;
+		
+		double [][] dst = new double[ydim][_xdim];
+		for(int i = 0; i < ydim; i++)
+		{
+			int k = 0;
+			double end_value = 0;
+			for(int j = 0; j < xdim - 1; j++)
+			{
+				double start_value  = src[i][j];
+				end_value           = src[i][j + 1];
+				dst[i][k++]         = start_value;
+				double delta        = start_value - end_value;
+				double increment = delta / (expand + 1);
+				for(int m = 0; m < expand; m++)
 				{
 					start_value += increment;
 					dst[i][k++]  = start_value;
@@ -1766,6 +1882,29 @@ public class ImageMapper
 			{
 			    int m = j / 2;
 			    dst[k][m] = (src[i][j] + src[i][j + 1] + src[i + 1][j] + src[i + 1][j + 1]) / 4;   
+			}
+		}
+		return(dst);
+	}
+	
+
+	public static double[][] shrinkAvg(double src[][]) 
+	{
+		int ydim = src.length;
+		int xdim = src[0].length;
+		
+		int _xdim = xdim / 2;
+		int _ydim = ydim / 2;
+		
+		double [][] dst = new double[_ydim][_xdim];
+		
+		for(int i = 0; i < ydim - 1; i += 2)
+		{
+			int k = i / 2;
+			for(int j = 0; j < xdim - 1; j += 2)
+			{
+			    int m = j / 2;
+			    dst[k][m] = (src[i][j] + src[i][j + 1] + src[i + 1][j] + src[i + 1][j + 1]) / 4.;   
 			}
 		}
 		return(dst);
