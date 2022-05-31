@@ -361,13 +361,17 @@ public class Analyzer
 		
 		
 		ArrayList [][] global_raster = new ArrayList[global_ydim][global_xdim];
-		ArrayList [][] seg_raster = new ArrayList[global_ydim][global_xdim];
+		ArrayList [][] seg_raster    = new ArrayList[global_ydim][global_xdim];
+		ArrayList [][] seg_raster1   = new ArrayList[global_ydim][global_xdim];
+		ArrayList [][] seg_raster2   = new ArrayList[global_ydim][global_xdim];
 		for(int i = 0; i < global_ydim; i++)
 		{
 			for(int j = 0; j < global_xdim; j++)
 			{
 				global_raster[i][j] = new ArrayList();
-				seg_raster[i][j]     = new ArrayList();
+				seg_raster[i][j]    = new ArrayList();
+				seg_raster1[i][j]   = new ArrayList();
+				seg_raster2[i][j]   = new ArrayList();
 			}
 		}
 		
@@ -490,6 +494,16 @@ public class Analyzer
 		    	            	cell_list  = seg_raster[y_index][x_index];
 		    	            	cell_list.add(sample);
 		    	            }
+		    	            if(i == line_number)
+		    	            {
+		    	            	cell_list  = seg_raster1[y_index][x_index];
+		    	            	cell_list.add(sample);	
+		    	            }
+		    	            else if(i == line_number + 1)
+		    	            {
+		    	            	cell_list  = seg_raster2[y_index][x_index];
+		    	            	cell_list.add(sample);	
+		    	            }
 				        }
 		    	        else
 		    	        {
@@ -515,6 +529,16 @@ public class Analyzer
 			    	            {
 			    	            	cell_list  = seg_raster[y_index][x_index];
 			    	            	cell_list.add(sample);
+			    	            }
+			    	    	    if(i == line_number)
+			    	            {
+			    	            	cell_list  = seg_raster1[y_index][x_index];
+			    	            	cell_list.add(sample);	
+			    	            }
+			    	            else if(i == line_number + 1)
+			    	            {
+			    	            	cell_list  = seg_raster2[y_index][x_index];
+			    	            	cell_list.add(sample);	
 			    	            }
 			    	    	}
 		    	            else
@@ -542,6 +566,16 @@ public class Analyzer
 				    	            	cell_list  = seg_raster[y_index][x_index];
 				    	            	cell_list.add(sample);
 				    	            }
+				    	    	    if(i == line_number)
+				    	            {
+				    	            	cell_list  = seg_raster1[y_index][x_index];
+				    	            	cell_list.add(sample);	
+				    	            }
+				    	            else if(i == line_number + 1)
+				    	            {
+				    	            	cell_list  = seg_raster2[y_index][x_index];
+				    	            	cell_list.add(sample);	
+				    	            }
 				    	    	}
 		    	            }
 				        }
@@ -561,6 +595,16 @@ public class Analyzer
 		    	            	cell_list  = seg_raster[y_index][x_index];
 		    	            	cell_list.add(lower_left);
 		    	            }
+		    		        if(i == line_number)
+		    	            {
+		    	            	cell_list  = seg_raster1[y_index][x_index];
+		    	            	cell_list.add(lower_left);	
+		    	            }
+		    	            else if(i == line_number + 1)
+		    	            {
+		    	            	cell_list  = seg_raster2[y_index][x_index];
+		    	            	cell_list.add(lower_left);	
+		    	            }
 		    		    }
 		    	    }
 		    	}
@@ -568,7 +612,7 @@ public class Analyzer
 		}
 		
 		int    number_of_interpolated_values = 0;
-		int    number_of_occupied_cells = 0;
+		int    number_of_occupied_cells      = 0;
 		double intensity_min                 = Double.MAX_VALUE;
 		double intensity_max                 = -Double.MAX_VALUE;
 		
@@ -602,15 +646,13 @@ public class Analyzer
 		System.out.println("Number of interpolated values is " + number_of_interpolated_values);
 		System.out.println("Number of occupied cells is " + number_of_occupied_cells);
 		int number_of_overlapping_cells = number_of_interpolated_values - number_of_occupied_cells;
-		int total_number_of_cells = global_xdim * global_ydim;
+		//int total_number_of_cells = global_xdim * global_ydim;
 		System.out.println("Number of overlapping values is " + number_of_overlapping_cells);
 		
 		//System.out.println("Intensity min = " + intensity_min + " , intensity max = " + intensity_max);
-	    double intensity_range = intensity_max - intensity_min;
+	    //double intensity_range = intensity_max - intensity_min;
 	    //System.out.println("Intensity range = " + intensity_range);
-	    
-		int _data_image[][] = new int[global_ydim][global_xdim];
-		
+	 
 		ArrayList seg_index_list = new ArrayList();
 		for(int i = 0; i < global_ydim; i++)
 		{
@@ -649,13 +691,25 @@ public class Analyzer
 		int seg_xdim = seg_xmax - seg_xmin + 1;
 		int seg_ydim = seg_ymax - seg_ymin + 1;
 		
-		//System.out.println("Segment xdim = " + seg_xdim + ", ydim = " + seg_ydim);
+		System.out.println("Segment xdim = " + seg_xdim + ", ydim = " + seg_ydim);
 		//System.out.println("Origin is x = " + seg_xmin + ", y = " + seg_ymin);
 		
-		double data1[][] = new double[seg_ydim][seg_xdim];
-		double data2[][] = new double[seg_ydim][seg_xdim];
-		int data_image1[][] = new int[seg_ydim][seg_xdim];
-		int data_image2[][] = new int[seg_ydim][seg_xdim];
+		double data1[][]            = new double[seg_ydim][seg_xdim];
+		double data2[][]            = new double[seg_ydim][seg_xdim];
+		int data_image1[][]         = new int[seg_ydim][seg_xdim];
+		int data_image2[][]         = new int[seg_ydim][seg_xdim];
+		boolean isInterpolated1[][] = new boolean[seg_ydim][seg_xdim];
+		boolean isInterpolated2[][] = new boolean[seg_ydim][seg_xdim];
+		
+		for(int i = 0; i < seg_ydim; i++)
+		{
+			for(int j = 0; j < seg_xdim; j++)
+			{
+				isInterpolated1[i][j] = false;
+				isInterpolated2[i][j] = false;
+			}
+		}
+		
 		for(int i = seg_ymin; i < (seg_ymax + 1); i++)
         {
             for(int j = seg_xmin; j < (seg_xmax + 1); j++)
@@ -670,25 +724,61 @@ public class Analyzer
                 }
                 else if(cell_list.size() == 1)
                 {
-                    Sample sample = (Sample)cell_list.get(0);
-                    data1[i - seg_ymin][j - seg_xmin] = sample.intensity;
-                    data2[i - seg_ymin][j - seg_xmin] = sample.intensity;
-                    data_image1[i - seg_ymin][j - seg_xmin] = (int)(sample.intensity * 100);
-                    data_image2[i - seg_ymin][j - seg_xmin] = (int)(sample.intensity * 100);
+                	cell_list = seg_raster1[i][j];
+                	if(cell_list.size() == 0)
+                	{
+                		data1[i - seg_ymin][j - seg_xmin]       = 0;
+                		data_image1[i - seg_ymin][j - seg_xmin] = 0;
+                		
+                	}
+                	else
+                	{
+                		Sample sample                           = (Sample)cell_list.get(0);	
+                		data1[i - seg_ymin][j - seg_xmin]       = sample.intensity;
+                		data_image1[i - seg_ymin][j - seg_xmin] = (int)(sample.intensity * 100);
+                		isInterpolated1[i - seg_ymin][j - seg_xmin] = true;
+                	}
+                	cell_list = seg_raster2[i][j];
+                	if(cell_list.size() == 0)
+                	{
+                		data2[i - seg_ymin][j - seg_xmin]       = 0;
+                		data_image2[i - seg_ymin][j - seg_xmin] = 0;
+                	}
+                	else
+                	{
+                		Sample sample                           = (Sample)cell_list.get(0);	
+                		data2[i - seg_ymin][j - seg_xmin]       = sample.intensity;
+                		data_image2[i - seg_ymin][j - seg_xmin] = (int)(sample.intensity * 100);
+                		isInterpolated2[i - seg_ymin][j - seg_xmin] = true;
+                	}
                 }
                 else if(cell_list.size() == 2)
                 {
                 	Sample sample1 = (Sample)cell_list.get(0);
                 	Sample sample2 = (Sample)cell_list.get(1);
+                	data1[i - seg_ymin][j - seg_xmin]       = sample1.intensity;
                     data_image1[i - seg_ymin][j - seg_xmin] = (int)(sample1.intensity * 100);
-                    data_image2[i - seg_ymin][j - seg_xmin] = (int)(sample2.intensity * 100);		
+                    data2[i - seg_ymin][j - seg_xmin]       = sample2.intensity;
+                    data_image2[i - seg_ymin][j - seg_xmin] = (int)(sample2.intensity * 100);	
+                    isInterpolated1[i - seg_ymin][j - seg_xmin] = true;
+                    isInterpolated2[i - seg_ymin][j - seg_xmin] = true;
                 }	
             }
         }
 		
-		double new_xdim              = seg_xdim;
-		new_xdim                    *= 12.5;
-		int expanded_xdim            = (int)new_xdim;
+		double[][] dilated_data1     = ImageMapper.getImageDilation(data1, isInterpolated1);
+		double[][] dilated_data2     = ImageMapper.getImageDilation(data2, isInterpolated1);
+		
+		for(int i = 0; i < seg_ydim; i++)
+		{
+			for(int j = 0; j < seg_xdim; j++) 
+			{
+				data_image1[i][j] = (int)(dilated_data1[i][j] * 100);
+				data_image2[i][j] = (int)(dilated_data1[i][j] * 100);
+			}
+		}
+	
+		
 		int[][] expanded_data_image1 = ImageMapper.expandX(data_image1, 12);
 		int[][] expanded_data_image2 = ImageMapper.expandX(data_image1, 12);
 		int[][] shrunken_expanded_data_image1 = ImageMapper.shrinkAvg(expanded_data_image1);
@@ -696,6 +786,7 @@ public class Analyzer
 		
 		//double[] result              = ImageMapper.getTranslation(shrunken_expanded_data_image1, shrunken_expanded_data_image2);
 		double[] result              = ImageMapper.getTranslation(expanded_data_image1, expanded_data_image2);
+		//double[] result              = ImageMapper.getTranslation(data_image1, data_image2);
 		
 		System.out.println("Result was type " + result[0]);
 		System.out.println("Xshift = " + result[1] + ", yshift = " + result[2]);
