@@ -1640,6 +1640,8 @@ public class ImageMapper
 		return(dest);
 	}
 	
+	
+	// Simple version that only calculates subpixel translations.
 	public static double[] getTranslation(int[][] source1, int[][] source2)
 	{
 		//Assumes source1 and source2 are same size.
@@ -1659,14 +1661,14 @@ public class ImageMapper
 
 		double[] dest = new double[3];
 
-		double w = 0;
-		double x = 0;
-		double z = 0;
+		double w  = 0;
+		double x  = 0;
+		double z  = 0;
 		double b1 = 0;
 		double b2 = 0;
 
-		//ArrayList[][] gradient = getGradient(estimate);
-		ArrayList[][] gradient = getSmoothGradient(estimate);
+		// We calculate the first increment for any translation.
+		ArrayList[][] gradient = getGradient(estimate);
 		for (int i = 1; i < ydim - 1; i++)
 		{
 			for (int j = 1; j < xdim - 1; j++)
@@ -1691,16 +1693,15 @@ public class ImageMapper
 				}
 			}
 		}
-		
-		System.out.println("w = " + w);
-		System.out.println("x = " + x);
-		System.out.println("z = " + z);
-		System.out.println("b1 = " + b1);
-		System.out.println("b2 = " + b2);
-		System.out.println();
-		
 		double xincrement = (b1 - x * b2 / z) / (w - x * x / z);
 		double yincrement = (b2 - x * b1 / w) / (z - x * x / w);
+		//System.out.println("w  = " + w);
+		//System.out.println("x  = " + x);
+		//System.out.println("z  = " + z);
+		//System.out.println("b1 = " + b1);
+		//System.out.println("b2 = " + b2);
+		//System.out.println();
+		
 		
 		if (xincrement == 0. && yincrement == 0.)
 		{
@@ -1711,107 +1712,42 @@ public class ImageMapper
 			return (dest);
 		}
 
-		double increment_min = 0.;
-		if(Math.abs(xincrement) > Math.abs(yincrement))
-			increment_min = Math.abs(xincrement) / 100.;
-		else
-			increment_min = Math.abs(yincrement) / 100.;
+		// We set our increment minimum based on the first increment.
+		// Could set this to be the same for each dimension.
+		double xincrement_min = Math.abs(xincrement) / 100.;
+		double yincrement_min = Math.abs(yincrement) / 100.;
+		
 		
 		double previous_xincrement = xincrement;
 		double previous_yincrement = yincrement;
 		double xtranslation        = xincrement;
 		double ytranslation        = yincrement;
 
-		int xshift   = (int) (xincrement);
-		double xdiff = xincrement - xshift;
 		
-		int yshift   = (int) (yincrement);
-		double ydiff = yincrement - yshift;
+		// This will be the modified source to compare against the estimate.
+		// We do this to align the source and estimate since we sacrifice a pixel to do the subpixel translation. 
+		int [][] current_source = contract(source1);
 		
-		System.out.println("First x increment = " + String.format("%,.4f", xincrement));
-		System.out.println("First x shift     = " + xshift);
-		System.out.println("First x diff      = " + String.format("%,.4f", xdiff));
-		
-		System.out.println("First y increment = " + String.format("%,.4f", yincrement));
-		System.out.println("First y shift     = " + yshift);
-		System.out.println("First y diff      = " + String.format("%,.4f", ydiff));
-		System.out.println();
-		
-		if(Math.abs(xdiff) > .5)
-		{
-			if(xdiff < 0)
-			{
-			    xshift--;
-			    xdiff += .5;
-			    xdiff = -xdiff;
-			}
-		    else if(xdiff > 0)
-		    {
-			    xshift++;	
-			    xdiff -= .5;
-			    xdiff = -xdiff;
-		    }
-		}
-		
-		if(Math.abs(ydiff) > .5)
-		{
-			if(ydiff < 0)
-			{
-			    yshift--;
-			    ydiff += .5;
-			    ydiff = -ydiff;
-			}
-		    else if(ydiff > 0)
-		    {
-			    yshift++;	
-			    ydiff -= .5;
-			    ydiff = -ydiff;
-		    }
-		}
-		
-		// We only use the original source in the first iteration.
-		// After that we need to extract and contract a region of interest
-		// so that it registers with the estimate for our sub-pixel calculation.
-		int [][] current_source;
-		
-		if (xshift != 0 || yshift != 0)
-		{
-			int [][] intermediate = shift(source1, -xshift, -yshift);
-			// We do this to align the source and estimate since we sacrifice a pixel to do the subpixel translation. 
-			//current_source = translate(intermediate, 0, 0);
-			current_source    = contract(intermediate);
-			intermediate   = shift(source2, xshift, yshift);
-			estimate       = translate(intermediate, 2 * xdiff, 2 * ydiff);  
-			
-		}
-		else
-		{
-			estimate = translate(source2, 2 * xdiff, 2 * ydiff);  
-			//current_source = translate(source1, 0, 0);
-			current_source = contract(source1);
-		}
+		// Get the current estimate.
+		estimate       = translate(source2, xtranslation, ytranslation);  
+		int current_number_of_estimates = 1;
+		int maximum_number_of_estimates = 10;
 
-		int current = 1;
-		int maximum = 5;
-
-		while (current < maximum)
+		while (current_number_of_estimates < maximum_number_of_estimates)
 		{
 			w            = 0;
 			x            = 0;
 			z            = 0;
-
 			b1           = 0;
             b2           = 0;
         
-			gradient     = getSmoothGradient(estimate);
-            //gradient = getGradient(estimate);
-			int est_ydim = estimate.length;
-			int est_xdim = estimate[0].length;
+            gradient = getGradient(estimate);
+			int _ydim = estimate.length;
+			int _xdim = estimate[0].length;
 			
-			
-			for (int i = 1; i < est_ydim - 1; i++)
+			for (int i = 1; i < _ydim - 1; i++)
 			{
-				for (int j = 1; j < est_xdim - 1; j++)
+				for (int j = 1; j < _xdim - 1; j++)
 				{
 					ArrayList current_gradient = gradient[i][j];
 					double    xgradient = (double) current_gradient.get(0);
@@ -1825,769 +1761,71 @@ public class ImageMapper
 					    double xdelta = xgradient * delta;
 					    double ydelta = ygradient * delta;
 
-					    w += xx;
-					    x += xy;
-					    z += yy;
+					    w  += xx;
+					    x  += xy;
+					    z  += yy;
 					    b1 += xdelta;
 					    b2 += ydelta;
 					}
 				}
 			}
 			
-			xincrement = (b1 - x * b2 / z) / (w - x * x / z);
-			yincrement = (b2 - x * b1 / w) / (z - x * x / w);
+			xincrement          = (b1 - x * b2 / z) / (w - x * x / z);
+			xtranslation       += xincrement;
+		    previous_xincrement = xincrement;
+			yincrement          = (b2 - x * b1 / w) / (z - x * x / w);
+			ytranslation       += yincrement;
+			previous_yincrement = yincrement;
 			
-			if(Math.abs(xincrement) < increment_min || Math.abs(yincrement) < increment_min)
+			if(Math.abs(xincrement) < xincrement_min || Math.abs(yincrement) < yincrement_min)
 			{
-				//System.out.println("Produced an increment smaller than minimum.");
+				//System.out.println("Produced an increment smaller than the minimum.");
 				//Converging.
-				dest[0] = 1;
-			    dest[1] = xtranslation;
-		        dest[2] = ytranslation;
-				return (dest);
+				dest[0]       = 1;
+			    dest[1]       = xtranslation;
+		        dest[2]       = ytranslation;
+				return dest;
 			}
-			
-			if((xincrement < 0 && previous_xincrement > 0) || (xincrement > 0 && previous_xincrement < 0) 
+			else if((xincrement < 0 && previous_xincrement > 0) || (xincrement > 0 && previous_xincrement < 0) 
 			|| (yincrement < 0 && previous_yincrement > 0) || (yincrement > 0 && previous_yincrement < 0))
 			{
 				//System.out.println("Produced an increment in the opposite direction.");
 				//Oscillating.
-				xtranslation += xincrement;
-				ytranslation += yincrement;
 				dest[0]       = 2;
 				dest[1]       = xtranslation;
 		        dest[2]       = ytranslation;
 				return (dest);
 			}
-				
-			xtranslation       += xincrement;
-		    previous_xincrement = xincrement;
-			
-			ytranslation       += yincrement;
-			previous_yincrement = yincrement;
-			
-			System.out.println("Current x increment = " + String.format("%,.4f", xincrement));
-			System.out.println("Current x estimate  = " + String.format("%,.4f", xtranslation));
-			System.out.println();
-			System.out.println("Current y increment = " + String.format("%,.4f", yincrement));
-			System.out.println("Current y estimate  = " + String.format("%,.4f", ytranslation));
-			System.out.println();
-			
-		    // Create a new translated image for the next iteration.
-			xshift = (int) xtranslation;
-			yshift = (int) ytranslation;
-			xdiff = xtranslation - xshift;
-			ydiff = ytranslation - yshift;
-			
-            //Check to see if our translation passes pixel boundries
-			//so we need to adjust our shift and diff values.
-			if(Math.abs(xdiff) > .5)
-			{
-				if(xdiff < 0)
-				{
-				    xshift--;
-				    xdiff += .5;
-				    xdiff = -xdiff;
-				}
-			    else if(xdiff > 0)
-			    {
-				    xshift++;	
-				    xdiff -= .5;
-				    xdiff = -xdiff;
-			    }
-			}
-			
-			if(Math.abs(ydiff) > .5)
-			{
-				if(ydiff < 0)
-				{
-				    yshift--;
-				    ydiff += .5;
-				    ydiff = -ydiff;
-				}
-			    else if(ydiff > 0)
-			    {
-				    yshift++;	
-				    ydiff -= .5;
-				    ydiff = -ydiff;
-			    }
-			}
-			
-			System.out.println("Current x shift = " + xshift);
-			System.out.println("Current x diff  = " + String.format("%,.4f", xdiff));
-			System.out.println();
-			
-			System.out.println("Current y shift = " + yshift);
-			System.out.println("Current y diff  = " + String.format("%,.4f", ydiff));
-			System.out.println();
-			
-			if (xshift != 0 || yshift != 0)
-			{
-				int [][] intermediate = shift(source2, xshift, yshift);
-				estimate = translate(intermediate, 2 * xdiff, 2 * ydiff);
-				
-				intermediate = shift(source1, -xshift, -yshift);
-				//current_source = translate(intermediate, 0, 0);
-				current_source = contract(intermediate);
-			}
+			else if(xtranslation >= 1. || ytranslation >= 1.)
+		    {
+		    	// System.out.println("Crossing pixel boundary.");
+		    	// The process could continue, but we can leave that to a higher layer
+		    	// and leave this function simple.
+		    	dest[0]       = 4;
+				dest[1]       = xtranslation;
+		        dest[2]       = ytranslation;
+				return (dest);	
+		    }
 			else
 			{
-				estimate = translate(source2, 2 * xdiff, 2 * ydiff);
-				//current_source = translate(source1, 0, 0);
-				current_source = contract(source1);
+				// Get an estimate for the next iteration.
+				estimate = translate(source2, xtranslation, ytranslation);
+				current_number_of_estimates++;   	
 			}
-			current++;
+			//System.out.println("Current x increment   = " + String.format("%,.4f", xincrement));
+			//System.out.println("Current x translation = " + String.format("%,.4f", xtranslation));;
+			//System.out.println("Current y increment   = " + String.format("%,.4f", yincrement));
+			//System.out.println("Current y translation = " + String.format("%,.4f", ytranslation));
+			//System.out.println();
 		}
-		
 		//System.out.println("Reached maximum iterations.");
 		dest[0] = 3;
         dest[1] = xtranslation;
         dest[2] = ytranslation;
-		return (dest);
+		return dest;
 	}
 	
 	
-	
-	
-	
-	/*
-	public static double[] getTranslation(int[][] source1, int[][] source2)
-	{
-		//Assumes source1 and source2 are same size.
-		int src_ydim = source1.length;
-		int src_xdim = source1[0].length;
-		int[][] estimate = new int[src_ydim][src_xdim];
-
-		
-		for (int i = 0; i < src_ydim; i++)
-		{
-			for (int j = 0; j < src_xdim; j++)
-			{
-				estimate[i][j] = source2[i][j];
-			}
-		}
-
-		double[] dest = new double[3];
-
-		double w = 0;
-		double x = 0;
-		double z = 0;
-		double b1 = 0;
-		double b2 = 0;
-
-		ArrayList[][] gradient = getSmoothGradient(estimate);
-		//ArrayList[][] gradient = getGradient(estimate);
-		for (int i = 1; i < src_ydim - 1; i++)
-		{
-			for (int j = 1; j < src_xdim - 1; j++)
-			{
-				ArrayList current_gradient = gradient[i][j];
-				double xgradient = (double) current_gradient.get(0);
-				double ygradient = (double) current_gradient.get(1);
-				if(!Double.isNaN(xgradient) && !Double.isNaN(ygradient))
-				{
-				    double xx = xgradient * xgradient;
-				    double xy = xgradient * ygradient;
-				    double yy = ygradient * ygradient;
-				    double delta = source1[i][j] - estimate[i][j];
-				    double xdelta = xgradient * delta;
-				    double ydelta = ygradient * delta;
-
-				    w += xx;
-				    x += xy;
-				    z += yy;
-				    b1 += xdelta;
-				    b2 += ydelta;
-				}
-			}
-		}
-		
-		//System.out.println("w = " + w);
-		//System.out.println("x = " + x);
-		//System.out.println("z = " + z);
-		//System.out.println("b1 = " + b1);
-		//System.out.println("b2 = " + b2);
-		double xincrement = (b1 - x * b2 / z) / (w - x * x / z);
-		double yincrement = (b2 - x * b1 / w) / (z - x * x / w);
-		
-		if (xincrement == 0. && yincrement == 0.)
-		{
-			//System.out.println("Produced zero increments.");
-			dest[0] = 0;
-			dest[1] = 0;
-			dest[2] = 0;
-			return (dest);
-		}
-
-		double increment_min = 0.;
-		if(Math.abs(xincrement) > Math.abs(yincrement))
-			increment_min = Math.abs(xincrement) / 100.;
-		else
-			increment_min = Math.abs(yincrement) / 100.;
-		
-		double previous_xincrement = xincrement;
-		double previous_yincrement = yincrement;
-		double xtranslation        = xincrement;
-		double ytranslation        = yincrement;
-
-		int xshift   = (int) (xtranslation);
-		double xdiff = xtranslation - xshift;
-		
-		int yshift   = (int) (ytranslation);
-		double ydiff = ytranslation - yshift;
-		
-		//System.out.println("First x increment is " + String.format("%,.4f", xincrement));
-		//System.out.println("First y increment is " + String.format("%,.4f", yincrement));
-		//System.out.println();
-		
-		if(Math.abs(xdiff) > .5)
-		{
-			if(xdiff < 0)
-			{
-			    xshift--;
-			    xdiff += .5;
-			    xdiff = -xdiff;
-			}
-		    else if(xdiff > 0)
-		    {
-			    xshift++;	
-			    xdiff -= .5;
-			    xdiff = -xdiff;
-		    }
-		}
-		
-		if(Math.abs(ydiff) > .5)
-		{
-			if(ydiff < 0)
-			{
-			    yshift--;
-			    ydiff += .5;
-			    ydiff = -ydiff;
-			}
-		    else if(ydiff > 0)
-		    {
-			    yshift++;	
-			    ydiff -= .5;
-			    ydiff = -ydiff;
-		    }
-		}
-		
-		// We only use the original source in the first iteration.
-		// After that we need to extract and contract a region of interest
-		// so that it registers with the estimate for our sub-pixel calculation.
-		int [][] current_source;
-		
-		if (xshift != 0 || yshift != 0)
-		{
-			int [][] intermediate2 = shift(source2, xshift, yshift);
-			estimate               = translate(intermediate2, 2 * xdiff, 2 * ydiff);
-			
-			int x_offset = 0;
-			int y_offset = 0;
-			if(xshift < 0)
-				x_offset = -xshift;
-			if(yshift < 0)
-				y_offset = -yshift;
-			int xdelta = Math.abs(xshift);
-			int ydelta = Math.abs(yshift);
-			
-			int ydim = intermediate2.length;
-			int xdim = intermediate2[0].length;
-			
-			int _xdim = xdim - xdelta;
-			int _ydim = ydim - ydelta;
-			
-			int [][] intermediate1 = extract(source1, x_offset, y_offset, _xdim, _ydim);
-			//We do this to align the source and estimate. 
-			current_source = translate(intermediate1, 0, 0);	
-			//current_source = contract(intermediate1);	
-		}
-		else
-		{
-			estimate = translate(source2, 2 * xdiff, 2 * ydiff);  
-			current_source = translate(source1, 0, 0);
-			//current_source = contract(source1);
-		}
-
-		int current = 1;
-		int maximum = 5;
-
-		while (current < maximum)
-		{
-			w            = 0;
-			x            = 0;
-			z            = 0;
-
-			b1           = 0;
-            b2           = 0;
-        
-			gradient     = getSmoothGradient(estimate);
-            //gradient     = getGradient(estimate);
-			int est_ydim = estimate.length;
-			int est_xdim = estimate[0].length;
-			
-			
-			for (int i = 1; i < est_ydim - 1; i++)
-			{
-				for (int j = 1; j < est_xdim - 1; j++)
-				{
-					ArrayList current_gradient = gradient[i][j];
-					double xgradient = (double) current_gradient.get(0);
-					double ygradient = (double) current_gradient.get(1);
-					boolean xgradient_isNaN = Double.isNaN(xgradient);
-					boolean ygradient_isNaN = Double.isNaN(ygradient);
-					if(!xgradient_isNaN && !ygradient_isNaN)
-					{
-					    double xx = xgradient * xgradient;
-					    double xy = xgradient * ygradient;
-					    double yy = ygradient * ygradient;
-					    double delta = current_source[i][j] - estimate[i][j];
-					    double xdelta = xgradient * delta;
-					    double ydelta = ygradient * delta;
-
-					    w += xx;
-					    x += xy;
-					    z += yy;
-					    b1 += xdelta;
-					    b2 += ydelta;
-					}
-				}
-			}
-			
-			xincrement = (b1 - x * b2 / z) / (w - x * x / z);
-			yincrement = (b2 - x * b1 / w) / (z - x * x / w);
-			
-			if(Math.abs(xincrement) < increment_min || Math.abs(yincrement) < increment_min)
-			{
-				//System.out.println("Produced an increment smaller than minimum.");
-				//Converging.
-				dest[0] = 1;
-			    dest[1] = xtranslation;
-		        dest[2] = ytranslation;
-				return (dest);
-			}
-			
-			if((xincrement < 0 && previous_xincrement > 0) || (xincrement > 0 && previous_xincrement < 0) 
-				|| (yincrement < 0 && previous_yincrement > 0) || (yincrement > 0 && previous_yincrement < 0))
-			{
-				//System.out.println("Produced an increment in the opposite direction.");
-				//Oscillating.
-				xtranslation += xincrement;
-				ytranslation += yincrement;
-				
-				dest[0] = 2;
-				dest[1] = xtranslation;
-		        dest[2] = ytranslation;
-				return (dest);
-			}
-				
-			xtranslation += xincrement;
-		    previous_xincrement = xincrement;
-			
-			ytranslation += yincrement;
-			previous_yincrement = yincrement;
-			
-			
-			//System.out.println("Current x increment is " + String.format("%,.4f", xincrement));
-			//System.out.println("Current y increment is " + String.format("%,.4f", yincrement));
-			//System.out.println();
-			
-			//System.out.println("Current x estimate is " + String.format("%,.4f", xtranslation));
-			//System.out.println("Current y estimate is " + String.format("%,.4f", ytranslation));
-			//System.out.println();
-			
-		    // Create a new translated image for the next iteration.
-			xshift = (int) xtranslation;
-			yshift = (int) ytranslation;
-			xdiff = xtranslation - xshift;
-			ydiff = ytranslation - yshift;
-			
-            //Check to see if our translation passes pixel boundries
-			//so we need to adjust our shift and diff values.
-			if(Math.abs(xdiff) > .5)
-			{
-				if(xdiff < 0)
-				{
-				    xshift--;
-				    xdiff += .5;
-				    xdiff = -xdiff;
-				}
-			    else if(xdiff > 0)
-			    {
-				    xshift++;	
-				    xdiff -= .5;
-				    xdiff = -xdiff;
-			    }
-			}
-			
-			if(Math.abs(ydiff) > .5)
-			{
-				if(ydiff < 0)
-				{
-				    yshift--;
-				    ydiff += .5;
-				    ydiff = -ydiff;
-				}
-			    else if(ydiff > 0)
-			    {
-				    yshift++;	
-				    ydiff -= .5;
-				    ydiff = -ydiff;
-			    }
-			}
-			
-			if (xshift != 0 || yshift != 0)
-			{
-				int [][] intermediate2 = shift(source2, xshift, yshift);
-				estimate               = translate(intermediate2, 2 * xdiff, 2 * ydiff);
-				
-				int x_offset = 0;
-				int y_offset = 0;
-				if(xshift < 0)
-					x_offset = -xshift;
-				if(yshift < 0)
-					y_offset = -yshift;
-				int xdelta = Math.abs(xshift);
-				int ydelta = Math.abs(yshift);
-				
-				int ydim = intermediate2.length;
-				int xdim = intermediate2[0].length;
-				
-				int _xdim = xdim - xdelta;
-				int _ydim = ydim - ydelta;
-				
-				int [][] intermediate1 = extract(source1, x_offset, y_offset, _xdim, _ydim);
-				// We do this to align the source and estimate. 
-				// Doing a zero translation contracts the image by one
-				// pixel in both dimensions.
-				// Probably better to return the original image
-				// and have a separate function to contract the image.
-				current_source = translate(intermediate1, 0, 0);	
-				//current_source = contract(intermediate1);	
-			}
-			else
-			{
-				estimate = translate(source2, 2 * xdiff, 2 * ydiff);
-				current_source = translate(source1, 0, 0);
-				//current_source = contract(source1);
-			}
-			current++;
-		}
-		
-		//System.out.println("Reached maximum iterations.");
-		dest[0] = 3;
-        dest[1] = xtranslation;
-        dest[2] = ytranslation;
-		return (dest);
-	}
-	*/
-	
-	/*
-	public static double[] getTranslation(double[][] source1, double[][] source2)
-	{
-		//Assumes source1 and source2 are same size.
-		int src_ydim = source1.length;
-		int src_xdim = source1[0].length;
-		double[][] estimate = new double[src_ydim][src_xdim];
-
-		
-		for (int i = 0; i < src_ydim; i++)
-		{
-			for (int j = 0; j < src_xdim; j++)
-			{
-				estimate[i][j] = source2[i][j];
-			}
-		}
-
-		double[] dest = new double[3];
-
-		double w = 0;
-		double x = 0;
-		double z = 0;
-		double b1 = 0;
-		double b2 = 0;
-
-		//ArrayList[][] gradient = getSmoothGradient(estimate);
-		ArrayList[][] gradient = getGradient(estimate);
-		for (int i = 1; i < src_ydim - 1; i++)
-		{
-			for (int j = 1; j < src_xdim - 1; j++)
-			{
-				ArrayList current_gradient = gradient[i][j];
-				double xgradient = (double) current_gradient.get(0);
-				double ygradient = (double) current_gradient.get(1);
-				boolean xgradient_isNaN = Double.isNaN(xgradient);
-				boolean ygradient_isNaN = Double.isNaN(ygradient);
-				if(!xgradient_isNaN && !ygradient_isNaN)
-				{
-					if(Double.isNaN(xgradient))
-						System.out.println("Xgradient is not a number.");
-					if(Double.isNaN(xgradient))
-						System.out.println("Ygradient is not a number.");
-				    double xx = xgradient * xgradient;
-				    double xy = xgradient * ygradient;
-				    double yy = ygradient * ygradient;
-				    double delta = source1[i][j] - estimate[i][j];
-				    double xdelta = xgradient * delta;
-				    double ydelta = ygradient * delta;
-
-				    w += xx;
-				    x += xy;
-				    z += yy;
-				    b1 += xdelta;
-				    b2 += ydelta;
-				}
-			}
-		}
-		
-		//System.out.println("w = " + w);
-		//System.out.println("x = " + x);
-		//System.out.println("z = " + z);
-		//System.out.println("b1 = " + b1);
-		//System.out.println("b2 = " + b2);
-		double xincrement = (b1 - x * b2 / z) / (w - x * x / z);
-		double yincrement = (b2 - x * b1 / w) / (z - x * x / w);
-		
-		if (xincrement == 0. && yincrement == 0.)
-		{
-			//System.out.println("Produced zero increments.");
-			dest[0] = 0;
-			dest[1] = 0;
-			dest[2] = 0;
-			return (dest);
-		}
-
-		double increment_min = 0.;
-		if(Math.abs(xincrement) > Math.abs(yincrement))
-			increment_min = Math.abs(xincrement) / 100.;
-		else
-			increment_min = Math.abs(yincrement) / 100.;
-		
-		double previous_xincrement = xincrement;
-		double previous_yincrement = yincrement;
-		double xtranslation        = xincrement;
-		double ytranslation        = yincrement;
-
-		int xshift   = (int) (xtranslation);
-		double xdiff = xtranslation - xshift;
-		
-		int yshift   = (int) (ytranslation);
-		double ydiff = ytranslation - yshift;
-		
-		String string = String.format("%,.4f", xincrement);
-		//System.out.println("First x increment is " + string);
-		string = String.format("%,.4f", yincrement);
-		//System.out.println("First y increment is " + string);
-		//System.out.println();
-		
-		if(Math.abs(xdiff) > .5)
-		{
-			if(xdiff < 0)
-			{
-			    xshift--;
-			    xdiff += .5;
-			    xdiff = -xdiff;
-			}
-		    else if(xdiff > 0)
-		    {
-			    xshift++;	
-			    xdiff -= .5;
-			    xdiff = -xdiff;
-		    }
-		}
-		
-		if(Math.abs(ydiff) > .5)
-		{
-			if(ydiff < 0)
-			{
-			    yshift--;
-			    ydiff += .5;
-			    ydiff = -ydiff;
-			}
-		    else if(ydiff > 0)
-		    {
-			    yshift++;	
-			    ydiff -= .5;
-			    ydiff = -ydiff;
-		    }
-		}
-		
-		// We only use the original source in the first iteration.
-		// After that we need to extract and contract a region of interest
-		// so that it registers with the estimate for our sub-pixel calculation.
-		int [][] current_source;
-		
-		if (xshift != 0 || yshift != 0)
-		{
-			int [][] intermediate = shift(source1, -xshift, -yshift);
-			//We do this to align the source and estimate. 
-			current_source = translate(intermediate, 0, 0);	
-			//current_source = contract(intermediate);
-			intermediate   = shift(source2, xshift, yshift);
-			estimate       = translate(intermediate, 2 * xdiff, 2 * ydiff);  
-			
-		}
-		else
-		{
-			estimate = translate(source2, 2 * xdiff, 2 * ydiff);  
-			current_source = translate(source1, 0, 0);
-			//current_source = contract(source1);
-		}
-
-		int current = 1;
-		int maximum = 5;
-
-		while (current < maximum)
-		{
-			w            = 0;
-			x            = 0;
-			z            = 0;
-
-			b1           = 0;
-            b2           = 0;
-        
-			gradient     = getSmoothGradient(estimate);
-			int est_ydim = estimate.length;
-			int est_xdim = estimate[0].length;
-			
-			
-			for (int i = 1; i < est_ydim - 1; i++)
-			{
-				for (int j = 1; j < est_xdim - 1; j++)
-				{
-					ArrayList current_gradient = gradient[i][j];
-					double xgradient = (double) current_gradient.get(0);
-					double ygradient = (double) current_gradient.get(1);
-					boolean xgradient_isNaN = Double.isNaN(xgradient);
-					boolean ygradient_isNaN = Double.isNaN(ygradient);
-					if(!xgradient_isNaN && !ygradient_isNaN)
-					{
-					    double xx = xgradient * xgradient;
-					    double xy = xgradient * ygradient;
-					    double yy = ygradient * ygradient;
-					    double delta = current_source[i][j] - estimate[i][j];
-					    double xdelta = xgradient * delta;
-					    double ydelta = ygradient * delta;
-
-					    w += xx;
-					    x += xy;
-					    z += yy;
-					    b1 += xdelta;
-					    b2 += ydelta;
-					}
-				}
-			}
-			
-			xincrement = (b1 - x * b2 / z) / (w - x * x / z);
-			yincrement = (b2 - x * b1 / w) / (z - x * x / w);
-			
-			if(Math.abs(xincrement) < increment_min || Math.abs(yincrement) < increment_min)
-			{
-				//System.out.println("Produced an increment smaller than minimum.");
-				//Converging.
-				dest[0] = 1;
-			    dest[1] = xtranslation;
-		        dest[2] = ytranslation;
-				return (dest);
-			}
-			
-			if((xincrement < 0 && previous_xincrement > 0) || (xincrement > 0 && previous_xincrement < 0) 
-				|| (yincrement < 0 && previous_yincrement > 0) || (yincrement > 0 && previous_yincrement < 0))
-			{
-				//System.out.println("Produced an increment in the opposite direction.");
-				//Oscillating.
-				xtranslation += xincrement;
-				ytranslation += yincrement;
-				
-				dest[0] = 2;
-				dest[1] = xtranslation;
-		        dest[2] = ytranslation;
-				return (dest);
-			}
-				
-			xtranslation += xincrement;
-		    previous_xincrement = xincrement;
-			
-			ytranslation += yincrement;
-			previous_yincrement = yincrement;
-			
-			string = String.format("%,.4f", xincrement);
-			//System.out.println("Current x increment is " + string);
-			string = String.format("%,.4f", yincrement);
-			//System.out.println("Current y increment is " + string);
-			//System.out.println();
-			
-			string = String.format("%,.4f", xtranslation);
-			//System.out.println("Current x estimate is " + string);
-			string = String.format("%,.4f", ytranslation);
-			//System.out.println("Current y estimate is " + string);
-			//System.out.println();
-			
-		    // Create a new translated image for the next iteration.
-			xshift = (int) xtranslation;
-			yshift = (int) ytranslation;
-			xdiff = xtranslation - xshift;
-			ydiff = ytranslation - yshift;
-			
-            //Check to see if our translation passes pixel boundries
-			//so we need to adjust our shift and diff values.
-			if(Math.abs(xdiff) > .5)
-			{
-				if(xdiff < 0)
-				{
-				    xshift--;
-				    xdiff += .5;
-				    xdiff = -xdiff;
-				}
-			    else if(xdiff > 0)
-			    {
-				    xshift++;	
-				    xdiff -= .5;
-				    xdiff = -xdiff;
-			    }
-			}
-			
-			if(Math.abs(ydiff) > .5)
-			{
-				if(ydiff < 0)
-				{
-				    yshift--;
-				    ydiff += .5;
-				    ydiff = -ydiff;
-				}
-			    else if(ydiff > 0)
-			    {
-				    yshift++;	
-				    ydiff -= .5;
-				    ydiff = -ydiff;
-			    }
-			}
-			
-			if (xshift != 0 || yshift != 0)
-			{
-				int [][] intermediate = shift(source2, xshift, yshift);
-				estimate = translate(intermediate, 2 * xdiff, 2 * ydiff);
-				
-				intermediate = shift(source1, -xshift, -yshift);
-				current_source = translate(intermediate, 0, 0);
-				//current_source = contract(intermediate);
-			}
-			else
-			{
-				estimate = translate(source2, 2 * xdiff, 2 * ydiff);
-				current_source = translate(source1, 0, 0);
-				//current_source = contract(source1);
-			}
-			current++;
-		}
-		
-		//System.out.println("Reached maximum iterations.");
-		dest[0] = 3;
-        dest[1] = xtranslation;
-        dest[2] = ytranslation;
-		return (dest);
-	}
-	*/
 	
 	
 	public static int[][] expandX(int src[][], int expand)
