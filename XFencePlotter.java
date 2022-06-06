@@ -266,7 +266,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.0.8 of fence.");
+			System.out.println("This is version 4.1.0 of fence.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			try
@@ -628,8 +628,7 @@ public class XFencePlotter
 			}
 			else
 			{
-				System.out.println("Config file not found.");
-				System.out.println("Starting up with default values.");
+				System.out.println("Loading default values.");
 			}
 			
 			ArrayList original_data = new ArrayList();
@@ -1425,9 +1424,10 @@ public class XFencePlotter
                         
 						// Plot individual sensor curves.
 						String xstring, ystring;
-						for (int j = 4; j < segment_list.size(); j++)
+						ArrayList sample_list = (ArrayList)segment_list.get(4);
+						for (int j = 0; j < sample_list.size(); j++)
 						{
-							Sample sample = (Sample) segment_list.get(j);
+							Sample sample = (Sample) sample_list.get(j);
 							xstring = String.format("%.2f", sample.x);
 							ystring = String.format("%.2f", sample.y);
 							String intensity_string = String.format("%.2f", sample.intensity);
@@ -1488,16 +1488,17 @@ public class XFencePlotter
 					    // Keeping track of how much deviation there is in raster.
 					    String ideal_string = String.format("%.2f", ideal_x);
 
+					    ArrayList sample_list = (ArrayList)segment_list.get(4);
 					    // Make the first bottom corner of our fence plot.
-					    Sample init_sample = (Sample) segment_list.get(4);
+					    Sample init_sample = (Sample) sample_list.get(0);
 					    String xstring = String.format("%.2f", init_sample.x);
 					    String ystring = String.format("%.2f", init_sample.y);
 					    output.println(xstring + " " + ystring + " " + intensity_min_string + " " + ideal_string);
 					
 					    // Plot actual data points.
-					    for (int j = 4; j < segment_list.size(); j++)
+					    for (int j = 0; j < sample_list.size(); j++)
 					    {
-					        Sample sample = (Sample) segment_list.get(j);
+					        Sample sample = (Sample) sample_list.get(j);
 					        xstring = String.format("%.2f", sample.x);
 					        ystring = String.format("%.2f", sample.y);
 					        String intensity_string = String.format("%.2f", sample.intensity);
