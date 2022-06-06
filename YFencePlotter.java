@@ -206,8 +206,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.0.9 of wand.");
-
+			System.out.println("This is version 4.1.0 of wand.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			
@@ -477,10 +476,13 @@ public class YFencePlotter
 				            	endpoint_y_position = Integer.parseInt(value);
 				            else if(key.equals("EndIndex")) 
 				            	endpoint_index = Integer.parseInt(value); 
-				            
+				            if(data_offset + data_range >= 1)
+				            {
+				            	data_offset -= data_range;
+				            }
 				        }
 				    }
-				    System.out.println("Finished reading config file.");
+				    //System.out.println("Finished reading config file.");
 					config_reader.close();  
 				}
 				catch(Exception e)
@@ -523,6 +525,8 @@ public class YFencePlotter
 					config_file_exists = false;
 				}
 			}
+			else
+				System.out.println("Loading defaults.");
 			
 			ArrayList original_data = new ArrayList();
 			global_xmin          = Double.MAX_VALUE;
@@ -820,7 +824,6 @@ public class YFencePlotter
 				
 		frame = new JFrame("Slope Wand Plotter");
 		
-		System.out.println("Starting to construct gui.");
 		WindowAdapter window_handler = new WindowAdapter()
 	    {
 	        public void windowClosing(WindowEvent event)
@@ -1003,7 +1006,7 @@ public class YFencePlotter
 		}
 		JMenuBar menu_bar = new JMenuBar();
 		
-		System.out.println("Finished constructing gui.");
+		//System.out.println("Finished constructing gui.");
 		
 		// End gui.
 		
@@ -1487,7 +1490,7 @@ public class YFencePlotter
 						// Data canvas paint() function does data segmentation.
 					    data_canvas.repaint();
 					     
-						System.out.println("Finished resetting parameters.");
+						//System.out.println("Finished resetting parameters.");
 						
 					}
 					catch(Exception e2)
@@ -3105,7 +3108,7 @@ public class YFencePlotter
 		frame.pack();
 		frame.setLocation(50, 10);
 	    data_canvas.repaint();
-		System.out.println("Finished Y Fence constructor.");
+		//System.out.println("Finished Y Fence constructor.");
 		// End constructor.
 	}
 	
@@ -3189,6 +3192,9 @@ public class YFencePlotter
 			// Get start and stop locations in terms of the entire data set.
 			start_location = data_offset * data_length;
 			stop_location  = (data_offset + data_range) * data_length;
+			
+			//System.out.println("Start location is " + start_location);
+			//System.out.println("Stop location is " + stop_location);
 			
 			seg_min         = Double.MAX_VALUE;
 			seg_max         = -Double.MAX_VALUE;
@@ -4590,6 +4596,12 @@ public class YFencePlotter
 				}
 				
 				data_offset   = normal_start;
+				
+				// Make sure the last segment contains at least two points.
+				if(data_offset + data_range > 1 - .002)
+				{
+					data_offset = 1 - .002;
+				}
 				
 				// Clear data since we're at a new position.
 				append_data = false;
