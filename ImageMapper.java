@@ -151,11 +151,13 @@ public class ImageMapper
 					number_of_uninterpolated_cells++;
 			}
 		}
-		// System.out.println("Origninal number of uninterpolated_cells is " +
-		// number_of_uninterpolated_cells);
-		boolean even = true; // Keep track of which buffer is the source and which is the destination.
-		while(number_of_uninterpolated_cells != 0)
+		
+		// Just going back and forth between two buffers instead of allocating new memory every time.
+		boolean even = true;
+		int previous_number_of_uninterpolated_cells = 0;
+		while(number_of_uninterpolated_cells != 0  && number_of_uninterpolated_cells  != previous_number_of_uninterpolated_cells)
 		{
+			previous_number_of_uninterpolated_cells = number_of_uninterpolated_cells;
 			number_of_iterations++;
 			if (even == true)
 			{
@@ -169,16 +171,34 @@ public class ImageMapper
 				dest = gray1;
 				even = true;
 			}
-			dilateImage(source, isAssigned, xdim, ydim, dest);
-			//dilateImageVertical(source, isAssigned, xdim, ydim, dest);
-			number_of_uninterpolated_cells = 0;
-			for (int i = 0; i < xdim * ydim; i++)
+			
+			isAssigned = dilateImageVertical(source, isAssigned, xdim, ydim, dest);
+		}
+		
+		number_of_uninterpolated_cells = 0;
+		for (int i = 0; i < xdim * ydim; i++)
+		{
+			if(isAssigned[i] == false)
+				number_of_uninterpolated_cells++;
+		}
+		
+		// If dilating image vertically didn't complete,
+		// do a regular image dilation.
+		if(number_of_uninterpolated_cells != 0)
+		{
+			if (even == true)
 			{
-				if(isAssigned[i] == false)
-					number_of_uninterpolated_cells++;
+				source = gray1;
+				dest = gray2;
+				even = false;
+			} 
+			else
+			{
+				source = gray2;
+				dest = gray1;
+				even = true;
 			}
-			// System.out.println("The number of uninterpolated cells after dilation was " +
-			// number_of_uninterpolated_cells);
+			dilateImage(source, isAssigned, xdim, ydim, dest);
 		}
 
 		if(even == true)
@@ -203,6 +223,7 @@ public class ImageMapper
 				}
 			}
 		}
+		
 		System.out.println("The number of iterations was " + number_of_iterations);
 		return dst;
 	}
@@ -211,7 +232,6 @@ public class ImageMapper
 	// This function modifies values in isInterpolated and dst, and can be called
 	// multiple times until all the values in isInterpolated are true.
 	// Theoretically, it should complete even if only one pixel has been interpolated.
-	 
 	// Also, using single index into image to keep low level code simple--will have
 	// to reformat data for processing. 
 	public static void dilateImage(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
@@ -224,7 +244,7 @@ public class ImageMapper
 				int k = i * xdim + j;
 				if (isInterpolated[k])
 				{
-					dst[k] = src[k];
+					dst[k]             = src[k];
 					wasInterpolated[k] = true;
 				} 
 				else
@@ -244,13 +264,13 @@ public class ImageMapper
 						{
 							number_of_neighbors++;
 							total_weight += 1.;
-							value += src[k + 1];
+							value        += src[k + 1];
 						}
 						if (isInterpolated[k + xdim])
 						{
 							number_of_neighbors++;
 							total_weight += 1.;
-							value += src[k + xdim];
+							value        += src[k + xdim];
 						}
 						
 						// Diagonal.
@@ -258,7 +278,7 @@ public class ImageMapper
 						{
 							number_of_neighbors++;
 							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim + 1];
+							value        += diagonal_weight * src[k + xdim + 1];
 						}
 					}
 					else if(location_type == 2)
@@ -515,347 +535,6 @@ public class ImageMapper
 							total_weight += diagonal_weight;
 							value += diagonal_weight * src[k - xdim - 1];
 						}	
-					}
-					
-					if (number_of_neighbors > 0) // Found a neighbor this iteration, set value.
-					{
-						value /= total_weight;
-						dst[k] = (int) value;
-						wasInterpolated[k] = true;
-						// System.out.println("Number of neighbors was " + number_of_neighbors);
-					} else
-					{
-						dst[k] = 0;
-						wasInterpolated[k] = false;
-						// System.out.println("Found a cell with no neighbors.");
-						// System.out.println("Set boolean to false.");
-						// No neighbors, set value to zero.
-					}
-				}
-			}
-		}
-		for (int i = 0; i < xdim * ydim; i++)
-		{
-			isInterpolated[i] = wasInterpolated[i];
-		}
-	}
-	
-	public static void dilateImageVertical(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
-	{
-		boolean wasInterpolated[] = new boolean[xdim * ydim];
-		for (int i = 0; i < ydim; i++)
-		{
-			for (int j = 0; j < xdim; j++)
-			{
-				int k = i * xdim + j;
-				if (isInterpolated[k])
-				{
-					dst[k] = src[k];
-					wasInterpolated[k] = true;
-				} 
-				else
-				{
-					double diagonal_weight = 0.7071; // Orthogonal weight is 1.
-					double total_weight = 0;
-					double value = 0.;
-					int number_of_neighbors = 0;
-					int location_type = getLocationType(j, i, xdim, ydim);
-					
-					if(location_type == 1)
-					{
-						if(isInterpolated[k + xdim])
-						{
-							// Orthogonal.
-							total_weight += 1.;
-							value += src[k + xdim];	
-							number_of_neighbors++;
-						}
-						/*
-						if(isInterpolated[k + xdim + 1])
-						{
-							// Diagonal.
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim + 1];
-							number_of_neighbors++;
-						}
-						
-						if (isInterpolated[k + 1])
-						{
-							total_weight += 1.;
-							value += src[k + 1];
-							number_of_neighbors++;
-						}
-						*/
-					}
-					else if(location_type == 2)
-					{
-						if(isInterpolated[k + xdim])
-						{
-							total_weight += 1.;
-							value += src[k + xdim];
-							number_of_neighbors++;
-						}
-						/*
-						if(isInterpolated[k + xdim - 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim - 1];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k + xdim + 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim + 1];
-							number_of_neighbors++;
-						}	
-						
-						if(isInterpolated[k - 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - 1];
-						}
-						if(isInterpolated[k + 1])
-						{
-							total_weight += 1.;
-							value += src[k + 1];
-							number_of_neighbors++;
-						}
-						*/
-					}
-					else if(location_type == 3)
-					{
-						if (isInterpolated[k + xdim])
-						{
-							total_weight += 1.;
-							value += src[k - 1];
-							number_of_neighbors++;
-						}
-						/*
-						if (isInterpolated[k + xdim - 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim - 1];
-							number_of_neighbors++;
-						}
-						
-						if (isInterpolated[k - 1])
-						{
-							total_weight += 1.;
-							value += src[k - 1];
-							number_of_neighbors++;
-						}
-						*/
-					}
-					else if(location_type == 4)
-					{
-						if(isInterpolated[k - xdim])
-						{
-							total_weight += 1.;
-							value += src[k - xdim];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k + xdim])
-						{
-							total_weight += 1.;
-							value += src[k + xdim];
-							number_of_neighbors++;
-						}
-						/*
-						if(isInterpolated[k - xdim + 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim + 1];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k + xdim + 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim + 1];
-							number_of_neighbors++;
-						}	
-						
-						if (isInterpolated[k + 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + 1];
-						}
-						*/
-					}
-					else if(location_type == 5)
-					{
-						if(isInterpolated[k - xdim])
-						{
-							total_weight += 1.;
-							value += src[k - xdim];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k + xdim])
-						{
-							total_weight += 1.;
-							value += src[k + xdim];
-							number_of_neighbors++;
-						}
-						/*
-						if(isInterpolated[k - xdim - 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim - 1];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k + xdim - 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim - 1];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k - xdim + 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim + 1];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k + xdim + 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim + 1];
-							number_of_neighbors++;
-						}
-						
-						if(isInterpolated[k - 1])
-						{
-							total_weight += 1.;
-							value += src[k - 1];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k + 1])
-						{
-							total_weight += 1.;
-							value += src[k + 1];
-							number_of_neighbors++;
-						}
-                        */
-					}
-					else if(location_type == 6)
-					{
-						if(isInterpolated[k - xdim])
-						{
-							total_weight += 1.;
-							value += src[k - xdim];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k + xdim])
-						{
-							total_weight += 1.;
-							value += src[k + xdim];
-							number_of_neighbors++;
-						}
-						/*
-						if(isInterpolated[k - xdim - 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim - 1];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k + xdim - 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim - 1];
-							number_of_neighbors++;
-						}
-						
-						if(isInterpolated[k - 1])
-						{
-							total_weight += 1.;
-							value += src[k - 1];
-							number_of_neighbors++;
-						}
-						*/
-					}
-					else if(location_type == 7)
-					{
-						if(isInterpolated[k - xdim])
-						{
-							total_weight += 1.;
-							value += src[k - xdim];
-							number_of_neighbors++;
-						}
-						/*
-						if(isInterpolated[k - xdim + 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim + 1];
-							number_of_neighbors++;
-						}
-						
-						if(isInterpolated[k + 1])
-						{
-							total_weight += 1.;
-							value += src[k + 1];
-							number_of_neighbors++;
-						}
-						*/
-					}
-					else if(location_type == 8)
-					{
-						if(isInterpolated[k - xdim])
-						{
-							total_weight += 1.;
-							value += src[k - xdim];
-							number_of_neighbors++;
-						}
-						/*
-						if (isInterpolated[k - xdim - 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim - 1];
-							number_of_neighbors++;
-						}
-						if(isInterpolated[k - xdim + 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim + 1];
-							number_of_neighbors++;
-						}	
-						
-						if (isInterpolated[k - 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - 1];
-						}
-						if (isInterpolated[k + 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + 1];
-						}
-                        */
-					}
-					else if(location_type == 9)
-					{
-						if(isInterpolated[k - xdim])
-						{
-							total_weight += 1.;
-							value += src[k - xdim];
-							number_of_neighbors++;
-						}
-						/*
-						if(isInterpolated[k - xdim - 1])
-						{
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim - 1];
-							number_of_neighbors++;
-						}
-						
-						if(isInterpolated[k - 1])
-						{
-							total_weight += 1.;
-							value += src[k - 1];
-							number_of_neighbors++;
-						}
-						*/
 					}
 					
 					if (number_of_neighbors > 0) // Found a neighbor this iteration, set value.
@@ -876,10 +555,152 @@ public class ImageMapper
 				}
 			}
 		}
-		for (int i = 0; i < xdim * ydim; i++)
+	}
+	
+	// This function is not guaranteed to complete, and returns an incomplete result after reaching a limit on iterations.
+	// The problem is if one column is completely unpopulated it will recurse endlessly.  Still useful--a combination
+	// of this and the regular dilateImage produces a better result than regular dilateImage alone.
+	public static boolean[] dilateImageVertical(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
+	{
+		boolean wasInterpolated[] = new boolean[xdim * ydim];
+		for (int i = 0; i < ydim; i++)
 		{
-			isInterpolated[i] = wasInterpolated[i];
+			for (int j = 0; j < xdim; j++)
+			{
+				int k = i * xdim + j;
+				if (isInterpolated[k])
+				{
+					dst[k]             = src[k];
+					wasInterpolated[k] = true;
+				} 
+				else
+				{
+					double diagonal_weight  = 0.7071; 
+					double total_weight     = 0;
+					double value            = 0.;
+					int number_of_neighbors = 0;
+					int location_type       = getLocationType(j, i, xdim, ydim);
+					
+					if(location_type == 1)
+					{
+						if(isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k + xdim];	
+							number_of_neighbors++;
+						}
+						
+					}
+					else if(location_type == 2)
+					{
+						if(isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k + xdim];
+							number_of_neighbors++;
+						}
+					}
+					else if(location_type == 3)
+					{
+						if (isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k - 1];
+							number_of_neighbors++;
+						}
+					}
+					else if(location_type == 4)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k + xdim];
+							number_of_neighbors++;
+						}
+					}
+					else if(location_type == 5)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k + xdim];
+							number_of_neighbors++;
+						}
+					}
+					else if(location_type == 6)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k + xdim];
+							number_of_neighbors++;
+						}
+					}
+					else if(location_type == 7)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+					}
+					else if(location_type == 8)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+					}
+					else if(location_type == 9)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+					}
+					
+					if (number_of_neighbors > 0) // Found a neighbor this iteration, set value.
+					{
+						value /= total_weight;
+						dst[k] = (int) value;
+						wasInterpolated[k] = true;
+						// System.out.println("Number of neighbors was " + number_of_neighbors);
+					} 
+					else
+					{
+						dst[k] = 0;
+						wasInterpolated[k] = false;
+						// System.out.println("Found a cell with no neighbors.");
+						// System.out.println("Set boolean to false.");
+						// No neighbors, set value to zero.
+					}
+				}
+			}
 		}
+		return wasInterpolated;
 	}
 
 
@@ -2078,16 +1899,61 @@ public class ImageMapper
 		int _xdim = 2 * xdim - 1;
 		
 		double [][] dst = new double[ydim][_xdim];
+		
+		double diagonal_weight  = 0.7071;
 		for(int i = 0; i < ydim; i++)
 		{
 			int k = 0;
-			double end_value = 0;
+			
 			for(int j = 0; j < xdim - 1; j++)
 			{
-				dst[i][k]   = src[i][j];
-				dst[i][k++] = (src[i][j] + src[i][j + 1]) / 2;
-				dst[i][k++] = src[i][j + 1];
+				dst[i][k++]  = src[i][j];
+				double value = 0;
+				double weight = 0;
+				if(i == 0)
+				{
+					/*
+					value += src[i][j];
+					weight += 1.;
+					value += src[i][j + 1];
+					weight += 1.;
+					value += diagonal_weight * src[i + 1][j + 1];
+					weight += diagonal_weight;
+					dst[i][k++] = (int)(value / weight);
+					*/
+					
+					dst[i][k++] = (src[i][j] + src[i][j + 1]) / 2;	
+				}
+				else if(i == ydim - 1)
+				{
+					/*
+					value += src[i][j];
+					weight += 1.;
+					value += src[i][j + 1];
+					weight += 1.;
+					value += diagonal_weight * src[i - 1][j + 1];
+					weight += diagonal_weight;
+					dst[i][k++] = (int)(value / weight);
+					*/
+					dst[i][k++] = (src[i][j] + src[i][j + 1]) / 2;	
+				}
+				else
+				{
+					/*
+					value += src[i][j];
+					weight += 1.;
+					value += src[i][j + 1];
+					weight += 1.;
+					value += diagonal_weight * src[i - 1][j + 1];
+					weight += diagonal_weight;
+					value += diagonal_weight * src[i + 1][j + 1];
+					weight += diagonal_weight;
+					dst[i][k++] = (int)(value / weight);
+					*/
+					dst[i][k++] = (src[i][j] + src[i][j + 1]) / 2;	
+				}
 			}
+			dst[i][k] = src[i][xdim - 1];
 		}
 		return(dst);
 	}
