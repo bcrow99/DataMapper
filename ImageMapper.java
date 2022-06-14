@@ -6,47 +6,6 @@ import java.awt.Point;
 
 public class ImageMapper
 {
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	public static void smooth(int src[], int xdim, int ydim, double smooth_factor, int number_of_iterations, int dst[])
 	{
 		double even[] = new double[xdim * ydim];
@@ -211,10 +170,11 @@ public class ImageMapper
 				even = true;
 			}
 			dilateImage(source, isAssigned, xdim, ydim, dest);
+			//dilateImageVertical(source, isAssigned, xdim, ydim, dest);
 			number_of_uninterpolated_cells = 0;
 			for (int i = 0; i < xdim * ydim; i++)
 			{
-				if (isAssigned[i] == false)
+				if(isAssigned[i] == false)
 					number_of_uninterpolated_cells++;
 			}
 			// System.out.println("The number of uninterpolated cells after dilation was " +
@@ -243,94 +203,17 @@ public class ImageMapper
 				}
 			}
 		}
-		//System.out.println("The number of iterations was " + number_of_iterations);
+		System.out.println("The number of iterations was " + number_of_iterations);
 		return dst;
 	}
     
-    
-	/*
-	public static void getImageDilation(double src[][], boolean isInterpolated[][], double dst[][])
-	{
-		int ydim = src.length;
-		int xdim = src[0].length;
-
-		double source[];
-		double dest[];
-		double gray1[] = new double[xdim * ydim];
-		double gray2[] = new double[xdim * ydim];
-		boolean isAssigned[] = new boolean[xdim * ydim];
-		int number_of_uninterpolated_cells = 0;
-		int number_of_iterations = 0;
-		for (int i = 0; i < ydim; i++)
-		{
-			for (int j = 0; j < xdim; j++)
-			{
-				int k = i * xdim + j;
-				gray1[k] = src[i][j];
-				isAssigned[k] = isInterpolated[i][j];
-				if (isAssigned[k] == false)
-					number_of_uninterpolated_cells++;
-			}
-		}
-		// System.out.println("Origninal number of uninterpolated_cells is " +
-		// number_of_uninterpolated_cells);
-		boolean even = true; // Keep track of which buffer is the source and which is the destination.
-		while(number_of_uninterpolated_cells != 0)
-		{
-			number_of_iterations++;
-			if (even == true)
-			{
-				source = gray1;
-				dest = gray2;
-				even = false;
-			} else
-			{
-				source = gray2;
-				dest = gray1;
-				even = true;
-			}
-			dilateImage(source, isAssigned, xdim, ydim, dest);
-			number_of_uninterpolated_cells = 0;
-			for (int i = 0; i < xdim * ydim; i++)
-			{
-				if (isAssigned[i] == false)
-					number_of_uninterpolated_cells++;
-			}
-			// System.out.println("The number of uninterpolated cells after dilation was " +
-			// number_of_uninterpolated_cells);
-		}
-
-		if (even == true)
-		{
-			int k = 0;
-			for (int i = 0; i < ydim; i++)
-			{
-				for (int j = 0; j < xdim; j++)
-				{
-					dst[i][j] = gray1[k++];
-				}
-			}
-		} else
-		{
-			int k = 0;
-			for (int i = 0; i < ydim; i++)
-			{
-				for (int j = 0; j < xdim; j++)
-				{
-					dst[i][j] = gray2[k++];
-				}
-			}
-		}
-		System.out.println("The number of iterations was " + number_of_iterations);
-	}
-    */
-    
+   
 	// This function modifies values in isInterpolated and dst, and can be called
-	// multiple times
-	// until all the values in isInterpolated are true.
+	// multiple times until all the values in isInterpolated are true.
+	// Theoretically, it should complete even if only one pixel has been interpolated.
+	 
 	// Also, using single index into image to keep low level code simple--will have
-	// to reformat
-	// data for processing--see getVarianceImage.
+	// to reformat data for processing. 
 	public static void dilateImage(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
 	{
 		boolean wasInterpolated[] = new boolean[xdim * ydim];
@@ -343,322 +226,297 @@ public class ImageMapper
 				{
 					dst[k] = src[k];
 					wasInterpolated[k] = true;
-				} else
+				} 
+				else
 				{
-					double diagonal_weight = 0.7071; // Orthogonal weight is 1.
-					double total_weight = 0;
-					double value = 0.;
+					// Orthogonal weight is 1.
+					double diagonal_weight  = 0.7071; 
+					double total_weight     = 0;
+					double value            = 0.;
 					int number_of_neighbors = 0;
+					
 					int location_type = getLocationType(j, i, xdim, ydim);
-					switch (location_type)
+					
+					if(location_type == 1)
 					{
-					case 1: // Orthogonal
+						// Orthogonal.
 						if (isInterpolated[k + 1])
 						{
 							number_of_neighbors++;
 							total_weight += 1.;
 							value += src[k + 1];
 						}
-
 						if (isInterpolated[k + xdim])
 						{
 							number_of_neighbors++;
 							total_weight += 1.;
 							value += src[k + xdim];
 						}
-
-						// Diagonal
+						
+						// Diagonal.
 						if (isInterpolated[k + xdim + 1])
 						{
 							number_of_neighbors++;
 							total_weight += diagonal_weight;
 							value += diagonal_weight * src[k + xdim + 1];
 						}
-
-						break;
-
-					case 2: // Orthogonal
-						if (isInterpolated[k - 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - 1];
-						}
-
-						if (isInterpolated[k + 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + 1];
-						}
-
-						if (isInterpolated[k + xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + xdim];
-						}
-
-						// Diagonal
-						if (isInterpolated[k + xdim - 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim - 1];
-						}
-
-						if (isInterpolated[k + xdim + 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim + 1];
-						}
-
-						break;
-
-					case 3: // Orthogonal
-						if (isInterpolated[k - 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - 1];
-						}
-
-						if (isInterpolated[k + xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - 1];
-						}
-
-						// Diagonal
-						if (isInterpolated[k + xdim - 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim - 1];
-						}
-
-						break;
-
-					case 4: // Orthogonal
-						if (isInterpolated[k - xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - xdim];
-						}
-						if (isInterpolated[k + xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + xdim];
-						}
-
-						if (isInterpolated[k + 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + 1];
-						}
-
-						// Diagonal
-						if (isInterpolated[k - xdim + 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim + 1];
-						}
-						if (isInterpolated[k + xdim + 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim + 1];
-						}
-
-						break;
-
-					case 5: // Orthogonal
-						if (isInterpolated[k - xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - xdim];
-						}
-						if (isInterpolated[k + xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + xdim];
-						}
-
-						if (isInterpolated[k - 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - 1];
-						}
-
-						if (isInterpolated[k + 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + 1];
-						}
-
-						// Diagonal
-						if (isInterpolated[k - xdim - 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim - 1];
-						}
-						if (isInterpolated[k + xdim - 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim - 1];
-						}
-
-						if (isInterpolated[k - xdim + 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim + 1];
-						}
-						if (isInterpolated[k + xdim + 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim + 1];
-						}
-
-						break;
-
-					case 6: // Orthogonal
-						if (isInterpolated[k - xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - xdim];
-						}
-						if (isInterpolated[k + xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + xdim];
-						}
-
-						if (isInterpolated[k - 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - 1];
-						}
-
-						// Diagonal
-						if (isInterpolated[k - xdim - 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim - 1];
-						}
-
-						if (isInterpolated[k + xdim - 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k + xdim - 1];
-						}
-
-						break;
-
-					case 7: // Orthogonal
-						if (isInterpolated[k - xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - xdim];
-						}
-						if (isInterpolated[k + 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + 1];
-						}
-
-						// Diagonal
-						if (isInterpolated[k - xdim + 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim + 1];
-						}
-
-						break;
-
-					case 8: // Orthogonal
-						if (isInterpolated[k - xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - xdim];
-						}
-						if (isInterpolated[k - 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - 1];
-						}
-						if (isInterpolated[k + 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k + 1];
-						}
-
-						// Diagonal
-						if (isInterpolated[k - xdim - 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim - 1];
-						}
-						if (isInterpolated[k - xdim + 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim + 1];
-						}
-						break;
-
-					case 9: // Orthogonal
-						if (isInterpolated[k - xdim])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - xdim];
-						}
-						if (isInterpolated[k - 1])
-						{
-							number_of_neighbors++;
-							total_weight += 1.;
-							value += src[k - 1];
-						}
-
-						// Diagonal
-						if (isInterpolated[k - xdim - 1])
-						{
-							number_of_neighbors++;
-							total_weight += diagonal_weight;
-							value += diagonal_weight * src[k - xdim - 1];
-						}
-						break;
-
-					default:
-						break;
 					}
+					else if(location_type == 2)
+					{
+						if(isInterpolated[k - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - 1];
+						}
+						if(isInterpolated[k + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + 1];
+						}
+						if(isInterpolated[k + xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + xdim];
+						}	
+						
+						if(isInterpolated[k + xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim - 1];
+						}
+						if(isInterpolated[k + xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim + 1];
+						}
+					}
+					else if(location_type == 3)
+					{
+						if(isInterpolated[k - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - 1];
+						}
+						if(isInterpolated[k + xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - 1];
+						}
 
+						if(isInterpolated[k + xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim - 1];
+						}	
+					}
+					else if(location_type == 4)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - xdim];
+						}
+						if(isInterpolated[k + xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + xdim];
+						}
+						if(isInterpolated[k + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + 1];
+						}
+
+						if(isInterpolated[k - xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim + 1];
+						}
+						if(isInterpolated[k + xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim + 1];
+						}
+					}
+					else if(location_type == 5)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - xdim];
+						}
+						if(isInterpolated[k + xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + xdim];
+						}
+						if(isInterpolated[k - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - 1];
+						}
+						if(isInterpolated[k + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + 1];
+						}
+
+						if(isInterpolated[k - xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim - 1];
+						}
+						if(isInterpolated[k + xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim - 1];
+						}
+
+						if(isInterpolated[k - xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim + 1];
+						}
+						if(isInterpolated[k + xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim + 1];
+						}
+					}
+					else if(location_type == 6)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - xdim];
+						}
+						if(isInterpolated[k + xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + xdim];
+						}
+						if(isInterpolated[k - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - 1];
+						}
+
+						if(isInterpolated[k - xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim - 1];
+						}
+						if(isInterpolated[k + xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim - 1];
+						}	
+					}
+					else if(location_type == 7)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - xdim];
+						}
+						if(isInterpolated[k + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + 1];
+						}
+
+						if(isInterpolated[k - xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim + 1];
+						}	
+					}
+					else if(location_type == 8)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - xdim];
+						}
+						if(isInterpolated[k - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - 1];
+						}
+						if(isInterpolated[k + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + 1];
+						}
+
+						if(isInterpolated[k - xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim - 1];
+						}
+						if(isInterpolated[k - xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim + 1];
+						}	
+					}
+					else if(location_type == 9)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - xdim];
+						}
+						if(isInterpolated[k - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - 1];
+						}
+
+						if(isInterpolated[k - xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim - 1];
+						}	
+					}
+					
 					if (number_of_neighbors > 0) // Found a neighbor this iteration, set value.
 					{
 						value /= total_weight;
@@ -681,6 +539,349 @@ public class ImageMapper
 			isInterpolated[i] = wasInterpolated[i];
 		}
 	}
+	
+	public static void dilateImageVertical(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
+	{
+		boolean wasInterpolated[] = new boolean[xdim * ydim];
+		for (int i = 0; i < ydim; i++)
+		{
+			for (int j = 0; j < xdim; j++)
+			{
+				int k = i * xdim + j;
+				if (isInterpolated[k])
+				{
+					dst[k] = src[k];
+					wasInterpolated[k] = true;
+				} 
+				else
+				{
+					double diagonal_weight = 0.7071; // Orthogonal weight is 1.
+					double total_weight = 0;
+					double value = 0.;
+					int number_of_neighbors = 0;
+					int location_type = getLocationType(j, i, xdim, ydim);
+					
+					if(location_type == 1)
+					{
+						if(isInterpolated[k + xdim])
+						{
+							// Orthogonal.
+							total_weight += 1.;
+							value += src[k + xdim];	
+							number_of_neighbors++;
+						}
+						/*
+						if(isInterpolated[k + xdim + 1])
+						{
+							// Diagonal.
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim + 1];
+							number_of_neighbors++;
+						}
+						
+						if (isInterpolated[k + 1])
+						{
+							total_weight += 1.;
+							value += src[k + 1];
+							number_of_neighbors++;
+						}
+						*/
+					}
+					else if(location_type == 2)
+					{
+						if(isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k + xdim];
+							number_of_neighbors++;
+						}
+						/*
+						if(isInterpolated[k + xdim - 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim - 1];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim + 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim + 1];
+							number_of_neighbors++;
+						}	
+						
+						if(isInterpolated[k - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - 1];
+						}
+						if(isInterpolated[k + 1])
+						{
+							total_weight += 1.;
+							value += src[k + 1];
+							number_of_neighbors++;
+						}
+						*/
+					}
+					else if(location_type == 3)
+					{
+						if (isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k - 1];
+							number_of_neighbors++;
+						}
+						/*
+						if (isInterpolated[k + xdim - 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim - 1];
+							number_of_neighbors++;
+						}
+						
+						if (isInterpolated[k - 1])
+						{
+							total_weight += 1.;
+							value += src[k - 1];
+							number_of_neighbors++;
+						}
+						*/
+					}
+					else if(location_type == 4)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k + xdim];
+							number_of_neighbors++;
+						}
+						/*
+						if(isInterpolated[k - xdim + 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim + 1];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim + 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim + 1];
+							number_of_neighbors++;
+						}	
+						
+						if (isInterpolated[k + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + 1];
+						}
+						*/
+					}
+					else if(location_type == 5)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k + xdim];
+							number_of_neighbors++;
+						}
+						/*
+						if(isInterpolated[k - xdim - 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim - 1];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim - 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim - 1];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k - xdim + 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim + 1];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim + 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim + 1];
+							number_of_neighbors++;
+						}
+						
+						if(isInterpolated[k - 1])
+						{
+							total_weight += 1.;
+							value += src[k - 1];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + 1])
+						{
+							total_weight += 1.;
+							value += src[k + 1];
+							number_of_neighbors++;
+						}
+                        */
+					}
+					else if(location_type == 6)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim])
+						{
+							total_weight += 1.;
+							value += src[k + xdim];
+							number_of_neighbors++;
+						}
+						/*
+						if(isInterpolated[k - xdim - 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim - 1];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k + xdim - 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k + xdim - 1];
+							number_of_neighbors++;
+						}
+						
+						if(isInterpolated[k - 1])
+						{
+							total_weight += 1.;
+							value += src[k - 1];
+							number_of_neighbors++;
+						}
+						*/
+					}
+					else if(location_type == 7)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+						/*
+						if(isInterpolated[k - xdim + 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim + 1];
+							number_of_neighbors++;
+						}
+						
+						if(isInterpolated[k + 1])
+						{
+							total_weight += 1.;
+							value += src[k + 1];
+							number_of_neighbors++;
+						}
+						*/
+					}
+					else if(location_type == 8)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+						/*
+						if (isInterpolated[k - xdim - 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim - 1];
+							number_of_neighbors++;
+						}
+						if(isInterpolated[k - xdim + 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim + 1];
+							number_of_neighbors++;
+						}	
+						
+						if (isInterpolated[k - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k - 1];
+						}
+						if (isInterpolated[k + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value += src[k + 1];
+						}
+                        */
+					}
+					else if(location_type == 9)
+					{
+						if(isInterpolated[k - xdim])
+						{
+							total_weight += 1.;
+							value += src[k - xdim];
+							number_of_neighbors++;
+						}
+						/*
+						if(isInterpolated[k - xdim - 1])
+						{
+							total_weight += diagonal_weight;
+							value += diagonal_weight * src[k - xdim - 1];
+							number_of_neighbors++;
+						}
+						
+						if(isInterpolated[k - 1])
+						{
+							total_weight += 1.;
+							value += src[k - 1];
+							number_of_neighbors++;
+						}
+						*/
+					}
+					
+					if (number_of_neighbors > 0) // Found a neighbor this iteration, set value.
+					{
+						value /= total_weight;
+						dst[k] = (int) value;
+						wasInterpolated[k] = true;
+						// System.out.println("Number of neighbors was " + number_of_neighbors);
+					} 
+					else
+					{
+						dst[k] = 0;
+						wasInterpolated[k] = false;
+						// System.out.println("Found a cell with no neighbors.");
+						// System.out.println("Set boolean to false.");
+						// No neighbors, set value to zero.
+					}
+				}
+			}
+		}
+		for (int i = 0; i < xdim * ydim; i++)
+		{
+			isInterpolated[i] = wasInterpolated[i];
+		}
+	}
+
 
 	public static int[] avgAreaXTransform(int source[], int xdim, int ydim, int new_xdim)
 	{
@@ -1799,8 +2000,7 @@ public class ImageMapper
 			else if(xtranslation >= 1. || ytranslation >= 1.)
 		    {
 		    	// System.out.println("Crossing pixel boundary.");
-		    	// The process could continue, but we can leave that to a higher layer
-		    	// and leave this function simple.
+		    	// The process could continue, but we can leave that to a higher layer.
 		    	dest[0]       = 4;
 				dest[1]       = xtranslation;
 		        dest[2]       = ytranslation;
@@ -1858,12 +2058,24 @@ public class ImageMapper
 		return(dst);
 	}
 	
-	public static double[][] expandX(double src[][], int expand)
+	public static double[][] expandX(double src[][], int iterations)
+	{
+		double[][] current_src = src;
+		double [][] result = new double[1][1];
+		for(int i = 0; i < iterations; i++)
+		{
+			result = expandX(current_src);
+		    current_src = result;
+		}
+		return result;
+	}
+	
+	public static double[][] expandX(double src[][])
 	{
 		int ydim = src.length;
 		int xdim = src[0].length;
 		
-		int _xdim = (xdim - 1) * expand + xdim;
+		int _xdim = 2 * xdim - 1;
 		
 		double [][] dst = new double[ydim][_xdim];
 		for(int i = 0; i < ydim; i++)
@@ -1872,18 +2084,10 @@ public class ImageMapper
 			double end_value = 0;
 			for(int j = 0; j < xdim - 1; j++)
 			{
-				double start_value  = src[i][j];
-				end_value           = src[i][j + 1];
-				dst[i][k++]         = start_value;
-				double delta        = start_value - end_value;
-				double increment = delta / (expand + 1);
-				for(int m = 0; m < expand; m++)
-				{
-					start_value += increment;
-					dst[i][k++]  = start_value;
-				}
+				dst[i][k]   = src[i][j];
+				dst[i][k++] = (src[i][j] + src[i][j + 1]) / 2;
+				dst[i][k++] = src[i][j + 1];
 			}
-			dst[i][k] = end_value;
 		}
 		return(dst);
 	}
