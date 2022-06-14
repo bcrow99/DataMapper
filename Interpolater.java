@@ -22,36 +22,33 @@ public class Interpolater
 	ArrayList original_data = new ArrayList();
 	ArrayList data = new ArrayList();
 
-	int line = 9;
-	int sensor = 3;
-
 	double offset = 15;
 	double range = 60;
-	double position = 45;
 
-	double xmin = Double.MAX_VALUE;
-	double xmax = Double.MIN_VALUE;
-	double ymin = Double.MAX_VALUE;
-	double ymax = Double.MIN_VALUE;
+	double absolute_xmin = Double.MAX_VALUE;
+	double absolute_xmax = Double.MIN_VALUE;
+	double absolute_ymin = Double.MAX_VALUE;
+	double absolute_ymax = Double.MIN_VALUE;
 
 	public static void main(String[] args)
 	{
 		String prefix = new String("C:/Users/Brian Crowley/Desktop/");
 		// String prefix = new String("");
-		if (args.length != 2)
+		if (args.length != 3)
 		{
-			System.out.println("Usage: Interpolater <data file> <line number>");
+			System.out.println("Usage: Interpolater <data file> <target #> <target width>");
 			System.exit(0);
 		} 
 		else
 		{
 			try
 			{
-				String filename    = prefix + args[0];
-				int    line_number = Integer.parseInt(args[1]);
+				String filename      = prefix + args[0];
+				int    target_number = Integer.parseInt(args[1]);
+				int    target_width  = Integer.parseInt(args[2]);
 				try
 				{
-					Interpolater interpolater = new Interpolater(filename, line_number);
+					Interpolater interpolater = new Interpolater(filename, target_number, target_width);
 				} 
 				catch (Exception e)
 				{
@@ -65,7 +62,7 @@ public class Interpolater
 		}
 	}
 
-	public Interpolater(String filename, int line_number)
+	public Interpolater(String filename, int target_number, int target_width)
 	{
 		// System.out.println(System.getProperty("java.version"));
 		File file = new File(filename);
@@ -82,14 +79,14 @@ public class Interpolater
 				{
 					double x = Double.valueOf(number_tokens.nextToken());
 					double y = Double.valueOf(number_tokens.nextToken());
-					if (x < xmin)
-						xmin = x;
-					else if (x > xmax)
-						xmax = x;
-					if (y < ymin)
-						ymin = y;
-					else if (y > ymax)
-						ymax = y;
+					if (x < absolute_xmin)
+						absolute_xmin = x;
+					else if (x > absolute_xmax)
+						absolute_xmax = x;
+					if (y < absolute_ymin)
+						absolute_ymin = y;
+					else if (y > absolute_ymax)
+						absolute_ymax = y;
 					double intensity = Double.valueOf(number_tokens.nextToken());
 					Sample current_sample = new Sample(x, y, intensity);
 					original_data.add(current_sample);
@@ -109,14 +106,14 @@ public class Interpolater
 							{
 								double x = Double.valueOf(number_tokens.nextToken());
 								double y = Double.valueOf(number_tokens.nextToken());
-								if (x < xmin)
-									xmin = x;
-								else if (x > xmax)
-									xmax = x;
-								if (y < ymin)
-									ymin = y;
-								else if (y > ymax)
-									ymax = y;
+								if (x < absolute_xmin)
+									absolute_xmin = x;
+								else if (x > absolute_xmax)
+									absolute_xmax = x;
+								if (y < absolute_ymin)
+									absolute_ymin = y;
+								else if (y > absolute_ymax)
+									absolute_ymax = y;
 								double intensity = Double.valueOf(number_tokens.nextToken());
 								Sample current_sample = new Sample(x, y, intensity);
 								original_data.add(current_sample);
@@ -134,8 +131,8 @@ public class Interpolater
 				for (int i = 0; i < original_data.size(); i++)
 				{
 					Sample sample = (Sample) original_data.get(i);
-					sample.x -= xmin;
-					sample.y -= ymin;
+					sample.x -= absolute_xmin;
+					sample.y -= absolute_ymin;
 					data.add(sample);
 				}
 			} 
@@ -337,8 +334,8 @@ public class Interpolater
 			}
 			clipped_data.add(clipped_list);
 		}
-		//System.out.println("Xmax for clipped data = " + String.format("%.2f", global_xmax) + ", xmin = " + String.format("%.2f", global_xmin));
-		//System.out.println("Ymax for clipped data = " + String.format("%.2f", global_ymax) + ", ymin = " + String.format("%.2f", global_ymin)); 
+		System.out.println("Xmax for clipped data = " + String.format("%.2f", global_xmax) + ", xmin = " + String.format("%.2f", global_xmin));
+		System.out.println("Ymax for clipped data = " + String.format("%.2f", global_ymax) + ", ymin = " + String.format("%.2f", global_ymin)); 
 	
 		double global_xrange = global_xmax - global_xmin;
 		double global_yrange = global_ymax - global_ymin;
@@ -354,10 +351,10 @@ public class Interpolater
 	    int _ymax = (int)list.get(1);
 	    //System.out.println("The max xindex = " + _xmax + ", yindex = " + _ymax);
 		
-		xmax = -Double.MAX_VALUE;
-		xmin = Double.MAX_VALUE;
-		ymax = -Double.MAX_VALUE;
-		ymin = Double.MAX_VALUE;
+		double relative_xmax = -Double.MAX_VALUE;
+		double relative_xmin = Double.MAX_VALUE;
+		double relative_ymax = -Double.MAX_VALUE;
+		double relative_ymin = Double.MAX_VALUE;
 		
 		ArrayList [][] global_raster = new ArrayList[global_ydim][global_xdim];
 		for(int i = 0; i < global_ydim; i++)
@@ -368,7 +365,9 @@ public class Interpolater
 			}
 		}
 		
+		System.out.println("Target number is " + target_number);
 		for(int i = 0; i < number_of_lines; i++)
+		//for(int i = line_number; i < line_number + 2; i++)
 		{
 		    ArrayList clipped_list = (ArrayList)clipped_data.get(i);
 		    // System.out.println("Size of clipped data list is " + clipped_list.size());
@@ -377,22 +376,22 @@ public class Interpolater
 		    {
 			    Sample sample = (Sample) clipped_list.get(j);
 			    number_of_samples++;
-			    if(sample.x < xmin)
-				    xmin = sample.x;
-			    if(sample.x > xmax)
-			        xmax = sample.x;
-			    if (sample.y < ymin)
-			        ymin = sample.y;
-			    if (sample.y > ymax)
-			        ymax = sample.y;
+			    if(sample.x < relative_xmin)
+			    	relative_xmin = sample.x;
+			    if(sample.x > relative_xmax)
+			    	relative_xmax = sample.x;
+			    if (sample.y < relative_ymin)
+			    	relative_ymin = sample.y;
+			    if (sample.y > relative_ymax)
+			    	relative_ymax = sample.y;
 			}
 		    //System.out.println("Number of samples in unclipped area of line " + line_number + " is " + number_of_samples);
 		    //System.out.println("Number of rows of data in unclipped area of line " + line_number + " is " + (number_of_samples / 5));
 		    //System.out.println("Xmax = " + String.format("%.2f", xmax) + ", xmin = " + String.format("%.2f", xmin));
 		    //System.out.println("Ymax = " + String.format("%.2f", ymax) + ", ymin = " + String.format("%.2f", ymin));
 
-	        double xrange = xmax - xmin;
-	        double yrange = ymax - ymin;
+	        double xrange = relative_xmax - relative_xmin;
+	        double yrange = relative_ymax - relative_ymin;
 			
 	        //int line_xdim = (int)(xrange / .5 + 2);
 	        //int line_ydim = (int)(yrange / .04 + 2);
@@ -418,6 +417,8 @@ public class Interpolater
 	                Sample lower_right = (Sample)clipped_list.get(k + 1);
 	                Sample upper_left  = (Sample)clipped_list.get(k + 5);
 	                Sample upper_right = (Sample)clipped_list.get(k + 6);
+	                
+	                double xmin, xmax, ymin, ymax;
 	    	    
 	                if(lower_left.x == upper_left.x && lower_left.y == upper_left.y)
 	                {
@@ -578,6 +579,29 @@ public class Interpolater
 	    
 		int _data_image[][] = new int[global_ydim][global_xdim];
 		
+		double [][] object_location = ObjectMapper.getObjectLocationArray();
+		int number_of_objects       = object_location.length;
+		for(int i = 0; i < number_of_objects; i++)
+		{
+			object_location[i][0] -= absolute_xmin;
+			object_location[i][1] -= absolute_ymin;
+		}
+		
+		double object_xlocation = object_location[target_number - 1][0];
+		double object_ylocation = object_location[target_number - 1][1];
+		
+		
+		//System.out.println("Object x location is " + object_xlocation);
+		//System.out.println("Object y location is " + object_ylocation);
+		
+		//int object_ydim = (int)(target_width / .04 + 1);
+		//int object_xdim = (int)(target_width / .5 + 1);
+		//System.out.println("Object xdim = " + object_xdim + ", object ydim = " + object_ydim);
+		
+		
+		//double [][] object = new double[object_ydim][object_xdim];
+		
+		ArrayList object_list = new ArrayList();
 		for(int i = 0; i < global_ydim; i++)
 		{
 			for(int j = 0; j < global_xdim; j++)
@@ -590,8 +614,12 @@ public class Interpolater
 					{
 						Sample sample1    = (Sample)cell_list.get(0);
 						Sample sample2    = (Sample)cell_list.get(1);
-						current_intensity = sample1.intensity;
 						
+						if(sample1.x >= object_xlocation - target_width / 2 && sample1.x < object_xlocation + target_width / 2 
+						&& sample1.y >= object_ylocation - target_width / 2 && sample1.y < object_ylocation + target_width / 2)
+						{
+						    object_list.add(sample1);	
+						}
 						//current_intensity = (sample1.intensity + sample2.intensity) / 2;
 						//current_intensity = ((sample1.y - global_ymin) / global_yrange) * 255;
 						
@@ -600,30 +628,133 @@ public class Interpolater
 					{
 					    Sample sample = (Sample)cell_list.get(0);
 					    current_intensity = sample.intensity;
-					    
+					    if(sample.x >= object_xlocation - target_width / 2 && sample.x < object_xlocation + target_width / 2 
+						&& sample.y >= object_ylocation - target_width / 2 && sample.y < object_ylocation + target_width / 2)
+						{
+					        object_list.add(sample);	
+						}
 					    //current_intensity = ((sample.y - global_ymin) / global_yrange) * 255;
 					}
-					
-					double normal_value = ((current_intensity - intensity_min) / intensity_range);
-					int value = (int)(normal_value * 255);
-					_data_image[i][j] = value;
 				}
-				else
-					_data_image[i][j] = 0;
 			}
 		}
 		
-		BufferedImage data_image = new BufferedImage(global_xdim, global_ydim, BufferedImage.TYPE_INT_RGB);
-        for(int i = 0; i < global_ydim; i++)
+		System.out.println("Size of object list is " + object_list.size());
+		double object_xmax = -Double.MAX_VALUE;
+		double object_xmin = Double.MAX_VALUE;
+		double object_ymax = -Double.MAX_VALUE;
+		double object_ymin = Double.MAX_VALUE;
+		for(int i = 0; i < object_list.size(); i++)
+		{
+			Sample sample = (Sample)object_list.get(i);
+			if(sample.x < object_xmin)
+				object_xmin = sample.x;
+			if(sample.x > object_xmax)
+				object_xmax = sample.x;
+			
+			if(sample.y < object_ymin)
+				object_ymin = sample.y;
+			if(sample.y > object_ymax)
+				object_ymax = sample.y;
+			
+		}
+		
+		double object_xrange = object_xmax - object_xmin;
+		double object_yrange = object_ymax - object_ymin;
+		
+		System.out.println("Object xmin is " + object_xmin);
+		System.out.println("Object xmax is " + object_xmax);
+		
+		int object_xdim = (int)(object_xrange / .5 + 2);
+		int object_ydim = (int)(object_yrange / .04 + 2);
+		System.out.println("The ideal raster for this object has xdim = " + object_xdim + ", ydim = " + object_ydim);
+		System.out.println();
+		
+		double [][] object_raster = new double[object_ydim][object_xdim];
+		boolean [][] isAssigned = new boolean[object_ydim][object_xdim];
+		for(int i = 0; i < object_ydim; i++)
+		{
+			for(int j = 0; j < object_xdim; j++)
+			{
+				object_raster[i][j] = 0;
+				isAssigned[i][j] = false;
+			}
+		}
+		
+		for(int i = 0; i < object_list.size(); i ++)
+		{
+			Sample sample = (Sample)object_list.get(i);
+			ArrayList index_list = getIndex(sample.x, sample.y, object_xmin, object_ymin);
+		    int x_index = (int)index_list.get(0);
+	        int y_index = (int)index_list.get(1);
+	        object_raster[y_index][x_index] = sample.intensity;
+	        isAssigned[y_index][x_index] = true;
+		}
+		
+		double object_intensity_min = Double.MAX_VALUE;
+		double object_intensity_max = -Double.MAX_VALUE;
+		int number_of_assigned_values = 0;
+		for(int i = 0; i < object_ydim; i++)
+		{
+			for(int j = 0; j < object_xdim; j++)
+			{
+				if(isAssigned[i][j])
+				{
+					number_of_assigned_values++;
+					if(object_raster[i][j] > object_intensity_max)
+						object_intensity_max = object_raster[i][j];
+					if(object_raster[i][j] < object_intensity_min)
+						object_intensity_min = object_raster[i][j];
+				}
+			}
+		}
+		double object_intensity_range = object_intensity_max - object_intensity_min;
+		System.out.println("Raster with " + (object_xdim * object_ydim) + " cells has " + number_of_assigned_values + " assigned values.");
+		System.out.println("Original intensity range is " + String.format("%.4f", object_intensity_range));
+		
+		int[][] object_image = new int[object_ydim][object_xdim];
+		for(int i = 0; i < object_ydim; i++)
+		{
+			for(int j = 0; j < object_xdim; j++)
+			{
+				if(isAssigned[i][j])
+				{
+				    double intensity  = object_raster[i][j];
+				    intensity         -= object_intensity_min;
+				    intensity         /= object_intensity_range;
+				    intensity         *= 255;
+				    object_image[i][j] = (int)intensity;
+				}
+				else
+					object_image[i][j] = 0;	
+			}
+		}
+		
+        BufferedImage data_image = new BufferedImage(object_xdim, object_ydim, BufferedImage.TYPE_INT_RGB);
+		
+        for(int i = 0; i < object_ydim; i++)
         {
-            for(int j = 0; j < global_xdim; j++)
+            for(int j = 0; j < object_xdim; j++)
             {  	
-                int gray_value = _data_image[i][j];
-        	    int rgb_value  = ((gray_value&0x0ff)<<16)|((gray_value&0x0ff)<<8)|(gray_value&0x0ff);
-        	    data_image.setRGB(j, i, rgb_value);  
+            	if(isAssigned[i][j])
+				{
+                    //int gray_value = object_image[i][j];
+            		int gray_value = 255;
+        	        int rgb_value  = ((gray_value&0x0ff)<<16)|((gray_value&0x0ff)<<8)|(gray_value&0x0ff);
+        	        data_image.setRGB(j, i, rgb_value); 
+				}
+            	else
+            	{
+            		int red_value = 0;
+            		int green_value = 0;
+            		int blue_value = 0;
+            		int rgb_value  = ((red_value&0x0ff)<<16)|((green_value&0x0ff)<<8)|(blue_value&0x0ff);
+            		data_image.setRGB(j, i, rgb_value); 
+            	}
             }
         }
-        String file_string = new String("C:/Users/Brian Crowley/Desktop/foo.jpg");
+        
+        String file_string = new String("C:/Users/Brian Crowley/Desktop/foo1.jpg");
         try 
         {  
             ImageIO.write(data_image, "jpg", new File(file_string)); 
@@ -631,7 +762,101 @@ public class Interpolater
         catch(IOException e) 
         {  
             e.printStackTrace(); 
-        }        
+        }    
+        
+        double[][] dilated_object  = ImageMapper.getImageDilation(object_raster, isAssigned);
+        
+        object_intensity_min = Double.MAX_VALUE;
+		object_intensity_max = -Double.MAX_VALUE;
+		for(int i = 0; i < object_ydim; i++)
+		{
+			for(int j = 0; j < object_xdim; j++)
+			{
+				if(dilated_object[i][j] > object_intensity_max)
+					object_intensity_max = dilated_object[i][j];
+				if(dilated_object[i][j] < object_intensity_min)
+					object_intensity_min = dilated_object[i][j];
+			}
+		}
+		object_intensity_range = object_intensity_max - object_intensity_min;
+		System.out.println("Intensity range after dilation is " + String.format("%.4f", object_intensity_range));
+        
+        for(int i = 0; i < object_ydim; i++)
+		{
+			for(int j = 0; j < object_xdim; j++)
+			{
+				double intensity  = dilated_object[i][j];
+				intensity         -= object_intensity_min;
+				intensity         /= object_intensity_range;
+				intensity         *= 255;
+				object_image[i][j] = (int)intensity;
+			}
+		}
+        
+        
+        for(int i = 0; i < object_ydim; i++)
+        {
+            for(int j = 0; j < object_xdim; j++)
+            {  	
+                int gray_value = object_image[i][j];
+        	    int rgb_value  = ((gray_value&0x0ff)<<16)|((gray_value&0x0ff)<<8)|(gray_value&0x0ff);
+        	    data_image.setRGB(j, i, rgb_value);  
+            }
+        }
+        
+        file_string = new String("C:/Users/Brian Crowley/Desktop/foo2.jpg");
+        try 
+        {  
+            ImageIO.write(data_image, "jpg", new File(file_string)); 
+        } 
+        catch(IOException e) 
+        {  
+            e.printStackTrace(); 
+        }    
+        
+        
+        double[][] expanded_object = ImageMapper.expandX(dilated_object, 4);
+        int expanded_ydim = expanded_object.length;
+		int expanded_xdim = expanded_object[0].length;
+		int[][] expanded_object_image = new int[expanded_ydim][expanded_xdim];
+		for(int i = 0; i < expanded_ydim; i++)
+		{
+			for(int j = 0; j < expanded_xdim; j++)
+			{
+				double intensity = expanded_object[i][j];
+				intensity -= object_intensity_min;
+				intensity /= object_intensity_range;
+				intensity *= 255;
+				expanded_object_image[i][j] = (int)intensity;
+			}
+		}
+		
+		int regular_xdim = (int)(object_xdim * 12.5);
+		int[][] regular_object = ImageMapper.avgAreaXTransform(expanded_object_image, regular_xdim);
+		
+		data_image = new BufferedImage(regular_xdim, expanded_ydim, BufferedImage.TYPE_INT_RGB);
+		
+		for(int i = 0; i < expanded_ydim; i++)
+        {
+            for(int j = 0; j < regular_xdim; j++)
+            {  	
+                //int gray_value = expanded_object_image[i][j];
+            	int gray_value = regular_object[i][j];
+        	    int rgb_value  = ((gray_value&0x0ff)<<16)|((gray_value&0x0ff)<<8)|(gray_value&0x0ff);
+        	    data_image.setRGB(j, i, rgb_value);  
+            }
+        }
+		
+		
+		file_string = new String("C:/Users/Brian Crowley/Desktop/foo3.jpg");
+        try 
+        {  
+            ImageIO.write(data_image, "jpg", new File(file_string)); 
+        } 
+        catch(IOException e) 
+        {  
+            e.printStackTrace(); 
+        }    
 	}
 
 	public double[] smooth(double[] source, int iterations)
