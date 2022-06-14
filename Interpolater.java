@@ -644,6 +644,12 @@ public class Interpolater
 		double object_xmin = Double.MAX_VALUE;
 		double object_ymax = -Double.MAX_VALUE;
 		double object_ymin = Double.MAX_VALUE;
+		
+		if(object_list.size() == 0)
+		{
+		    System.exit(0);	
+		}
+		
 		for(int i = 0; i < object_list.size(); i++)
 		{
 			Sample sample = (Sample)object_list.get(i);
@@ -687,6 +693,11 @@ public class Interpolater
 			ArrayList index_list = getIndex(sample.x, sample.y, object_xmin, object_ymin);
 		    int x_index = (int)index_list.get(0);
 	        int y_index = (int)index_list.get(1);
+	        
+	        if(x_index == object_xdim)
+	        	x_index--;
+	        if(y_index == object_ydim)
+	        	y_index--;
 	        object_raster[y_index][x_index] = sample.intensity;
 	        isAssigned[y_index][x_index] = true;
 		}
