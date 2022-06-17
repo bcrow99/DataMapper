@@ -260,7 +260,7 @@ public class Analyzer
 		}
 
 		int number_of_lines = endpoint_index.size() + 1;
-		System.out.println("The number of lines in the data set is " + number_of_lines);
+		//System.out.println("The number of lines in the data set is " + number_of_lines);
 		int[][] line_index = new int[number_of_lines][2];
 		line_index[0][0] = 0;
 		for (int i = 0; i < number_of_lines - 1; i++)
@@ -345,8 +345,8 @@ public class Analyzer
 			
 		int global_xdim = (int)(global_xrange / .5 + 2);
 		int global_ydim = (int)(global_yrange / .04 + 2);
-		System.out.println("The ideal raster for this data set has xdim = " + global_xdim + ", ydim = " + global_ydim);
-		System.out.println();
+		//System.out.println("The ideal raster for this data set has xdim = " + global_xdim + ", ydim = " + global_ydim);
+		//System.out.println();
 		
 		ArrayList list =  getIndex(global_xmax, global_ymax, global_xmin, global_ymin);
 	        
@@ -643,11 +643,11 @@ public class Analyzer
 			}
 		}
 		
-		System.out.println("Number of interpolated values is " + number_of_interpolated_values);
-		System.out.println("Number of occupied cells is " + number_of_occupied_cells);
+		//System.out.println("Number of interpolated values is " + number_of_interpolated_values);
+		//System.out.println("Number of occupied cells is " + number_of_occupied_cells);
 		int number_of_overlapping_cells = number_of_interpolated_values - number_of_occupied_cells;
 		//int total_number_of_cells = global_xdim * global_ydim;
-		System.out.println("Number of overlapping values is " + number_of_overlapping_cells);
+		//System.out.println("Number of overlapping values is " + number_of_overlapping_cells);
 		
 		//System.out.println("Intensity min = " + intensity_min + " , intensity max = " + intensity_max);
 	    //double intensity_range = intensity_max - intensity_min;
@@ -696,11 +696,8 @@ public class Analyzer
 		
 		double data1[][]            = new double[seg_ydim][seg_xdim];
 		double data2[][]            = new double[seg_ydim][seg_xdim];
-		int data_image1[][]         = new int[seg_ydim][seg_xdim];
-		int data_image2[][]         = new int[seg_ydim][seg_xdim];
 		boolean isInterpolated1[][] = new boolean[seg_ydim][seg_xdim];
 		boolean isInterpolated2[][] = new boolean[seg_ydim][seg_xdim];
-		
 		for(int i = 0; i < seg_ydim; i++)
 		{
 			for(int j = 0; j < seg_xdim; j++)
@@ -709,6 +706,13 @@ public class Analyzer
 				isInterpolated2[i][j] = false;
 			}
 		}
+		
+		
+		int data_image1[][]         = new int[seg_ydim][seg_xdim];
+		int data_image2[][]         = new int[seg_ydim][seg_xdim];
+		
+		
+		
 		
 		for(int i = seg_ymin; i < (seg_ymax + 1); i++)
         {
@@ -719,8 +723,6 @@ public class Analyzer
                 {
                     data1[i - seg_ymin][j - seg_xmin] = 0;
                     data2[i - seg_ymin][j - seg_xmin] = 0;
-                    data_image1[i - seg_ymin][j - seg_xmin] = 0;
-                    data_image2[i - seg_ymin][j - seg_xmin] = 0;
                 }
                 else if(cell_list.size() == 1)
                 {
@@ -728,27 +730,26 @@ public class Analyzer
                 	if(cell_list.size() == 0)
                 	{
                 		data1[i - seg_ymin][j - seg_xmin]       = 0;
-                		data_image1[i - seg_ymin][j - seg_xmin] = 0;
-                		
+                		//data_image1[i - seg_ymin][j - seg_xmin] = 0;
                 	}
                 	else
                 	{
                 		Sample sample                           = (Sample)cell_list.get(0);	
                 		data1[i - seg_ymin][j - seg_xmin]       = sample.intensity;
-                		data_image1[i - seg_ymin][j - seg_xmin] = (int)(sample.intensity * 100);
+                		//data_image1[i - seg_ymin][j - seg_xmin] = (int)(sample.intensity * 100);
                 		isInterpolated1[i - seg_ymin][j - seg_xmin] = true;
                 	}
                 	cell_list = seg_raster2[i][j];
                 	if(cell_list.size() == 0)
                 	{
                 		data2[i - seg_ymin][j - seg_xmin]       = 0;
-                		data_image2[i - seg_ymin][j - seg_xmin] = 0;
+                		//data_image2[i - seg_ymin][j - seg_xmin] = 0;
                 	}
                 	else
                 	{
                 		Sample sample                           = (Sample)cell_list.get(0);	
                 		data2[i - seg_ymin][j - seg_xmin]       = sample.intensity;
-                		data_image2[i - seg_ymin][j - seg_xmin] = (int)(sample.intensity * 100);
+                		//data_image2[i - seg_ymin][j - seg_xmin] = (int)(sample.intensity * 100);
                 		isInterpolated2[i - seg_ymin][j - seg_xmin] = true;
                 	}
                 }
@@ -757,36 +758,169 @@ public class Analyzer
                 	Sample sample1 = (Sample)cell_list.get(0);
                 	Sample sample2 = (Sample)cell_list.get(1);
                 	data1[i - seg_ymin][j - seg_xmin]       = sample1.intensity;
-                    data_image1[i - seg_ymin][j - seg_xmin] = (int)(sample1.intensity * 100);
+                    //data_image1[i - seg_ymin][j - seg_xmin] = (int)(sample1.intensity * 100);
                     data2[i - seg_ymin][j - seg_xmin]       = sample2.intensity;
-                    data_image2[i - seg_ymin][j - seg_xmin] = (int)(sample2.intensity * 100);	
+                    //data_image2[i - seg_ymin][j - seg_xmin] = (int)(sample2.intensity * 100);	
                     isInterpolated1[i - seg_ymin][j - seg_xmin] = true;
                     isInterpolated2[i - seg_ymin][j - seg_xmin] = true;
                 }	
             }
         }
 		
-		double[][] dilated_data1     = ImageMapper.getImageDilation(data1, isInterpolated1);
-		double[][] dilated_data2     = ImageMapper.getImageDilation(data2, isInterpolated1);
+		double segment_intensity_min = Double.MAX_VALUE;
+		double segment_intensity_max = -Double.MAX_VALUE;
 		
 		for(int i = 0; i < seg_ydim; i++)
 		{
-			for(int j = 0; j < seg_xdim; j++) 
+			for(int j = 0; j < seg_xdim; j++)
 			{
-				data_image1[i][j] = (int)(dilated_data1[i][j] * 100);
-				data_image2[i][j] = (int)(dilated_data1[i][j] * 100);
+				if(isInterpolated1[i][j])
+				{
+					
+					if(data1[i][j] > segment_intensity_max)
+						segment_intensity_max = data1[i][j];
+					if(data1[i][j] < segment_intensity_min)
+						segment_intensity_min = data1[i][j];
+				}
 			}
 		}
-	
 		
-		double[][] expanded_data1 = ImageMapper.expandX(data1, 12);
-		double[][] expanded_data2 = ImageMapper.expandX(data2, 12);
-		double[][] shrunken_expanded_data1 = ImageMapper.shrinkAvg(expanded_data1);
-		double[][] shrunken_expanded_data2 = ImageMapper.shrinkAvg(expanded_data2);
+		double segment_intensity_range = segment_intensity_max - segment_intensity_min;
 		
-		int _ydim = shrunken_expanded_data1.length;
-		int _xdim = shrunken_expanded_data1[0].length;
+		System.out.println("Segment 1 intensity range is " + String.format("%.4f", segment_intensity_range));
+		System.out.println("Segment 1 min intensity is " + String.format("%.4f", segment_intensity_min));
+		System.out.println("Segment 1 max intensity is " + String.format("%.4f", segment_intensity_max));
 		
+		
+		segment_intensity_min = Double.MAX_VALUE;
+		segment_intensity_max = -Double.MAX_VALUE;
+		
+		for(int i = 0; i < seg_ydim; i++)
+		{
+			for(int j = 0; j < seg_xdim; j++)
+			{
+				if(isInterpolated2[i][j])
+				{
+					
+					if(data2[i][j] > segment_intensity_max)
+						segment_intensity_max = data2[i][j];
+					if(data2[i][j] < segment_intensity_min)
+						segment_intensity_min = data2[i][j];
+				}
+			}
+		}
+		
+		segment_intensity_range = segment_intensity_max - segment_intensity_min;
+		
+		System.out.println("Segment 2 intensity range is " + String.format("%.4f", segment_intensity_range));
+		System.out.println("Segment 2 min intensity is " + String.format("%.4f", segment_intensity_min));
+		System.out.println("Segment 2 max intensity is " + String.format("%.4f", segment_intensity_max));
+		
+		System.out.println();
+		
+		double[][] dilated_data1  = ImageMapper.getImageDilation(data1, isInterpolated1);
+		double[][] dilated_data2  = ImageMapper.getImageDilation(data2, isInterpolated2);
+		
+		segment_intensity_min = Double.MAX_VALUE;
+		segment_intensity_max = -Double.MAX_VALUE;
+		
+		for(int i = 0; i < seg_ydim; i++)
+		{
+			for(int j = 0; j < seg_xdim; j++)
+			{
+				
+				if(dilated_data1[i][j] > segment_intensity_max)
+					segment_intensity_max = dilated_data1[i][j];
+				if(dilated_data1[i][j] < segment_intensity_min)
+					segment_intensity_min = dilated_data1[i][j];
+				if(dilated_data2[i][j] > segment_intensity_max)
+					segment_intensity_max = dilated_data2[i][j];
+				if(dilated_data2[i][j] < segment_intensity_min)
+					segment_intensity_min = dilated_data2[i][j];
+			}
+		}
+		
+        segment_intensity_range = segment_intensity_max - segment_intensity_min;
+		
+		System.out.println("Segment intensity range after dilation is " + String.format("%.4f", segment_intensity_range));
+		System.out.println("Segment min intensity after dilation is " + String.format("%.4f", segment_intensity_min));
+		System.out.println("Segment max intensity after dilation is " + String.format("%.4f", segment_intensity_max));
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		double[][] expanded_data1 = ImageMapper.expandX(dilated_data1, 4);
+		double[][] expanded_data2 = ImageMapper.expandX(dilated_data2, 4);
+        
+		int        expanded_ydim  = expanded_data1.length;
+		int        expanded_xdim  = expanded_data1[0].length;
+		
+		int        regular_xdim   = (int)(seg_xdim * 12.5);
+		
+		System.out.println("The segment xdim is " + seg_xdim);
+		System.out.println("The expanded xdim is " + expanded_xdim);
+		System.out.println("The regular xdim is " + regular_xdim);
+		
+		double expanded_intensity_min = Double.MAX_VALUE;
+		double expanded_intensity_max = -Double.MAX_VALUE;
+		
+		for(int i = 0; i < expanded_ydim; i++)
+		{
+			for(int j = 0; j < expanded_xdim; j++)
+			{
+				if(expanded_data1[i][j] > expanded_intensity_max)
+					expanded_intensity_max = expanded_data1[i][j];
+				if(expanded_data1[i][j] < expanded_intensity_min)
+					expanded_intensity_min = expanded_data1[i][j];
+
+				if(expanded_data2[i][j] > expanded_intensity_max)
+					expanded_intensity_max = expanded_data2[i][j];
+				if(expanded_data2[i][j] < expanded_intensity_min)
+					expanded_intensity_min = expanded_data2[i][j];
+			}
+		}
+		double expanded_intensity_range = expanded_intensity_max - expanded_intensity_min;
+		
+		System.out.println("Expanded intensity range is " + String.format("%.4f", expanded_intensity_range));
+		System.out.println("Expanded min intensity is " + String.format("%.4f", expanded_intensity_min));
+		System.out.println("Expanded max intensity is " + String.format("%.4f", expanded_intensity_max));
+		
+		int[][] image1 = new int[expanded_ydim][expanded_xdim];
+		int[][] image2 = new int[expanded_ydim][expanded_xdim];
+		
+		for(int i = 0; i < expanded_ydim; i++)
+		{
+			for(int j = 0; j < expanded_xdim; j++)
+			{
+				double value = expanded_data1[i][j];
+				value       -= expanded_intensity_min;
+				value       /= expanded_intensity_range;
+				value       *= 255;
+				image1[i][j] = (int)value;
+				
+				value        = expanded_data2[i][j];
+				value       -= expanded_intensity_min;
+				value       /= expanded_intensity_range;
+				value       *= 255;
+				image2[i][j] = (int)value;
+			}
+		}
+		
+        double[] result              = ImageMapper.getTranslation(image1, image2);
+		
+		System.out.println("Result was type " + result[0]);
+		System.out.println("Xshift = " + result[1] + ", yshift = " + result[2]);
+	    /*
 		int[][] _data1 = new int[_ydim][_xdim];
 		int[][] _data2 = new int[_ydim][_xdim];
 		
@@ -799,11 +933,15 @@ public class Analyzer
 			}
 		}
 		
+		int[][] shifted_data1 = ImageMapper.translate(_data1, -.5, .5);
+		int[][] shifted_data2 = ImageMapper.translate(_data1, 0, 0);
+		
+		//double[] result              = ImageMapper.getTranslation(shifted_data1, shifted_data2);
 		double[] result              = ImageMapper.getTranslation(_data1, _data2);
-		//double[] result              = ImageMapper.getTranslation(data_image1, data_image2);
 		
 		System.out.println("Result was type " + result[0]);
 		System.out.println("Xshift = " + result[1] + ", yshift = " + result[2]);
+		*/
 	}
 
 	public double[] smooth(double[] source, int iterations)
