@@ -147,14 +147,16 @@ public class ImageMapper
 				int k = i * xdim + j;
 				gray1[k] = src[i][j];
 				isAssigned[k] = isInterpolated[i][j];
-				if (isAssigned[k] == false)
+				if(isAssigned[k] == false)
 					number_of_uninterpolated_cells++;
 			}
 		}
 		
-		// Just going back and forth between two buffers instead of allocating new memory every time.
+		//System.out.println("The number of uninterpolated cells is " + number_of_uninterpolated_cells);
+		
 		boolean even = true;
 		int previous_number_of_uninterpolated_cells = 0;
+	
 		while(number_of_uninterpolated_cells != 0  && number_of_uninterpolated_cells  != previous_number_of_uninterpolated_cells)
 		{
 			previous_number_of_uninterpolated_cells = number_of_uninterpolated_cells;
@@ -172,21 +174,22 @@ public class ImageMapper
 				even = true;
 			}
 			
-			isAssigned = dilateImageVertical(source, isAssigned, xdim, ydim, dest);
-		}
-		
-		number_of_uninterpolated_cells = 0;
-		for (int i = 0; i < xdim * ydim; i++)
-		{
-			if(isAssigned[i] == false)
-				number_of_uninterpolated_cells++;
+			dilateImageVertical(source, isAssigned, xdim, ydim, 0, dest);
+			
+			number_of_uninterpolated_cells = 0;
+			for (int i = 0; i < xdim * ydim; i++)
+			{
+				if(isAssigned[i] == false)
+					number_of_uninterpolated_cells++;
+			}
 		}
 		
 		// If dilating image vertically didn't complete,
 		// do a regular image dilation.
-		if(number_of_uninterpolated_cells != 0)
+		previous_number_of_uninterpolated_cells = 0;
+		while(number_of_uninterpolated_cells != 0 && previous_number_of_uninterpolated_cells != number_of_uninterpolated_cells)
 		{
-			if (even == true)
+			if(even == true)
 			{
 				source = gray1;
 				dest = gray2;
@@ -198,9 +201,17 @@ public class ImageMapper
 				dest = gray1;
 				even = true;
 			}
-			dilateImage(source, isAssigned, xdim, ydim, dest);
+			dilateImage(source, isAssigned, xdim, ydim, 0, dest);
+			previous_number_of_uninterpolated_cells = number_of_uninterpolated_cells;
+			number_of_uninterpolated_cells          = 0;
+			for (int i = 0; i < xdim * ydim; i++)
+			{
+				if(isAssigned[i] == false)
+					number_of_uninterpolated_cells++;
+			}
 		}
 
+		System.out.println("The final number of uninterpolated cells is " + number_of_uninterpolated_cells);
 		if(even == true)
 		{
 			int k = 0;
@@ -231,10 +242,10 @@ public class ImageMapper
    
 	// This function modifies values in isInterpolated and dst, and can be called
 	// multiple times until all the values in isInterpolated are true.
-	// Theoretically, it should complete even if only one pixel has been interpolated.
+	// Theoretically, it should complete even if only one pixel has been interpolated at the start.
 	// Also, using single index into image to keep low level code simple--will have
 	// to reformat data for processing. 
-	public static void dilateImage(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
+	public static void dilateImage(double src[], boolean isInterpolated[], int xdim, int ydim, int neighbor_threshold, double dst[])
 	{
 		boolean wasInterpolated[] = new boolean[xdim * ydim];
 		for (int i = 0; i < ydim; i++)
@@ -242,7 +253,7 @@ public class ImageMapper
 			for (int j = 0; j < xdim; j++)
 			{
 				int k = i * xdim + j;
-				if (isInterpolated[k])
+				if(isInterpolated[k])
 				{
 					dst[k]             = src[k];
 					wasInterpolated[k] = true;
@@ -537,8 +548,9 @@ public class ImageMapper
 						}	
 					}
 					
-					if (number_of_neighbors > 0) // Found a neighbor this iteration, set value.
+					if(number_of_neighbors > neighbor_threshold) 
 					{
+						// Found required number of neighbors this iteration, set value.
 						value /= total_weight;
 						dst[k] = (int) value;
 						wasInterpolated[k] = true;
@@ -555,12 +567,18 @@ public class ImageMapper
 				}
 			}
 		}
+		
+		// We need to reset the boolean array that got passed into the function, since it gets reused.
+		for (int i = 0; i < xdim * ydim; i++)
+		{
+			isInterpolated[i] = wasInterpolated[i];
+		}
 	}
 	
 	// This function is not guaranteed to complete, and returns an incomplete result after reaching a limit on iterations.
 	// The problem is if one column is completely unpopulated it will recurse endlessly.  Still useful--a combination
 	// of this and the regular dilateImage produces a better result than regular dilateImage alone.
-	public static boolean[] dilateImageVertical(double src[], boolean isInterpolated[], int xdim, int ydim, double dst[])
+	public static void dilateImageVertical(double src[], boolean isInterpolated[], int xdim, int ydim, int neighbor_threshold, double dst[])
 	{
 		boolean wasInterpolated[] = new boolean[xdim * ydim];
 		for (int i = 0; i < ydim; i++)
@@ -682,7 +700,7 @@ public class ImageMapper
 						}
 					}
 					
-					if (number_of_neighbors > 0) // Found a neighbor this iteration, set value.
+					if(number_of_neighbors > neighbor_threshold)
 					{
 						value /= total_weight;
 						dst[k] = (int) value;
@@ -700,7 +718,12 @@ public class ImageMapper
 				}
 			}
 		}
-		return wasInterpolated;
+		
+		// Reset the boolean array since it gets reused.
+		for (int i = 0; i < xdim * ydim; i++)
+		{
+			isInterpolated[i] = wasInterpolated[i];
+		}
 	}
 
 
@@ -1845,9 +1868,6 @@ public class ImageMapper
         dest[2] = ytranslation;
 		return dest;
 	}
-	
-	
-	
 	
 	public static int[][] expandX(int src[][], int expand)
 	{
