@@ -185,10 +185,39 @@ public class ImageMapper
 		}
 		
 		// If dilating image vertically didn't complete,
+		// do a diagonal image dilation.
+		previous_number_of_uninterpolated_cells = 0;
+		while(number_of_uninterpolated_cells != 0 && previous_number_of_uninterpolated_cells != number_of_uninterpolated_cells)
+		{
+			System.out.println("Vertical dilation did not complete.");
+			if(even == true)
+			{
+				source = gray1;
+				dest = gray2;
+				even = false;
+			} 
+			else
+			{
+				source = gray2;
+				dest = gray1;
+				even = true;
+			}
+			dilateImageDiagonal(source, isAssigned, xdim, ydim, 0, dest);
+			previous_number_of_uninterpolated_cells = number_of_uninterpolated_cells;
+			number_of_uninterpolated_cells          = 0;
+			for (int i = 0; i < xdim * ydim; i++)
+			{
+				if(isAssigned[i] == false)
+					number_of_uninterpolated_cells++;
+			}
+		}
+
+		// If dilating image diagonally didn't complete,
 		// do a regular image dilation.
 		previous_number_of_uninterpolated_cells = 0;
 		while(number_of_uninterpolated_cells != 0 && previous_number_of_uninterpolated_cells != number_of_uninterpolated_cells)
 		{
+			System.out.println("Diagonal dilation did not complete.");
 			if(even == true)
 			{
 				source = gray1;
@@ -209,8 +238,7 @@ public class ImageMapper
 				if(isAssigned[i] == false)
 					number_of_uninterpolated_cells++;
 			}
-		}
-
+		}		
 		System.out.println("The final number of uninterpolated cells is " + number_of_uninterpolated_cells);
 		if(even == true)
 		{
@@ -575,7 +603,7 @@ public class ImageMapper
 		}
 	}
 	
-	// This function is not guaranteed to complete, and returns an incomplete result after reaching a limit on iterations.
+	// This function is not guaranteed to complete, and returns an incomplete result after reaching a limit.
 	// The problem is if one column is completely unpopulated it will recurse endlessly.  Still useful--a combination
 	// of this and the regular dilateImage produces a better result than regular dilateImage alone.
 	public static void dilateImageVertical(double src[], boolean isInterpolated[], int xdim, int ydim, int neighbor_threshold, double dst[])
@@ -593,7 +621,7 @@ public class ImageMapper
 				} 
 				else
 				{
-					double diagonal_weight  = 0.7071; 
+					//double diagonal_weight  = 0.7071; 
 					double total_weight     = 0;
 					double value            = 0.;
 					int number_of_neighbors = 0;
@@ -607,7 +635,6 @@ public class ImageMapper
 							value += src[k + xdim];	
 							number_of_neighbors++;
 						}
-						
 					}
 					else if(location_type == 2)
 					{
@@ -726,7 +753,180 @@ public class ImageMapper
 		}
 	}
 
+	
+	public static void dilateImageDiagonal(double src[], boolean isInterpolated[], int xdim, int ydim, int neighbor_threshold, double dst[])
+	{
+		boolean wasInterpolated[] = new boolean[xdim * ydim];
+		for (int i = 0; i < ydim; i++)
+		{
+			for (int j = 0; j < xdim; j++)
+			{
+				int k = i * xdim + j;
+				if(isInterpolated[k])
+				{
+					dst[k]             = src[k];
+					wasInterpolated[k] = true;
+				} 
+				else
+				{
+					double total_weight     = 0;
+					double value            = 0.;
+					int number_of_neighbors = 0;
+					
+					int location_type = getLocationType(j, i, xdim, ydim);
+					
+					if(location_type == 1)
+					{
+						if (isInterpolated[k + xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k + xdim + 1];
+						}
+					}
+					else if(location_type == 2)
+					{
+						if(isInterpolated[k + xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k + xdim - 1];
+						}
+						if(isInterpolated[k + xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k + xdim + 1];
+						}
+					}
+					else if(location_type == 3)
+					{
+						if(isInterpolated[k + xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k + xdim - 1];
+						}	
+					}
+					else if(location_type == 4)
+					{
+						if(isInterpolated[k - xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        = src[k - xdim + 1];
+						}
+						if(isInterpolated[k + xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k + xdim + 1];
+						}
+					}
+					else if(location_type == 5)
+					{
+						if(isInterpolated[k - xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k - xdim - 1];
+						}
+						if(isInterpolated[k + xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k + xdim - 1];
+						}
 
+						if(isInterpolated[k - xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k - xdim + 1];
+						}
+						if(isInterpolated[k + xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k - xdim - 1];
+						}
+					}
+					else if(location_type == 6)
+					{
+						if(isInterpolated[k - xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value       += src[k - xdim - 1];
+						}
+						if(isInterpolated[k + xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k + xdim - 1];
+						}	
+					}
+					else if(location_type == 7)
+					{
+						if(isInterpolated[k - xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k - xdim + 1];
+						}	
+					}
+					else if(location_type == 8)
+					{
+						if(isInterpolated[k - xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k - xdim - 1];
+						}
+						if(isInterpolated[k - xdim + 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k - xdim + 1];
+						}	
+					}
+					else if(location_type == 9)
+					{
+						if(isInterpolated[k - xdim - 1])
+						{
+							number_of_neighbors++;
+							total_weight += 1.;
+							value        += src[k - xdim - 1];
+						}	
+					}
+					
+					if(number_of_neighbors > neighbor_threshold) 
+					{
+						// Found required number of neighbors this iteration, set value.
+						value /= total_weight;
+						dst[k] = (int) value;
+						wasInterpolated[k] = true;
+						// System.out.println("Number of neighbors was " + number_of_neighbors);
+					} 
+					else
+					{
+						dst[k] = 0;
+						wasInterpolated[k] = false;
+						// System.out.println("Found a cell with no neighbors.");
+						// System.out.println("Set boolean to false.");
+						// No neighbors, set value to zero.
+					}
+				}
+			}
+		}
+		
+		// We need to reset the boolean array that got passed into the function, since it gets reused.
+		for (int i = 0; i < xdim * ydim; i++)
+		{
+			isInterpolated[i] = wasInterpolated[i];
+		}
+	}
+	
 	public static int[] avgAreaXTransform(int source[], int xdim, int ydim, int new_xdim)
 	{
 		double differential         = (double) xdim / (double) new_xdim;
