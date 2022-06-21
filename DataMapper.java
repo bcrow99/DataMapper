@@ -348,8 +348,9 @@ public class DataMapper
 					// shorter than the others.  Find the shortest side, and 
 					// find the distance from the opposing vertex as the height
 					// and use the shortest side as the width.
-					//System.out.println("Assuming a false equivalence.");
+					// System.out.println("Assuming a false equivalence.");
 					// Seems like a built-in error but this agrees exactly with Heron's formula.
+					// Should probably find the length of the line with the other endpoint, and use the average.
 					if((length1 < length2) && (length1 < length3))
 					{
 						// The short side is formed by x1, y1, and x2, y2.	
