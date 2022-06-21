@@ -349,6 +349,7 @@ public class DataMapper
 					// find the distance from the opposing vertex as the height
 					// and use the shortest side as the width.
 					//System.out.println("Assuming a false equivalence.");
+					// Seems like a built-in error but this agrees exactly with Heron's formula.
 					if((length1 < length2) && (length1 < length3))
 					{
 						// The short side is formed by x1, y1, and x2, y2.	
