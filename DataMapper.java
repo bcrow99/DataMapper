@@ -301,6 +301,7 @@ public class DataMapper
 		// the fractional part, with numbers in the least significant places, which looks like noise.
 		double         width    = 0;
 		double         height   = 0;
+		double         error    = 0;
 		
 		double length1 = DataMapper.getLength(x1, y1, x2, y2);
 		double length2 = DataMapper.getLength(x2, y2, x3, y3);
@@ -350,14 +351,51 @@ public class DataMapper
 					// and use the shortest side as the width.
 					// System.out.println("Assuming a false equivalence.");
 					// Seems like a built-in error but this agrees exactly with Heron's formula.
-					// Should probably find the length of the line with the other endpoint, and use the average.
+					
 					if((length1 < length2) && (length1 < length3))
 					{
 						// The short side is formed by x1, y1, and x2, y2.	
 						location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
 						x4 = location.getX();
 						y4 = location.getY(); 
+					     
 						height = getDistance(x3, y3, x4, y4);
+						
+				        
+						Point2D.Double point4 = new Point2D.Double(x4, y4);
+						if(height == length2)
+						{
+							//error = getTriangleArea(point3, point2, point4);
+							if(x4 != x2)
+							{
+							    error = Math.abs(x4 - x2);
+								if(((x4 < x2) && (x2 <= x1)) || ((x4 > x2) && (x2 <= x1)))
+									error = -error;
+							}
+							if(y4 != y2)
+							{
+								error = Math.abs(y4 - y2);
+								if(((y4 < y2) && (y2 <= y1)) || ((y4 > y2) && (y2 <= y1)))
+									error = -error;
+							}
+						}
+						else
+						{
+							//error = getTriangleArea(point3, point1, point4);
+							if(x4 != x1)
+							{
+								error = Math.abs(x4 - x1);
+								if(((x4 < x1) && (x1 <= x2)) || ((x4 > x1) && (x1 >= x2)))
+									error = -error;
+							}
+							if(y4 != y1)
+							{
+								error = Math.abs(y4 - y1);
+								if(((y4 < y1) && (y1 <= y2)) || ((y4 > y1) && (y1 >= y2)))
+									error = -error;
+							}
+						}
+						
 						width  = length1;
 					}
 					else if((length2 < length1) && (length2 < length3))
@@ -367,6 +405,41 @@ public class DataMapper
 						x4 = location.getX();
 						y4 = location.getY(); 
 						height = getDistance(x1, y1, x4, y4);
+						
+						Point2D.Double point4 = new Point2D.Double(x4, y4);
+						if(height == length1)
+						{
+							//error = getTriangleArea(point1, point2, point4);
+							if(x4 != x2)
+							{
+								error = Math.abs(x4 - x2);
+								if(((x4 < x2) && (x2 <= x3)) || ((x4 > x2) && (x2 >= x3)))
+									error = -error;
+							}
+							if(y4 != y2)
+							{
+								error = Math.abs(y4 - y2);
+								if(((y4 < y2) && (y2 <= y3)) || ((y4 > y2) && (y2 <= y3)))
+									error = -error;
+							}
+						}
+						else
+						{
+							//error = getTriangleArea(point1, point3, point4);
+							if(x4 != x3)
+							{
+								error = Math.abs(x4 - x3);
+								if(((x4 < x3) && (x3 <= x1)) || ((x4 > x3) && (x3 >= x1)))
+									error = -error;
+							}
+							if(y4 != y3)
+							{
+								error = Math.abs(y4 - y3);
+								if(((y4 < y3) && (y3 <= y1)) || ((y4 > y3) && (y3 >= y1)))
+									error = -error;
+							}
+						}
+						
 						width  = length2;
 					}
 					else if((length3 < length1) && (length3 < length2))
@@ -376,6 +449,41 @@ public class DataMapper
 						x4 = location.getX();
 						y4 = location.getY(); 
 						height = getDistance(x2, y2, x4, y4);
+						
+						
+						Point2D.Double point4 = new Point2D.Double(x4, y4);
+						if(height == length1)
+						{
+							//error = getTriangleArea(point2, point1, point4);
+							if(x4 != x1)
+							{
+								error = Math.abs(x4 - x1);
+								if(((x4 < x1) && (x1 <= x3)) || ((x4 > x1) && (x1 >= x3)))
+									error = -error;	
+							}
+							if(y4 != y1)
+							{
+								error = Math.abs(y4 - y1);
+								if(((y4 < y1) && (y1 <= y3)) || ((y4 > y1) && (y1 >= y3)))
+									error = -error;
+							}
+						}
+						else // height == length2
+						{
+							//error = getTriangleArea(point2, point3, point4);
+							if(x4 != x3)
+							{
+								error = Math.abs(x4 - x3);
+								if(((x4 < x3) && (x3 <= x1)) || ((x4 > x3) && (x3 >= x1)))
+									error = -error;		
+							}
+							if(y4 != y3)
+							{
+								error = Math.abs(y4 - y3);
+								if(((x4 < x3) && (x3 <= x1)) || ((x4 > x3) && (x3 >= x1)))
+									error = -error;		
+							}	
+						}
 						width  = length3;
 					}
 					else
@@ -389,10 +497,11 @@ public class DataMapper
 		}
 		
 		double area = height * width / 2;
+		area += error;
 		
 		double difference = Math.abs(h_area - area);
 		
-		//System.out.println("The difference between Heron's formula and dropping an altitude is " + difference);
+		System.out.println("The difference between Heron's formula and dropping an altitude is " + difference);
 		
 		if((h_area == 0) && (area != 0))
 		{
