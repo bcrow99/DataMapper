@@ -14,6 +14,7 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.event.*;
 
+
 public class XFencePlotter
 {
 	// Entire data set in interleaved format.
@@ -198,7 +199,9 @@ public class XFencePlotter
 	int     line_image_ydim = 940;
 	
 	// Updated by Range Slider, Range Scrollbar, and Range Button
-	JTextField offset_information, range_information;
+	JTextField offset_information, range_information, line_information;
+	
+	JSlider line_slider;
 
 	// Updated by MouseMotionHandler
 	JTextArea sample_information;
@@ -266,7 +269,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.1.0 of fence.");
+			System.out.println("This is version 4.1.1 of fence.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			try
@@ -907,8 +910,7 @@ public class XFencePlotter
 		
 		// Start gui.
 		
-		
-		frame = new JFrame("XFence Plotter");
+		frame = new JFrame("Fence Plotter");
 		WindowAdapter window_handler = new WindowAdapter()
 	    {
 	        public void windowClosing(WindowEvent event)
@@ -1318,6 +1320,8 @@ public class XFencePlotter
 				{
 					sensor[i].setText(line_sensor_pair[i]);
 				}
+				
+				
 				// Resegment the data.
 				apply_item.doClick();
 			}
@@ -1374,7 +1378,6 @@ public class XFencePlotter
     	        } 
     	        catch(IOException e2) 
     	        {  
-    	            //e2.printStackTrace(); 
     	            e2.toString();
     	        }  
 			}
@@ -1991,7 +1994,7 @@ public class XFencePlotter
 			}
 		};
 		load_config_item.addActionListener(load_config_dialog_handler);
-		file_menu.add(load_config_item);
+		
 		
 		// A modeless dialog box that shows up if File->Save Config is selected.
 		JPanel save_config_panel = new JPanel(new GridLayout(2, 1));
@@ -2164,269 +2167,10 @@ public class XFencePlotter
 		};
 		save_config_item.addActionListener(save_config_dialog_handler);
 		file_menu.add(save_config_item);
+		file_menu.add(load_config_item);
 		
-		// This is almost obsolete, but still helps when 
-		// graphing arbitrary non-sequential segments created by
-		// editing sensor entries by hand.
-		// All other changes are now automatically applied.
-		class ApplyHandler implements ActionListener
-		{
-			int[] current_line;
-			int[] current_sensor;
-
-			ApplyHandler()
-			{
-				current_line = new int[10];
-				current_sensor = new int[10];
-			}
-
-			public void actionPerformed(ActionEvent event)
-			{
-				for (int i = 0; i < 10; i++)
-				{
-					try
-					{
-						String line_sensor_pair = sensor[i].getText();
-						if(line_sensor_pair.equals(""))
-						{
-						    if(i < 9)
-						    {
-						    	line_sensor_pair = sensor[i + 1].getText();
-						    	sensor[i + 1].setText("");
-						    	sensor[i].setText(line_sensor_pair);
-						    }
-						}
-							
-						StringTokenizer tokenizer = new StringTokenizer(line_sensor_pair, ":");
-						int number_of_tokens = tokenizer.countTokens();
-						if (number_of_tokens == 2)
-						{
-							String line_string = tokenizer.nextToken(":");
-							int next_line = Integer.parseInt(line_string);
-							String sensor_string = tokenizer.nextToken(":");
-							int next_sensor = Integer.parseInt(sensor_string);
-
-							// Do a check for valid input
-							if (next_line >= 0 && next_line < 30 && next_sensor >= 0 && next_sensor < 5)
-							{
-								current_line[i] = next_line;
-								current_sensor[i] = next_sensor;
-							} 
-							else
-							{
-								current_line[i] = -1;
-								current_sensor[i] = -1;
-							}
-						} 
-						else
-						{
-							current_line[i] = -1;
-							current_sensor[i] = -1;
-						}
-					} 
-					catch (Exception exception)
-					{
-						current_line[i] = -1;
-						current_sensor[i] = -1;
-					}
-				}
-				
-				int number_of_segments = 0;
-				//System.out.println("Current set of line/sensors: ");
-				for(int i = 0; i < 10; i++)
-				{
-				    if(current_line[i] != -1)	
-				    {
-				        //System.out.print(current_line[i] + ":" + current_sensor[i] + " ");	
-				        number_of_segments++;
-				    }
-				}
-				
-				// We want to clear the entire data array, and not just the lists,
-				// because the number of segments can change.
-				data_array.clear();
-				
-				// A place to park the raw sample lists until we get the data
-				// we want to prepend in the data array, 
-				// before the individual segment lists.
-				ArrayList raw_array = new ArrayList();
-				
-				seg_min  = Double.MAX_VALUE;
-				seg_max  = -Double.MAX_VALUE;
-				line_min = Double.MAX_VALUE;
-				line_max = -Double.MAX_VALUE;
-				
-				for(int i = 0; i < number_of_segments; i++)
-				{
-				    ArrayList src_list = (ArrayList)set_array.get(current_sensor[i]);
-				    ArrayList dst_list = new ArrayList(); 
-				    int       index    = current_line[i];
-				    int       start    = line_index[index][0];
-				    int       stop     = line_index[index][1];
-				   
-				    // Adjust the indices for individual sensor lists.
-				    start             /= 5;
-				    stop              /= 5;
-				    if(smooth == 0)
-				    {
-				    	if(current_line[i] % 2 == 0)
-				    	{
-				            for(int j = start; j < stop; j++)
-				            {
-				        	    Sample sample = (Sample)src_list.get(j);
-				        	    if(sample.y >= 15 && sample.y < 75)
-				        	    {
-				        	        if(sample.intensity < line_min)
-				        	    	    line_min = sample.intensity;
-				        	        if(sample.intensity > line_max)
-				        	    	    line_max = sample.intensity;    
-				        	    }
-				        	    if(sample.y >= offset && sample.y < offset + range)
-				        	    {
-				        	    	if(sample.intensity < seg_min)
-				        	    		seg_min = sample.intensity;
-				        	    	if(sample.intensity > seg_max)
-				        	    		seg_max = sample.intensity;	
-				        	    	dst_list.add(sample);
-				        	    }
-				            }
-				            raw_array.add(dst_list);
-				    	}
-				    	else
-				    	{
-				    		for(int j = stop; j >= start; j--)
-				            {
-				        	    Sample sample = (Sample)src_list.get(j);
-				        	    if(sample.y >= 15 && sample.y < 75)
-				        	    {
-				        	        if(sample.intensity < line_min)
-				        	    	    line_min = sample.intensity;
-				        	        if(sample.intensity > line_max)
-				        	    	    line_max = sample.intensity;
-				        	    }
-				        	    if(sample.y >= offset && sample.y < offset + range)
-				        	    {
-				        	    	if(sample.intensity < seg_min)
-				        	    		seg_min = sample.intensity;
-				        	    	if(sample.intensity > seg_max)
-				        	    		seg_max = sample.intensity;
-				        	    	dst_list.add(sample);
-				        	    }
-				            }
-				    		raw_array.add(dst_list);
-				    	}
-				    }
-				    else  // Smooth data
-				    {
-				    	if(current_line[i] % 2 == 0)
-				    	{
-				    		// Get a list to smooth.
-				    		for(int j = start; j < stop; j++)
-				            {
-				        	    Sample sample = (Sample)src_list.get(j);
-				        	    dst_list.add(sample);
-				            }
-				    	}
-				    	else
-				    	{
-				    		for(int j = stop; j >= start; j--)
-				            {
-				        	    Sample sample = (Sample)src_list.get(j);
-				        	    dst_list.add(sample);
-				            }
-				    	} 
-				    	int    size = dst_list.size();
-			    		double x[]  = new double[size];
-			    		double y[]  = new double[size];
-			    		double z[]  = new double[size];
-			    		
-			    		for(int j = 0; j < size; j++)
-			    		{
-			    			Sample sample = (Sample)dst_list.get(j);
-			    			x[j] = sample.x;
-			    			y[j] = sample.y;
-			    			z[j] = sample.intensity;
-			    		}
-			    		
-			    		double smooth_x[] = smooth(x, smooth);
-			    		double smooth_y[] = smooth(y, smooth);
-			    		double smooth_z[] = smooth(z, smooth);
-			    		
-			    		
-			    		ArrayList smooth_list = new ArrayList();
-			    		int length = smooth_x.length;
-			    		for(int j = 0; j < length; j++)
-			    		{  
-			    			if(smooth_y[j] >= 15 && smooth_y[j] < 75)
-			    			{
-			    			    if(smooth_z[j] < line_min)
-				        	        line_min = smooth_z[j];
-				        	    if(smooth_z[j] > line_max)
-				        	        line_max = smooth_z[j];
-			    			}
-			    			if(smooth_y[j] >= offset && smooth_y[j] < (offset + range))
-			    			{
-			    				if(smooth_z[j] < seg_min)
-					        	    seg_min = smooth_z[j];
-					        	if(smooth_z[j] > seg_max)
-					        	    seg_max = smooth_z[j];
-			    			    Sample sample = new Sample(smooth_x[j], smooth_y[j], smooth_z[j]);	
-			    			    smooth_list.add(sample);
-			    			}
-			    		}
-			    		raw_array.add(smooth_list);
-				    }
-				}
-				
-				data_array.clear();
-				data_array.add(seg_min);
-				data_array.add(seg_max);
-				data_array.add(line_min);
-				data_array.add(line_max);
-				
-				for (int i = 0; i < number_of_segments; i++)
-				{
-				    ArrayList segment_data = new ArrayList();
-				    segment_data.add(current_line[i]);
-					segment_data.add(current_sensor[i]);
-
-					if (visible[i] == true)
-						segment_data.add(new String("yes"));
-					else
-						segment_data.add(new String("no"));
-					if (transparent[i] == true)
-						segment_data.add(new String("yes"));
-					else
-						segment_data.add(new String("no"));
-				 
-					ArrayList sample_list = (ArrayList)raw_array.get(i);
-					
-					Sample sample = (Sample)sample_list.get(0);
-					segment_data.add(sample_list); 
-					
-					int size = segment_data.size();
-					data_array.add(segment_data);
-				}
-				
-				
-				
-				checkSegmentOrder();
-				if(!in_order)
-				{
-					double current_location = sort_location * range + offset;
-					System.out.println("Segments are out of order at location y = " + String.format("%.2f", current_location));
-				}
-			
-				data_canvas.repaint();
-				placement_canvas.repaint();
-				location_canvas.repaint();
-				sort_canvas.repaint();
-				segment_image_canvas.repaint();
-				line_image_canvas.repaint();
-				offset_information.setText(String.format("%.2f", offset));	
-			}
-		}
-		apply_item  = new JMenuItem("Apply Params");
+		
+		apply_item  = new JMenuItem("Apply");
 		ApplyHandler apply_handler = new ApplyHandler();
 		apply_item.addActionListener(apply_handler);
 		file_menu.add(apply_item);
@@ -2729,72 +2473,31 @@ public class XFencePlotter
 		};
 		label_item.addActionListener(label_handler);
 		format_menu.add(label_item);
-		
 		JPanel     range_panel = new JPanel(new BorderLayout());
-		JTextField range_input = new JTextField();
-		range_input.setHorizontalAlignment(JTextField.CENTER);
-		range_input.setText("");
-		ActionListener range_input_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-			    String input = range_input.getText();
-			    double input_range = Double.valueOf(input);
-			    double range_delta = 0;
-			    if(input_range <= 0 || input_range > 60)
-			    {
-			        System.out.println("Range must be more than 0 and less than 60.");
-			        return;
-			    }
-			    else
-			    {	
-			    	range_delta = input_range - range;
-			    	range = input_range;
-			    }
-			    double normal_range = range / 60.;
-			    
-			    int scrollbar_value = range_scrollbar.getValue();
-			    
-			    double normal_position = scrollbar_value;
-			    normal_position /= 2000;
-			    
-			    // Using existing semaphores instead of implementing
-			    // a separate semaphore for the text input.  Otherwise,
-			    // we need to go back and check for that semaphore in
-			    // other parts of the program.
-			    if(normal_position - normal_range / 2 < 0)
-			    {
-			    	range_slider_changing = true;
-			    	range_scrollbar.setValue(0);
-			    	offset = 15;
-			    	range_slider_changing = false;	
-			    }
-			    else if(normal_position + normal_range / 2 > 1)
-			    {
-			    	range_slider_changing = true;
-			    	range_scrollbar.setValue(2000);
-			    	offset = 60 - range + 15;
-			    	range_slider_changing = false;   	
-				}
-			    else
-			    	offset -= range_delta / 2;
-			    range_scrollbar_changing = true;
-			    int lower_value = (int) ((offset - 15) / 60 * 2000);
-			    int upper_value = (int) ((offset + range - 15) / 60 * 2000);
-			    range_slider.setValue(lower_value);
-		    	range_slider.setUpperValue(upper_value);
-			    range_scrollbar_changing = false;
-				range_information.setText(String.format("%,.2f", range));
-			    apply_item.doClick();
-			    
-			}
-		};
-        range_input.addActionListener(range_input_handler);
-        range_panel.add(range_input);		
-        range_dialog = new JDialog(frame, "Range");
-        range_dialog.add(range_panel);
+		JPanel parameter_panel = new JPanel(new GridLayout(2, 2));
 		
-		JMenuItem range_item = new JMenuItem("Set Range");
+		parameter_panel.add(new JLabel("Offset", JLabel.CENTER));
+		parameter_panel.add(new JLabel("Range", JLabel.CENTER));
+		
+	    offset_information = new JTextField();
+	    offset_information.setHorizontalAlignment(JTextField.CENTER);
+	    offset_information.setText(String.format("%,.2f", offset));
+		parameter_panel.add(offset_information);
+		
+		
+		range_information = new JTextField();
+		range_information.setHorizontalAlignment(JTextField.CENTER);
+		range_information.setText(String.format("%,.2f", range));
+		parameter_panel.add(range_information);
+		
+		range_panel.add(parameter_panel, BorderLayout.CENTER);
+		JButton adjust_button = new JButton("Adjust");
+		RangeButtonHandler adjust_handler = new RangeButtonHandler();
+		adjust_button.addActionListener(adjust_handler);
+		range_panel.add(adjust_button, BorderLayout.SOUTH);
+		range_dialog = new JDialog(frame, "Range");
+	    range_dialog.add(range_panel);
+		JMenuItem range_item = new JMenuItem("Set Offset/Range");
 		ActionListener range_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -3635,9 +3338,6 @@ public class XFencePlotter
 
 		// A modeless dialog box that shows up if Settings->Location is selected.
 		JPanel location_panel = new JPanel(new BorderLayout());
-		offset_information = new JTextField();
-		offset_information.setHorizontalAlignment(JTextField.CENTER);
-		offset_information.setText( String.format("%,.2f", offset));
 		JPanel location_canvas_panel = new JPanel(new BorderLayout());
 		location_canvas = new LocationCanvas();
 		location_canvas.setSize(240, 360);
@@ -3676,6 +3376,7 @@ public class XFencePlotter
 			}
 		};		
 		ylocation_scrollbar.addAdjustmentListener(ylocation_handler);
+		
 		// Adjust for coordinate systems--
 		// the direction of the scrollbars work reverse from each other.
 		value = (int)(2000. - ylocation * 2000.);
@@ -3683,27 +3384,13 @@ public class XFencePlotter
 		location_canvas_panel.add(location_canvas, BorderLayout.CENTER);
 		location_canvas_panel.add(xlocation_scrollbar, BorderLayout.SOUTH);
 		location_canvas_panel.add(ylocation_scrollbar, BorderLayout.EAST);
-		JPanel parameter_panel = new JPanel(new GridLayout(2, 2));
-		parameter_panel.add(offset_information);
-		range_information = new JTextField();
-		range_information.setHorizontalAlignment(JTextField.CENTER);
-		range_information.setText(String.format("%,.2f", range));
-		parameter_panel.add(range_information);
-		parameter_panel.add(new JLabel("Offset", JLabel.CENTER));
-		parameter_panel.add(new JLabel("Range", JLabel.CENTER));
-		JButton adjust_button = new JButton("Adjust");
-		RangeButtonHandler adjust_handler = new RangeButtonHandler();
-		adjust_button.addActionListener(adjust_handler);
-	    JPanel bottom_panel = new JPanel(new BorderLayout());
-	    bottom_panel.add(parameter_panel, BorderLayout.NORTH);
-	    bottom_panel.add(adjust_button, BorderLayout.SOUTH);
 		location_panel.add(location_canvas_panel, BorderLayout.CENTER);
-		location_panel.add(bottom_panel, BorderLayout.SOUTH);
-		location_dialog = new JDialog(frame, "Location");
+		
+		
+		location_dialog = new JDialog(frame, "Location Map");
 		location_dialog.add(location_panel);
 
-	
-		JMenuItem location_item = new JMenuItem("Show Map");
+		JMenuItem location_item = new JMenuItem("Show Location Map");
 		ActionListener location_handler = new ActionListener()
 		{
 		    public void actionPerformed(ActionEvent e)
@@ -3723,293 +3410,55 @@ public class XFencePlotter
 		location_item.addActionListener(location_handler);
 		location_menu.add(location_item);
 		
+		String sensor_string = sensor[0].getText();
+		StringTokenizer line_tokenizer = new StringTokenizer(sensor_string, ":./");
+		String init_line_string = line_tokenizer.nextToken();
+		init_line = Integer.parseInt(init_line_string);
 		
-		// Grayscale image of current segment.
+		JPanel  line_panel  = new JPanel(new BorderLayout());
+		current_value = init_line * 3;
+		if(offset > 50)
+			current_value += 2;
+		else if(offset > 25)
+			current_value++;
+		line_slider = new JSlider(0, 87, current_value);
 		
-		// A modeless dialog box that shows up if Location->Show Segment Image is selected.
-		segment_image_canvas = new SegmentImageCanvas();
-		segment_image_canvas.setSize(image_xdim, image_ydim);
-		JScrollPane segment_image_scrollpane = new JScrollPane();
-		segment_image_scrollpane.setSize(400, 200);
-		segment_image_scrollpane.add(segment_image_canvas);
-		segment_image_scrollpane.setViewportView(segment_image_canvas);
+		System.out.println("Setting line slider value to " + current_value);
 		
-		segment_image_dialog = new JDialog(frame);
-		segment_image_dialog.add(segment_image_scrollpane);
+		LineSliderHandler line_slider_handler = new LineSliderHandler();
 		
-
-		JMenuItem segment_image_item = new JMenuItem("Show Segment Image");
-		ActionListener segment_image_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent event)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-				segment_image_dialog.setLocation(x, y);
-				segment_image_dialog.pack();
-				segment_image_dialog.setVisible(true);
-			}
-		};
-		segment_image_item.addActionListener(segment_image_handler);
-		location_menu.add(segment_image_item);
+		line_slider.addChangeListener(line_slider_handler);
 		
-		
-		// Grayscale image of larger data set.
-		// A modeless dialog box that shows up if Location->Show Line Image is selected.
-		JMenuItem line_image_item = new JMenuItem("Show Line Image");
-		line_image_canvas = new LineImageCanvas();
-		line_image_canvas.setSize(line_image_xdim, line_image_ydim);
-		
-		ImageMouseHandler image_mouse_handler = new ImageMouseHandler();
-		line_image_canvas.addMouseListener(image_mouse_handler);
-		JScrollPane line_image_scrollpane = new JScrollPane();
-		line_image_scrollpane.setSize(400, 200);
-		line_image_scrollpane.add(line_image_canvas);
-		line_image_scrollpane.setViewportView(line_image_canvas);		
-		line_image_dialog = new JDialog(frame);
-		line_image_dialog.add(line_image_scrollpane);
-				
-		ActionListener line_image_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent event)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
-
-				x += 830;
-				line_image_dialog.setLocation(x, y);
-				line_image_dialog.pack();
-				line_image_dialog.setVisible(true);
-			}
-		};
-		line_image_item.addActionListener(line_image_handler);
-		location_menu.add(line_image_item);
-		
-		// A modeless dialog box that shows up if Location->Set Location is selected.
-		set_location_dialog = new JDialog(frame, "Set Location");
-		JMenuItem set_location_item = new JMenuItem("Set Location");
-		ActionListener set_location_handler = new ActionListener()
+		line_information = new JTextField();
+		line_information.setHorizontalAlignment(JTextField.CENTER);
+		line_information.setColumns(4);
+		System.out.println("Setting line information to " + init_line);
+		line_information.setText(" " + init_line + " ");
+		line_panel.add(line_slider, BorderLayout.CENTER);
+		line_panel.add(line_information, BorderLayout.EAST);
+		JDialog	line_dialog = new JDialog(frame, "Set Line Location");
+		line_dialog.add(line_panel);
+		JMenuItem line_item = new JMenuItem("Set Line Location");
+		ActionListener line_item_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
 				Point location_point = frame.getLocation();
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
-
-				Dimension canvas_dimension = data_canvas.getSize();
-				double    canvas_xdim      = canvas_dimension.getWidth();
-								
-				x += canvas_xdim;				
-				y += 500;
-
-				set_location_dialog.setLocation(x, y);
-				set_location_dialog.pack();
-				set_location_dialog.setVisible(true);
+				x += 830;
+				y += 640;
+				line_dialog.setLocation(x, y);
+				line_dialog.pack();
+				line_dialog.setVisible(true);
 			}
 		};
-		set_location_item.addActionListener(set_location_handler);
-		JPanel set_location_panel = new JPanel(new GridLayout(2, 1));
-		JTextField set_location_input             = new JTextField();
-		set_location_input.setHorizontalAlignment(JTextField.CENTER);
-		set_location_input.setText("");
-
-		JButton set_location_button = new JButton("Set Location");
-		ActionListener set_location_button_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				String new_location_string = set_location_input.getText();
-				
-				double new_location = 0;
-				try
-				{
-				    new_location        = Double.valueOf(new_location_string);
-				}
-				catch(Exception e2)
-				{
-				    System.out.println(e2.toString());
-				    return;
-				}
-				
-				
-				if(new_location >= 0 && new_location < 29)
-				{
-					double new_line   = Math.floor(new_location);
-					double new_offset = new_location - new_line;
-					
-				
-					if((new_offset * 60. + 15) + range > 75)
-						new_offset = 75. - range;
-					else
-					{
-						new_offset *= 60;
-					    new_offset += 15;
-					}
-					
-					System.out.println("Setting location to flight line " + String.format("%,.0f", new_line)  + " at offset " + String.format("%,.2f",new_offset));
-								
-					
-					int current_line   = (int)new_line;
-					int current_sensor = 4;
-					if(current_line % 2 == 1)
-					    current_sensor = 0;
-					
-					String[] line_sensor_pair = new String[10];
-
-					int current_pair    = 0;
-                    int number_of_pairs = 10;
-					if (current_line % 2 == 1)
-					{
-						for (int i = current_sensor; i < 5; i++)
-						{
-							String current_string = new String(current_line + ":" + i);
-							line_sensor_pair[current_pair] = current_string;
-							current_pair++;
-						}
-					} 
-					else
-					{
-						for (int i = current_sensor; i >= 0; i--)
-						{
-							String current_string = new String(current_line + ":" + i);
-							line_sensor_pair[current_pair] = current_string;
-							current_pair++;
-						}
-					}
-					current_line++;
-					if (current_line % 2 == 1)
-					{
-						for (int i = 0; i < 5; i++)
-						{
-							String current_string = new String(current_line + ":" + i);
-							line_sensor_pair[current_pair] = current_string;
-							current_pair++;
-						}
-					} 
-					else
-					{
-						for (int i = 4; i >= 0; i--)
-						{
-							String current_string = new String(current_line + ":" + i);
-							line_sensor_pair[current_pair] = current_string;
-							current_pair++;
-						}
-					}
-					current_line++;
-					outer: if (current_pair < 10)
-					{
-						if (current_line % 2 == 1)
-						{
-							for (int i = 0; i < 5; i++)
-							{
-								String current_string = new String(current_line + ":" + i);
-								line_sensor_pair[current_pair] = current_string;
-								current_pair++;
-								if (current_pair == 10)
-									break outer;
-							}
-						} 
-						else
-						{
-							for (int i = 4; i >= 0; i--)
-							{
-								String current_string = new String(current_line + ":" + i);
-								line_sensor_pair[current_pair] = current_string;
-								current_pair++;
-								if (current_pair == 10)
-									break outer;
-							}
-						}
-					}
-
-					for (int i = 0; i < 10; i++)
-					{
-						sensor[i].setText("");
-					}
-					for (int i = 0; i < number_of_pairs; i++)
-					{
-						sensor[i].setText(line_sensor_pair[i]);
-					}
-					
-					offset = new_offset;
-					
-					// Clear data since we're at a new position.		
-					append_data = false;
-					persistent_data = false;
-					sample_information.setText("");	
-					triple_slope_output.setText("");
-					startpoint_set = false;
-					midpoint_set = false;
-					endpoint_set = false;
-									
-					// Update location map
-					//location_canvas.repaint();
-					
-					// Reset the slider.	
-					// Set semaphore to prevent oscillation.
-					range_scrollbar_changing = true;
-					
-					double normal_start    = (offset - 15) / 60;
-					double normal_stop     = (offset + range - 15) / 60;
-					
-					
-					// Whether or not values get set correctly depends on current values.
-					int current_start = range_slider.getValue();
-					int current_stop  = range_slider.getUpperValue();
-					//System.out.println("Current start value for slider is " + current_start);
-					//System.out.println("Current stop value for slider is " + current_stop);
-					
-					int new_start = (int) (normal_start * slider_resolution);
-					int new_stop  = (int) (normal_stop * slider_resolution);
-					
-					if(new_start < current_stop)
-					{
-						//System.out.println("Setting lower value first.");
-					    range_slider.setValue(new_start);
-					    range_slider.setUpperValue(new_stop);
-					}
-					else
-					{
-						//System.out.println("Setting upper value first.");
-						range_slider.setUpperValue(new_stop);	
-					    range_slider.setValue(new_start);
-					}
-					// Reset semaphore.
-					range_scrollbar_changing = false;
-					
-					// Reset the scrollbar.
-					// Set semaphore to prevent oscillation.
-					range_slider_changing = true;
-					double normal_range    = normal_stop - normal_start;
-					double normal_position = normal_start + normal_range / 2;
-					range_scrollbar.setValue((int)(normal_position * scrollbar_resolution));
-					// Reset semaphore.
-					range_slider_changing = false;
-					
-					offset_information.setText(String.format("%.2f", offset));				
-					// Resegment, redraw, and check order of data segments.
-					apply_item.doClick();
-				}
-				else
-				{
-					System.out.println("Location value must be from 0 to 28.99");	
-				}
-			}
-		};
-		set_location_button.addActionListener(set_location_button_handler);
-		set_location_panel.add(set_location_input);
-		set_location_panel.add(set_location_button);
-		set_location_dialog.add(set_location_panel);
-		set_location_dialog.add(set_location_panel);
-		location_menu.add(set_location_item);
+		line_item.addActionListener(line_item_handler);
+		location_menu.add(line_item);		
 		
-		// A modeless dialog box that shows up if Location->Set Object is selected.		
+		
 		set_object_dialog = new JDialog(frame, "Set Object");
-		JMenuItem set_object_item = new JMenuItem("Set Object");
+		JMenuItem set_object_item = new JMenuItem("Set Object Location");
 		ActionListener set_object_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -4242,6 +3691,75 @@ public class XFencePlotter
 		set_object_dialog.add(set_object_panel);
 		set_object_dialog.add(set_object_panel);
 		location_menu.add(set_object_item);
+	
+		
+		
+		// A modeless dialog box that shows up if Location->Show Segment Image is selected.
+		segment_image_canvas = new SegmentImageCanvas();
+		segment_image_canvas.setSize(image_xdim, image_ydim);
+		JScrollPane segment_image_scrollpane = new JScrollPane();
+		segment_image_scrollpane.setSize(400, 200);
+		segment_image_scrollpane.add(segment_image_canvas);
+		segment_image_scrollpane.setViewportView(segment_image_canvas);
+		
+		segment_image_dialog = new JDialog(frame);
+		segment_image_dialog.add(segment_image_scrollpane);
+		
+
+		JMenuItem segment_image_item = new JMenuItem("Show Segment Image");
+		ActionListener segment_image_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent event)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+				segment_image_dialog.setLocation(x, y);
+				segment_image_dialog.pack();
+				segment_image_dialog.setVisible(true);
+			}
+		};
+		segment_image_item.addActionListener(segment_image_handler);
+		location_menu.add(segment_image_item);
+		
+		
+		// Grayscale image of larger data set.
+		// A modeless dialog box that shows up if Location->Show Line Image is selected.
+		
+		JMenuItem line_image_item = new JMenuItem("Show Line Image");
+		line_image_canvas = new LineImageCanvas();
+		line_image_canvas.setSize(line_image_xdim, line_image_ydim);
+		
+		ImageMouseHandler image_mouse_handler = new ImageMouseHandler();
+		line_image_canvas.addMouseListener(image_mouse_handler);
+		JScrollPane line_image_scrollpane = new JScrollPane();
+		line_image_scrollpane.setSize(400, 200);
+		line_image_scrollpane.add(line_image_canvas);
+		line_image_scrollpane.setViewportView(line_image_canvas);		
+		line_image_dialog = new JDialog(frame);
+		line_image_dialog.add(line_image_scrollpane);
+				
+		ActionListener line_image_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent event)
+			{
+				Point location_point = frame.getLocation();
+				int x = (int) location_point.getX();
+				int y = (int) location_point.getY();
+
+				x += 830;
+				line_image_dialog.setLocation(x, y);
+				line_image_dialog.pack();
+				line_image_dialog.setVisible(true);
+			}
+		};
+		line_image_item.addActionListener(line_image_handler);
+		//location_menu.add(line_image_item);
+		
+		
+		
 		
 		menu_bar.add(location_menu);
 		
@@ -5809,6 +5327,184 @@ public class XFencePlotter
 		}
 	}
 
+	class LineSliderHandler implements ChangeListener
+	{
+		public void stateChanged(ChangeEvent e)
+		{
+			JSlider slider = (JSlider) e.getSource();
+			if (slider.getValueIsAdjusting() == false)
+			{
+				int value = slider.getValue();
+				
+				double new_location = value;
+				new_location /= 3;
+				double new_line   = Math.floor(new_location);
+				double new_offset = new_location - new_line;
+				
+			
+				if((new_offset * 60. + 15) + range > 75)
+					new_offset = 75. - range;
+				else
+				{
+					new_offset *= 60;
+				    new_offset += 15;
+				}
+				
+				//System.out.println("Setting location to flight line " + String.format("%,.0f", new_line)  + " at offset " + String.format("%,.2f",new_offset));
+							
+				
+				int current_line   = (int)new_line;
+				line_information.setText("" + current_line);
+				
+				
+				int current_sensor = 4;
+				if(current_line % 2 == 1)
+				    current_sensor = 0;
+				
+				String[] line_sensor_pair = new String[10];
+
+				int current_pair    = 0;
+                int number_of_pairs = 10;
+				if (current_line % 2 == 1)
+				{
+					for (int i = current_sensor; i < 5; i++)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				} 
+				else
+				{
+					for (int i = current_sensor; i >= 0; i--)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				}
+				current_line++;
+				if (current_line % 2 == 1)
+				{
+					for (int i = 0; i < 5; i++)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				} 
+				else
+				{
+					for (int i = 4; i >= 0; i--)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				}
+				current_line++;
+				outer: if (current_pair < 10)
+				{
+					if (current_line % 2 == 1)
+					{
+						for (int i = 0; i < 5; i++)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+							if (current_pair == 10)
+								break outer;
+						}
+					} 
+					else
+					{
+						for (int i = 4; i >= 0; i--)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+							if (current_pair == 10)
+								break outer;
+						}
+					}
+				}
+
+				for (int i = 0; i < 10; i++)
+				{
+					sensor[i].setText("");
+				}
+				for (int i = 0; i < number_of_pairs; i++)
+				{
+					sensor[i].setText(line_sensor_pair[i]);
+				}
+				
+				offset = new_offset;
+				
+				// Clear data since we're at a new position.		
+				append_data = false;
+				persistent_data = false;
+				sample_information.setText("");	
+				triple_slope_output.setText("");
+				startpoint_set = false;
+				midpoint_set = false;
+				endpoint_set = false;
+								
+				// Update location map
+				location_canvas.repaint();
+				
+				// Reset the slider.	
+				// Set semaphore to prevent oscillation.
+				range_scrollbar_changing = true;
+				
+				double normal_start    = (offset - 15) / 60;
+				double normal_stop     = (offset + range - 15) / 60;
+				
+				
+				// Whether or not values get set correctly depends on current values.
+				int current_start = range_slider.getValue();
+				int current_stop  = range_slider.getUpperValue();
+				//System.out.println("Current start value for slider is " + current_start);
+				//System.out.println("Current stop value for slider is " + current_stop);
+				
+				int new_start = (int) (normal_start * slider_resolution);
+				int new_stop  = (int) (normal_stop * slider_resolution);
+				
+				if(new_start < current_stop)
+				{
+					//System.out.println("Setting lower value first.");
+				    range_slider.setValue(new_start);
+				    range_slider.setUpperValue(new_stop);
+				}
+				else
+				{
+					//System.out.println("Setting upper value first.");
+					range_slider.setUpperValue(new_stop);	
+				    range_slider.setValue(new_start);
+				}
+				// Reset semaphore.
+				range_scrollbar_changing = false;
+				
+				// Reset the scrollbar.
+				// Set semaphore to prevent oscillation.
+				range_slider_changing = true;
+				double normal_range    = normal_stop - normal_start;
+				double normal_position = normal_start + normal_range / 2;
+				range_scrollbar.setValue((int)(normal_position * scrollbar_resolution));
+				// Reset semaphore.
+				range_slider_changing = false;
+				
+				offset_information.setText(String.format("%.2f", offset));	
+				
+				// Resegment, redraw, and check order of data segments.
+				
+				
+				
+				apply_item.doClick();
+			}	
+	    }	
+	}
+	
+	
 	class RangeButtonHandler implements ActionListener
 	{
 		public void actionPerformed(ActionEvent e)
@@ -5892,7 +5588,7 @@ public class XFencePlotter
 					range = upper_normal_position - offset;
 	
 					offset_information.setText(String.format("%,.2f", offset));
-					range_information.setText(String.format("%,.2f", range));
+					//range_information.setText(String.format("%,.2f", range));
 					range_slider_changing = false;
 
 					append_data = false;
@@ -6305,9 +6001,9 @@ public class XFencePlotter
 					x *= 100;
 					x += left_margin;
 					y *= 10;
-					y -= 15;
-					y  = ydim - y;
-					y += top_margin;
+					y -= 140;
+					//y  = ydim - y;
+					//y += top_margin;
 					
 					double intensity = sample.intensity - min_intensity;
 					intensity /= intensity_range;
@@ -7240,6 +6936,272 @@ public class XFencePlotter
 		if(order_canvas != null)
 		    order_canvas.repaint();	
 	}
+	
+	
+    // All changes are now automatically applied,
+	// although batching parameter changes 
+	// together would make the program more
+	// efficient.
+	// This serves as a hook in the software,
+	// and is redundant to the user.
+	class ApplyHandler implements ActionListener
+	{
+	    int[] current_line;
+	    int[] current_sensor;
+
+		ApplyHandler()
+		{
+		    current_line = new int[10];
+			current_sensor = new int[10];
+		}
+        
+		public void actionPerformed(ActionEvent event)
+		{
+			for (int i = 0; i < 10; i++)
+			{
+				try
+				{
+					String line_sensor_pair = sensor[i].getText();
+					if(line_sensor_pair.equals(""))
+					{
+					    if(i < 9)
+					    {
+					    	line_sensor_pair = sensor[i + 1].getText();
+					    	sensor[i + 1].setText("");
+					    	sensor[i].setText(line_sensor_pair);
+					    }
+					}
+						
+					StringTokenizer tokenizer = new StringTokenizer(line_sensor_pair, ":");
+					int number_of_tokens = tokenizer.countTokens();
+					if (number_of_tokens == 2)
+					{
+						String line_string = tokenizer.nextToken(":");
+						int next_line = Integer.parseInt(line_string);
+						String sensor_string = tokenizer.nextToken(":");
+						int next_sensor = Integer.parseInt(sensor_string);
+
+						// Do a check for valid input
+						if (next_line >= 0 && next_line < 30 && next_sensor >= 0 && next_sensor < 5)
+						{
+							current_line[i] = next_line;
+							current_sensor[i] = next_sensor;
+						} 
+						else
+						{
+							current_line[i] = -1;
+							current_sensor[i] = -1;
+						}
+					} 
+					else
+					{
+						current_line[i] = -1;
+						current_sensor[i] = -1;
+					}
+				} 
+				catch (Exception exception)
+				{
+					current_line[i] = -1;
+					current_sensor[i] = -1;
+				}
+			}
+			
+			int number_of_segments = 0;
+			//System.out.println("Current set of line/sensors: ");
+			for(int i = 0; i < 10; i++)
+			{
+			    if(current_line[i] != -1)	
+			    {
+			        //System.out.print(current_line[i] + ":" + current_sensor[i] + " ");	
+			        number_of_segments++;
+			    }
+			}
+			
+			// We want to clear the entire data array, and not just the lists,
+			// because the number of segments can change.
+			data_array.clear();
+			
+			// A place to park the raw sample lists until we get the data
+			// we want to prepend in the data array, 
+			// before the individual segment lists.
+			ArrayList raw_array = new ArrayList();
+			
+			seg_min  = Double.MAX_VALUE;
+			seg_max  = -Double.MAX_VALUE;
+			line_min = Double.MAX_VALUE;
+			line_max = -Double.MAX_VALUE;
+			
+			for(int i = 0; i < number_of_segments; i++)
+			{
+			    ArrayList src_list = (ArrayList)set_array.get(current_sensor[i]);
+			    ArrayList dst_list = new ArrayList(); 
+			    int       index    = current_line[i];
+			    int       start    = line_index[index][0];
+			    int       stop     = line_index[index][1];
+			   
+			    // Adjust the indices for individual sensor lists.
+			    start             /= 5;
+			    stop              /= 5;
+			    if(smooth == 0)
+			    {
+			    	if(current_line[i] % 2 == 0)
+			    	{
+			            for(int j = start; j < stop; j++)
+			            {
+			        	    Sample sample = (Sample)src_list.get(j);
+			        	    if(sample.y >= 15 && sample.y < 75)
+			        	    {
+			        	        if(sample.intensity < line_min)
+			        	    	    line_min = sample.intensity;
+			        	        if(sample.intensity > line_max)
+			        	    	    line_max = sample.intensity;    
+			        	    }
+			        	    if(sample.y >= offset && sample.y < offset + range)
+			        	    {
+			        	    	if(sample.intensity < seg_min)
+			        	    		seg_min = sample.intensity;
+			        	    	if(sample.intensity > seg_max)
+			        	    		seg_max = sample.intensity;	
+			        	    	dst_list.add(sample);
+			        	    }
+			            }
+			            raw_array.add(dst_list);
+			    	}
+			    	else
+			    	{
+			    		for(int j = stop; j >= start; j--)
+			            {
+			        	    Sample sample = (Sample)src_list.get(j);
+			        	    if(sample.y >= 15 && sample.y < 75)
+			        	    {
+			        	        if(sample.intensity < line_min)
+			        	    	    line_min = sample.intensity;
+			        	        if(sample.intensity > line_max)
+			        	    	    line_max = sample.intensity;
+			        	    }
+			        	    if(sample.y >= offset && sample.y < offset + range)
+			        	    {
+			        	    	if(sample.intensity < seg_min)
+			        	    		seg_min = sample.intensity;
+			        	    	if(sample.intensity > seg_max)
+			        	    		seg_max = sample.intensity;
+			        	    	dst_list.add(sample);
+			        	    }
+			            }
+			    		raw_array.add(dst_list);
+			    	}
+			    }
+			    else  // Smooth data
+			    {
+			    	if(current_line[i] % 2 == 0)
+			    	{
+			    		// Get a list to smooth.
+			    		for(int j = start; j < stop; j++)
+			            {
+			        	    Sample sample = (Sample)src_list.get(j);
+			        	    dst_list.add(sample);
+			            }
+			    	}
+			    	else
+			    	{
+			    		for(int j = stop; j >= start; j--)
+			            {
+			        	    Sample sample = (Sample)src_list.get(j);
+			        	    dst_list.add(sample);
+			            }
+			    	} 
+			    	int    size = dst_list.size();
+		    		double x[]  = new double[size];
+		    		double y[]  = new double[size];
+		    		double z[]  = new double[size];
+		    		
+		    		for(int j = 0; j < size; j++)
+		    		{
+		    			Sample sample = (Sample)dst_list.get(j);
+		    			x[j] = sample.x;
+		    			y[j] = sample.y;
+		    			z[j] = sample.intensity;
+		    		}
+		    		
+		    		double smooth_x[] = smooth(x, smooth);
+		    		double smooth_y[] = smooth(y, smooth);
+		    		double smooth_z[] = smooth(z, smooth);
+		    		
+		    		
+		    		ArrayList smooth_list = new ArrayList();
+		    		int length = smooth_x.length;
+		    		for(int j = 0; j < length; j++)
+		    		{  
+		    			if(smooth_y[j] >= 15 && smooth_y[j] < 75)
+		    			{
+		    			    if(smooth_z[j] < line_min)
+			        	        line_min = smooth_z[j];
+			        	    if(smooth_z[j] > line_max)
+			        	        line_max = smooth_z[j];
+		    			}
+		    			if(smooth_y[j] >= offset && smooth_y[j] < (offset + range))
+		    			{
+		    				if(smooth_z[j] < seg_min)
+				        	    seg_min = smooth_z[j];
+				        	if(smooth_z[j] > seg_max)
+				        	    seg_max = smooth_z[j];
+		    			    Sample sample = new Sample(smooth_x[j], smooth_y[j], smooth_z[j]);	
+		    			    smooth_list.add(sample);
+		    			}
+		    		}
+		    		raw_array.add(smooth_list);
+			    }
+			}
+			
+			data_array.clear();
+			data_array.add(seg_min);
+			data_array.add(seg_max);
+			data_array.add(line_min);
+			data_array.add(line_max);
+			
+			for (int i = 0; i < number_of_segments; i++)
+			{
+			    ArrayList segment_data = new ArrayList();
+			    segment_data.add(current_line[i]);
+				segment_data.add(current_sensor[i]);
+
+				if (visible[i] == true)
+					segment_data.add(new String("yes"));
+				else
+					segment_data.add(new String("no"));
+				if (transparent[i] == true)
+					segment_data.add(new String("yes"));
+				else
+					segment_data.add(new String("no"));
+			 
+				ArrayList sample_list = (ArrayList)raw_array.get(i);
+				
+				Sample sample = (Sample)sample_list.get(0);
+				segment_data.add(sample_list); 
+				
+				int size = segment_data.size();
+				data_array.add(segment_data);
+			}
+			
+			
+			
+			checkSegmentOrder();
+			if(!in_order)
+			{
+				double current_location = sort_location * range + offset;
+				System.out.println("Segments are out of order at location y = " + String.format("%.2f", current_location));
+			}
+		
+			data_canvas.repaint();
+			placement_canvas.repaint();
+			location_canvas.repaint();
+			sort_canvas.repaint();
+			segment_image_canvas.repaint();
+			line_image_canvas.repaint();
+			offset_information.setText(String.format("%.2f", offset));	
+		}
+					
+	}		
 	
 	public double[] smooth(double[] source, int iterations)
 	{
