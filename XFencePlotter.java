@@ -4852,7 +4852,7 @@ public class XFencePlotter
 							            	// the actual locations that might reflect any out of
 							            	// orders segments, and the ideal location that we
 							            	// might want to compare it to.
-							            	// A color key could be added to specity line sensor ids.
+							            	
 							            	/*
 							            	double ideal_x = line * 2;
 											if (line % 2 == 0)
@@ -5657,7 +5657,6 @@ public class XFencePlotter
 		}   	
 	}
 	
-	
 	class OrderCanvas extends Canvas
 	{
 		public void paint(Graphics g)
@@ -5818,7 +5817,7 @@ public class XFencePlotter
 			{
 				graphics_buffer.drawLine(a1, position, a2, position);
 				String string;
-				int j = i * 5;
+				int j = (12 - i) * 5;
 				if(j < 10)
 					string = new String(" " + j);
 				else
@@ -5827,7 +5826,7 @@ public class XFencePlotter
 				position -= 50;
 			}
 			graphics_buffer.drawLine(a1, position, a2, position);
-			String string = new String("60");
+			String string = new String("0");
 			graphics_buffer.drawString(string, a1 - (12 + string_width), position + (string_height / 2));
 			int number_of_segments = size - 4;
 			double xmin = Double.MAX_VALUE;
@@ -5864,7 +5863,6 @@ public class XFencePlotter
 			double max_intensity   = (double)data_array.get(1);
 			double intensity_range = max_intensity - min_intensity;
 			
-			
 			for (int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList sensor_list = (ArrayList) data_array.get(i + 4);
@@ -5890,8 +5888,71 @@ public class XFencePlotter
 					graphics_buffer.setColor(color);
 					graphics_buffer.fillRect((int)x, (int)y, 40, 1);
 					
+					System.out.println("Upper left is " + ((int) x) + ", " + ((int) y));
+					
 				}
 			}
+			
+			if(startpoint_set)
+			{
+				graphics_buffer.setColor(Color.BLUE);
+				
+				double x_position = startpoint_x;
+				
+				x_position -= xmin;
+				x_position *= 100;
+				x_position += left_margin + 20;
+				
+				double y_position = startpoint_y;
+				y_position    *= 10;
+				y_position    -= 140;
+				
+				
+				graphics_buffer.drawOval((int)x_position - 2, (int)y_position - 2, 5, 5);
+				graphics_buffer.fillOval((int)x_position - 2, (int)y_position - 2, 5, 5);
+				graphics_buffer.setColor(Color.BLACK);	
+			}
+			
+			if(midpoint_set)
+			{
+                graphics_buffer.setColor(Color.BLUE);
+				
+				double x_position = midpoint_x;
+				
+				x_position -= xmin;
+				x_position *= 100;
+				x_position += left_margin + 20;
+				
+				double y_position = midpoint_y;
+				y_position    *= 10;
+				y_position    -= 140;
+				
+				
+				graphics_buffer.drawOval((int)x_position - 2, (int)y_position - 2, 5, 5);
+				graphics_buffer.fillOval((int)x_position - 2, (int)y_position - 2, 5, 5);
+				graphics_buffer.setColor(Color.BLACK);	
+			}
+			if(endpoint_set)
+			{
+               graphics_buffer.setColor(Color.BLUE);
+				
+				double x_position = endpoint_x;
+				
+				x_position -= xmin;
+				x_position *= 100;
+				x_position += left_margin + 20;
+				
+				double y_position = endpoint_y;
+				y_position    *= 10;
+				y_position    -= 140;
+				
+				
+				graphics_buffer.drawOval((int)x_position - 2, (int)y_position - 2, 5, 5);
+				graphics_buffer.fillOval((int)x_position - 2, (int)y_position - 2, 5, 5);
+				graphics_buffer.setColor(Color.BLACK);		
+			}
+			
+			
 			g.drawImage(buffered_image, 0, 0,  this);
 		}
 	}
@@ -6185,6 +6246,10 @@ public class XFencePlotter
 				    graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
 				}
 			}
+			
+			
+			
+			
 			g.drawImage(buffered_image, 0, 0,  this);
 		}
 	}
