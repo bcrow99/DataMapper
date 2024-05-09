@@ -97,9 +97,7 @@ public class XFencePlotter
     int     startpoint_gui_index = 0;
     int     midpoint_gui_index   = 0;
     int     endpoint_gui_index   = 0;
-    
-    
-    
+   
 	int                append_line          = 0;
 	int                append_sensor        = 0;
 	double             append_x             = 0;
@@ -153,7 +151,6 @@ public class XFencePlotter
 	public JScrollBar         range_scrollbar;
 	public RangeSlider        range_slider;
 	public RangeSlider        dynamic_range_slider;
-	public LineImageCanvas    line_image_canvas;
 	public DynamicRangeCanvas dynamic_range_canvas;
 	public SegmentImageCanvas segment_image_canvas;
     public SortCanvas         sort_canvas;
@@ -212,7 +209,7 @@ public class XFencePlotter
 	
 	
 	JTextArea slope_output;
-	//JTextArea double_slope_output;
+	
 	
 	// Fired by the range scrollbar and slider and adjust button and XFencePlotter
 	public JMenuItem apply_item;
@@ -273,7 +270,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.1.3 of fence.");
+			System.out.println("This is version 4.1.5 of fence.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			try
@@ -734,13 +731,8 @@ public class XFencePlotter
 				boolean headed_north         = true;
 				if(first_sample.x < last_sample.x)
 				{
-					//System.out.println("Flight path is not headed north.");
 					headed_north        = false;
 					init_direction_north = false;
-				}
-				else
-				{
-					//System.out.println("Flight path is headed north.");
 				}
 				
 				ArrayList endpoint_index = new ArrayList();
@@ -2695,8 +2687,8 @@ public class XFencePlotter
 		
 		JPanel slope_panel = new JPanel(new BorderLayout());
 		slope_output = new JTextArea(25, 10);
-		JPanel triple_button_panel = new JPanel(new GridLayout(2,3));
-		JButton   triple_start_button       = new JButton("Start");
+		JPanel slope_button_panel = new JPanel(new GridLayout(2,3));
+		JButton   slope_start_button       = new JButton("Start");
 		ActionListener startpoint_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -2726,10 +2718,10 @@ public class XFencePlotter
 				sort_canvas.repaint();
 			}
 		};
-		triple_start_button.addActionListener(startpoint_handler);
-		triple_button_panel.add(triple_start_button);
+		slope_start_button.addActionListener(startpoint_handler);
+		slope_button_panel.add(slope_start_button);
 		
-		JButton triple_midpoint_button  = new JButton("Midpoint");
+		JButton slope_midpoint_button  = new JButton("Midpoint");
 		ActionListener midpoint_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -2759,11 +2751,11 @@ public class XFencePlotter
 				sort_canvas.repaint();
 			}
 		};
-		triple_midpoint_button.addActionListener(midpoint_handler);
-		triple_button_panel.add(triple_midpoint_button);
+		slope_midpoint_button.addActionListener(midpoint_handler);
+		slope_button_panel.add(slope_midpoint_button);
 		
 		
-		JButton triple_end_button       = new JButton("End");
+		JButton slope_end_button       = new JButton("End");
 		ActionListener endpoint_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -2793,36 +2785,16 @@ public class XFencePlotter
 				sort_canvas.repaint();
 			}
 		};
-		triple_end_button.addActionListener(endpoint_handler);
-		triple_button_panel.add(triple_end_button);
+		slope_end_button.addActionListener(endpoint_handler);
+		slope_button_panel.add(slope_end_button);
 		
-		JButton triple_apply_button = new JButton("Apply");
+		JButton slope_apply_button = new JButton("Apply");
 		ActionListener triple_apply_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
 				if(startpoint_set && midpoint_set && endpoint_set)
 				{
-					/*
-					slope_output.append(" start_intensity     " + String.format("%.2f",startpoint_intensity) + " nT\n");
-	            	slope_output.append(" start_x                 " + String.format("%.2f", startpoint_x) + "  m\n");
-	            	slope_output.append(" start_y                 " + String.format("%.2f", startpoint_y) + "  m\n");
-	            	slope_output.append(" start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n\n");
-	            	
-	            	
-	            	slope_output.append(" mid_intensity     " + String.format("%.2f", midpoint_intensity) +  " nT\n");
-	            	slope_output.append(" mid_x                 " + String.format("%.2f", midpoint_x) + "  m\n");
-	            	slope_output.append(" mid_y                 " + String.format("%.2f", midpoint_y) + "  m\n");
-	            	slope_output.append(" mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n\n");
-	            	
-	            	
-	            	slope_output.append(" end_intensity     " + String.format("%.2f", endpoint_intensity) + " nT\n");
-	            	slope_output.append(" end_x                 " + String.format("%.2f", endpoint_x) + "  m\n");
-	            	slope_output.append(" end_y                 " + String.format("%.2f", endpoint_y) + "  m\n");
-	            	slope_output.append(" end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n\n");
-	                */
-	            	
-	            	
 	            	double amplitude1 = midpoint_intensity - startpoint_intensity;
 				    double width1  = getDistance(startpoint_x, startpoint_y, midpoint_x, midpoint_y);
 				    double start_slope = amplitude1 / width1;
@@ -2908,20 +2880,16 @@ public class XFencePlotter
 				{
 					if(!startpoint_set)
 						System.out.println("Start point is not set.");
-					/*
-					if(!midpoint_set)
-						System.out.println("Mid point is not set.");
-					*/
 					if(!endpoint_set)
 						System.out.println("End point is not set.");
 					
 				}
 			}
 		};
-		triple_apply_button.addActionListener(triple_apply_handler);
-		triple_button_panel.add(triple_apply_button);
+		slope_apply_button.addActionListener(triple_apply_handler);
+		slope_button_panel.add(slope_apply_button);
 		
-		JButton triple_clear_button = new JButton("Clear");
+		JButton slope_clear_button = new JButton("Clear");
 		ActionListener triple_clear_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -2936,11 +2904,11 @@ public class XFencePlotter
 				sort_canvas.repaint();
 			}
 		};
-		triple_clear_button.addActionListener(triple_clear_handler);
-		triple_button_panel.add(triple_clear_button);
+		slope_clear_button.addActionListener(triple_clear_handler);
+		slope_button_panel.add(slope_clear_button);
 		
 		
-		JButton triple_save_button = new JButton("Save");
+		JButton slope_save_button = new JButton("Save");
 		ActionListener slope_save_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent ev)
@@ -3017,11 +2985,11 @@ public class XFencePlotter
 				}
 			}
 		};
-		triple_save_button.addActionListener(slope_save_handler);
-		triple_button_panel.add(triple_save_button);
+		slope_save_button.addActionListener(slope_save_handler);
+		slope_button_panel.add(slope_save_button);
 		
 		slope_panel.add(slope_output, BorderLayout.CENTER);
-		slope_panel.add(triple_button_panel, BorderLayout.SOUTH);
+		slope_panel.add(slope_button_panel, BorderLayout.SOUTH);
 		
 		slope_dialog = new JDialog(frame, "Get Slope");
 		slope_dialog.add(slope_panel);
@@ -3051,15 +3019,9 @@ public class XFencePlotter
 		
 		// A modeless dialog box that shows up if Slope->Show Segment Image is selected.
 		segment_image_canvas = new SegmentImageCanvas();
-		segment_image_canvas.setSize(image_xdim, image_ydim);
-		JScrollPane segment_image_scrollpane = new JScrollPane();
-		segment_image_scrollpane.setSize(400, 200);
-		segment_image_scrollpane.add(segment_image_canvas);
-		segment_image_scrollpane.setViewportView(segment_image_canvas);
-		
+		segment_image_canvas.setSize(600, 400);
 		segment_image_dialog = new JDialog(frame);
-		segment_image_dialog.add(segment_image_scrollpane);
-		
+		segment_image_dialog.add(segment_image_canvas);
 
 		JMenuItem segment_image_item = new JMenuItem("Show Segment Image");
 		ActionListener segment_image_handler = new ActionListener()
@@ -3092,7 +3054,6 @@ public class XFencePlotter
 		
 		sort_canvas       = new SortCanvas();
 		
-		//sort_canvas.setSize(600, 400);
 		sort_canvas.setSize(700, 500);
 		int sort_value = (int) (500 * sort_location);
 		JScrollBar sort_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, sort_value, 1, 0, 501);
@@ -3275,10 +3236,10 @@ public class XFencePlotter
 		JPanel location_panel = new JPanel(new BorderLayout());
 		JPanel location_canvas_panel = new JPanel(new BorderLayout());
 		location_canvas = new LocationCanvas();
-		//location_canvas.setSize(240, 360);
 		location_canvas.setSize(470, 330);
 		
 		/*
+		// This is not getting used by either Anders or myself.
 		JScrollBar xlocation_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, 0, 1, 0, 2001);
 		AdjustmentListener xlocation_handler = new AdjustmentListener()
 		{
@@ -3385,8 +3346,14 @@ public class XFencePlotter
 				Point location_point = frame.getLocation();
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
-				x += 830;
-				y += 640;
+				
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+						
+				x += canvas_xdim;
+						
+				y += 360;
+				
 				line_dialog.setLocation(x, y);
 				line_dialog.pack();
 				line_dialog.setVisible(true);
@@ -3410,7 +3377,7 @@ public class XFencePlotter
 						
 				x += canvas_xdim;
 						
-				y += 500;
+				y += 410;
 
 				set_object_dialog.setLocation(x, y);
 				set_object_dialog.pack();
@@ -3631,45 +3598,8 @@ public class XFencePlotter
 		location_menu.add(set_object_item);
 	
 		
-	
-		
-		
-		// Grayscale image of larger data set.
-		// A modeless dialog box that shows up if Location->Show Line Image is selected.
-		
-		JMenuItem line_image_item = new JMenuItem("Show Line Image");
-		line_image_canvas = new LineImageCanvas();
-		line_image_canvas.setSize(line_image_xdim, line_image_ydim);
-		
-		ImageMouseHandler image_mouse_handler = new ImageMouseHandler();
-		line_image_canvas.addMouseListener(image_mouse_handler);
-		JScrollPane line_image_scrollpane = new JScrollPane();
-		line_image_scrollpane.setSize(400, 200);
-		line_image_scrollpane.add(line_image_canvas);
-		line_image_scrollpane.setViewportView(line_image_canvas);		
-		line_image_dialog = new JDialog(frame);
-		line_image_dialog.add(line_image_scrollpane);
-				
-		ActionListener line_image_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent event)
-			{
-				Point location_point = frame.getLocation();
-				int x = (int) location_point.getX();
-				int y = (int) location_point.getY();
 
-				x += 830;
-				line_image_dialog.setLocation(x, y);
-				line_image_dialog.pack();
-				line_image_dialog.setVisible(true);
-			}
-		};
-		line_image_item.addActionListener(line_image_handler);
-		//location_menu.add(line_image_item);
-		
-		
-		
-		
+
 		menu_bar.add(location_menu);
 		
 		
@@ -3695,6 +3625,7 @@ public class XFencePlotter
 				}
             	placement_canvas.repaint();
             	location_canvas.repaint();
+            	segment_image_canvas.repaint();
             	
             	int number_of_segments = data_array.size() - 4;
 				Dimension canvas_dimension = data_canvas.getSize();
@@ -6028,7 +5959,7 @@ public class XFencePlotter
 			graphics_buffer.drawLine((int) current_position, (int)b1, (int) current_position, (int)b2);
 			double current_ylocation = range * sort_location + offset;
 			String position_string = String.format("%,.2f",  current_ylocation); 
-			String string = new String("Y = " + position_string);
+			String string = new String("X = " + position_string);
 			string_width = font_metrics.stringWidth(string);
 			if(current_ylocation < 45)
 			    graphics_buffer.drawString(string, (int)current_position + 10, graph_ydim / 2 + top_margin);
@@ -6200,54 +6131,49 @@ public class XFencePlotter
 		}
 	}
 
+	
 	class SegmentImageCanvas extends Canvas
 	{
-		int top_margin    = 10;
-		int bottom_margin = 30;
-		int left_margin   = 50;
-		int right_margin  = 20;
-		int xdim          = 600;
-		int ydim          = 600;
-		int image_xdim    = xdim + left_margin + right_margin;
-		int image_ydim    = ydim + top_margin  + bottom_margin;
-		
 		public void paint(Graphics g)
 		{
 			int size = data_array.size();
 			if(size < 5)
 				return;
-			BufferedImage buffered_image       = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
-			//buffered_image       = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
+			int number_of_segments = size - 4;
+			
+			
+			Rectangle visible_area = g.getClipBounds();
+
+			int xdim = (int) visible_area.getWidth();
+			int ydim = (int) visible_area.getHeight();
+			
+			int top_margin    = 10;
+			int bottom_margin = 50;
+			int left_margin   = 50;
+			int right_margin  = 20;
+			
+			int image_xdim = xdim - (left_margin + right_margin);
+			int image_ydim = ydim - (top_margin + bottom_margin);
+			
+			BufferedImage buffered_image       = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
 			Graphics2D graphics_buffer = (Graphics2D) buffered_image.getGraphics();
 			FontMetrics font_metrics   = graphics_buffer.getFontMetrics();
 			
 			graphics_buffer.setColor(java.awt.Color.WHITE);
-			graphics_buffer.fillRect(0, 0, image_xdim, image_ydim);
+			graphics_buffer.fillRect(0, 0, xdim, ydim);
 			
 			int a1 = left_margin;
-			int a2 = left_margin + 600;
+			int a2 = left_margin + image_xdim;
 			int b1 = top_margin;
-			int b2 = top_margin + 600;
+			int b2 = top_margin + image_ydim;
 			
 			graphics_buffer.setColor(java.awt.Color.BLACK);
-			graphics_buffer.drawRect(a1, b1, xdim, ydim);
-			int string_width  = font_metrics.stringWidth("77");
-			int string_height = font_metrics.getAscent();
-			int position      = b2;
-			for(int i = 0; i < 12; i++)
-			{
-				graphics_buffer.drawLine(a1, position, a2, position);
-				
-				int j = 90 - ((12 - i) * 5 + 15);
-				String string = new String("" + j);
-				graphics_buffer.drawString(string, a1 - (12 + string_width), position + (string_height / 2));
-				position -= 50;
-			}
-			graphics_buffer.drawLine(a1, position, a2, position);
-			String string = new String("75");
-			graphics_buffer.drawString(string, a1 - (12 + string_width), position + (string_height / 2));
-			int number_of_segments = size - 4;
+			graphics_buffer.drawRect(a1, b1, image_xdim, image_ydim);
+			
 			double xmin = Double.MAX_VALUE;
+			double xmax = 0;
+			double ymin = Double.MAX_VALUE;
+			double ymax = 0;
 			for (int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList sensor_list = (ArrayList) data_array.get(i + 4);
@@ -6256,26 +6182,63 @@ public class XFencePlotter
 				for(int j = 0; j < size; j++)
 				{
 					Sample sample = (Sample) sample_list.get(j);
-					double x = sample.x;
+					double x = sample.y;
+					double y = sample.x;
+					
 					if(xmin > x)
 						xmin = x;
+					if(xmax < x)
+						xmax = x;
+					
+					if(ymin > y)
+						ymin = y;
+					if(ymax < y)
+						ymax = y;
 				}
 			}
-			position      = a1;
-			double  value = xmin;
-			String  value_string = String.format("%.1f", value);
-			string_width  = font_metrics.stringWidth(value_string);
-			for(int i = 0; i < 12; i++)
+			
+			int string_width  = font_metrics.stringWidth("77.7");
+			int string_height = font_metrics.getAscent();
+			
+			int number_of_units = 10;
+			double xrange = xmax - xmin;
+			double value_increment = xrange / number_of_units;
+			int    position_increment = image_xdim / number_of_units;
+			int    position = a1;
+			
+			double value = xmin;
+			
+			for(int i = 0; i < (number_of_units + 1); i++)
 			{
-				graphics_buffer.drawLine(position, b2, position, b1);
-				graphics_buffer.drawString(value_string, position - (string_width / 2), b2 + (12 + string_height));
-				position += 50;
-				value    += .5;
-				value_string = String.format("%.1f", value);
-				string_width  = font_metrics.stringWidth(value_string);
+				graphics_buffer.drawLine(position, ydim - bottom_margin, position, top_margin);
+				
+				String value_string = String.format("%.1f", value);
+				graphics_buffer.drawString(value_string, position - string_width / 2, ydim - bottom_margin + 20 + string_height);
+			    value += value_increment;
+				position += position_increment;
 			}
-			graphics_buffer.drawLine(position, b2, position, b1);
-			graphics_buffer.drawString(value_string, position - (string_width / 2), b2 + (12 + string_height));
+			
+			double yrange      = ymax - ymin;
+			value_increment    = yrange / number_of_segments;
+			position_increment = image_ydim / number_of_segments;
+			position           = b1;
+			
+			if(reverse_view)
+				value = ymin;
+			else
+				value = ymax;
+			for(int i = 0; i < (number_of_segments + 1); i++)
+			{
+				graphics_buffer.drawLine(a1, position, a2, position);
+				
+				String value_string = String.format("%.1f", value);
+				graphics_buffer.drawString(value_string, a1 - (12 + string_width), position + (string_height / 2));
+				if(reverse_view)
+					value += value_increment;
+				else
+					value -= value_increment;	
+				position += position_increment;
+			}
 			
 			double min_intensity   = (double)data_array.get(0);
 			double max_intensity   = (double)data_array.get(1);
@@ -6289,39 +6252,80 @@ public class XFencePlotter
 				for(int j = 0; j < size; j++)
 				{
 					Sample sample = (Sample) sample_list.get(j);
-					double x = sample.x;
-					double y = sample.y;
+					double y = sample.x;
+					double x = sample.y;
+					
 					x -= xmin;
-					x *= 100;
+					x /= xrange;
+					x *= image_xdim;
 					x += left_margin;
 					
-					y *= 10;
-					y = ydim - y;
+					y -= ymin;
+					y /= yrange;
+					y *= image_ydim;
+					if(!reverse_view)
+					   y = image_ydim - y;
 					y += top_margin;
-					y += 150;
 					
 					double intensity = sample.intensity - min_intensity;
 					intensity /= intensity_range;
 					int rgb_value = (int)(intensity * 255.);
 					Color color = new Color(rgb_value, rgb_value, rgb_value);
 					graphics_buffer.setColor(color);
-					graphics_buffer.fillRect((int)x, (int)y, 40, 2);	
+					if(sample_list.size() > image_xdim)
+					    graphics_buffer.fillRect((int)x, (int)(y - 10), 1, 20);
+					else
+					{
+						int width = image_xdim / sample_list.size();
+						width += 2;
+						graphics_buffer.fillRect((int)x, (int)(y - 10), width, 20);
+					}
+						
+						
 				}
+			}
+			
+			if(append_data)
+			{
+				double x_position = append_y;
+				x_position -= xmin;
+				x_position /= xrange;
+				x_position *= image_xdim;
+				x_position += left_margin;
+				
+				double y_position = append_x;
+				y_position -= ymin;
+				y_position /= yrange;
+				y_position *= image_ydim;
+				if(!reverse_view)
+				    y_position  = image_ydim - y_position;
+				y_position += top_margin;
+			
+				graphics_buffer.setColor(Color.BLACK);
+				graphics_buffer.drawOval((int)x_position - 3, (int)y_position - 3, 7, 7);
+				graphics_buffer.fillOval((int)x_position - 3, (int)y_position - 3, 7, 7);
+				graphics_buffer.setColor(Color.RED);
+				graphics_buffer.drawOval((int)x_position - 2, (int)y_position - 2, 5, 5);
+				graphics_buffer.fillOval((int)x_position - 2, (int)y_position - 2, 5, 5);
+				graphics_buffer.setColor(Color.BLACK);	   	
 			}
 			
 			if(startpoint_set)
 			{
-				double x_position = startpoint_x;
+				double x_position = startpoint_y;
 				
 				x_position -= xmin;
-				x_position *= 100;
-				x_position += left_margin + 20;
+				x_position /= xrange;
+				x_position *= image_xdim;
+				x_position += left_margin;
 				
-				double y_position = startpoint_y;
-				y_position    *= 10;
-				y_position   = ydim - y_position;
+				double y_position = startpoint_x;
+				y_position -= ymin;
+				y_position /= yrange;
+				y_position *= image_ydim;
+				if(!reverse_view)
+				    y_position  = image_ydim - y_position;
 				y_position += top_margin;
-				y_position += 150;
 				
 				graphics_buffer.setColor(Color.BLACK);
 				graphics_buffer.drawOval((int)x_position - 3, (int)y_position - 3, 7, 7);
@@ -6335,17 +6339,20 @@ public class XFencePlotter
 			
 			if(midpoint_set)
 			{
-				double x_position = midpoint_x;
+				double x_position = midpoint_y;
 				
 				x_position -= xmin;
-				x_position *= 100;
-				x_position += left_margin + 20;
+				x_position /= xrange;
+				x_position *= image_xdim;
+				x_position += left_margin;
 				
-				double y_position = midpoint_y;
-				y_position    *= 10;
-				y_position  = ydim - y_position;
+				double y_position = midpoint_x;
+				y_position -= ymin;
+				y_position /= yrange;
+				y_position *= image_ydim;
+				if(!reverse_view)
+				    y_position  = image_ydim - y_position;
 				y_position += top_margin;
-				y_position += 150;
 				
 				graphics_buffer.setColor(Color.BLACK);
 				graphics_buffer.drawOval((int)x_position - 3, (int)y_position - 3, 7, 7);
@@ -6358,18 +6365,21 @@ public class XFencePlotter
 			
 			if(endpoint_set)
 			{
-				double x_position = endpoint_x;
-				
+				double x_position = endpoint_y;
+
 				x_position -= xmin;
-				x_position *= 100;
-				x_position += left_margin + 20;
+				x_position /= xrange;
+				x_position *= image_xdim;
+				x_position += left_margin;
 				
-				double y_position = endpoint_y;
-				y_position    *= 10;
-				y_position  = ydim - y_position;
+				double y_position = endpoint_x;
+				y_position -= ymin;
+				y_position /= yrange;
+				y_position *= image_ydim;
+				if(!reverse_view)
+				    y_position  = image_ydim - y_position;
 				y_position += top_margin;
-				y_position += 150;
-				
+			
 				graphics_buffer.setColor(Color.BLACK);
 				graphics_buffer.drawOval((int)x_position - 3, (int)y_position - 3, 7, 7);
 				graphics_buffer.fillOval((int)x_position - 3, (int)y_position - 3, 7, 7);
@@ -6378,328 +6388,6 @@ public class XFencePlotter
 				graphics_buffer.fillOval((int)x_position - 2, (int)y_position - 2, 5, 5);
 				graphics_buffer.setColor(Color.BLACK);		
 			}
-			
-			if(append_data)
-			{
-               
-				double x_position = append_x;
-				
-				x_position -= xmin;
-				x_position *= 100;
-				x_position += left_margin + 20;
-				
-				double y_position = append_y;
-				y_position *= 10;
-				y_position  = ydim - y_position;
-				y_position += top_margin;
-				y_position += 150;
-				
-				
-				graphics_buffer.setColor(Color.BLACK);
-				graphics_buffer.drawOval((int)x_position - 3, (int)y_position - 3, 7, 7);
-				graphics_buffer.fillOval((int)x_position - 3, (int)y_position - 3, 7, 7);
-				graphics_buffer.setColor(Color.RED);
-				graphics_buffer.drawOval((int)x_position - 2, (int)y_position - 2, 5, 5);
-				graphics_buffer.fillOval((int)x_position - 2, (int)y_position - 2, 5, 5);
-				graphics_buffer.setColor(Color.BLACK);	   	
-			}
-			
-			g.drawImage(buffered_image, 0, 0,  this);
-		}
-	}
-	
-	class LineImageCanvas extends Canvas
-	{
-		int top_margin    = 10;
-		int bottom_margin = 30;
-		int left_margin   = 50;
-		int right_margin  = 20;
-		int xdim          = 800;
-		int ydim          = 900;
-		int image_xdim    = xdim + left_margin + right_margin;
-		int image_ydim    = ydim + top_margin  + bottom_margin;
-		
-		int[] current_line;
-		int[] current_sensor;
-
-		LineImageCanvas()
-		{
-			current_line = new int[10];
-			current_sensor = new int[10];
-			image_grid_data = new ArrayList[image_ydim][image_xdim];
-			for (int i = 0; i < image_ydim; i++)
-				for (int j = 0; j < image_xdim; j++)
-					image_grid_data[i][j] = new ArrayList();
-		}
-		
-		public void paint(Graphics g)
-		{
-			for (int i = 0; i < image_ydim; i++)
-			{
-				for (int j = 0; j < image_xdim; j++)
-				{
-					ArrayList data_list = image_grid_data[i][j];
-					data_list.clear();
-				}
-			}
-			
-			BufferedImage buffered_image = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
-			Graphics2D graphics_buffer   = (Graphics2D) buffered_image.getGraphics();
-			FontMetrics font_metrics     = graphics_buffer.getFontMetrics();
-			
-			graphics_buffer.setColor(java.awt.Color.WHITE);
-			graphics_buffer.fillRect(0, 0, image_xdim, image_ydim);
-			
-			int a1 = left_margin;
-			int a2 = left_margin + 800;
-			int b1 = top_margin;
-			int b2 = top_margin + 900;
-			
-			graphics_buffer.setColor(java.awt.Color.BLACK);
-			graphics_buffer.drawRect(a1, b1, xdim, ydim);
-			int string_width  = font_metrics.stringWidth("77");
-			int string_height = font_metrics.getAscent();
-			int position      = b2;
-			for(int i = 0; i < 18; i++)
-			{
-				graphics_buffer.drawLine(a1, position, a2, position);
-				String string;
-				int j = i * 5;
-				if(j < 10)
-					string = new String(" " + j);
-				else
-				    string = new String("" + j);
-				graphics_buffer.drawString(string, a1 - (12 + string_width), position + (string_height / 2));
-				position -= 50;
-			}
-			graphics_buffer.drawLine(a1, position, a2, position);
-			String string = new String("90");
-			graphics_buffer.drawString(string, a1 - (12 + string_width), position + (string_height / 2));
-			
-			
-			for (int i = 0; i < 10; i++)
-			{
-				try
-				{
-					String line_sensor_pair = sensor[i].getText();
-					if(line_sensor_pair.equals(""))
-					{
-					    if(i < 9)
-					    {
-					    	line_sensor_pair = sensor[i + 1].getText();
-					    	sensor[i + 1].setText("");
-					    	sensor[i].setText(line_sensor_pair);
-					    }
-					}
-						
-					StringTokenizer tokenizer = new StringTokenizer(line_sensor_pair, ":");
-					int number_of_tokens = tokenizer.countTokens();
-					if (number_of_tokens == 2)
-					{
-						String line_string = tokenizer.nextToken(":");
-						int next_line = Integer.parseInt(line_string);
-						String sensor_string = tokenizer.nextToken(":");
-						int next_sensor = Integer.parseInt(sensor_string);
-
-						// Do a check for valid input
-						if (next_line >= 0 && next_line < 30 && next_sensor >= 0 && next_sensor < 5)
-						{
-							current_line[i] = next_line;
-							current_sensor[i] = next_sensor;
-						} 
-						else
-						{
-							current_line[i] = -1;
-							current_sensor[i] = -1;
-						}
-					} 
-					else
-					{
-						current_line[i] = -1;
-						current_sensor[i] = -1;
-					}
-				} 
-				catch (Exception exception)
-				{
-					current_line[i] = -1;
-					current_sensor[i] = -1;
-				}
-			}
-			
-			
-			// Do a first pass thru the data to get the line max / min.
-			// This is so we can prepend it so the line image canvas
-			// can use to implement autoscaling.
-			double line_min = Double.MAX_VALUE;
-			double line_max = -Double.MAX_VALUE;
-			double xmin     = Double.MAX_VALUE;
-			double xmax     = 0;
-			for (int i = 0; i < 10; i++)
-			{
-				if (current_line[i] != -1)
-				{
-					int start = line_index[current_line[i]][0];
-					int stop  = line_index[current_line[i]][1];
-					if (current_line[i] % 2 == 0)
-					{
-						for (int j = start + current_sensor[i]; j < stop; j += 5)
-						{
-							Sample sample = (Sample) data.get(j);
-							if (line_min > sample.intensity)
-								line_min = sample.intensity;
-							if (line_max < sample.intensity)
-								line_max = sample.intensity;
-							if(sample.x < xmin)
-								xmin = sample.x;
-						}
-					} 
-					else
-					{
-						for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
-						{
-							Sample sample = (Sample) data.get(j);
-							if (line_min > sample.intensity)
-								line_min = sample.intensity;
-							if (line_max < sample.intensity)
-								line_max = sample.intensity;
-							if(sample.x < xmin)
-								xmin = sample.x;
-						}
-					}
-				}
-			}
-			xmax = xmin + 8;
-			
-		    ArrayList line_data_array = new ArrayList();
-			for (int i = 0; i < 10; i++)
-			{
-				if (current_line[i] != -1)
-				{
-					ArrayList segment_data = new ArrayList();
-					segment_data.add(current_line[i]);
-					segment_data.add(current_sensor[i]);
-					int start = line_index[current_line[i]][0];
-					int stop  = line_index[current_line[i]][1];
-					if (current_line[i] % 2 == 0)
-					{
-						for (int j = start + current_sensor[i]; j < stop; j += 5)
-						{
-							Sample sample = (Sample) data.get(j);
-					        segment_data.add(sample);
-						}
-					} 
-					else
-					{
-						for (int j = stop - (1 + (4 - current_sensor[i])); j >= start; j -= 5)
-						{
-							Sample sample = (Sample) data.get(j);
-						    segment_data.add(sample);
-						}
-					}
-					line_data_array.add(segment_data);
-				}
-			}
-			
-			position      = a1;
-			double  value = xmin;
-			String  value_string = String.format("%.1f", value);
-			string_width  = font_metrics.stringWidth(value_string);
-			for(int i = 0; i < 16; i++)
-			{
-				graphics_buffer.drawLine(position, b2, position, b1);
-				graphics_buffer.drawString(value_string, position - (string_width / 2), b2 + (12 + string_height));
-				position += 50;
-				value    += .5;
-				value_string = String.format("%.1f", value);
-				string_width  = font_metrics.stringWidth(value_string);
-			}
-			graphics_buffer.drawLine(position, b2, position, b1);
-			graphics_buffer.drawString(value_string, position - (string_width / 2), b2 + (12 + string_height));
-			double min_intensity   = line_min;
-			double max_intensity   = line_max;
-			double intensity_range = max_intensity - min_intensity;
-			
-			int number_of_segments = line_data_array.size();	
-			for (int i = 0; i < number_of_segments; i++)
-			{
-				ArrayList line_data_list = (ArrayList) line_data_array.get(i);
-				int size = line_data_list.size();
-				
-				int current_line   = (int)line_data_list.get(0);
-				int current_sensor = (int)line_data_list.get(1);
-				for(int j = 2; j < size; j++)
-				{
-					Sample sample = (Sample) line_data_list.get(j);
-					double x = sample.x;
-					double y = sample.y;
-					x -= xmin;
-					x *= 100;
-					x += left_margin;
-					y *= 10;
-					y  = ydim - y;
-					y += top_margin;
-					double intensity = sample.intensity - min_intensity;
-					intensity /= intensity_range;
-					int rgb_value = (int)(intensity * 255.);
-					Color color = new Color(rgb_value, rgb_value, rgb_value);
-					graphics_buffer.setColor(color);
-					int start_x = (int)x - 10;
-					if(start_x < left_margin)
-						start_x = left_margin;
-					int end_x = (int)x + 10;
-					if(end_x > right_margin)
-						end_x = right_margin;
-					graphics_buffer.fillRect(start_x, (int)y, end_x, 1);
-					
-					int x_index = (int)x;
-					int y_index = (int)y;
-					
-					for(int k = 0; k < 10; k++)
-					{
-						ArrayList data_list = image_grid_data[y_index][x_index + k];
-						data_list.add(current_line);
-						data_list.add(current_sensor);
-						data_list.add(sample);
-						if(k != 0)
-						{
-						    data_list = image_grid_data[y_index][x_index - k];
-						    data_list.add(current_line);
-							data_list.add(current_sensor);
-							data_list.add(sample);
-						}
-						
-					}
-				}
-			}
-			
-			double [][] location_array = ObjectMapper.getObjectLocationArray();
-			int length = location_array.length;
-			graphics_buffer.setColor(java.awt.Color.RED);	
-			for(int i = 0; i < length; i++)
-			{
-				double x = location_array[i][0];
-				double y = location_array[i][1];
-				x -= global_xmin;
-				y -= global_ymin;
-				if(x >= xmin && x <= xmax)
-				{
-					x -= xmin;
-					x *= 100;
-					x += left_margin;
-					
-					y *= 10;
-					y = ydim - y;
-					y += top_margin;
-					
-				    graphics_buffer.fillOval((int)(x - 1), (int)(y - 1), 3, 3);
-				    // If we want targent numbers.
-				    String object_string = Integer.toString(i + 1); 
-				    graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
-				}
-			}
-			
-			
-			
 			
 			g.drawImage(buffered_image, 0, 0,  this);
 		}
@@ -7159,184 +6847,6 @@ public class XFencePlotter
 			g.drawImage(buffered_image, 0, 0, null);
 		}
 	}
-	
-	
-	
-	/*
-	class LocationCanvas extends Canvas
-	{
-		public void paint(Graphics g)
-		{
-			Rectangle visible_area = g.getClipBounds();
-
-			int xdim = (int) visible_area.getWidth();
-			int ydim = (int) visible_area.getHeight();
-			
-			double xrange = global_xmax - global_xmin;
-			double yrange = global_ymax - global_ymin;
-			
-			double xfactor = (double)xdim / xrange;
-			double yfactor = (double)ydim / yrange;
-
-			int size = data_array.size();
-			int number_of_segments = 0;
-			if (size > 0)
-			{
-				number_of_segments = size - 4;
-			}
-			
-			boolean lineIncluded[] = new boolean[30];
-			for(int i = 0; i < 30; i++)
-				lineIncluded[i]	= false;
-			
-			for(int i = 0; i < number_of_segments; i++)
-			{
-				ArrayList sensor_list = (ArrayList)data_array.get(i + 4);
-				int included_line = (int)sensor_list.get(0);
-				lineIncluded[included_line] = true;
-			}
-			
-			int number_of_lines_included = 0;
-			for(int i = 0; i < 30; i++)
-			{
-				if(lineIncluded[i] == true)
-					number_of_lines_included++;
-			}
-			
-			ArrayList segment = new ArrayList();
-			for (int i = 0; i < 30; i++)
-			{
-				if(lineIncluded[i] == true)
-				{
-					int start = line_index[i][0];
-				    int stop  = line_index[i][1];
-				    segment.add(start);
-				    segment.add(stop);
-				}
-			}
-			
-			Image buffered_image = new BufferedImage(xdim, ydim, BufferedImage.TYPE_INT_RGB);
-			Graphics2D graphics_buffer = (Graphics2D) buffered_image.getGraphics();
-			Font current_font = graphics_buffer.getFont();
-			FontMetrics font_metrics = graphics_buffer.getFontMetrics(current_font);
-			graphics_buffer.setColor(java.awt.Color.WHITE);
-			graphics_buffer.fillRect(0, 0, xdim, ydim);
-			graphics_buffer.setColor(java.awt.Color.BLACK);
-			
-			Sample sample = (Sample) data.get(2);
-			int previous_x = (int)(sample.x * xfactor);
-		    int previous_y = (int)(sample.y * yfactor);
-		    previous_y     = ydim - previous_y;
-		    for(int i = 7; i < data.size(); i += 5)
-		    {
-		    	sample = (Sample) data.get(i); 
-			    if(sample.y >= offset && sample.y < offset + range)
-			    {
-			    	boolean isSegmented = false;
-			    	for(int j = 0; j < segment.size(); j += 2)
-			    	{
-			    	    int start = (int)segment.get(j);
-			    	    int stop  = (int)segment.get(j + 1);
-			    	    if(i >= start && i < stop)
-			    	        isSegmented = true;
-			    	}
-			    	if(isSegmented)
-			    	{
-			    		graphics_buffer.setColor(java.awt.Color.GREEN);
-			    	    graphics_buffer.setStroke(new BasicStroke(3));
-			    	}
-			    	else
-			    	{
-			    		graphics_buffer.setColor(java.awt.Color.GRAY);
-			    		graphics_buffer.setStroke(new BasicStroke(1));
-			    	}
-			    	int current_x = (int)(sample.x * xfactor);
-				    int current_y = (int)(sample.y * yfactor);
-				    current_y     = ydim - current_y;
-			    	graphics_buffer.drawLine(previous_x,  previous_y, current_x, current_y);
-			    	previous_x = current_x;
-				    previous_y = current_y;
-			    }
-			    else
-			    {
-			    	graphics_buffer.setColor(java.awt.Color.GRAY);
-			    	graphics_buffer.setStroke(new BasicStroke(1));
-			    	int current_x = (int)(sample.x * xfactor);
-				    int current_y = (int)(sample.y * yfactor);
-				    current_y     = ydim - current_y;
-			    	graphics_buffer.drawLine(previous_x,  previous_y, current_x, current_y);
-			        previous_x = current_x;
-				    previous_y = current_y;
-			    }   	
-		    }
-			
-		    double [][] location_array = ObjectMapper.getObjectLocationArray();
-			int length = location_array.length;
-			
-			
-			for(int i = 0; i < length; i++)
-			{
-				double x = location_array[i][0];
-				double y = location_array[i][1];
-				x -= global_xmin;
-				y -= global_ymin;
-				x *= xfactor;
-				y *= yfactor;
-				y = ydim - y;
-				graphics_buffer.setColor(java.awt.Color.RED);
-				graphics_buffer.fillOval((int)(x - 1), (int)(y - 1), 3, 3);
-				// If we want targent numbers.
-				graphics_buffer.setColor(java.awt.Color.BLACK);
-				String object_string = Integer.toString(i + 1); 
-				graphics_buffer.drawString(object_string, (int)(x + 2), (int)y); 
-			}
-			
-			int current_xlocation       = (int)(xlocation * (xdim - 1));
-			int current_ylocation       = (int)(ylocation * (ydim - 1));
-			current_ylocation           = ydim - current_ylocation;
-			
-			graphics_buffer.setColor(java.awt.Color.BLUE);
-	    	graphics_buffer.setStroke(new BasicStroke(1));
-			graphics_buffer.drawLine(0, current_ylocation, xdim - 1, current_ylocation);
-			graphics_buffer.drawLine(current_xlocation, 0, current_xlocation, ydim - 1);
-			
-			if(!location_changing)
-			{
-			    double normalized_x = xrange;
-			    normalized_x       *= xlocation;
-			    String xstring, ystring;
-			    if(relative_mode)
-			        xstring = String.format("%,.2f", normalized_x);
-			    else
-				    xstring = String.format("%,.0f", normalized_x + global_xmin);
-			    double normalized_y = yrange;
-			    normalized_y       *= ylocation;
-			    
-			    if(relative_mode)
-			        ystring = String.format("%,.2f", normalized_y);
-			    else
-				    ystring = String.format("%,.0f", normalized_y + global_ymin);
-			    String location_string = new String("x = " + xstring + ", y = " + ystring);
-			    int string_width       = font_metrics.stringWidth(location_string);
-			    int string_height      = font_metrics.getAscent();
-			
-			    if(current_xlocation > xdim / 2)
-				    current_xlocation -= string_width + 3; 
-			    else
-				    current_xlocation += 3; 
-			    if(current_ylocation < ydim / 2)
-				    current_ylocation += string_height + 1;
-			    else
-				    current_ylocation -= 3;
-			    graphics_buffer.setColor(java.awt.Color.WHITE);
-			    graphics_buffer.fillRect(current_xlocation, current_ylocation  - string_height + 1, string_width, string_height);
-			    graphics_buffer.setColor(java.awt.Color.BLACK);
-			    graphics_buffer.drawString(location_string, current_xlocation, current_ylocation); 
-			}
-			g.drawImage(buffered_image, 0, 0, null);
-		}
-	}
-	*/
 	
 	class DynamicRangeCanvas extends Canvas
 	{
@@ -7858,7 +7368,6 @@ public class XFencePlotter
 			location_canvas.repaint();
 			sort_canvas.repaint();
 			segment_image_canvas.repaint();
-			line_image_canvas.repaint();
 			offset_information.setText(String.format("%.2f", offset));	
 		}
 					
