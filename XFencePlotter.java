@@ -180,7 +180,6 @@ public class XFencePlotter
 	public JDialog line_image_dialog;
 	public JDialog information_dialog;
 	public JDialog slope_dialog;
-	public JDialog double_slope_dialog;
 	public JDialog range_dialog;
 
 	// Shared by line canvas and mouse handler.
@@ -3420,22 +3419,15 @@ public class XFencePlotter
 					
 					Sample current_sample = (Sample)data.get(index);
 					double current_offset = current_sample.y;
-					if((current_offset - range / 2) < 15)
-					{
-					    current_offset = 15;	
-					}
-					else if((current_offset + range / 2) > 75)
-					{
-					    current_offset = 75 - range;	
-					}
-					else
-					{
-						current_offset -= range / 2;
-					}
+					current_offset -= range / 2;
 					
 					
-					//System.out.println("Current line is " + current_line);
-					//System.out.println("Current offset is " + current_offset);
+					// If the target is in a clipped area,
+					// segment the closest data.
+					if(current_offset < 15)
+						current_offset = 15;
+					else if(current_offset + range > 75)
+						current_offset = 75 - range;
 				
 					int current_sensor = 4;
 					if(current_line % 2 == 1)
@@ -5275,8 +5267,11 @@ public class XFencePlotter
 					append_y_abs      = current_y + global_ymin;
 					append_x_position = x;
 					append_y_position = y;
-					append_index = sample.index;
 					
+					// Index for data.
+					append_index      = sample.index;
+					
+					// Index for gui.
 					append_gui_index = 0;
 					String append_id = new String(current_line + ":" + current_sensor);
 					
@@ -6783,7 +6778,7 @@ public class XFencePlotter
 				if(!reverse_view)
 				    y = graph_ydim - y;
 				y += top_margin;
-				x += right_margin;
+				x += left_margin;
 				
 				
 				graphics_buffer.setColor(java.awt.Color.BLACK);
