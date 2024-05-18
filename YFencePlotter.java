@@ -2572,7 +2572,10 @@ public class YFencePlotter
 				else if(location_slider_changing == false)
 				{
 					range_button_changing = true;
+					
 					//data_offset = current_offset;
+					double range_delta = current_range - data_range;
+					data_offset -= range_delta / 2;
 					data_range  = current_range;
 					
 					int current_value = (int)(data_offset * 100);
@@ -2902,6 +2905,9 @@ public class YFencePlotter
 				    append_y_position += delta_y;
 				}
             	
+            	delta_x = 0;
+				delta_y = 0;
+				
             	if(startpoint_set)
 				{
 					if(startpoint_sensor == 0)
@@ -2960,6 +2966,9 @@ public class YFencePlotter
 					startpoint_x_position += delta_x;
 				    startpoint_y_position += delta_y;
 				}
+            	
+            	delta_x = 0;
+				delta_y = 0;
             	
             	if(midpoint_set)
 				{
@@ -3020,7 +3029,9 @@ public class YFencePlotter
 				    midpoint_y_position += delta_y;
 				}
             	
-
+            	delta_x = 0;
+				delta_y = 0;
+            	
             	if(endpoint_set)
 				{
 					if(endpoint_sensor == 0)
