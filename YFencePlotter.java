@@ -235,7 +235,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.1.6 of wand.");
+			System.out.println("This is version 4.1.7 of wand.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			
@@ -901,9 +901,9 @@ public class YFencePlotter
 		            	else
 		            		output.write("ShowID\t\t\tfalse\n");
 		            	if(show_position)
-		            		output.write("ShowPosition\t\ttrue\n");
+		            		output.write("ShowPosition\ttrue\n");
 		            	else
-		            		output.write("ShowPosition\t\tfalse\n");
+		            		output.write("ShowPosition\tfalse\n");
 		            	if(reverse_view)
 		            		output.write("ReverseView\t\ttrue\n");
 		            	else
@@ -1554,9 +1554,9 @@ public class YFencePlotter
 	            	else
 	            		output.write("ShowID\t\t\tfalse\n");
 	            	if(show_position)
-	            		output.write("ShowPosition\t\ttrue\n");
+	            		output.write("ShowPosition\ttrue\n");
 	            	else
-	            		output.write("ShowPosition\t\tfalse\n");
+	            		output.write("ShowPosition\tfalse\n");
 	            	if(color_key)
 	            		output.write("ColorKey\t\ttrue\n");
 	            	else
@@ -1723,10 +1723,9 @@ public class YFencePlotter
 
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
+				double    canvas_ydim      = canvas_dimension.getHeight();
 				
-				x += canvas_xdim;
-				
-				y += 200;
+				y += canvas_ydim + 70;
 
 				placement_dialog.setLocation(x, y);
 				placement_dialog.pack();
@@ -1757,12 +1756,14 @@ public class YFencePlotter
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
 
+
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
+				double    canvas_ydim      = canvas_dimension.getHeight();
 				
-				x += canvas_xdim;
+				x += 120;
 				
-				y += 400;
+				y += canvas_ydim + 70;
 
 				sensor_dialog.setLocation(x, y);
 				sensor_dialog.pack();
@@ -1811,10 +1812,11 @@ public class YFencePlotter
 
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
+				double    canvas_ydim      = canvas_dimension.getHeight();
 				
-				x += canvas_xdim;
+				x += 240;
 				
-				y += 400;
+				y += canvas_ydim + 70;
 
 				label_dialog.setLocation(x, y);
 				label_dialog.pack();
@@ -1862,9 +1864,11 @@ public class YFencePlotter
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
 				Dimension canvas_dimension = data_canvas.getSize();
+				
 				double    canvas_xdim      = canvas_dimension.getWidth();
 				x += canvas_xdim;
-				y += 500;		
+				//y += 670;	
+				y += 490;
 				smooth_dialog.setLocation(x, y);
 				smooth_dialog.pack();
 				smooth_dialog.setVisible(true);
@@ -1907,7 +1911,8 @@ public class YFencePlotter
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
 				x += canvas_xdim;
-				y += 600;		
+				//y += 720;	
+				y += 540;	
 				scale_dialog.setLocation(x, y);
 				scale_dialog.pack();
 				scale_dialog.setVisible(true);
@@ -2005,7 +2010,7 @@ public class YFencePlotter
 		DynamicRangeSliderHandler dynamic_range_slider_handler = new DynamicRangeSliderHandler();
 		dynamic_range_slider.addChangeListener(dynamic_range_slider_handler);
 		dynamic_range_canvas = new DynamicRangeCanvas();
-		dynamic_range_canvas.setSize(100, 520);
+		dynamic_range_canvas.setSize(100, 300);
 		JPanel dynamic_range_canvas_panel = new JPanel(new BorderLayout());
 		dynamic_range_canvas_panel.add(dynamic_range_slider, BorderLayout.WEST);
 		dynamic_range_canvas_panel.add(dynamic_range_canvas, BorderLayout.CENTER);
@@ -2023,9 +2028,11 @@ public class YFencePlotter
 				Point location_point = frame.getLocation();
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
-
-				x -= 150;
-				y += 35;
+				Dimension canvas_dimension = data_canvas.getSize();
+				double    canvas_xdim      = canvas_dimension.getWidth();
+				x += canvas_xdim;
+				//y += 770;
+				y += 590;
 				
 				if(!data_clipped)
                 {
@@ -2081,7 +2088,6 @@ public class YFencePlotter
 				
 				sample_information.setText("");
 				data_canvas.repaint();
-				//segment_image_canvas.repaint();
 				segment_image.repaint();
 				segment_map.repaint();
 			}
@@ -2410,7 +2416,7 @@ public class YFencePlotter
 				double    canvas_xdim      = canvas_dimension.getWidth();
 				
 				x += canvas_xdim;
-				y += 480;
+				y += 490;
 				segment_image_dialog.setLocation(x, y);
 				segment_image_dialog.pack();
 				segment_image_dialog.setVisible(true);
@@ -2438,8 +2444,7 @@ public class YFencePlotter
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
 						
-				x += canvas_xdim;
-				y += 480;
+				x += canvas_xdim + 250;
 				segment_map_dialog.setLocation(x, y);
 				segment_map_dialog.pack();
 				segment_map_dialog.setVisible(true);
@@ -2517,7 +2522,7 @@ public class YFencePlotter
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
 				
-				x += canvas_xdim;
+				x += canvas_xdim + 250;
 				location_dialog.setLocation(x, y);
 				location_dialog.pack();
 				location_dialog.setVisible(true);
@@ -2582,8 +2587,6 @@ public class YFencePlotter
 					endpoint_set    = false;
 					
 					sample_information.setText("");	
-					//double_slope_output.setText("");
-					//triple_slope_output.setText("");
 					slope_output.setText("");
 					
 					// Reset scrollbar.
@@ -2599,9 +2602,9 @@ public class YFencePlotter
 				    endpoint_set   = false;
 					data_canvas.repaint();
 					location_canvas.repaint();
-					//segment_image_canvas.repaint();
+					
 					segment_image.repaint();
-				}
+					segment_map.repaint();				}
 			}
 		};
 		RangeButtonHandler adjust_handler = new RangeButtonHandler();
@@ -2620,10 +2623,11 @@ public class YFencePlotter
 
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
+	            double    canvas_ydim      = canvas_dimension.getHeight();
 				
-				x += canvas_xdim;
+				x += 520;
 				
-				y += 420;
+				y += canvas_ydim + 70;
 
 				range_dialog.setLocation(x, y);
 				range_dialog.pack();
@@ -2677,10 +2681,10 @@ public class YFencePlotter
 					    endpoint_set   = false;
 						data_canvas.repaint();
 						location_canvas.repaint();
-						//segment_image_canvas.repaint();
-						segment_image.repaint();         
-				    }
-				    location_slider_changing = false;
+						
+						segment_image.repaint();  
+						segment_map.repaint();				    }
+				        location_slider_changing = false;
 				 }
 			}	
 	    }
@@ -2716,9 +2720,11 @@ public class YFencePlotter
 				
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
-				
-				x += canvas_xdim;
-				y += 560;
+				double    canvas_ydim      = canvas_dimension.getHeight();
+					
+			    x += 650;
+			    y += canvas_ydim + 70;
+			    
 				location_dialog.setLocation(x, y);
 				location_dialog.pack();
 				location_dialog.setVisible(true);
@@ -2742,10 +2748,10 @@ public class YFencePlotter
 
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
-						
-				x += canvas_xdim;
-						
-				y += 640;
+				double    canvas_ydim      = canvas_dimension.getHeight();
+				
+			    x += 650;
+			    y += canvas_ydim + 70;
 
 				set_object_dialog.setLocation(x, y);
 				set_object_dialog.pack();
@@ -2822,18 +2828,7 @@ public class YFencePlotter
 			public void actionPerformed(ActionEvent e) 
             {
             	JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
-            	if(reverse_view == true)
-				{
-            		reverse_view = false;
-					item.setState(false);
-					placement_canvas.repaint();
-				}
-				else
-				{
-					reverse_view = true;
-					item.setState(true);
-					placement_canvas.repaint();
-				}
+            	
             	
             	Dimension canvas_dimension = data_canvas.getSize();
 				int       canvas_xdim      = (int)canvas_dimension.getWidth();
@@ -2854,52 +2849,52 @@ public class YFencePlotter
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x = -4 * xstep;
-						    delta_y =  4 * ystep;
+						    delta_x = 4 * xstep;
+						    delta_y = -4 * ystep;
 						}
 						else
 						{
-							delta_x =  4 * xstep;
-							delta_y = -4 * ystep;
+							delta_x = -4 * xstep;
+							delta_y = 4 * ystep;
 						}	
 					}
 					else if(append_sensor == 4)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x =  4 * xstep;
-						    delta_y = -4 * ystep;
+						    delta_x = -4 * xstep;
+						    delta_y = 4 * ystep;
 						}
 						else
 						{
-							delta_x = -4 * xstep;
-							delta_y =  4 * ystep;
+							delta_x = 4 * xstep;
+							delta_y =  -4 * ystep;
 						} 
 					}
 					else if(append_sensor == 1)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x = -2 * xstep;
-						    delta_y =  2 * ystep;
-						}
-						else
-						{
-							delta_x =  2 * xstep;
-							delta_y = -2 * ystep;
-						}  
-					}
-					else if(append_sensor == 3)
-					{
-						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
-						{
-						    delta_x =  2 * xstep;
+						    delta_x = 2 * xstep;
 						    delta_y = -2 * ystep;
 						}
 						else
 						{
 							delta_x = -2 * xstep;
-							delta_y =  2 * ystep;
+							delta_y = 2 * ystep;
+						}	
+					}
+					else if(append_sensor == 3)
+					{
+						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
+						{
+						    delta_x = -2 * xstep;
+						    delta_y = 2 * ystep;
+						}
+						else
+						{
+							delta_x = 2 * xstep;
+							delta_y =  -2 * ystep;
 						} 
 					}
 					
@@ -2913,52 +2908,52 @@ public class YFencePlotter
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x = -4 * xstep;
-						    delta_y =  4 * ystep;
+						    delta_x = 4 * xstep;
+						    delta_y = -4 * ystep;
 						}
 						else
 						{
-							delta_x =  4 * xstep;
-							delta_y = -4 * ystep;
+							delta_x = -4 * xstep;
+							delta_y = 4 * ystep;
 						}	
 					}
 					else if(startpoint_sensor == 4)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x =  4 * xstep;
-						    delta_y = -4 * ystep;
+						    delta_x =  -4 * xstep;
+						    delta_y = 4 * ystep;
 						}
 						else
 						{
-							delta_x = -4 * xstep;
-							delta_y =  4 * ystep;
+							delta_x = 4 * xstep;
+							delta_y =  -4 * ystep;
 						} 
 					}
 					else if(startpoint_sensor == 1)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x = -2 * xstep;
-						    delta_y =  2 * ystep;
+						    delta_x = 2 * xstep;
+						    delta_y =  -2 * ystep;
 						}
 						else
 						{
-							delta_x =  2 * xstep;
-							delta_y = -2 * ystep;
+							delta_x =  -2 * xstep;
+							delta_y = 2 * ystep;
 						}  
 					}
 					else if(startpoint_sensor == 3)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x =  2 * xstep;
-						    delta_y = -2 * ystep;
+						    delta_x =  -2 * xstep;
+						    delta_y = 2 * ystep;
 						}
 						else
 						{
-							delta_x = -2 * xstep;
-							delta_y =  2 * ystep;
+							delta_x = 2 * xstep;
+							delta_y =  -2 * ystep;
 						} 
 					}
 					
@@ -2972,52 +2967,52 @@ public class YFencePlotter
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x = -4 * xstep;
-						    delta_y =  4 * ystep;
+						    delta_x = 4 * xstep;
+						    delta_y =  -4 * ystep;
 						}
 						else
 						{
-							delta_x =  4 * xstep;
-							delta_y = -4 * ystep;
+							delta_x =  -4 * xstep;
+							delta_y = 4 * ystep;
 						}	
 					}
 					else if(midpoint_sensor == 4)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x =  4 * xstep;
-						    delta_y = -4 * ystep;
+						    delta_x =  -4 * xstep;
+						    delta_y = 4 * ystep;
 						}
 						else
 						{
-							delta_x = -4 * xstep;
-							delta_y =  4 * ystep;
+							delta_x = 4 * xstep;
+							delta_y =  -4 * ystep;
 						} 
 					}
 					else if(midpoint_sensor == 1)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x = -2 * xstep;
-						    delta_y =  2 * ystep;
+						    delta_x = 2 * xstep;
+						    delta_y =  -2 * ystep;
 						}
 						else
 						{
-							delta_x =  2 * xstep;
-							delta_y = -2 * ystep;
+							delta_x =  -2 * xstep;
+							delta_y = 2 * ystep;
 						}  
 					}
 					else if(midpoint_sensor == 3)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x =  2 * xstep;
-						    delta_y = -2 * ystep;
+						    delta_x =  -2 * xstep;
+						    delta_y = 2 * ystep;
 						}
 						else
 						{
-							delta_x = -2 * xstep;
-							delta_y =  2 * ystep;
+							delta_x = 2 * xstep;
+							delta_y =  -2 * ystep;
 						} 
 					}
 					
@@ -3032,52 +3027,52 @@ public class YFencePlotter
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x = -4 * xstep;
-						    delta_y =  4 * ystep;
+						    delta_x = 4 * xstep;
+						    delta_y =  -4 * ystep;
 						}
 						else
 						{
-							delta_x =  4 * xstep;
-							delta_y = -4 * ystep;
+							delta_x =  -4 * xstep;
+							delta_y = 4 * ystep;
 						}	
 					}
 					else if(endpoint_sensor == 4)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x =  4 * xstep;
-						    delta_y = -4 * ystep;
+						    delta_x =  -4 * xstep;
+						    delta_y = 4 * ystep;
 						}
 						else
 						{
-							delta_x = -4 * xstep;
-							delta_y =  4 * ystep;
+							delta_x = 4 * xstep;
+							delta_y =  -4 * ystep;
 						} 
 					}
 					else if(endpoint_sensor == 1)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x = -2 * xstep;
-						    delta_y =  2 * ystep;
+						    delta_x = 2 * xstep;
+						    delta_y =  -2 * ystep;
 						}
 						else
 						{
-							delta_x =  2 * xstep;
-							delta_y = -2 * ystep;
+							delta_x =  -2 * xstep;
+							delta_y = 2 * ystep;
 						}  
 					}
 					else if(endpoint_sensor == 3)
 					{
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-						    delta_x =  2 * xstep;
-						    delta_y = -2 * ystep;
+						    delta_x =  -2 * xstep;
+						    delta_y = 2 * ystep;
 						}
 						else
 						{
-							delta_x = -2 * xstep;
-							delta_y =  2 * ystep;
+							delta_x = 2 * xstep;
+							delta_y =  -2 * ystep;
 						} 
 					}
 					
@@ -3085,9 +3080,20 @@ public class YFencePlotter
 				    endpoint_y_position += delta_y;
 				}
             	
+            	if(reverse_view == true)
+				{
+            		reverse_view = false;
+					item.setState(false);
+				}
+				else
+				{
+					reverse_view = true;
+					item.setState(true);
+				}
+            	
+            	placement_canvas.repaint();
 				data_canvas.repaint();
 				location_canvas.repaint();
-				//segment_image_canvas.repaint();
 				segment_image.repaint();
 				segment_map.repaint();
             }   	
@@ -3247,11 +3253,13 @@ public class YFencePlotter
 					Point location_point = frame.getLocation();
 					int x = (int) location_point.getX();
 					int y = (int) location_point.getY();
-									
+								
 					Dimension canvas_dimension = data_canvas.getSize();
 					double    canvas_xdim      = canvas_dimension.getWidth();
-									
-					x += canvas_xdim;
+					double    canvas_ydim      = canvas_dimension.getHeight();
+					
+					x += canvas_xdim - 155;;
+					y += canvas_ydim - 110;
 					information_dialog.setLocation(x, y);
 					information_dialog.pack();
 					information_dialog.setVisible(true);
@@ -3274,6 +3282,7 @@ public class YFencePlotter
 		frame.pack();
 		frame.setLocation(50, 10);
 	    data_canvas.repaint();
+	    show_data_item.doClick();
 		//System.out.println("Finished Y Fence constructor.");
 		// End constructor.
 	}
@@ -3432,11 +3441,6 @@ public class YFencePlotter
 					    x[j] = sample.x;
 					    y[j] = sample.y;
 					    z[j] = sample.intensity;
-					    
-					    /*
-					    if(j == size - 1)
-					    	end_position[i] = sample.x;
-					    */
 					}
 					
 					double[] smooth_x = smooth(x, smooth);
@@ -4824,8 +4828,6 @@ public class YFencePlotter
 					midpoint_set = false;
 					endpoint_set = false;
 					
-					
-					
 					// Update offset/range information.
 					offset_information.setText(String.format("%,.4f", data_offset));
 					range_information.setText(String.format("%.2f", data_range * data_length));
@@ -4859,7 +4861,6 @@ public class YFencePlotter
 			    persistent_data = true;
 			    append_data     = true;
 			    data_canvas.repaint();
-			    //segment_image_canvas.repaint();
 				segment_image.repaint();
 			    segment_map.repaint();
 			}
@@ -4871,7 +4872,6 @@ public class YFencePlotter
 				{
 				    append_data = false;
 				    data_canvas.repaint();
-				    //segment_image_canvas.repaint();
 					segment_image.repaint();
 				    segment_map.repaint();
 				}
@@ -4883,7 +4883,7 @@ public class YFencePlotter
 	{
 		public void mouseMoved(MouseEvent event)
 		{
-			if(persistent_data || pixel_data == null)
+			if(pixel_data == null)
 				return;
 			
 			int x = event.getX();
@@ -4945,19 +4945,20 @@ public class YFencePlotter
 					current_x = sample.x;
 					current_y = sample.y;
 					
-					append_line       = current_line;
-					append_sensor     = current_sensor;
-					append_intensity  = current_intensity;
-					append_x          = current_x;
-					append_y          = current_y;
-					append_x_abs      = current_x + global_xmin;
-					append_y_abs      = current_y + global_ymin;
-					append_x_position = x;
-					append_y_position = y;
-					append_index      = sample.index;
+					if(!persistent_data)
+					{
+					    append_line       = current_line;
+					    append_sensor     = current_sensor;
+					    append_intensity  = current_intensity;
+					    append_x          = current_x;
+					    append_y          = current_y;
+					    append_x_abs      = current_x + global_xmin;
+					    append_y_abs      = current_y + global_ymin;
+					    append_x_position = x;
+					    append_y_position = y;
+					    append_index      = sample.index;
+					}
 
-					String append_id = new String(current_line + ":" + current_sensor);
-					
 					String information_string = new String("  Line:         " + current_line + "\n");
 					sample_information.append(information_string);
 					information_string = new String("  Sensor:     " + current_sensor + "\n");
