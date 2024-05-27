@@ -95,7 +95,6 @@ public class YFencePlotter
 	boolean            range_button_changing    = false;
 	boolean            object_button_changing   = false;
 	boolean            scrollbar_changing       = false;
-	//boolean            text_field_changing      = false;
 	
 	
 	int     append_gui_index     = 0;
@@ -3242,6 +3241,17 @@ public class YFencePlotter
 		
 		// A modeless dialog box that shows up if Settings->Show Data is selected.
 		JPanel information_panel = new JPanel(new BorderLayout());
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		sample_information = new JTextArea(8, 17);
 		information_panel.add(sample_information);
 		information_dialog = new JDialog(frame);
@@ -3284,6 +3294,20 @@ public class YFencePlotter
 			show_data_item.setState(true);
 		else
 			show_data_item.setState(false);
+		
+		
+		/*
+		WindowAdapter panel_handler = new WindowAdapter()
+	    {
+	        public void windowClosing(WindowEvent event)
+	        {
+	            show_data_item.setState(false);
+	        }
+	    };
+	    
+	    information_panel.addWindowListener(panel_handler);
+	    */
+		
 		settings_menu.add(show_data_item);		
 		menu_bar.add(settings_menu);
 		// End settings menu.
@@ -6231,6 +6255,7 @@ public class YFencePlotter
         	    y += top_margin;
         	    
         	    int line   = start_flight_line;
+        	    
         	    int sensor = i;
         	    if(reverse_view)
         	    	sensor = 4 - i;
@@ -6239,10 +6264,12 @@ public class YFencePlotter
         	    graphics_buffer.setColor(java.awt.Color.BLACK);
 			    graphics_buffer.drawString(line_sensor_pair, (int)x - (string_width + 10), (int)(y + string_height / 2));
 			    
+			    
 			    if(reverse_view)
-        	        graphics_buffer.setColor(fill_color[i]);
+        	        graphics_buffer.setColor(fill_color[4 - sensor]);
 			    else
-			    	graphics_buffer.setColor(fill_color[4 - i]);
+			    	graphics_buffer.setColor(fill_color[sensor]);
+			    
 			    Point2D.Double previous = new Point2D.Double(x, y);
 			    for(int j = 1; j < sample_list.size(); j++)
 				{
