@@ -2425,7 +2425,7 @@ public class YFencePlotter
 		
 		slope_menu.add(segment_image_item);
 				
-		// A modeless dialog box that shows up if Slope->Show Segment Image is selected.
+		// A modeless dialog box that shows up if Slope->Show Segment Map is selected.
 		segment_map = new SegmentMap();
 		segment_map.setSize(600, 400);
 		segment_map_dialog = new JDialog(frame);
@@ -3317,7 +3317,7 @@ public class YFencePlotter
 		frame.pack();
 		frame.setLocation(50, 10);
 	    data_canvas.repaint();
-	    show_data_item.doClick();
+	    //show_data_item.doClick();
 		//System.out.println("Finished Y Fence constructor.");
 		// End constructor.
 	}
@@ -6265,7 +6265,7 @@ public class YFencePlotter
 			    graphics_buffer.drawString(line_sensor_pair, (int)x - (string_width + 10), (int)(y + string_height / 2));
 			    
 			    
-			    if(reverse_view)
+			    if(!reverse_view)
         	        graphics_buffer.setColor(fill_color[4 - sensor]);
 			    else
 			    	graphics_buffer.setColor(fill_color[sensor]);
