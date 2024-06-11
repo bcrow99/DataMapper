@@ -234,7 +234,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.1.7 of wand.");
+			System.out.println("This is version 4.1.8 of wand.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			
@@ -2057,9 +2057,11 @@ public class YFencePlotter
 		// Start slope menu.
 	
 		JMenu  slope_menu  = new JMenu("Slope");
-		
+		String slope_header = new String("   ID     X(m)    Y(m)     Z(nT)       D(nT)       D(m)     D(nT)/D(m)  \n\n");
 		JPanel slope_panel = new JPanel(new BorderLayout());
-		slope_output = new JTextArea(25, 10);
+		//slope_output = new JTextArea(25, 10);
+		slope_output = new JTextArea(7, 10);
+		slope_output.setText(slope_header);
 		JPanel slope_button_panel = new JPanel(new GridLayout(2,3));
 		JButton   slope_start_button       = new JButton("Start");
 		ActionListener startpoint_handler = new ActionListener()
@@ -2080,10 +2082,64 @@ public class YFencePlotter
 				append_data    = false;
 				persistent_data = false;
 				
-				slope_output.append(" start_intensity     " + String.format("%.2f",startpoint_intensity) + " nT\n");
-            	slope_output.append(" start_x                 " + String.format("%.2f", startpoint_x) + "  m\n");
-            	slope_output.append(" start_y                 " + String.format("%.2f", startpoint_y) + "  m\n");
-            	slope_output.append(" start_line_sensor " + startpoint_line + ":" + startpoint_sensor + "\n\n");
+                slope_output.setText(slope_header);
+				
+				if(startpoint_set)
+				{   slope_output.append(" ");
+					if(startpoint_line < 10)
+						slope_output.append(" ");
+					slope_output.append(startpoint_line + ":" + startpoint_sensor + "  ");
+					if(startpoint_x < 10)
+						slope_output.append(" ");	
+					slope_output.append(String.format("%.2f", startpoint_x) + "   ");
+					if(startpoint_y < 10)
+						slope_output.append(" ");	
+					slope_output.append(String.format("%.2f", startpoint_y) + "   ");
+					if(startpoint_intensity < 10)
+						slope_output.append("    ");
+					else if(startpoint_intensity < 100)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f",startpoint_intensity) + "\n");
+				}
+				
+				if(midpoint_set)
+				{
+					slope_output.append(" ");
+					if(midpoint_line < 10)
+						slope_output.append(" ");
+					slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
+					if(midpoint_x < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", midpoint_x) + "   ");
+					if(midpoint_y < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", midpoint_y) + "   ");
+					if(midpoint_intensity < 10)
+						slope_output.append("    ");
+					else if(midpoint_intensity < 100)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f",midpoint_intensity) + "\n");	
+				}
+				
+				if(endpoint_set)
+				{
+					slope_output.append(" ");
+					if(endpoint_line < 10)
+						slope_output.append(" ");
+					slope_output.append(endpoint_line + ":" + endpoint_sensor + "  ");
+					if(endpoint_x < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", endpoint_x) + "   ");
+					if(endpoint_y < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", endpoint_y) + "   ");
+					if(endpoint_intensity < 10)
+						slope_output.append("    ");
+					else if(endpoint_intensity < 100)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f",endpoint_intensity) + "\n");	
+				}
+				
 				
 				sample_information.setText("");
 				data_canvas.repaint();
@@ -2113,10 +2169,69 @@ public class YFencePlotter
 				append_data         = false;
 				persistent_data     = false;
 				
+				/*
 				slope_output.append(" mid_intensity     " + String.format("%.2f", midpoint_intensity) +  " nT\n");
             	slope_output.append(" mid_x                 " + String.format("%.2f", midpoint_x) + "  m\n");
             	slope_output.append(" mid_y                 " + String.format("%.2f", midpoint_y) + "  m\n");
             	slope_output.append(" mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n\n");
+            	*/
+                slope_output.setText(slope_header);
+				
+                if(startpoint_set)
+				{   slope_output.append(" ");
+					if(startpoint_line < 10)
+						slope_output.append(" ");
+					slope_output.append(startpoint_line + ":" + startpoint_sensor + "  ");
+					if(startpoint_x < 10)
+						slope_output.append(" ");	
+					slope_output.append(String.format("%.2f", startpoint_x) + "   ");
+					if(startpoint_y < 10)
+						slope_output.append(" ");	
+					slope_output.append(String.format("%.2f", startpoint_y) + "   ");
+					if(startpoint_intensity < 10)
+						slope_output.append("    ");
+					else if(startpoint_intensity < 100)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f",startpoint_intensity) + "\n");
+				}
+				
+				if(midpoint_set)
+				{
+					slope_output.append(" ");
+					if(midpoint_line < 10)
+						slope_output.append(" ");
+					slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
+					if(midpoint_x < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", midpoint_x) + "   ");
+					if(midpoint_y < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", midpoint_y) + "   ");
+					if(midpoint_intensity < 10)
+						slope_output.append("    ");
+					else if(midpoint_intensity < 100)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f",midpoint_intensity) + "\n");	
+				}
+				
+				if(endpoint_set)
+				{
+					slope_output.append(" ");
+					if(endpoint_line < 10)
+						slope_output.append(" ");
+					slope_output.append(endpoint_line + ":" + endpoint_sensor + "  ");
+					if(endpoint_x < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", endpoint_x) + "   ");
+					if(endpoint_y < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", endpoint_y) + "   ");
+					if(endpoint_intensity < 10)
+						slope_output.append("    ");
+					else if(endpoint_intensity < 100)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f",endpoint_intensity) + "\n");	
+				}
 				
 				sample_information.setText("");
 				data_canvas.repaint();
@@ -2148,14 +2263,73 @@ public class YFencePlotter
 				append_data         = false;
 				persistent_data     = false;
 				
+				/*
 				slope_output.append(" end_intensity     " + String.format("%.2f", endpoint_intensity) + " nT\n");
             	slope_output.append(" end_x                 " + String.format("%.2f", endpoint_x) + "  m\n");
             	slope_output.append(" end_y                 " + String.format("%.2f", endpoint_y) + "  m\n");
             	slope_output.append(" end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n\n");
+            	*/
+				
+                slope_output.setText(slope_header);
+				
+                if(startpoint_set)
+				{   slope_output.append(" ");
+					if(startpoint_line < 10)
+						slope_output.append(" ");
+					slope_output.append(startpoint_line + ":" + startpoint_sensor + "  ");
+					if(startpoint_x < 10)
+						slope_output.append(" ");	
+					slope_output.append(String.format("%.2f", startpoint_x) + "   ");
+					if(startpoint_y < 10)
+						slope_output.append(" ");	
+					slope_output.append(String.format("%.2f", startpoint_y) + "   ");
+					if(startpoint_intensity < 10)
+						slope_output.append("    ");
+					else if(startpoint_intensity < 100)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f",startpoint_intensity) + "\n");
+				}
+				
+				if(midpoint_set)
+				{
+					slope_output.append(" ");
+					if(midpoint_line < 10)
+						slope_output.append(" ");
+					slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
+					if(midpoint_x < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", midpoint_x) + "   ");
+					if(midpoint_y < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", midpoint_y) + "   ");
+					if(midpoint_intensity < 10)
+						slope_output.append("    ");
+					else if(midpoint_intensity < 100)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f",midpoint_intensity) + "\n");	
+				}
+				
+				if(endpoint_set)
+				{
+					slope_output.append(" ");
+					if(endpoint_line < 10)
+						slope_output.append(" ");
+					slope_output.append(endpoint_line + ":" + endpoint_sensor + "  ");
+					if(endpoint_x < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", endpoint_x) + "   ");
+					if(endpoint_y < 10)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f", endpoint_y) + "   ");
+					if(endpoint_intensity < 10)
+						slope_output.append("    ");
+					else if(endpoint_intensity < 100)
+						slope_output.append(" ");
+					slope_output.append(String.format("%.2f",endpoint_intensity) + "\n");	
+				}
             	
 				sample_information.setText("");
 				data_canvas.repaint();
-				//segment_image_canvas.repaint();
 				segment_image.repaint();
 				segment_map.repaint();
 			}
@@ -2164,108 +2338,449 @@ public class YFencePlotter
 		slope_button_panel.add(slope_end_button);
 		
 		JButton slope_apply_button = new JButton("Apply");
-		ActionListener triple_apply_handler = new ActionListener()
+
+		ActionListener slope_apply_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				if(startpoint_set && midpoint_set && endpoint_set)
+				// To help figure out where the closest object is.
+				double [][] location_array = ObjectMapper.getObjectLocationArray();
+				//int length = location_array.length;
+				for(int i = 0; i < location_array.length; i++)
 				{
-	            	double amplitude1 = midpoint_intensity - startpoint_intensity;
-				    double width1  = getDistance(startpoint_x, startpoint_y, midpoint_x, midpoint_y);
-				    double start_slope = amplitude1 / width1;
-				    
-				    
-				    double amplitude2 = endpoint_intensity - midpoint_intensity;
-				    double width2  = getDistance(endpoint_x, endpoint_y, midpoint_x, midpoint_y);
-				    double end_slope = amplitude2 / width2;
-				    
-				    slope_output.append(" amplitude1  " + String.format("%.2f", amplitude1) + " nT\n");
-				    slope_output.append(" width1          " + String.format("%.2f", width1) + "  m\n");
-				    slope_output.append(" start_slope  " + String.format("%.2f", start_slope) + " nT/m\n\n");
-				    
-				    slope_output.append(" amplitude2  " + String.format("%.2f", amplitude2) + " nT\n");
-				    slope_output.append(" width2         " + String.format("%.2f", width2) + "  m\n");
-				    slope_output.append(" end_slope   " + String.format("%.2f", end_slope) + " nT/m\n\n");
-				    
-				     
-				    double [][] location_array = ObjectMapper.getObjectLocationArray();
-					int length = location_array.length;
-					for(int i = 0; i < length; i++)
-					{
-						location_array[i][0] -= global_xmin;
-						location_array[i][1] -= global_ymin;
-					}
-					double previous_distance = getDistance(midpoint_x, midpoint_y, location_array[0][0], location_array[0][1]);
-					int    closest_target    = 0;
-					for(int i = 1; i < location_array.length; i++)
-					{
-						double current_distance = getDistance(midpoint_x, midpoint_y, location_array[i][0], location_array[i][1]);
-						if(current_distance < previous_distance)
-						{
-							previous_distance = current_distance;
-							closest_target = i;
-						}
-					}
-					slope_output.append(" nearest_target_id " + (closest_target + 1) + "\n");
-					slope_output.append(" nearest_target_distance " + String.format("%.2f", previous_distance) + "\n");
+					location_array[i][0] -= global_xmin;
+					location_array[i][1] -= global_ymin;
 				}
-				else if(startpoint_set && endpoint_set)
-				{ 
+				
+				if(startpoint_set)
+				{
+				    if(midpoint_set)
+				    {
+				    	if(endpoint_set)
+				    	{
+				    	    // Get two slopes.	
+				    		slope_output.setText(slope_header);
+				    		
+				    		slope_output.append(" ");
+				    		if(startpoint_line < 10)
+								slope_output.append(" ");
+							slope_output.append(startpoint_line + ":" + startpoint_sensor + "  ");
+							if(startpoint_x < 10)
+								slope_output.append(" ");	
+							slope_output.append(String.format("%.2f", startpoint_x) + "   ");
+							if(startpoint_y < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", startpoint_y) + "   ");
+							if(startpoint_intensity < 10)
+								slope_output.append("    ");
+							else if(startpoint_intensity < 100)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f",startpoint_intensity) + "\n");
+						
+							slope_output.append(" ");
+							if(midpoint_line < 10)
+								slope_output.append(" ");
+							slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
+							if(midpoint_x < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", midpoint_x) + "   ");
+							if(midpoint_y < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", midpoint_y) + "   ");
+							if(midpoint_intensity < 10)
+								slope_output.append("    ");
+							else if(midpoint_intensity < 100)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f",midpoint_intensity) + "      ");
+							
+							double nt_delta = midpoint_intensity - startpoint_intensity;
+						    double m_delta  = getDistance(startpoint_x, startpoint_y, midpoint_x, midpoint_y);
+						    double slope    = nt_delta / m_delta;
+						   
+						    if(nt_delta >= 0)
+						    	slope_output.append(" ");
+						    if(nt_delta > -10 && nt_delta < 10)
+						    	slope_output.append("  ");
+						    else if(nt_delta > -100 && nt_delta < 100)
+						    	slope_output.append(" ");
+						    slope_output.append(String.format("%.2f",nt_delta) + "     ");
+						    
+						    if(m_delta < 10)
+						    	slope_output.append("  ");
+						    else if(m_delta < 100)
+						    	slope_output.append(" ");
+						    slope_output.append(String.format("%.2f",m_delta) + "    ");
+						    if(slope >= 0)
+						    	slope_output.append(" ");
+						    if(slope > -10 && slope < 10)
+						    	slope_output.append("  ");
+						    else if(slope > -100 && slope < 100)
+						    	slope_output.append(" ");
+						    slope_output.append(String.format("%.2f",slope) + "\n");
+						    
+						    slope_output.append(" ");
+						    if(endpoint_line < 10)
+								slope_output.append(" ");
+							slope_output.append(endpoint_line + ":" + endpoint_sensor + "  ");
+							if(endpoint_x < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", endpoint_x) + "   ");
+							if(endpoint_y < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", endpoint_y) + "   ");
+							if(endpoint_intensity < 10)
+								slope_output.append("    ");
+							else if(endpoint_intensity < 100)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f",endpoint_intensity) + "      ");
+						    
+							nt_delta = endpoint_intensity - midpoint_intensity;
+						    m_delta  = getDistance(midpoint_x, midpoint_y, endpoint_x, endpoint_y);
+						    slope    = nt_delta / m_delta;
+						    if(nt_delta >= 0)
+						    	slope_output.append(" ");
+						    if(nt_delta > -10 && nt_delta < 10)
+						    	slope_output.append("  ");
+						    else if(nt_delta > -100 && nt_delta < 100)
+						    	slope_output.append(" ");	
+						    slope_output.append(String.format("%.2f",nt_delta) + "     ");
+						    
+						    if(m_delta < 10)
+						    	slope_output.append("  ");
+						    else if(m_delta < 100)
+						    	slope_output.append(" ");	
+						    slope_output.append(String.format("%.2f",m_delta) + "    ");
+						    if(slope >= 0)
+						    	slope_output.append(" ");
+						    if(slope > -10 && slope < 10)
+						    	slope_output.append("  ");
+						    else if(slope > -100 && slope < 100)
+						    	slope_output.append(" ");
+						    slope_output.append(String.format("%.2f",slope) + "\n\n");
+						    
+						   
+							double previous_distance = getDistance(midpoint_x, midpoint_y, location_array[0][0], location_array[0][1]);
+							int    closest_target    = 0;
+							
+							String closest_point = "mid point.";
+						
+							for(int i = 1; i < location_array.length; i++)
+							{
+								double current_distance = getDistance(midpoint_x, midpoint_y, location_array[i][0], location_array[i][1]);
+								if(current_distance < previous_distance)
+								{
+									previous_distance = current_distance;
+									closest_target = i;
+								}
+							}
+							
+							for(int i = 0; i < location_array.length; i++)
+							{
+								double current_distance = getDistance(startpoint_x, startpoint_y, location_array[i][0], location_array[i][1]);
+								if(current_distance < previous_distance)
+								{
+									previous_distance = current_distance;
+									closest_target = i;
+									closest_point = "start point.";
+								}
+							}
+							
+							slope_output.append(" Nearest target is " + (closest_target + 1) + " from " + closest_point + "\n");
+							slope_output.append(" Distance is " + String.format("%.2f", previous_distance) + " m.\n");
+				    		
+				    	}
+				    	else
+				    	{
+				    	    // Get one slope.
+                            slope_output.setText(slope_header);
+				    		
+                            slope_output.append(" ");
+				    		if(startpoint_line < 10)
+								slope_output.append(" ");
+							slope_output.append(startpoint_line + ":" + startpoint_sensor + "  ");
+							if(startpoint_x < 10)
+								slope_output.append(" ");	
+							slope_output.append(String.format("%.2f", startpoint_x) + "   ");
+							if(startpoint_y < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", startpoint_y) + "   ");
+							if(startpoint_intensity < 10)
+								slope_output.append("    ");
+							else if(startpoint_intensity < 100)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f",startpoint_intensity) + "\n");
+						
+							slope_output.append(" ");
+							if(midpoint_line < 10)
+								slope_output.append(" ");
+							slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
+							if(midpoint_x < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", midpoint_x) + "   ");
+							if(midpoint_y < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", midpoint_y) + "   ");
+							if(midpoint_intensity < 10)
+								slope_output.append("    ");
+							else if(midpoint_intensity < 100)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f",midpoint_intensity) + "    ");
+							
+							double nt_delta = midpoint_intensity - startpoint_intensity;
+						    double m_delta  = getDistance(startpoint_x, startpoint_y, midpoint_x, midpoint_y);
+						    double slope    = nt_delta / m_delta;
+						    if(nt_delta >= 0)
+						    	slope_output.append(" ");
+						    if(nt_delta > -10 && nt_delta < 10)
+						    	slope_output.append("  ");
+						    else if(nt_delta > -100 && nt_delta < 100)
+						    	slope_output.append(" ");	
+						    slope_output.append(String.format("%.2f",nt_delta) + "     ");
+						    
+						    if(m_delta < 10)
+						    	slope_output.append("  ");
+						    else if(m_delta < 100)
+						    	slope_output.append(" ");	
+						    slope_output.append(String.format("%.2f",m_delta) + "    ");
+						    if(slope >= 0)
+						    	slope_output.append(" ");
+						    if(slope > -10 && slope < 10)
+						    	slope_output.append("  ");
+						    else if(slope > -100 && slope < 100)
+						    	slope_output.append(" ");
+						    slope_output.append(String.format("%.2f",slope) + "\n\n");;
+						    
+						    String closest_point = "mid point.";
+						    double previous_distance = getDistance(midpoint_x, midpoint_y, location_array[0][0], location_array[0][1]);
+							int    closest_target    = 0;
+							for(int i = 1; i < location_array.length; i++)
+							{
+								double current_distance = getDistance(midpoint_x, midpoint_y, location_array[i][0], location_array[i][1]);
+								if(current_distance < previous_distance)
+								{
+									previous_distance = current_distance;
+									closest_target = i;
+								}
+							}
+							
+							for(int i = 0; i < location_array.length; i++)
+							{
+								double current_distance = getDistance(startpoint_x, startpoint_y, location_array[i][0], location_array[i][1]);
+								if(current_distance < previous_distance)
+								{
+									previous_distance = current_distance;
+									closest_target = i;
+									closest_point = "start point.";
+								}
+							}
+							
+							slope_output.append(" Nearest target is " + (closest_target + 1) + " from " + closest_point + "\n");
+							slope_output.append(" Distance is " + String.format("%.2f", previous_distance) + " m.\n");
+				    	}
+				    }
+				    else
+				    {
+				    	if(endpoint_set)
+				    	{
+				    		// Get one slope.
+                            slope_output.setText(slope_header);
+				    		
+                            slope_output.append(" ");
+				    		if(startpoint_line < 10)
+								slope_output.append(" ");
+							slope_output.append(startpoint_line + ":" + startpoint_sensor + "  ");
+							if(startpoint_x < 10)
+								slope_output.append(" ");	
+							slope_output.append(String.format("%.2f", startpoint_x) + "   ");
+							if(startpoint_y < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", startpoint_y) + "   ");
+							if(startpoint_intensity < 10)
+								slope_output.append("    ");
+							else if(startpoint_intensity < 100)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f",startpoint_intensity) + "\n");
+						
+							slope_output.append(" ");
+							if(endpoint_line < 10)
+								slope_output.append(" ");
+							slope_output.append(endpoint_line + ":" + endpoint_sensor + "  ");
+							if(endpoint_x < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", endpoint_x) + "   ");
+							if(endpoint_y < 10)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f", endpoint_y) + "   ");
+							if(endpoint_intensity < 10)
+								slope_output.append("    ");
+							else if(endpoint_intensity < 100)
+								slope_output.append(" ");
+							slope_output.append(String.format("%.2f",endpoint_intensity) + "    ");
+							
+							double nt_delta = endpoint_intensity - startpoint_intensity;
+						    double m_delta  = getDistance(startpoint_x, startpoint_y, endpoint_x, endpoint_y);
+						    double slope    = nt_delta / m_delta;
+						    if(nt_delta >= 0)
+						    	slope_output.append(" ");
+						    if(nt_delta > -10 && nt_delta < 10)
+						    	slope_output.append("  ");
+						    else if(nt_delta > -100 && nt_delta < 100)
+						    	slope_output.append(" ");	
+						    slope_output.append(String.format("%.2f",nt_delta) + "     ");
+						    
+						    if(m_delta < 10)
+						    	slope_output.append("  ");
+						    else if(m_delta < 100)
+						    	slope_output.append(" ");	
+						    slope_output.append(String.format("%.2f",m_delta) + "    ");
+						    if(slope >= 0)
+						    	slope_output.append(" ");
+						    if(slope > -10 && slope < 10)
+						    	slope_output.append("  ");
+						    else if(slope > -100 && slope < 100)
+						    	slope_output.append(" ");
+						    slope_output.append(String.format("%.2f",slope) + "\n\n");;
+						    
+						    String closest_point = "end point.";
+						    double previous_distance = getDistance(endpoint_x, endpoint_y, location_array[0][0], location_array[0][1]);
+							int    closest_target    = 0;
+							for(int i = 1; i < location_array.length; i++)
+							{
+								double current_distance = getDistance(endpoint_x, endpoint_y, location_array[i][0], location_array[i][1]);
+								if(current_distance < previous_distance)
+								{
+									previous_distance = current_distance;
+									closest_target = i;
+								}
+							}
+							
+							for(int i = 0; i < location_array.length; i++)
+							{
+								double current_distance = getDistance(startpoint_x, startpoint_y, location_array[i][0], location_array[i][1]);
+								if(current_distance < previous_distance)
+								{
+									previous_distance = current_distance;
+									closest_target = i;
+									closest_point = "start point.";
+								}
+							}
+							
+							slope_output.append(" Nearest target is " + (closest_target + 1) + " from " + closest_point + "\n");
+							slope_output.append(" Distance is " + String.format("%.2f", previous_distance) + " m.\n");	
+				    	}
+				    	else
+				    		System.out.println("There must be at least two points selected to make a calculation.");	
+				    }
+				}
+				else if(midpoint_set)
+				{
+				    if(endpoint_set)
+				    {
+				    	// Get one slope.
+                        slope_output.setText(slope_header);
+			    		
+                        slope_output.append(" ");
+			    		if(startpoint_line < 10)
+							slope_output.append(" ");
+						slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
+						if(midpoint_x < 10)
+							slope_output.append(" ");	
+						slope_output.append(String.format("%.2f", midpoint_x) + "   ");
+						if(midpoint_y < 10)
+							slope_output.append(" ");
+						slope_output.append(String.format("%.2f", midpoint_y) + "   ");
+						if(midpoint_intensity < 10)
+							slope_output.append("    ");
+						else if(midpoint_intensity < 100)
+							slope_output.append(" ");
+						slope_output.append(String.format("%.2f",midpoint_intensity) + "\n");
 					
-					slope_output.append(" start_intensity      "     + String.format("%.2f",startpoint_intensity) + " nT\n");
-					slope_output.append(" start_x                  " + String.format("%.2f", startpoint_x) + "  m\n");
-					slope_output.append(" start_y                  " + String.format("%.2f", startpoint_y) + "  m\n");
-					slope_output.append(" start_line_sensor  "       + startpoint_line + ":" + startpoint_sensor + "\n\n");
-	            	
-					slope_output.append(" end_intensity       "      + String.format("%.2f", endpoint_intensity) + " nT\n");
-					slope_output.append(" end_x                   " + String.format("%.2f", endpoint_x) + "  m\n");
-					slope_output.append(" end_y                   " + String.format("%.2f", endpoint_y) + "  m\n");
-					slope_output.append(" end_line_sensor   "       + endpoint_line + ":" + endpoint_sensor + "\n\n");
-	                
-	            	double amplitude = endpoint_intensity - startpoint_intensity;
-				    double width  = getDistance(startpoint_x, startpoint_y, endpoint_x, endpoint_y);
-				    double slope = amplitude / width;
-				     
-				    slope_output.append(" amplitude             " + String.format("%.2f", amplitude) + " nT\n");
-				    slope_output.append(" width                    " + String.format("%.2f", width) + "   m\n");
-				    slope_output.append(" slope                    " + String.format("%.2f", slope) + " nT/m\n\n");
-				    
-				    double [][] location_array = ObjectMapper.getObjectLocationArray();
-					int length = location_array.length;
-					for(int i = 0; i < length; i++)
-					{
-						location_array[i][0] -= global_xmin;
-						location_array[i][1] -= global_ymin;
-					}
-					double previous_distance = getDistance(endpoint_x, endpoint_y, location_array[0][0], location_array[0][1]);
-					int    closest_target    = 0;
-					for(int i = 1; i < location_array.length; i++)
-					{
-						double current_distance = getDistance(endpoint_x, endpoint_y, location_array[i][0], location_array[i][1]);
-						if(current_distance < previous_distance)
+						slope_output.append(" ");
+						if(endpoint_line < 10)
+							slope_output.append(" ");
+						slope_output.append(endpoint_line + ":" + endpoint_sensor + "  ");
+						if(endpoint_x < 10)
+							slope_output.append(" ");
+						slope_output.append(String.format("%.2f", endpoint_x) + "   ");
+						if(endpoint_y < 10)
+							slope_output.append(" ");
+						slope_output.append(String.format("%.2f", endpoint_y) + "   ");
+						if(endpoint_intensity < 10)
+							slope_output.append("    ");
+						else if(endpoint_intensity < 100)
+							slope_output.append(" ");
+						slope_output.append(String.format("%.2f",endpoint_intensity) + "    ");
+						
+						double nt_delta = endpoint_intensity - midpoint_intensity;
+					    double m_delta  = getDistance(midpoint_x, midpoint_y, endpoint_x, endpoint_y);
+					    double slope    = nt_delta / m_delta;
+					    if(nt_delta >= 0)
+					    	slope_output.append(" ");
+					    if(nt_delta > -10 && nt_delta < 10)
+					    	slope_output.append("  ");
+					    else if(nt_delta > -100 && nt_delta < 100)
+					    	slope_output.append(" ");	
+					    slope_output.append(String.format("%.2f",nt_delta) + "     ");
+					    
+					    if(m_delta < 10)
+					    	slope_output.append("  ");
+					    else if(m_delta < 100)
+					    	slope_output.append(" ");	
+					    slope_output.append(String.format("%.2f",m_delta) + "    ");
+					    if(slope >= 0)
+					    	slope_output.append(" ");
+					    if(slope > -10 && slope < 10)
+					    	slope_output.append("  ");
+					    else if(slope > -100 && slope < 100)
+					    	slope_output.append(" ");
+					    slope_output.append(String.format("%.2f",slope) + "\n\n");;
+					    
+					    String closest_point = "end point.";
+					    double previous_distance = getDistance(endpoint_x, endpoint_y, location_array[0][0], location_array[0][1]);
+						int    closest_target    = 0;
+						for(int i = 1; i < location_array.length; i++)
 						{
-							previous_distance = current_distance;
-							closest_target = i;
+							double current_distance = getDistance(endpoint_x, endpoint_y, location_array[i][0], location_array[i][1]);
+							if(current_distance < previous_distance)
+							{
+								previous_distance = current_distance;
+								closest_target = i;
+							}
 						}
-					}
-					slope_output.append(" nearest_target_id            " + (closest_target + 1) + "\n");
-					slope_output.append(" nearest_target_distance " + String.format("%.2f", previous_distance) + " m\n");
+						
+						for(int i = 0; i < location_array.length; i++)
+						{
+							double current_distance = getDistance(midpoint_x, midpoint_y, location_array[i][0], location_array[i][1]);
+							if(current_distance < previous_distance)
+							{
+								previous_distance = current_distance;
+								closest_target = i;
+								closest_point = "mid point.";
+							}
+						}
+						
+						slope_output.append(" Nearest target is " + (closest_target + 1) + " from " + closest_point + "\n");
+						slope_output.append(" Distance is " + String.format("%.2f", previous_distance) + " m.\n");	
+			    		
+				    }
+				    else
+				    {
+				    	System.out.println("There must be at least two points selected to make a calculation.");	
+				    }
 				}
 				else
 				{
-					if(!startpoint_set)
-						System.out.println("Start point is not set.");
-					if(!endpoint_set)
-						System.out.println("End point is not set.");
-					
+					System.out.println("There must be at least two points selected to make a calculation.");
 				}
 			}
 		};
-		slope_apply_button.addActionListener(triple_apply_handler);
+		
+		slope_apply_button.addActionListener(slope_apply_handler);
 		slope_button_panel.add(slope_apply_button);
 		
 		JButton slope_clear_button = new JButton("Clear");
-		ActionListener triple_clear_handler = new ActionListener()
+		
+		ActionListener slope_clear_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
@@ -2273,16 +2788,14 @@ public class YFencePlotter
 				midpoint_set   = false;
 				endpoint_set   = false;
 				
-				slope_output.setText("");
+				slope_output.setText(slope_header);
 				data_canvas.repaint();
-				//segment_image_canvas.repaint();
 				segment_image.repaint();
-				segment_map.repaint();
+				segment_map.repaint();	
 			}
 		};
-		slope_clear_button.addActionListener(triple_clear_handler);
+		slope_clear_button.addActionListener(slope_clear_handler);
 		slope_button_panel.add(slope_clear_button);
-		
 		
 		JButton slope_save_button = new JButton("Save");
 		ActionListener slope_save_handler = new ActionListener()
@@ -2425,7 +2938,7 @@ public class YFencePlotter
 		
 		slope_menu.add(segment_image_item);
 				
-		// A modeless dialog box that shows up if Slope->Show Segment Map is selected.
+		// A modeless dialog box that shows up if Slope->Show Segment Image is selected.
 		segment_map = new SegmentMap();
 		segment_map.setSize(600, 400);
 		segment_map_dialog = new JDialog(frame);
@@ -3295,19 +3808,6 @@ public class YFencePlotter
 		else
 			show_data_item.setState(false);
 		
-		
-		/*
-		WindowAdapter panel_handler = new WindowAdapter()
-	    {
-	        public void windowClosing(WindowEvent event)
-	        {
-	            show_data_item.setState(false);
-	        }
-	    };
-	    
-	    information_panel.addWindowListener(panel_handler);
-	    */
-		
 		settings_menu.add(show_data_item);		
 		menu_bar.add(settings_menu);
 		// End settings menu.
@@ -3317,6 +3817,7 @@ public class YFencePlotter
 		frame.pack();
 		frame.setLocation(50, 10);
 	    data_canvas.repaint();
+	    slope_apply_button.doClick();
 	    //show_data_item.doClick();
 		//System.out.println("Finished Y Fence constructor.");
 		// End constructor.
@@ -3330,7 +3831,6 @@ public class YFencePlotter
 			// and the relative data array is the information we display in the graph.
 			// Add empty lists at startup.
 			
-		
 			for(int i = 0; i < 5; i++)
 			{
 				ArrayList data_list = new ArrayList();
