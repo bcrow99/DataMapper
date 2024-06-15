@@ -286,7 +286,7 @@ public class XFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.1.8 of fence.");
+			System.out.println("This is version 4.1.9 of fence.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			try
@@ -2370,7 +2370,7 @@ public class XFencePlotter
 		
 		// A modeless dialog box that shows up if Adjustments->Smoothing is selected.
 		JPanel  smooth_panel  = new JPanel(new BorderLayout());
-		smooth_slider = new JSlider(0, 100, smooth);
+		smooth_slider = new JSlider(0, 30, smooth);
 		ChangeListener smooth_slider_handler = new ChangeListener()
 		{
 			public void stateChanged(ChangeEvent e)
@@ -2435,7 +2435,6 @@ public class XFencePlotter
 		};
 		autoscale_button.addItemListener(autoscale_handler);
 		
-
 	    factor_slider = new JSlider(0, 200, 0);
 		ChangeListener factor_handler = new ChangeListener()
 		{
@@ -2642,14 +2641,14 @@ public class XFencePlotter
 		};
 		dynamic_range_slider.addChangeListener(dynamic_range_slider_handler);
 		dynamic_range_canvas = new DynamicRangeCanvas();
-		dynamic_range_canvas.setSize(100, 150);
+		dynamic_range_canvas.setSize(140, 150);
 		JPanel dynamic_range_canvas_panel = new JPanel(new BorderLayout());
 		dynamic_range_canvas_panel.add(dynamic_range_slider, BorderLayout.WEST);
 		dynamic_range_canvas_panel.add(dynamic_range_canvas, BorderLayout.CENTER);
 		JPanel dynamic_range_panel = new JPanel(new BorderLayout());
 		dynamic_range_panel.add(dynamic_range_canvas_panel, BorderLayout.CENTER);
 		dynamic_range_panel.add(dynamic_range_button_panel, BorderLayout.SOUTH);
-		dynamic_range_dialog = new JDialog(frame);
+		dynamic_range_dialog = new JDialog(frame, "Dynamic Range");
 		dynamic_range_dialog.add(dynamic_range_panel);
 
 		JMenuItem dynamic_range_item = new JMenuItem("Dynamic Range");
@@ -2939,235 +2938,6 @@ public class XFencePlotter
 		
 		JButton slope_apply_button = new JButton("Apply");
 	
-		/*
-		ActionListener slope_apply_handler = new ActionListener()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				if(startpoint_set)
-				{
-				    if(midpoint_set)
-				    {
-				    	if(endpoint_set)
-				    	{
-				    	    // Get two slopes.	
-				    		slope_output.setText(slope_header);
-				    		
-				    		slope_output.append(" ");
-				    		if(startpoint_line < 10)
-								slope_output.append(" ");
-							slope_output.append(startpoint_line + ":" + startpoint_sensor + "  ");
-							slope_output.append(String.format("%.2f", startpoint_x) + "   ");
-							slope_output.append(String.format("%.2f", startpoint_y) + "   ");
-							if(startpoint_intensity < 10)
-								slope_output.append("    ");
-							else if(startpoint_intensity < 100)
-								slope_output.append(" ");
-							slope_output.append(String.format("%.2f",startpoint_intensity) + "\n");
-						
-							slope_output.append(" ");
-							if(midpoint_line < 10)
-								slope_output.append(" ");
-							slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
-							slope_output.append(String.format("%.2f", midpoint_x) + "   ");
-							slope_output.append(String.format("%.2f", midpoint_y) + "   ");
-							if(midpoint_intensity < 10)
-								slope_output.append("    ");
-							else if(midpoint_intensity < 100)
-								slope_output.append(" ");
-							slope_output.append(String.format("%.2f",midpoint_intensity) + "    ");
-							
-							double nt_delta = midpoint_intensity - startpoint_intensity;
-						    double m_delta  = getDistance(startpoint_x, startpoint_y, midpoint_x, midpoint_y);
-						    double slope    = nt_delta / m_delta;
-						    if(nt_delta >= 0)
-						    	slope_output.append(" ");
-						    slope_output.append(String.format("%.2f",nt_delta) + "     ");
-						    slope_output.append(String.format("%.2f",m_delta) + "    ");
-						    if(slope >= 0)
-						    	slope_output.append(" ");
-						    slope_output.append(String.format("%.2f",slope) + "\n");
-						    
-						    slope_output.append(" ");
-						    if(endpoint_line < 10)
-								slope_output.append(" ");
-							slope_output.append(endpoint_line + ":" + endpoint_sensor + "  ");
-							slope_output.append(String.format("%.2f", endpoint_x) + "   ");
-							slope_output.append(String.format("%.2f", endpoint_y) + "   ");
-							if(endpoint_intensity < 10)
-								slope_output.append("    ");
-							else if(endpoint_intensity < 100)
-								slope_output.append(" ");
-							slope_output.append(String.format("%.2f",endpoint_intensity) + "    ");
-						    
-							nt_delta = endpoint_intensity - midpoint_intensity;
-						    m_delta  = getDistance(midpoint_x, midpoint_y, endpoint_x, endpoint_y);
-						    slope    = nt_delta / m_delta;
-						    if(nt_delta >= 0)
-						    	slope_output.append(" ");	
-						    slope_output.append(String.format("%.2f",nt_delta) + "     ");
-						    slope_output.append(String.format("%.2f",m_delta) + "    ");
-						    if(slope >= 0)
-						    	slope_output.append(" ");
-						    slope_output.append(String.format("%.2f",slope) + "\n\n");
-						    
-						    double [][] location_array = ObjectMapper.getObjectLocationArray();
-							int length = location_array.length;
-							for(int i = 0; i < length; i++)
-							{
-								location_array[i][0] -= global_xmin;
-								location_array[i][1] -= global_ymin;
-							}
-							double previous_distance = getDistance(endpoint_x, endpoint_y, location_array[0][0], location_array[0][1]);
-							int    closest_target    = 0;
-							
-							String closest_point = "end point.";
-						
-							for(int i = 1; i < location_array.length; i++)
-							{
-								double current_distance = getDistance(endpoint_x, endpoint_y, location_array[i][0], location_array[i][1]);
-								if(current_distance < previous_distance)
-								{
-									previous_distance = current_distance;
-									closest_target = i;
-								}
-							}
-							
-							for(int i = 0; i < location_array.length; i++)
-							{
-								double current_distance = getDistance(midpoint_x, midpoint_y, location_array[i][0], location_array[i][1]);
-								if(current_distance < previous_distance)
-								{
-									previous_distance = current_distance;
-									closest_target = i;
-									closest_point = "mid point.";
-								}
-							}
-							
-							for(int i = 0; i < location_array.length; i++)
-							{
-								double current_distance = getDistance(startpoint_x, startpoint_y, location_array[i][0], location_array[i][1]);
-								if(current_distance < previous_distance)
-								{
-									previous_distance = current_distance;
-									closest_target = i;
-									closest_point = "start point.";
-								}
-							}
-							
-							slope_output.append(" Nearest target is " + (closest_target + 1) + " from " + closest_point + "\n");
-							slope_output.append(" Distance is " + String.format("%.2f", previous_distance) + " m.\n");
-				    		
-				    	}
-				    	else
-				    	{
-				    	    // Get one slope.
-                            slope_output.setText(slope_header);
-				    		
-				    		slope_output.append(" ");
-				    		if(startpoint_line < 10)
-								slope_output.append(" ");
-							slope_output.append(startpoint_line + ":" + startpoint_sensor + "  ");
-							slope_output.append(String.format("%.2f", startpoint_x) + "   ");
-							slope_output.append(String.format("%.2f", startpoint_y) + "   ");
-							if(startpoint_intensity < 10)
-								slope_output.append("    ");
-							else if(startpoint_intensity < 100)
-								slope_output.append(" ");
-							slope_output.append(String.format("%.2f",startpoint_intensity) + "\n");
-						
-							slope_output.append(" ");
-							if(midpoint_line < 10)
-								slope_output.append(" ");
-							slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
-							slope_output.append(String.format("%.2f", midpoint_x) + "   ");
-							slope_output.append(String.format("%.2f", midpoint_y) + "   ");
-							if(midpoint_intensity < 10)
-								slope_output.append("    ");
-							else if(midpoint_intensity < 100)
-								slope_output.append(" ");
-							//slope_output.append(String.format("%.2f",midpoint_intensity) + "\n");
-							slope_output.append(String.format("%.2f",midpoint_intensity) + "    ");
-							
-							double nt_delta = midpoint_intensity - startpoint_intensity;
-						    double m_delta  = getDistance(startpoint_x, startpoint_y, midpoint_x, midpoint_y);
-						    double slope    = nt_delta / m_delta;
-						    if(nt_delta >= 0)
-						    	slope_output.append(" ");
-						    slope_output.append(String.format("%.2f",nt_delta) + "     ");
-						    slope_output.append(String.format("%.2f",m_delta) + "    ");
-						    if(slope >= 0)
-						    	slope_output.append(" ");
-						    slope_output.append(String.format("%.2f",slope) + "\n");
-						    
-						   
-				    	}
-				    }
-				}
-				else if(midpoint_set)
-				{
-				    if(endpoint_set)
-				    {
-				    	// Get one slope
-				    	slope_output.append(" ");
-						if(midpoint_line < 10)
-							slope_output.append(" ");
-						slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
-						slope_output.append(String.format("%.2f", midpoint_x) + "   ");
-						slope_output.append(String.format("%.2f", midpoint_y) + "   ");
-						if(midpoint_intensity < 10)
-							slope_output.append("    ");
-						else if(midpoint_intensity < 100)
-							slope_output.append(" ");
-						slope_output.append(String.format("%.2f",midpoint_intensity) + "    ");
-						
-						double nt_delta = midpoint_intensity - startpoint_intensity;
-					    double m_delta  = getDistance(startpoint_x, startpoint_y, midpoint_x, midpoint_y);
-					    double slope    = nt_delta / m_delta;
-					    if(nt_delta >= 0)
-					    	slope_output.append(" ");
-					    slope_output.append(String.format("%.2f",nt_delta) + "     ");
-					    slope_output.append(String.format("%.2f",m_delta) + "    ");
-					    if(slope >= 0)
-					    	slope_output.append(" ");
-					    slope_output.append(String.format("%.2f",slope) + "\n");
-					    
-					    slope_output.append(" ");
-					    if(endpoint_line < 10)
-							slope_output.append(" ");
-						slope_output.append(endpoint_line + ":" + endpoint_sensor + "  ");
-						slope_output.append(String.format("%.2f", endpoint_x) + "   ");
-						slope_output.append(String.format("%.2f", endpoint_y) + "   ");
-						if(endpoint_intensity < 10)
-							slope_output.append("    ");
-						else if(endpoint_intensity < 100)
-							slope_output.append(" ");
-						slope_output.append(String.format("%.2f",endpoint_intensity) + "    ");
-					    
-						nt_delta = endpoint_intensity - midpoint_intensity;
-					    m_delta  = getDistance(midpoint_x, midpoint_y, endpoint_x, endpoint_y);
-					    slope    = nt_delta / m_delta;
-					    if(nt_delta >= 0)
-					    	slope_output.append(" ");	
-					    slope_output.append(String.format("%.2f",nt_delta) + "     ");
-					    slope_output.append(String.format("%.2f",m_delta) + "    ");
-					    if(slope >= 0)
-					    	slope_output.append(" ");
-					    slope_output.append(String.format("%.2f",slope) + "\n");
-			    		
-				    }
-				    else
-				    {
-				    	System.out.println("There must be at least two points selected to make a calculation.");	
-				    }
-				}
-				else
-				{
-					System.out.println("There must be at least two points selected to make a calculation.");
-				}
-			}
-		};
-		*/
 		
 		ActionListener slope_apply_handler = new ActionListener()
 		{
@@ -4039,7 +3809,7 @@ public class XFencePlotter
 		location_dialog = new JDialog(frame, "Location Map");
 		location_dialog.add(location_panel);
 
-		JMenuItem location_item = new JMenuItem("Show Location Map");
+		JMenuItem location_item = new JMenuItem("Show Map");
 		ActionListener location_handler = new ActionListener()
 		{
 		    public void actionPerformed(ActionEvent e)
@@ -4063,31 +3833,279 @@ public class XFencePlotter
 		StringTokenizer line_tokenizer = new StringTokenizer(sensor_string, ":./");
 		String init_line_string = line_tokenizer.nextToken();
 		init_line = Integer.parseInt(init_line_string);
-		
-		JPanel  line_panel  = new JPanel(new BorderLayout());
-		current_value = init_line * 3;
-		if(offset > 50)
-			current_value += 2;
-		else if(offset > 25)
-			current_value++;
-		line_slider = new JSlider(0, 87, current_value);
-		
-		//System.out.println("Setting line slider value to " + current_value);
-		
-		LineSliderHandler line_slider_handler = new LineSliderHandler();
-		
-		line_slider.addChangeListener(line_slider_handler);
-		
+		JPanel line_panel  = new JPanel(new BorderLayout());
 		line_information = new JTextField();
 		line_information.setHorizontalAlignment(JTextField.CENTER);
 		line_information.setColumns(4);
 		//System.out.println("Setting line information to " + init_line);
 		line_information.setText(" " + init_line + " ");
-		line_panel.add(line_slider, BorderLayout.CENTER);
-		line_panel.add(line_information, BorderLayout.EAST);
-		JDialog	line_dialog = new JDialog(frame, "Set Line Location");
+		
+		
+		line_panel.add(line_information, BorderLayout.CENTER);
+		
+		
+		
+		JPanel line_button_panel = new JPanel(new GridLayout(1, 2));
+		JButton down_button = new JButton(" - ");
+		ActionListener down_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String sensor_string = sensor[0].getText();
+				StringTokenizer line_tokenizer = new StringTokenizer(sensor_string, ":./");
+				String init_line_string = line_tokenizer.nextToken();
+				init_line = Integer.parseInt(init_line_string);	
+				
+				if(init_line == 0)
+					return;
+				int current_line = init_line;
+				current_line--;
+				init_line = current_line;
+				
+				int current_sensor = 4;
+				if(current_line % 2 == 1)
+				    current_sensor = 0;
+				
+				String[] line_sensor_pair = new String[10];
+
+				int current_pair    = 0;
+                int number_of_pairs = 10;
+				if (current_line % 2 == 1)
+				{
+					for (int i = current_sensor; i < 5; i++)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				} 
+				else
+				{
+					for (int i = current_sensor; i >= 0; i--)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				}
+				current_line++;
+				if (current_line % 2 == 1)
+				{
+					for (int i = 0; i < 5; i++)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				} 
+				else
+				{
+					for (int i = 4; i >= 0; i--)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				}
+				current_line++;
+				outer: if (current_pair < 10)
+				{
+					if (current_line % 2 == 1)
+					{
+						for (int i = 0; i < 5; i++)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+							if (current_pair == 10)
+								break outer;
+						}
+					} 
+					else
+					{
+						for (int i = 4; i >= 0; i--)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+							if (current_pair == 10)
+								break outer;
+						}
+					}
+				}
+
+				for (int i = 0; i < 10; i++)
+				{
+					sensor[i].setText("");
+				}
+				for (int i = 0; i < number_of_pairs; i++)
+				{
+					sensor[i].setText(line_sensor_pair[i]);
+				}
+				
+				line_information.setText(" " + init_line + " ");
+				
+				// Clear data since we're at a new position.		
+				append_data = false;
+				persistent_data = false;
+				sample_information.setText("");	
+				slope_output.setText("");
+				startpoint_set = false;
+				midpoint_set = false;
+				endpoint_set = false;
+								
+				
+				
+				// Resegment and redraw data.
+				apply_item.doClick();
+				// Update location map
+				location_canvas.repaint();
+				
+				
+				sort_canvas.repaint();
+				segment_image.repaint();
+				segment_map.repaint();
+				
+			}
+		};
+		
+		down_button.addActionListener(down_handler);
+		line_button_panel.add(down_button);
+		
+		
+		
+		JButton up_button = new JButton(" + ");
+		ActionListener up_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				String sensor_string = sensor[0].getText();
+				StringTokenizer line_tokenizer = new StringTokenizer(sensor_string, ":./");
+				String init_line_string = line_tokenizer.nextToken();
+				init_line = Integer.parseInt(init_line_string);	
+				
+				if(init_line == 28)
+					return;
+				int current_line = init_line;
+				current_line++;
+				init_line = current_line;
+				
+				int current_sensor = 4;
+				if(current_line % 2 == 1)
+				    current_sensor = 0;
+				
+				String[] line_sensor_pair = new String[10];
+
+				int current_pair    = 0;
+                int number_of_pairs = 10;
+				if (current_line % 2 == 1)
+				{
+					for (int i = current_sensor; i < 5; i++)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				} 
+				else
+				{
+					for (int i = current_sensor; i >= 0; i--)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				}
+				current_line++;
+				if (current_line % 2 == 1)
+				{
+					for (int i = 0; i < 5; i++)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				} 
+				else
+				{
+					for (int i = 4; i >= 0; i--)
+					{
+						String current_string = new String(current_line + ":" + i);
+						line_sensor_pair[current_pair] = current_string;
+						current_pair++;
+					}
+				}
+				current_line++;
+				outer: if (current_pair < 10)
+				{
+					if (current_line % 2 == 1)
+					{
+						for (int i = 0; i < 5; i++)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+							if (current_pair == 10)
+								break outer;
+						}
+					} 
+					else
+					{
+						for (int i = 4; i >= 0; i--)
+						{
+							String current_string = new String(current_line + ":" + i);
+							line_sensor_pair[current_pair] = current_string;
+							current_pair++;
+							if (current_pair == 10)
+								break outer;
+						}
+					}
+				}
+
+				for (int i = 0; i < 10; i++)
+				{
+					sensor[i].setText("");
+				}
+				for (int i = 0; i < number_of_pairs; i++)
+				{
+					sensor[i].setText(line_sensor_pair[i]);
+				}
+				
+				line_information.setText(" " + init_line + " ");
+				
+				// Clear data since we're at a new position.		
+				append_data = false;
+				persistent_data = false;
+				sample_information.setText("");	
+				slope_output.setText("");
+				startpoint_set = false;
+				midpoint_set = false;
+				endpoint_set = false;
+								
+				
+				// Resegment and redraw data.
+				apply_item.doClick();
+				// Update location map
+				location_canvas.repaint();
+				
+				
+				sort_canvas.repaint();
+				segment_image.repaint();
+				segment_map.repaint();
+				
+			}
+		};
+		
+		up_button.addActionListener(up_handler);
+		line_button_panel.add(up_button);
+		
+		
+		
+		
+		line_panel.add(line_button_panel, BorderLayout.SOUTH);
+		JDialog	line_dialog = new JDialog(frame, "Set Line");
 		line_dialog.add(line_panel);
-		JMenuItem line_item = new JMenuItem("Set Line Location");
+		JMenuItem line_item = new JMenuItem("Set Line ");
 		ActionListener line_item_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -4112,7 +4130,7 @@ public class XFencePlotter
 		location_menu.add(line_item);		
 		
 		set_object_dialog = new JDialog(frame, "Set Object");
-		JMenuItem set_object_item = new JMenuItem("Set Object Location");
+		JMenuItem set_object_item = new JMenuItem("Set Object");
 		ActionListener set_object_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -4277,7 +4295,8 @@ public class XFencePlotter
 					
 					// Reset the slider.	
 					// Set semaphore to prevent oscillation.
-					range_scrollbar_changing = true;
+					//range_scrollbar_changing = true;
+					range_slider_changing = true;
 					
 					double normal_start    = (offset - 15) / 60;
 					double normal_stop     = (offset + range - 15) / 60;
@@ -4307,22 +4326,26 @@ public class XFencePlotter
 					    range_slider.setValue(new_start);
 					}
 					// Reset semaphore.
-					range_scrollbar_changing = false;
+					range_slider_changing = false;
 					
 					// Reset the scrollbar.
 					// Set semaphore to prevent oscillation.
-					range_slider_changing = true;
+					//range_slider_changing = true;
+					range_scrollbar_changing = true;
 				
 					normal_range    = normal_stop - normal_start;
 					double normal_position = normal_start + normal_range / 2;
 					range_scrollbar.setValue((int)(normal_position * scrollbar_resolution));
 					// Reset semaphore.
-					range_slider_changing = false;
+					//range_slider_changing = false;
+					range_scrollbar_changing = false;
 									
 					// Resegment and redraw data.
 					apply_item.doClick();
 					
 					sort_canvas.repaint();
+					segment_image.repaint();
+					segment_map.repaint();
 					
 					
 				}
