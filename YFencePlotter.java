@@ -91,17 +91,16 @@ public class YFencePlotter
 	boolean            dynamic_slider_changing = false;
 	boolean            dynamic_button_changing = false;
 	
-	boolean            location_slider_changing = false;
 	boolean            range_button_changing    = false;
 	boolean            object_button_changing   = false;
-	boolean            scrollbar_changing       = false;
+	//boolean            scrollbar_changing       = false;
+	boolean            line_button_changing     = false;
 	
 	
 	int     append_gui_index     = 0;
     int     startpoint_gui_index = 0;
     int     midpoint_gui_index   = 0;
     int     endpoint_gui_index   = 0;
-	
 	
 	boolean            append_data          = false;
 	int                append_line          = 0;
@@ -182,7 +181,7 @@ public class YFencePlotter
 	public JTextField  load_config_input;
 	public JTextField  save_config_input;
 	public JTextField  range_information;
-	public JTextField  offset_information;
+	//public JTextField  offset_information;
 	public JTextArea   sample_information;
 	
 	public JTextArea slope_output;
@@ -190,14 +189,10 @@ public class YFencePlotter
 	public JDialog   segment_map_dialog;
 	
 	
-	// Another text box that shows the offset
-	// in a normalized form.
-	// An alterntive would be using the middle
-	// of the range for the location.
-	public JTextField  location_information;
+	// Text field that shows which flight 
+	// line the current segment is from.
+	public JTextField  line_information;
 	
-	
-	public JSlider     location_slider;
 	
 	boolean flight_line_odd = false;
 	
@@ -234,7 +229,7 @@ public class YFencePlotter
 		} 
 		else
 		{
-			System.out.println("This is version 4.1.8 of wand.");
+			System.out.println("This is version 4.1.9 of wand.");
 			String version = System.getProperty("java.version");
 			//System.out.println("Current java version is " + version);
 			
@@ -690,8 +685,6 @@ public class YFencePlotter
 							index = j;
 						}	
 					}
-					// Reset index from center to initial sensor.
-					//index -= 2;
 					object_index.add(index);
 				}
 				
@@ -1836,7 +1829,7 @@ public class YFencePlotter
         
 		// A modeless dialog box that shows up if Adjustments->Smoothing is selected.
 		JPanel  smooth_panel  = new JPanel(new BorderLayout());
-		smooth_slider = new JSlider(0, 100, smooth);
+		smooth_slider = new JSlider(0, 30, smooth);
 		ChangeListener smooth_slider_handler = new ChangeListener()
 		{
 			public void stateChanged(ChangeEvent e)
@@ -1866,7 +1859,6 @@ public class YFencePlotter
 				
 				double    canvas_xdim      = canvas_dimension.getWidth();
 				x += canvas_xdim;
-				//y += 670;	
 				y += 490;
 				smooth_dialog.setLocation(x, y);
 				smooth_dialog.pack();
@@ -1961,12 +1953,8 @@ public class YFencePlotter
 				    	max_value = - max_value;	
 				}
 				
-				//int previous_min_value = dynamic_range_slider.getValue();	
 				dynamic_range_slider.setValue(min_value);
-				
-				//int previous_max_value = dynamic_range_slider.getUpperValue();	
 				dynamic_range_slider.setUpperValue(max_value);
-				
 				dynamic_button_changing = false;	
 				data_canvas.repaint();
 			}
@@ -2009,14 +1997,14 @@ public class YFencePlotter
 		DynamicRangeSliderHandler dynamic_range_slider_handler = new DynamicRangeSliderHandler();
 		dynamic_range_slider.addChangeListener(dynamic_range_slider_handler);
 		dynamic_range_canvas = new DynamicRangeCanvas();
-		dynamic_range_canvas.setSize(100, 300);
+		dynamic_range_canvas.setSize(140, 150);
 		JPanel dynamic_range_canvas_panel = new JPanel(new BorderLayout());
 		dynamic_range_canvas_panel.add(dynamic_range_slider, BorderLayout.WEST);
 		dynamic_range_canvas_panel.add(dynamic_range_canvas, BorderLayout.CENTER);
 		JPanel dynamic_range_panel = new JPanel(new BorderLayout());
 		dynamic_range_panel.add(dynamic_range_canvas_panel, BorderLayout.CENTER);
 		dynamic_range_panel.add(dynamic_range_button_panel, BorderLayout.SOUTH);
-		dynamic_range_dialog = new JDialog(frame);
+		dynamic_range_dialog = new JDialog(frame, "Dynamic Range");
 		dynamic_range_dialog.add(dynamic_range_panel);
 		
 		JMenuItem dynamic_range_item = new JMenuItem("Dynamic Range");
@@ -2169,12 +2157,6 @@ public class YFencePlotter
 				append_data         = false;
 				persistent_data     = false;
 				
-				/*
-				slope_output.append(" mid_intensity     " + String.format("%.2f", midpoint_intensity) +  " nT\n");
-            	slope_output.append(" mid_x                 " + String.format("%.2f", midpoint_x) + "  m\n");
-            	slope_output.append(" mid_y                 " + String.format("%.2f", midpoint_y) + "  m\n");
-            	slope_output.append(" mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n\n");
-            	*/
                 slope_output.setText(slope_header);
 				
                 if(startpoint_set)
@@ -2235,7 +2217,6 @@ public class YFencePlotter
 				
 				sample_information.setText("");
 				data_canvas.repaint();
-				//segment_image_canvas.repaint();
 				segment_image.repaint();
 				segment_map.repaint();
 			}
@@ -2262,13 +2243,6 @@ public class YFencePlotter
 				endpoint_set        = true;
 				append_data         = false;
 				persistent_data     = false;
-				
-				/*
-				slope_output.append(" end_intensity     " + String.format("%.2f", endpoint_intensity) + " nT\n");
-            	slope_output.append(" end_x                 " + String.format("%.2f", endpoint_x) + "  m\n");
-            	slope_output.append(" end_y                 " + String.format("%.2f", endpoint_y) + "  m\n");
-            	slope_output.append(" end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n\n");
-            	*/
 				
                 slope_output.setText(slope_header);
 				
@@ -2765,12 +2739,12 @@ public class YFencePlotter
 				    }
 				    else
 				    {
-				    	System.out.println("There must be at least two points selected to make a calculation.");	
+				    	//System.out.println("There must be at least two points selected to make a calculation.");	
 				    }
 				}
 				else
 				{
-					System.out.println("There must be at least two points selected to make a calculation.");
+					//System.out.println("There must be at least two points selected to make a calculation.");
 				}
 			}
 		};
@@ -2956,7 +2930,7 @@ public class YFencePlotter
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
 						
-				x += canvas_xdim + 250;
+				x += canvas_xdim + 300;
 				segment_map_dialog.setLocation(x, y);
 				segment_map_dialog.pack();
 				segment_map_dialog.setVisible(true);
@@ -3022,7 +2996,7 @@ public class YFencePlotter
 		location_dialog = new JDialog(frame, "Location");
 		location_dialog.add(location_canvas_panel);
 		
-		JMenuItem map_item = new JMenuItem("Show Location Map");
+		JMenuItem map_item = new JMenuItem("Show Map");
 		ActionListener map_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -3034,7 +3008,7 @@ public class YFencePlotter
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
 				
-				x += canvas_xdim + 250;
+				x += canvas_xdim + 350;
 				location_dialog.setLocation(x, y);
 				location_dialog.pack();
 				location_dialog.setVisible(true);
@@ -3043,58 +3017,36 @@ public class YFencePlotter
 		map_item.addActionListener(map_handler);
 		location_menu.add(map_item);
 		
-
-		JPanel offset_range_panel = new JPanel(new BorderLayout());
-		JPanel parameter_panel = new JPanel(new GridLayout(2, 2));
-		parameter_panel.add(new JLabel("Offset", JLabel.CENTER));
-		parameter_panel.add(new JLabel("Range", JLabel.CENTER));
-		
-	    offset_information = new JTextField();
-	    offset_information.setHorizontalAlignment(JTextField.CENTER);
-	    offset_information.setText(String.format("%,.4f", data_offset));
-		parameter_panel.add(offset_information);
-		
+		JPanel range_panel = new JPanel(new GridLayout(3, 1));
+		range_panel.add(new JLabel("Range", JLabel.CENTER));
 		range_information = new JTextField();
 		range_information.setHorizontalAlignment(JTextField.CENTER);
 		range_information.setText(String.format("%.2f", data_range * data_length));
-		parameter_panel.add(range_information);
-		
-		offset_range_panel.add(parameter_panel, BorderLayout.CENTER);
+		range_panel.add(range_information);
 		JButton adjust_button = new JButton("Adjust");
-		
-		class RangeButtonHandler implements ActionListener
+		ActionListener adjust_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				String offset_string  = offset_information.getText();
 				String range_string   = range_information.getText();
-				double current_offset = Double.valueOf(offset_string);
 				double current_range  = Double.valueOf(range_string);
 				current_range /= data_length;
 
-				if (current_offset < 0 || current_offset > (1 - data_range) || current_range < 0 || current_range > (1 - current_offset))
+				if(current_range < 0 || current_range > (1 - data_offset))
 				{
-					if(current_offset < 0 || current_offset > .9999)
-						System.out.println("Invalid input: offset = " + offset_string);
-					else if(current_range < .998 || current_range > (1 - current_offset))
+					if(current_range < .998 || current_range > (1 - data_offset))
 						System.out.println("Invalid input: range = " + range_string);
-					offset_information.setText(String.format("%,.4f", data_offset));
 					range_information.setText(String.format("%.2f", data_range * data_length));
 				} 
-				else if(location_slider_changing == false)
+				else
 				{
 					range_button_changing = true;
-					
-					//data_offset = current_offset;
 					double range_delta = current_range - data_range;
 					data_offset -= range_delta / 2;
 					data_range  = current_range;
 					
-					int current_value = (int)(data_offset * 100);
-					location_slider.setValue(current_value);
-					location_information.setText(String.format("%.4f", data_offset));
                     
-					// Clear data since we're at a new position.
+					// Clear selected points since we're at a new position.
 					append_data     = false;
 					persistent_data = false;
 					startpoint_set  = false;
@@ -3117,17 +3069,15 @@ public class YFencePlotter
 				    endpoint_set   = false;
 					data_canvas.repaint();
 					location_canvas.repaint();
-					
 					segment_image.repaint();
 					segment_map.repaint();				}
-			}
+			};	
 		};
-		RangeButtonHandler adjust_handler = new RangeButtonHandler();
 		adjust_button.addActionListener(adjust_handler);
-		offset_range_panel.add(adjust_button, BorderLayout.SOUTH);
-		range_dialog = new JDialog(frame, "Offset/Range");
-	    range_dialog.add(offset_range_panel);
-		JMenuItem range_item = new JMenuItem("Set Offset/Range");
+		range_panel.add(adjust_button, BorderLayout.SOUTH);
+		range_dialog = new JDialog(frame, "Set Range");
+	    range_dialog.add(range_panel);
+		JMenuItem range_item = new JMenuItem("Set Range");
 		ActionListener range_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -3153,101 +3103,158 @@ public class YFencePlotter
 		
 		location_menu.add(range_item);
 		
-	    class LocationSliderHandler implements ChangeListener
-	    {
-		    public void stateChanged(ChangeEvent e)
-		    {
-		        if(range_button_changing == false)
-		        {
-		            location_slider_changing = true;
-			        JSlider slider = (JSlider) e.getSource();
-			        if(slider.getValueIsAdjusting() == false)
-			        {
-				        int value = slider.getValue();
-				        double new_offset = value;
-				        new_offset /= 100;
-				        double new_range  = data_range;
-				        if(new_range + new_offset > 1)
-				            new_range = 1 - new_offset;
-				        data_offset = new_offset;
-				        data_range = new_range;
-				        
-				        offset_information.setText(String.format("%.4f", data_offset));
-				        range_information.setText(String.format("%.2f", data_range * data_length));
-				        location_information.setText(String.format("%.4f", data_offset));
-				        
-						// Clear data since we're at a new position.
-						append_data     = false;
-						persistent_data = false;
-						startpoint_set  = false;
-						midpoint_set    = false;
-						endpoint_set    = false;
-						
-						sample_information.setText("");	
-						slope_output.setText("");
-						
-						// Reset scrollbar.
-						int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
-						data_scrollbar.setValue(scrollbar_position);
-				        
-						append_data    = false;
-						startpoint_set = false;
-						midpoint_set   = false;
-					    endpoint_set   = false;
-						data_canvas.repaint();
-						location_canvas.repaint();
-						
-						segment_image.repaint();  
-						segment_map.repaint();				    }
-				        location_slider_changing = false;
-				 }
-			}	
-	    }
-	    
-		JPanel  location_slider_panel  = new JPanel(new BorderLayout());
-		int     current_value          = (int)(data_offset * 100);
+		
 	
-		location_slider = new JSlider(0, 98, current_value);
+		JPanel line_panel  = new JPanel(new BorderLayout());
+		line_information = new JTextField();
+		line_information.setHorizontalAlignment(JTextField.CENTER);
+		line_information.setColumns(4);
 		
-		//System.out.println("Setting location slider value to " + current_value);
+		int current_line = (int)Math.floor(data_offset * 30);
+		line_information.setText(" " + current_line + " ");
 		
-		LocationSliderHandler location_slider_handler = new LocationSliderHandler();
 		
-		location_slider.addChangeListener(location_slider_handler);
+		line_panel.add(line_information, BorderLayout.CENTER);
 		
-		location_information = new JTextField();
-		location_information.setHorizontalAlignment(JTextField.CENTER);
-		location_information.setColumns(7);
-		//System.out.println("Setting location information to " + data_offset);
-		location_information.setText(" " + String.format("%.4f", data_offset) + " ");
-		location_slider_panel.add(location_slider, BorderLayout.CENTER);
-		location_slider_panel.add(location_information, BorderLayout.EAST);
-		JDialog	location_dialog = new JDialog(frame, "Set Location");
-		location_dialog.add(location_slider_panel);
-		JMenuItem location_item = new JMenuItem("Set Location");
-		ActionListener location_item_handler = new ActionListener()
+		
+		
+		JPanel line_button_panel = new JPanel(new GridLayout(1, 2));
+		JButton down_button = new JButton(" - ");
+		ActionListener down_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				double line_length  = 1. / 30;
+				int    current_line = (int)Math.floor(data_offset * 30);
+				
+				if(current_line == 0)
+					return;
+				
+				
+				
+				
+				double line_offset  = data_offset - (current_line * line_length);
+				
+				/*
+				if(current_line % 2 == 1)
+				    data_offset -= 2 * line_offset;    	
+				else
+					data_offset -= 2 * (line_length - line_offset);
+				*/
+				
+				data_offset -= line_length;
+				
+				current_line = (int)Math.floor(data_offset * 30);
+				line_information.setText(" " + current_line + " ");
+				
+				// Reset scrollbar.
+				line_button_changing = true;
+				int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+				data_scrollbar.setValue(scrollbar_position);
+				line_button_changing = false;
+				
+				// Clear selected points since we're at a new position.		
+				append_data = false;
+				persistent_data = false;
+				sample_information.setText("");	
+				slope_output.setText("");
+				startpoint_set = false;
+				midpoint_set = false;
+				endpoint_set = false;
+								
+				// Resegment and redraw data.
+				data_canvas.repaint();
+				location_canvas.repaint();
+				segment_image.repaint();
+				segment_map.repaint();
+				
+			}
+		};
+		
+		down_button.addActionListener(down_handler);
+		line_button_panel.add(down_button);
+		
+		
+		
+		JButton up_button = new JButton(" + ");
+		ActionListener up_handler = new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				double line_length  = 1. / 30;
+				int    current_line = (int)Math.floor(data_offset * 30);
+				
+				if(current_line == 29)
+					return;
+				
+				
+				double line_offset  = data_offset - (current_line * line_length);
+				
+				/*
+				if(current_line % 2 == 1)
+					data_offset += 2 * line_offset;   	
+				else
+					data_offset += 2 * (line_length - line_offset); 
+				*/	
+				data_offset += line_length;
+				
+				current_line = (int)Math.floor(data_offset * 30);
+				line_information.setText(" " + current_line + " ");
+				
+				// Reset scrollbar.
+				line_button_changing = true;
+				int scrollbar_position = (int) (data_offset * scrollbar_resolution + data_range * scrollbar_resolution / 2);
+				data_scrollbar.setValue(scrollbar_position);
+				line_button_changing = false;
+				
+				
+				// Clear selected points since we're at a new position.		
+				append_data = false;
+				persistent_data = false;
+				sample_information.setText("");	
+				slope_output.setText("");
+				startpoint_set = false;
+				midpoint_set = false;
+				endpoint_set = false;
+								
+				
+				data_canvas.repaint();
+				location_canvas.repaint();
+				segment_image.repaint();
+				segment_map.repaint();
+				
+			}
+		};
+		
+		up_button.addActionListener(up_handler);
+		line_button_panel.add(up_button);
+		
+		line_panel.add(line_button_panel, BorderLayout.SOUTH);
+		JDialog	line_dialog = new JDialog(frame, "Set Line");
+		line_dialog.add(line_panel);
+		JMenuItem line_item = new JMenuItem("Set Line ");
+		ActionListener line_item_handler = new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
 				Point location_point = frame.getLocation();
 				int x = (int) location_point.getX();
 				int y = (int) location_point.getY();
-				
+
 				Dimension canvas_dimension = data_canvas.getSize();
 				double    canvas_xdim      = canvas_dimension.getWidth();
 				double    canvas_ydim      = canvas_dimension.getHeight();
-					
+				
 			    x += 650;
 			    y += canvas_ydim + 70;
-			    
-				location_dialog.setLocation(x, y);
-				location_dialog.pack();
-				location_dialog.setVisible(true);
+
+				line_dialog.setLocation(x, y);
+				line_dialog.pack();
+				line_dialog.setVisible(true);
 			}
 		};
-		location_item.addActionListener(location_item_handler);
-		location_menu.add(location_item);		
-		
+		line_item.addActionListener(line_item_handler);
+		location_menu.add(line_item);		
 		
 		
 		// A modeless dialog box that shows up if Location->Set Object is selected.		
@@ -3265,7 +3272,7 @@ public class YFencePlotter
 				double    canvas_xdim      = canvas_dimension.getWidth();
 				double    canvas_ydim      = canvas_dimension.getHeight();
 				
-			    x += 650;
+			    x += 780;
 			    y += canvas_ydim + 70;
 
 				set_object_dialog.setLocation(x, y);
@@ -5324,9 +5331,9 @@ public class YFencePlotter
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
 		{
-			if(object_button_changing == false && location_slider_changing == false && range_button_changing == false)
+			if(object_button_changing == false && line_button_changing == false && range_button_changing == false)
 			{
-				scrollbar_changing = true;
+				//scrollbar_changing = true;
 				if (data_scrollbar.getValueIsAdjusting() == false)
 				{
 					JScrollBar scrollbar    = (JScrollBar) event.getSource();
@@ -5353,7 +5360,7 @@ public class YFencePlotter
 						data_range  = .998;
 					}
 					
-					// Clear data since we're at a new position.
+					// Clear selected points since we're at a new position.
 					append_data = false;
 					persistent_data = false;
 					sample_information.setText("");	
@@ -5363,25 +5370,21 @@ public class YFencePlotter
 					midpoint_set = false;
 					endpoint_set = false;
 					
-					// Update offset/range information.
-					offset_information.setText(String.format("%,.4f", data_offset));
+					// Update range/line information.
+				
 					range_information.setText(String.format("%.2f", data_range * data_length));
 					
-                    // Update location slider.
-					int current_value = (int)(data_offset * 100);
-					location_slider.setValue(current_value);
-					location_information.setText(String.format("%.4f", data_offset));
+					int current_line = (int)Math.floor(data_offset * 30);
+					line_information.setText(" " + current_line + " ");
 					
-					// Update location map.
+					
 					location_canvas.repaint();
-					
-					// Redraw data.
 					data_canvas.repaint();
 					segment_image.repaint();
 					segment_map.repaint();
 					
 				}
-				scrollbar_changing = false;
+				//scrollbar_changing = false;
 			}
 		}
 	}
