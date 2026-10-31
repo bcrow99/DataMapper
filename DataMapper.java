@@ -3,6 +3,7 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.awt.Point;
+import java.math.BigDecimal;
 
 public class DataMapper
 {
@@ -124,30 +125,25 @@ public class DataMapper
 
 	public static Point2D.Double getIntersection(Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right, Point2D.Double lower_left)
 	{
-		Line2D.Double base        = new Line2D.Double(lower_left,  lower_right);
-		Line2D.Double diagonal1   = new Line2D.Double(lower_left,  upper_right);
-		Line2D.Double diagonal2   = new Line2D.Double(upper_left,  lower_right);
+		// Intersection of the diagonals lower_left->upper_right and
+		// upper_left->lower_right, by solving the two parametric line
+		// equations with cross products. The previous version subtracted
+		// angles from atan2() without wrapping them, and was badly wrong for
+		// cells rotated so a diagonal angle crossed +/- pi.
+		double d1x = upper_right.x - lower_left.x;
+		double d1y = upper_right.y - lower_left.y;
+		double d2x = lower_right.x - upper_left.x;
+		double d2y = lower_right.y - upper_left.y;
 
-		double base_radians       = getAngleRadians(base);
-		double diagonal1_radians  = getAngleRadians(diagonal1);
-		double diagonal2_radians  = getAngleRadians(diagonal2);
+		double denominator = d1x * d2y - d1y * d2x;
+		if(denominator == 0)
+		{
+			System.out.println("Diagonals are parallel: no intersection.");
+			return(new Point2D.Double(Double.NaN, Double.NaN));
+		}
 
-		double theta1             = diagonal1_radians - base_radians;
-		double theta2             = -diagonal2_radians + base_radians;
-		double theta3             = Math.PI - (theta1 + theta2);
-
-		double base_length        = getLength(base);
-		double determinant_length = Math.sin(theta2) / Math.sin(theta3) * base_length;
-		double delta_x            = determinant_length * Math.cos(theta1);
-		double delta_y            = determinant_length * Math.sin(theta1);
-
-		double x1                 = lower_left.getX();
-		double y1                 = lower_left.getY();
-		double x2                 = x1 + delta_x;
-		double y2                 = y1 + delta_y;
-
-		Point2D.Double intersection_point = new Point2D.Double(x2, y2);
-		return(intersection_point);
+		double t = ((upper_left.x - lower_left.x) * d2y - (upper_left.y - lower_left.y) * d2x) / denominator;
+		return(new Point2D.Double(lower_left.x + t * d1x, lower_left.y + t * d1y));
 	}
 
 
@@ -166,366 +162,87 @@ public class DataMapper
 
 	public static Point2D.Double getNearestPoint(double x1, double y1, double x2, double y2, Point2D.Double point)
 	{
-		double         x3       = point.getX();
-		double         y3       = point.getY();
-		Line2D.Double line      = new Line2D.Double(x1, y1, x2, y2);
-		double        distance1 = line.ptSegDist(x3, y3);
-		double        distance2 = getLength(x1, y1, x3, y3);
-		double        distance3 = getLength(x2, y2, x3, y3);
+		// Nearest point to 'point' on the segment (x1, y1)-(x2, y2): project onto
+		// the line, then clamp to the segment. When the projection falls outside
+		// the segment the endpoint itself is returned, with exactly the same
+		// coordinates, so callers can test for it with ==.
+		double dx      = x2 - x1;
+		double dy      = y2 - y1;
+		double length2 = dx * dx + dy * dy;
+		if(length2 == 0)
+			return(new Point2D.Double(x1, y1));
 
+		double t = ((point.x - x1) * dx + (point.y - y1) * dy) / length2;
+		if(t <= 0)
+			return(new Point2D.Double(x1, y1));
+		else if(t >= 1)
+			return(new Point2D.Double(x2, y2));
+		else
+			return(new Point2D.Double(x1 + t * dx, y1 + t * dy));
+	}
 
-		if(distance1 == distance2)
-	    {
-			//System.out.println("No perpendicular bisector.");
-    	    Point2D.Double end_point = new  Point2D.Double(x1, y1);
-    	    return(end_point);
-	    }
-		else if(distance1 == distance3)
-	    {
+	// Relative error the fast double-precision path of getCrossProduct() is
+	// allowed to have before it falls back to exact BigDecimal arithmetic.
+	public static final double TRIANGLE_AREA_TOLERANCE = 1e-12;
 
-			//System.out.println("No perpendicular bisector.");
-    	    Point2D.Double end_point = new  Point2D.Double(x2, y2);
-    	    return(end_point);
-	    }
-	    else if(x1 == x2)
-		{
-	    	//System.out.println("Simple perpendicular_bisector.");
-			Point2D.Double perpendicular_bisector = new  Point2D.Double(x1, y3);
-	    	return(perpendicular_bisector);
-		}
-		else if(y1 == y2)
-		{
-			//System.out.println("Simple perpendicular_bisector.");
-			Point2D.Double perpendicular_bisector = new  Point2D.Double(x3, y1);
-	    	return(perpendicular_bisector);
-		}
-	    else
-	    {
-	    	double        theta1     = getAngleRadians(x1, y1, x2, y2);
-	    	Line2D.Double hypotenuse = new Line2D.Double(x1, y1, x3, y3);
-	    	double        theta2     = getAngleRadians(hypotenuse);
-	    	double        _x1        = 0;
-	    	double        _y1        = 0;
-	    	double        _x3        = 0;
-	    	double        _y3        = 0;
-	    	double        xshift     = 0;
-	    	double        yshift     = 0;
+	// Shewchuk's bound on the absolute rounding error of a 2x2 cross product
+	// of coordinate differences computed in doubles: (3 + 16 * eps) * eps,
+	// with eps = 2^-53.
+	private static final double CROSS_ERROR_BOUND = (3.0 + 16.0 * 0x1p-53) * 0x1p-53;
 
-	    	if(theta1 == 0)
-	    	{
-	    		_x1 = x1;
-	    		_y1 = y1;
-	    		_x3 = x3;
-	    		_y3 = y3;
-	    	}
-	    	else
-	    	{
-	    		_x1    = 0;
-	    		_y1    = 0;
-	    		_x3    = distance2 * Math.cos(theta2 - theta1);
-	    		_y3    = distance2 * Math.sin(theta2 - theta1);
-	    		xshift = x1;
-	    		yshift = y1;
-	    	}
+	// Returns (b - a) x (d - c) = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx),
+	// accurate to TRIANGLE_AREA_TOLERANCE relative error. It is computed in
+	// doubles when that is provably accurate enough, and otherwise exactly with
+	// BigDecimal (correctly rounded). Returns NaN for non-finite input.
+	public static double getCrossProduct(double ax, double ay, double bx, double by,
+	                                     double cx, double cy, double dx, double dy)
+	{
+		if(!Double.isFinite(ax) || !Double.isFinite(ay) || !Double.isFinite(bx) || !Double.isFinite(by) ||
+		   !Double.isFinite(cx) || !Double.isFinite(cy) || !Double.isFinite(dx) || !Double.isFinite(dy))
+			return(Double.NaN);
 
-	    	hypotenuse         = new Line2D.Double(_x1, _y1, _x3, _y3);
-	    	double theta3      = DataMapper.getAngleRadians(hypotenuse);
-		    double theta4      = Math.PI / 2 - theta3;
-			double base_length = distance2 * Math.sin(theta4);
-			double x4          = base_length * Math.cos(theta1) + xshift;
-			double y4          = base_length * Math.sin(theta1) + yshift;
+		// Fast path.
+		double left  = (bx - ax) * (dy - cy);
+		double right = (by - ay) * (dx - cx);
+		double cross = left - right;
 
-			double distance4   = getLength(x4, y4, x3, y3);
-		    double difference  = Math.abs(distance1 - distance4);
-		    if(difference > .1)
-		    {
-		    	System.out.println("Discrepancy in calculating nearest_location.");
-		    	System.out.println("The distance returned by line.ptSegDist() = " + distance1);
-			    System.out.println("The distance calculated with the law of sines = " + distance4);
-		    	System.out.println("x1 = " + x1 + ", y1 = " + y1);
-		    	System.out.println("x2 = " + x2 + ", y2 = " + y2);
-		    	System.out.println("x3 = " + x3 + ", y3 = " + y3);
-		    	System.out.println();
-		    }
+		double error_bound = CROSS_ERROR_BOUND * (Math.abs(left) + Math.abs(right));
+		if(error_bound <= TRIANGLE_AREA_TOLERANCE * Math.abs(cross))
+			return(cross);
 
-			Point2D.Double perpendicular_bisector = new  Point2D.Double(x4, y4);
-			return(perpendicular_bisector);
-	    }
+		// Slow path: the conversions, subtractions and multiplications are all
+		// exact, so the only rounding is the final doubleValue().
+		BigDecimal exact = new BigDecimal(bx).subtract(new BigDecimal(ax)).multiply(new BigDecimal(dy).subtract(new BigDecimal(cy)))
+		         .subtract(new BigDecimal(by).subtract(new BigDecimal(ay)).multiply(new BigDecimal(dx).subtract(new BigDecimal(cx))));
+		return(exact.doubleValue());
+	}
+
+	// Twice the signed area of triangle a, b, c: positive when the vertices
+	// are counter-clockwise (with y increasing upward), negative when clockwise.
+	private static double getSignedDoubleArea(Point2D.Double a, Point2D.Double b, Point2D.Double c)
+	{
+		return(getCrossProduct(a.x, a.y, b.x, b.y, a.x, a.y, c.x, c.y));
 	}
 
 	public static double getTriangleArea(Point2D.Double point1, Point2D.Double point2, Point2D.Double point3)
 	{
-		double x1 = point1.getX();
-		double y1 = point1.getY();
-		double x2 = point2.getX();
-		double y2 = point2.getY();
-		double x3 = point3.getX();
-		double y3 = point3.getY();
+		// Put the vertices in a fixed (lexicographic) order so every permutation
+		// of the input performs exactly the same floating-point operations and
+		// returns a bit-identical result.
+		Point2D.Double[] p = {point1, point2, point3};
+		java.util.Arrays.sort(p, (u, v) -> u.x != v.x ? Double.compare(u.x, v.x)
+		                                               : Double.compare(u.y, v.y));
 
-		// Return 0 if the points are on a line.
-		if((x1 == x2 && y1 == y2) || (x1 == x3 && y1 == y3) || (x2 == x3 && y2 == y3))
-		{
-
-			System.out.println("Not a triangle: duplicate points.");
-			System.out.println("x1 = " + x1 + ", y1 = " + y1 + " x2 = " + x2 + ", y2 = " + y2 + " x3 = " + x3 + ", y3 = " + y3);
-		    return(0);
-		}
-		else if((x1 == x2) && (x2 == x3))
-		{
-			System.out.println("Not a triangle: x-values collinear.");
-			System.out.println("x1 = " + x1 + ", y1 = " + y1 + " x2 = " + x2 + ", y2 = " + y2 + " x3 = " + x3 + ", y3 = " + y3);
-		    return(0);
-		}
-		else if((y1 == y2) && (y2 == y3))
-		{
-			System.out.println("Not a triangle: y-values collinear.");
-			System.out.println("x1 = " + x1 + ", y1 = " + y1 + " x2 = " + x2 + ", y2 = " + y2 + " x3 = " + x3 + ", y3 = " + y3);
-		    return(0);
-		}
-
-
-		double a      = DataMapper.getDistance(x1, y1, x2, y2);
-		double b      = DataMapper.getDistance(x2, y2, x3, y3);
-		double c      = DataMapper.getDistance(x3, y3, x1, y1);
-
-		double s      = (a + b + c) / 2;
-		double square = s * (s - a) * (s - b) * (s - c);
-		double h_area = Math.sqrt(square);
-
-		// This turns out to be zero sometimes with our data set, when it should be non-zero.
-		//System.out.println("The value produced using Heron's formula is " + h_area);
-
-		// The values produced by dropping an altitude and Heron's formula are very
-		// similar, but the formula goes to zero before the algorithm.
-		// The formula also produces floating point numbers at times with lots of empty space in
-		// the fractional part, with numbers in the least significant places, which looks like noise.
-		double         width    = 0;
-		double         height   = 0;
-		double         error    = 0;
-
-		double length1 = DataMapper.getLength(x1, y1, x2, y2);
-		double length2 = DataMapper.getLength(x2, y2, x3, y3);
-		double length3 = DataMapper.getLength(x3, y3, x1, y1);
-
-		// Find a side of the triangle that has a
-		// perpendicular line to the opposing vertex.
-		Point2D.Double location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
-		double x4 = location.getX();
-		double y4 = location.getY();
-		double distance = DataMapper.getDistance(x4, y4, x3, y3);
-		if(distance != length2 && distance != length3)
-		{
-			//System.out.println("Dropping an altitude to side 1.");
-			height            = DataMapper.getDistance(x3, y3, x4, y4);
-			width             = DataMapper.getDistance(x1, y1, x2, y2);
-		}
-		else
-		{
-			location = DataMapper.getNearestPoint(x2, y2, x3, y3, point1);
-			x4 = location.getX();
-			y4 = location.getY();
-			distance = DataMapper.getDistance(x4, y4, x1, y1);
-			if(distance != length1 && distance != length3)
-			{
-				//System.out.println("Dropping an altitude to side 2.");
-				height            = DataMapper.getDistance(x1, y1, x4, y4);
-				width             = DataMapper.getDistance(x2, y2, x3, y3);
-			}
-			else
-			{
-				location = DataMapper.getNearestPoint(x3, y3, x1, y1, point2);
-				x4 = location.getX();
-				y4 = location.getY();
-				distance = DataMapper.getDistance(x4, y4, x2, y2);
-				if(distance != length1 && distance != length3)
-				{
-					//System.out.println("Dropping an altitude to side 3.");
-					height            = DataMapper.getDistance(x2, y2, x4, y4);
-					width             = DataMapper.getDistance(x3, y3, x1, y1);
-				}
-				else
-				{
-					// System.out.println("Assuming a false equivalence.");
-
-					// Could be a false equivalence because one side is so much
-					// shorter than the others and we are pushing the precision
-					// of the floating point numbers.  Find the shortest side, and
-					// find the distance from the opposing vertex as the height
-					// and use the shortest side as the width.
-
-					// Seems like a built-in error but this agrees exactly with Heron's formula.
-					// Possible that the error in the square root becomes significant with
-					// very small differences between the vertices of the triangle.
-
-					if((length1 < length2) && (length1 < length3))
-					{
-						// The short side is formed by x1, y1, and x2, y2.
-						location = DataMapper.getNearestPoint(x1, y1, x2, y2, point3);
-						x4 = location.getX();
-						y4 = location.getY();
-
-						height = getDistance(x3, y3, x4, y4);
-
-
-						Point2D.Double point4 = new Point2D.Double(x4, y4);
-						if(height == length2)
-						{
-							if(x4 != x2)
-							{
-							    error = Math.abs(x4 - x2);
-								if(((x4 < x2) && (x2 <= x1)) || ((x4 > x2) && (x2 >= x1)))
-									error = -error;
-							}
-							if(y4 != y2)
-							{
-								error = Math.abs(y4 - y2);
-								if(((y4 < y2) && (y2 <= y1)) || ((y4 > y2) && (y2 >= y1)))
-									error = -error;
-							}
-						}
-						else // height = length3
-						{
-							if(x4 != x1)
-							{
-								error = Math.abs(x4 - x1);
-								if(((x4 < x1) && (x1 <= x2)) || ((x4 > x1) && (x1 >= x2)))
-									error = -error;
-							}
-							if(y4 != y1)
-							{
-								error = Math.abs(y4 - y1);
-								if(((y4 < y1) && (y1 <= y2)) || ((y4 > y1) && (y1 >= y2)))
-									error = -error;
-							}
-						}
-
-						width  = length1;
-					}
-					else if((length2 < length1) && (length2 < length3))
-					{
-						// The  short side is formed by x2, y2, and x3, y3.
-						location = DataMapper.getNearestPoint(x2, y2, x3, y3, point1);
-						x4 = location.getX();
-						y4 = location.getY();
-						height = getDistance(x1, y1, x4, y4);
-
-						Point2D.Double point4 = new Point2D.Double(x4, y4);
-						if(height == length1)
-						{
-							if(x4 != x2)
-							{
-								error = Math.abs(x4 - x2);
-								if(((x4 < x2) && (x2 <= x3)) || ((x4 > x2) && (x2 >= x3)))
-									error = -error;
-							}
-							if(y4 != y2)
-							{
-								error = Math.abs(y4 - y2);
-								if(((y4 < y2) && (y2 <= y3)) || ((y4 > y2) && (y2 >= y3)))
-									error = -error;
-							}
-						}
-						else // height = length3
-						{
-							if(x4 != x3)
-							{
-								error = Math.abs(x4 - x3);
-								if(((x4 < x3) && (x3 <= x1)) || ((x4 > x3) && (x3 >= x1)))
-									error = -error;
-							}
-							if(y4 != y3)
-							{
-								error = Math.abs(y4 - y3);
-								if(((y4 < y3) && (y3 <= y1)) || ((y4 > y3) && (y3 >= y1)))
-									error = -error;
-							}
-						}
-						width  = length2;
-					}
-					else if((length3 < length1) && (length3 < length2))
-					{
-						// The  short side is formed by x3, y3,  and x1, y1.
-						location = DataMapper.getNearestPoint(x3, y3, x1, y1, point2);
-						x4 = location.getX();
-						y4 = location.getY();
-						height = getDistance(x2, y2, x4, y4);
-
-
-						Point2D.Double point4 = new Point2D.Double(x4, y4);
-						if(height == length1)
-						{
-							if(x4 != x1)
-							{
-								error = Math.abs(x4 - x1);
-								if(((x4 < x1) && (x1 <= x3)) || ((x4 > x1) && (x1 >= x3)))
-									error = -error;
-							}
-							if(y4 != y1)
-							{
-								error = Math.abs(y4 - y1);
-								if(((y4 < y1) && (y1 <= y3)) || ((y4 > y1) && (y1 >= y3)))
-									error = -error;
-							}
-						}
-						else // height == length2
-						{
-							if(x4 != x3)
-							{
-								error = Math.abs(x4 - x3);
-								if(((x4 < x3) && (x3 <= x1)) || ((x4 > x3) && (x3 >= x1)))
-									error = -error;
-							}
-							if(y4 != y3)
-							{
-								error = Math.abs(y4 - y3);
-								if(((y4 < y3) && (y3 <= y1)) || ((y4 > y3) && (y3 >= y1)))
-									error = -error;
-							}
-						}
-						width  = length3;
-					}
-					else
-					{
-						// Shouldn't happen, but return 0 in unexpected cases.
-						height = 0;
-						width  = 0;
-					}
-				}
-			}
-		}
-
-		double area = height * width / 2;
-		area += error;
-
-		double difference = Math.abs(h_area - area);
-
-		//System.out.println("The difference between Heron's formula and dropping an altitude is " + difference);
-
-		if((h_area == 0) && (area != 0))
-		{
-	        System.out.println("Zero h value, non-zero p value.");
-		    System.out.println();
-		}
-
-
-		if(area == 0)
-		{
-			System.out.println("Calculated a zero area.");
-			System.out.println("x1 = " + x1 + ", y1 = " + y1);
-			System.out.println("x2 = " + x2 + ", y2 = " + y2);
-			System.out.println("x3 = " + x3 + ", y3 = " + y3);
-			System.out.println();
-		}
+		double area = Math.abs(getSignedDoubleArea(p[0], p[1], p[2])) / 2;
 		if(Double.isNaN(area))
 		{
-			System.out.println("Result was not a number.");
-			System.out.println("x1 = " + x1 + ", y1 = " + y1);
-			System.out.println("x2 = " + x2 + ", y2 = " + y2);
-			System.out.println("x3 = " + x3 + ", y3 = " + y3);
+			System.out.println("Triangle has a non-finite coordinate.");
+			System.out.println("x1 = " + point1.x + ", y1 = " + point1.y);
+			System.out.println("x2 = " + point2.x + ", y2 = " + point2.y);
+			System.out.println("x3 = " + point3.x + ", y3 = " + point3.y);
 			System.out.println();
 		}
-
-	    return(area);
+		return(area);
 	}
 
 	public static double getQuadrilateralPerimeter(Point2D.Double lower_left, Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right)
@@ -544,39 +261,49 @@ public class DataMapper
 
 	public static double getQuadrilateralArea(Point2D.Double lower_left, Point2D.Double upper_left, Point2D.Double upper_right, Point2D.Double lower_right)
 	{
-		double x1 = upper_left.getX();
-		double y1 = upper_left.getY();
-		double x2 = upper_right.getX();
-		double y2 = upper_right.getY();
-		double x3 = lower_right.getX();
-		double y3 = lower_right.getY();
-		double x4 = lower_left.getX();
-		double y4 = lower_left.getY();
-
-		//System.out.println("Doing top triangle");
-	    double area1 = getTriangleArea(upper_left, lower_left, upper_right);
-	    //System.out.println("Doing bottom triangle");
-	    double area2 = getTriangleArea(upper_right, lower_right, lower_left);
-	    double area = area1 + area2;
-	    return(area);
+		// For a simple quadrilateral p1 p2 p3 p4 (vertices in cyclic order,
+		// convex or concave), the area is half the cross product of the
+		// diagonals: |(p3 - p1) x (p4 - p2)| / 2. Unlike splitting into two
+		// triangles, this is correct for concave quads, and the result is
+		// identical whichever corner the vertices start from and in either
+		// direction. A repeated vertex reduces it to the triangle's area.
+		double cross = getCrossProduct(lower_left.x,  lower_left.y,  upper_right.x, upper_right.y,
+		                               upper_left.x,  upper_left.y,  lower_right.x, lower_right.y);
+		double area  = Math.abs(cross) / 2;
+		if(Double.isNaN(area))
+			System.out.println("Quadrilateral has a non-finite coordinate.");
+		return(area);
 	}
 
 	public static boolean containsPoint(Point2D.Double point, Sample ... sample)
-    {
-    	boolean contains      = false;
-    	Path2D.Double path    = new Path2D.Double();
-    	Sample current_sample = sample[0];
-	    path.moveTo(current_sample.x, current_sample.y);
-	    for(int i = 0; i < sample.length; i++)
-	    {
-	    	current_sample = sample[i];
-	    	path.lineTo(current_sample.x, current_sample.y);
-	    }
-	    path.closePath();
+	{
+		// True if the point is inside the polygon formed by the samples, or on
+		// its boundary (edges and corners included). Fewer than three samples
+		// do not form a polygon, so the result is false.
+		if(sample == null || sample.length < 3)
+			return(false);
+
+		Path2D.Double path = new Path2D.Double();
+		path.moveTo(sample[0].x, sample[0].y);
+		for(int i = 1; i < sample.length; i++)
+			path.lineTo(sample[i].x, sample[i].y);
+		path.closePath();
 		if(path.contains(point))
-    	    contains = true;
-    	return(contains);
-    }
+			return(true);
+
+		// Path2D.contains() leaves out some boundary points (e.g. the right and
+		// top edges), so test the edges directly with an exact collinearity test.
+		for(int i = 0; i < sample.length; i++)
+		{
+			Sample a = sample[i];
+			Sample b = sample[(i + 1) % sample.length];
+			if(getCrossProduct(a.x, a.y, b.x, b.y, a.x, a.y, point.x, point.y) == 0 &&
+			   point.x >= Math.min(a.x, b.x) && point.x <= Math.max(a.x, b.x) &&
+			   point.y >= Math.min(a.y, b.y) && point.y <= Math.max(a.y, b.y))
+				return(true);
+		}
+		return(false);
+	}
 
 	public static int getLocationType(int xindex, int yindex, int xdim, int ydim)
 	{
@@ -630,623 +357,182 @@ public class DataMapper
 	}
 
 	public static double getLinearExtrapolation(Point2D.Double point, Sample interior, Sample corner1, Sample corner2)
-    {
-		double x1 = point.x;
-    	double y1 = point.y;
+	{
+		// Finds the value at 'point' such that linear interpolation over the
+		// triangle point, corner1, corner2 reproduces interior.intensity at
+		// the interior sample. Uses signed (barycentric) areas, so it also
+		// works when the interior sample is not strictly inside the triangle.
+		Point2D.Double p  = point;
+		Point2D.Double c1 = new Point2D.Double(corner1.x, corner1.y);
+		Point2D.Double c2 = new Point2D.Double(corner2.x, corner2.y);
+		Point2D.Double q  = new Point2D.Double(interior.x, interior.y);
 
-    	double x2 = corner1.x;
-    	double y2 = corner1.y;
+		double total = getSignedDoubleArea(p, c1, c2);
+		if(total == 0 || Double.isNaN(total))
+		{
+			System.out.println("Extrapolation triangle is degenerate.");
+			System.out.println("Point x = " + String.format("%.2f", p.x) + ", y = " + String.format("%.2f", p.y));
+			System.out.println("Corner 1 x = " + String.format("%.2f", c1.x) + ", y = " + String.format("%.2f", c1.y));
+			System.out.println("Corner 2 x = " + String.format("%.2f", c2.x) + ", y = " + String.format("%.2f", c2.y));
+			return(Double.NaN);
+		}
 
-    	double x3 = corner2.x;
-    	double y3 = corner2.y;
+		// Barycentric weights of the interior sample.
+		double weight_point = getSignedDoubleArea(q, c1, c2) / total;
+		double weight1      = getSignedDoubleArea(p, q,  c2) / total;
+		double weight2      = getSignedDoubleArea(p, c1, q)  / total;
 
-    	Point2D.Double interior_point = new Point2D.Double(interior.x, interior.y);
+		if(weight_point == 0)
+		{
+			System.out.println("Interior sample lies on the line through the corners; cannot extrapolate.");
+			System.out.println("Interior x = " + String.format("%.2f", q.x) + ", y = " + String.format("%.2f", q.y));
+			return(Double.NaN);
+		}
 
-    	Point2D.Double top    = new Point2D.Double(x1, y2);
-		Point2D.Double base1  = new Point2D.Double(x2, y2);
-        Point2D.Double base2  = new Point2D.Double(x3, y3);
+		double value = (interior.intensity - weight1 * corner1.intensity - weight2 * corner2.intensity) / weight_point;
+		return(value);
+	}
 
-        double area1 = DataMapper.getTriangleArea(interior_point, base1, base2);
-        double area2 = DataMapper.getTriangleArea(top, interior_point, base2);
-        double area3 = DataMapper.getTriangleArea(top, interior_point, base1);
 
-        double total_area = area1 + area2 + area3;
-        double weight1    = area1 / total_area;
-        double weight2    = area2 / total_area;
-        double weight3    = area3 / total_area;
-
-        if(area1 == 0  || Double.isNaN(area1))
-        {
-        	System.out.println("Area 1 is not a triangle.");
-        	System.out.println("Interior x = " + String.format("%.2f", interior.x) + ", y = " + String.format("%.2f", interior.y));
-        	System.out.println("Corner 1 x = " + String.format("%.2f", x2) + ", y = " + String.format("%.2f", y2));
-        	System.out.println("Corner 2 x = " + String.format("%.2f", x3) + ", y = " + String.format("%.2f", y3));
-        	return(Double.NaN);
-        }
-
-        if(area2 == 0 || Double.isNaN(area2))
-        {
-        	System.out.println("Area 2 is not a triangle.");
-        	System.out.println("Top x = " + String.format("%.2f", x1) + ", y = " + String.format("%.2f", y1));
-        	System.out.println("Interior x = " + String.format("%.2f", interior.x) + ", y = " + String.format("%.2f", interior.y));
-        	System.out.println("Corner 2 x = " + String.format("%.2f", x3) + ", y = " + String.format("%.2f", y3));
-        	return(Double.NaN);
-        }
-
-        if(area3 == 0 || Double.isNaN(area3))
-        {
-        	System.out.println("Area 3 is not a triangle.");
-        	System.out.println("Top x = " + String.format("%.2f", x2) + ", y = " + String.format("%.2f", y2));
-        	System.out.println("Interior x = " + String.format("%.2f", interior.x) + ", y = " + String.format("%.2f", interior.y));
-        	System.out.println("Corner 1 x = " + String.format("%.2f", x2) + ", y = " + String.format("%.2f", y2));
-        	return(Double.NaN);
-        }
-        double value = (total_area * interior.intensity - (corner1.intensity * area2 + corner2.intensity * area3)) / area1;
-        return(value);
-    }
-
+	// Barycentric weights of 'point' in triangle a, b, c, from signed areas.
+	// Inside the triangle (including its edges) all three are >= 0; outside it
+	// at least one is negative. Returns null for a degenerate triangle.
+	private static double[] getBarycentricWeights(Point2D.Double point, Point2D.Double a, Point2D.Double b, Point2D.Double c)
+	{
+		double total = getSignedDoubleArea(a, b, c);
+		if(total == 0 || Double.isNaN(total))
+			return(null);
+		double[] weight = new double[3];
+		weight[0] = getSignedDoubleArea(point, b, c) / total;
+		weight[1] = getSignedDoubleArea(a, point, c) / total;
+		weight[2] = getSignedDoubleArea(a, b, point) / total;
+		return(weight);
+	}
 
 	public static double getLinearInterpolation(Point2D.Double point, Sample sample1, Sample sample2, Sample sample3)
-    {
-		double x1 = sample1.x;
-    	double y1 = sample1.y;
+	{
+		// Barycentric (linear) interpolation over the triangle of samples.
+		// Signed areas make this exact linear interpolation inside the
+		// triangle, including on its edges and corners, and linear
+		// extrapolation outside it.
+		Point2D.Double a = new Point2D.Double(sample1.x, sample1.y);
+		Point2D.Double b = new Point2D.Double(sample2.x, sample2.y);
+		Point2D.Double c = new Point2D.Double(sample3.x, sample3.y);
 
-    	double x2 = sample2.x;
-    	double y2 = sample2.y;
+		double[] weight = getBarycentricWeights(point, a, b, c);
+		if(weight == null)
+		{
+			System.out.println("Interpolation triangle is degenerate.");
+			return(Double.NaN);
+		}
 
-    	double x3 = sample3.x;
-    	double y3 = sample3.y;
+		double value = sample1.intensity * weight[0] +
+		               sample2.intensity * weight[1] +
+		               sample3.intensity * weight[2];
+		return(value);
+	}
 
-		Point2D.Double base1  = new Point2D.Double(x1, y1);
-        Point2D.Double top    = new Point2D.Double(x2, y2);
-        Point2D.Double base2  = new Point2D.Double(x3, y3);
-
-        double area1 = DataMapper.getTriangleArea(point, base2, top);
-        double area2 = DataMapper.getTriangleArea(base1, base2, point);
-        double area3 = DataMapper.getTriangleArea(base1, point, top);
-
-        if(area1 == 0  || Double.isNaN(area1))
-        {
-        	System.out.println("Area 1 is 0.");
-        	return(Double.NaN);
-        }
-
-        if(area2 == 0 || Double.isNaN(area2))
-        {
-        	System.out.println("Area 2 is 0.");
-        	return(Double.NaN);
-        }
-
-        if(area3 == 0 || Double.isNaN(area3))
-        {
-        	System.out.println("Area 3 is 0.");
-        	return(Double.NaN);
-        }
-
-        double total_area = area1 + area2 + area3;
-        double weight1    = area1 / total_area;
-        double weight2    = area2 / total_area;
-        double weight3    = area3 / total_area;
-
-        double value = sample1.intensity * weight1 +
-        		       sample2.intensity * weight2 +
-        		       sample3.intensity * weight3;
-        return(value);
-    }
+	// How far outside a cell (as a barycentric weight, i.e. a fraction of the
+	// triangle's size) a point may be before the 4-sample interpolation warns.
+	public static final double OUTSIDE_TOLERANCE = 1e-9;
 
 	public static double getLinearInterpolation(Point2D.Double point, Sample sample1, Sample sample2, Sample sample3, Sample sample4)
-    {
-    	double x1 = sample1.x;
-	    double y1 = sample1.y;
-
-	    double x2 = sample2.x;
-	    double y2 = sample2.y;
-
-	    double x3 = sample3.x;
-	    double y3 = sample3.y;
-
-	    double x4 = sample4.x;
-	    double y4 = sample4.y;
-
-	    Point2D.Double upper_left    = new Point2D.Double(x1, y1);
-	    Point2D.Double upper_right   = new Point2D.Double(x2, y2);
-	    Point2D.Double lower_right   = new Point2D.Double(x3, y3);
-	    Point2D.Double lower_left    = new Point2D.Double(x4, y4);
-
-	    Line2D.Double top            = new Line2D.Double(upper_left, upper_right);
-	    Line2D.Double left           = new Line2D.Double(upper_left, lower_left);
-	    Line2D.Double bottom         = new Line2D.Double(lower_left, lower_right);
-	    Line2D.Double right          = new Line2D.Double(lower_right, upper_right);
-
-	    boolean area1IsTriangle = false;
-	    boolean area2IsTriangle = false;
-	    boolean area3IsTriangle = false;
-	    boolean area4IsTriangle = false;
-
-	    int number_of_triangles = 0;
-
-	    Point2D.Double middle_top    =  getNearestPoint(x1, y1, x2, y2, point);
-
-	    double x = middle_top.getX();
-	    double y = middle_top.getY();
-	    //System.out.println("Checking midpoints: ");
-	    if((x == x1 && y == y1) || (x == x2 && y == y2))
-	    {
-	    	//System.out.println("Middle top is an endpoint.");
-	    	number_of_triangles++;
-	    	if(x == x1 && y == y1)
-	    	{
-	    		//System.out.println("Area 1 is a triangle.");
-	    		area1IsTriangle = true;
-
-	    	}
-	    	else
-	    	{
-	    		//System.out.println("Area 2 is a triangle.");
-	    		area2IsTriangle = true;
-	    	}
-	    }
-
-	    Point2D.Double middle_left   =  getNearestPoint(x4, y4, x1, y1, point);
-	    x = middle_left.getX();
-	    y = middle_left.getY();
-
-	    if((x == x1 && y == y1) || (x == x4 && y == y4))
-	    {
-	    	//System.out.println("Middle left is an endpoint.");
-	    	number_of_triangles++;
-	    	if(x == x1 && y == y1)
-	    	{
-	    	    area1IsTriangle = true;
-	    	    //System.out.println("Area 1 is a triangle.");
-	    	}
-	    	else
-	    	{
-	    	    area4IsTriangle = true;
-	    	    //System.out.println("Area 4 is a triangle.");
-	    	}
-	    }
-
-	    Point2D.Double middle_right  =  getNearestPoint(x3, y3, x2, y2, point);
-	    x = middle_right.getX();
-	    y = middle_right.getY();
-
-	    if((x == x2 && y == y2) || (x == x3 && y == y3))
-	    {
-	    	//System.out.println("Middle right is an endpoint.");
-	    	number_of_triangles++;
-	    	if(x == x2 && y == y2)
-	    	{
-	    	    area2IsTriangle = true;
-	    	    //System.out.println("Area 2 is a triangle.");
-	    	}
-	    	else
-	    	{
-	    		area3IsTriangle = true;
-	    		//System.out.println("Area 3 is a triangle.");
-	    	}
-	    }
-
-	    Point2D.Double middle_bottom =  getNearestPoint(x4, y4, x3, y3, point);
-	    x = middle_bottom.getX();
-	    y = middle_bottom.getY();
-	    if((x == x3 && y == y3) || (x == x4 && y == y4))
-	    {
-	    	//System.out.println("Middle bottom is an endpoint.");
-	    	number_of_triangles++;
-	    	if(x == x3 && y == y3)
-	    	{
-	    	    area3IsTriangle = true;
-	    	    //System.out.println("Area 3 is a triangle.");
-	    	}
-	    	else
-	    	{
-	    		area4IsTriangle = true;
-	    		//System.out.println("Area 4 is a triangle with 3.");
-	    	}
-	    }
-
-	    //System.out.println("Finished checking midpoints.");
-	    //System.out.println();
-	    //System.out.println("Number of triangle areas in quadrilateral are " + number_of_triangles);
-	    //System.out.println();
-
-	    double area1 = 0;
-	    double area2 = 0;
-	    double area3 = 0;
-	    double area4 = 0;
-	    double total_area = 0;
-	    if(!area1IsTriangle && !area2IsTriangle && !area3IsTriangle && !area4IsTriangle)
-	    {
-	        area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	        area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	        area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
-	        area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-	        total_area =  getQuadrilateralArea(lower_left, upper_left, upper_right, lower_right);
-	    }
-	    else if(area1IsTriangle)
-	    {
-	    	x = middle_top.getX();
-	 	    y = middle_top.getY();
-
-	 	    if(x == x1 && y == y1)
-	 	    {
-	 	    	// We have a middle left but no middle top.
-	 	    	area1 = DataMapper.getTriangleArea(middle_left, upper_left, point);
-
-	 	    	if(area2IsTriangle)
-	 	    	{
-	 	    		// Only two areas can be a triangle at a time, so go ahead and
-	 	    		// get area 4.
-	 	    		area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-
-	 	    		// If area2 is not an odd shaped quad it must be lacking a middle right.
-	 	    		area2 = DataMapper.getTriangleArea(upper_left, upper_right, point);
-
-	 	    		// Get the odd shape quad formed by area3.
-		 	    	area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
-
-	 	    	}
-	 	    	else if(area4IsTriangle)
-	 	    	{
-	 	    	    // If area4 is a triangle it must be lacking a middle bottom.
-	 	    		area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);
-
-	 	    		// Get the odd shaped quads formed by areas 2 and 3.
-	 	    		area2 = DataMapper.getQuadrilateralArea(upper_left, point, middle_right, upper_right);
-	 	    		area3 = DataMapper.getQuadrilateralArea(lower_left, point, middle_right, lower_right);
-	 	    	}
-	 	    	else if(area3IsTriangle)
-	 	    	{
-	 	    	    // In this case, we need to find out if we lack a middle bottom or a middle right.
-	 	    		x = middle_right.getX();
-	 	    		y = middle_right.getY();
-	 	    		if(x == x3 && y == y3)
-	 	    		{
-	 	    			// We lack a middle right.
-	 	    			area3 = DataMapper.getTriangleArea(middle_bottom, lower_right, point);
-	 	    			area2 = DataMapper.getQuadrilateralArea(point, upper_left, upper_right, lower_right);
-	 	    		    // Only two areas can be a triangle at a time, so go ahead and
-		 	    		// get the quad formed by area 4.
-		 	    		area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-	 	    		}
-	 	    		else
-	 	    		{
-	 	    		    // We lack a middle bottom.
-	 	    			area3 = DataMapper.getTriangleArea(lower_right, point, middle_right);
-	 	    			area2 = DataMapper.getQuadrilateralArea(point, upper_left, upper_right, middle_right);
-
-	 	    			// Only two areas can be a triangle at a time, so go ahead and
-		 	    		// get the quad formed by area 4.
-		 	    		area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, lower_right);
-	 	    		}
-	 	    	}
-	 	    	else
-	 	    	{
-	 	    	    // Get odd shaped quad.
-	 	    		area2 = getQuadrilateralArea(point, upper_left, upper_right, middle_right);
-
-	 	    		area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
-	 	    		area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-	 	    	}
-	 	    }
-	 	    else
-	 	    {
-	 	    	// We have a middle top but no middle left.
-	 	    	area1 = DataMapper.getTriangleArea(middle_top, upper_left, point);
-
-	 	    	if(area2IsTriangle)
-	 	    	{
-	 	    		// Only two areas can be a triangle at a time, so go ahead and
-	 	    		// get the odd shape quad formed by area 4.
-	 	    		area4 = DataMapper.getQuadrilateralArea(lower_left, upper_left, point, middle_bottom);
-
-	 	    		// We know there's a middle top, so area2 must be lacking a middle right.
-	 	    		area2 = DataMapper.getTriangleArea(middle_top, upper_right, point);
-
-	 	    		// Get the odd shape quad formed by area3.
-		 	    	area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
-
-	 	    	}
-	 	    	else if(area4IsTriangle)
-	 	    	{
-	 	    	    // We know the left side corners form a side, so area4 must be lacking a middle bottom.
-	 	    		area4 = DataMapper.getTriangleArea(lower_left, upper_left, point);
-
-	 	    		// We have a middle top and a middle right.
-	 	    		// Get the odd shaped quads formed by area2 and area3.
-	 	    		area2 = DataMapper.getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	 	    		area3 = DataMapper.getQuadrilateralArea(lower_left, point, middle_right, lower_right);
-	 	    	}
-	 	    	else if(area3IsTriangle)
-	 	    	{
-	 	    		// In this case, we need to find out if we lack a middle bottom or a middle right.
-	 	    		x = middle_right.getX();
-	 	    		y = middle_right.getY();
-	 	    		if(x == x3 && y == y3)
-	 	    		{
-	 	    			// We lack a middle right.
-	 	    			area3 = DataMapper.getTriangleArea(middle_bottom, lower_right, point);
-	 	    			area2 = DataMapper.getQuadrilateralArea(point, middle_top, upper_right, lower_right);
-	 	    			// Only two areas can be a triangle at a time, so go ahead and
-		 	    		// get the odd shape quad formed by area 4.
-		 	    		area4 = DataMapper.getQuadrilateralArea(lower_left, upper_left, point, middle_bottom);
-	 	    		}
-	 	    		else
-	 	    		{
-	 	    		    // We lack a middle bottom.
-	 	    			area3 = DataMapper.getTriangleArea(lower_right, point, middle_right);
-	 	    			area2 = DataMapper.getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	 	    		    // Only two areas can be triangles at a time, so go ahead and
-		 	    		// get the odd shape quad formed by area 4.
-		 	    		area4 = DataMapper.getQuadrilateralArea(lower_left, upper_left, point, lower_right);
-	 	    		}
-	 	    	}
-	 	    	else
-	 	    	{
-	 	    		area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	 	    		area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
-
-	 	    		// Get odd shaped quad.
-	 	    		area4 = DataMapper.getQuadrilateralArea(lower_left, upper_left, point, middle_bottom);
-	 	    	}
-	 	    }
-	    }
-	    else if(area2IsTriangle)
-	    {
-	    	x = middle_top.getX();
-	 	    y = middle_top.getY();
-
-	 	    if(x == x2 && y == y2)
-	 	    {
-	 	    	// Area 2 lacks a middle top but has a middle right.
-	 	    	area2 = DataMapper.getTriangleArea(middle_right, upper_right, point);
-
-	 	    	if(area3IsTriangle)
-	 	    	{
-	 	    		// System.out.println("Areas 2 and 3 are triangles.");
-	 	    		x = middle_bottom.getX();
-	 		 	    y = middle_bottom.getY();
-
-	 		 	    if(x == x3 && y == y3)
-	 		 	    {
-	 		 	    	// Area 3 lacks a middle bottom.
-	 	    		    area3 = DataMapper.getTriangleArea(lower_left, middle_right, point);
-
-	 	    		    // Get odd shaped quads for areas 1 and 4.
-	 	    		    area1 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, lower_right);
-		 	    	    area4 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, lower_right);
-	 		 	    }
-	 		 	    else
-	 		 	    {
-	 		 	        // Area 3 lacks a middle right.
-	 	    		    area3 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
-
-	 	    		    // Get odd shaped quad for area 1.
-	 	    		    area1 = DataMapper.getQuadrilateralArea(lower_left, middle_left, point, lower_right);
-	 	    		    // Get regular quad for area 4.
-	 	    		    area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-	 		 	    }
-	 	    	}
-	 	    	else if(area4IsTriangle)
-	 	    	{
-	 	    		//System.out.println("Areas 2 and 4 are triangles.(1)");
-	 	    		x = middle_bottom.getX();
-	 		 	    y = middle_bottom.getY();
-
-	 		 	    if(x == x4 && y == y4)
-	 		 	    {
-	 		 	    	// Area 4 lacks a middle bottom.
-	 		 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);
-
-	 		 	        // Get odd shaped quads for areas 1 and 3.
-	 		 	    	area1 = getQuadrilateralArea(middle_left, upper_left, upper_right, point);
-		 		        area3 = getQuadrilateralArea(lower_left, point, middle_right, lower_right);
-	 		 	    }
-	 		 	    else
-	 		 	    {
-	 		 	        // Area 4 lacks a middle left.
-	 		 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
-
-	 		 	    	// Get odd shaped quad for area1.
-	 		 	    	area1 = getQuadrilateralArea(lower_left, upper_left, upper_right, point);
-
-	 		 	    	area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
-	 		 	    }
-	 	    	}
-	 	    	else
-	 	    	{
-	 	    		//System.out.println("Area 2 is a triangle.");
-	 	    	    // Get odd shaped quad for area1, which we know is not a triangle.
-		 	    	area1 = getQuadrilateralArea(middle_left, upper_left, upper_right, point);
-
-		 	    	area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
-	 		        area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-	 	    	}
-	 	    }
-	 	    else
-	 	    {
-	 	    	// Area2 lacks a middle right.
-	 	    	area2 = DataMapper.getTriangleArea(middle_top, upper_right, point);
-	 	    	if(area4IsTriangle)
-	 	    	{
-
-	 	    		x = middle_bottom.getX();
-	 		 	    y = middle_bottom.getY();
-
-	 		 	    if(x == x4 && y == y4)
-	 		 	    {
-	 		 	    	//System.out.println("Areas 2 and 4 are triangles(2).");
-	 		 	    	// Area 4 lacks a middle bottom.
-	 		 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);
-	 		 	        // Get quad for area1.
-			 	    	area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-			 	    	// Get odd shaped quad for  area3.
-			 	    	area3 = DataMapper.getQuadrilateralArea(lower_left, point, upper_right, lower_right);
-	 		 	    }
-	 		 	    else
-	 		 	    {
-	 		 	    	//System.out.println("Areas 2 and 4 are triangles(3).");
-	 		 	        // Area 4 lacks a middle left.
-	 		 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
-
-	 		 	    	// Get odd shaped quads for area1 and area3.
-			 	    	area1 = getQuadrilateralArea(lower_left, upper_left, middle_top, point);
-			 	    	area3 = DataMapper.getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
-
-	 		 	    }
-	 	    	}
-	 	    	else
-	 	    	{
-	 	    		// No middle right.
-	 	    		//System.out.println("Area 2 is a triangle.");
-
-	 	    		// Get odd shaped shaped quad for area3.
-	 	    		area3 = getQuadrilateralArea(middle_bottom, point, upper_right, lower_right);
-
-	 	    		area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	 	    		area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-	 	    	}
-
-	 	    }
-	    }
-	    else if(area3IsTriangle)
-	    {
-	    	x = middle_bottom.getX();
-	 	    y = middle_bottom.getY();
-
-
-	 	    if(x == x3 && y == y3)
-	 	    {
-	 	    	// Area3 lacks a middle bottom.
-
-	 	        area3 = DataMapper.getTriangleArea(middle_right, lower_right, point);
-
-	 	        if(area4IsTriangle)
-	 	        {
-	 	        	//System.out.println("Area 3 and 4 are triangles.");
-
-	 	        	// We already know it uses the lower right, so it must be lacking
-	 	        	// a middle left.
-	 	        	area4 = DataMapper.getTriangleArea(lower_left, lower_right, point);
-
-	 	        	// Get the odd shaped quad for area1.
-	 	        	area1 = getQuadrilateralArea(lower_left, upper_left, middle_top, point);
-
-	 	        	area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	 	        }
-	 	        else
-	 	        {
-	 	        	//System.out.println("Area 3 is a triangle (1).");
-	 	        	// Get the odd shaped quad for area4.
-	 	        	area4 = getQuadrilateralArea(lower_left, middle_left, point, lower_right);
-
-                    area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	 	        	area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	 	        }
-	 	    }
-	 	    else
-	 	    {
-	 	        // Area3 lacks a middle right.
-                area3 = DataMapper.getTriangleArea(middle_bottom, lower_right, point);
-
-	 	        if(area4IsTriangle)
-	 	        {
-	 	        	//System.out.println("Area 3 and 4 are triangles.");
-	 	        	if(x == x4 && y == y4)
-	 	        	{
-	 	        		// No middle right or bottom.
-	 	        		area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);
-
-	 	        	    // Get the odd shaped quad for area2.
-	 	        		area2 = getQuadrilateralArea(lower_right, upper_right, middle_top, point);
-
-	 	        		area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	 	        	}
-	 	        	else
-	 	        	{
-	 	        		// No middle right or middle left.
-	 	        		area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
-
-	 	        	    // Get the odd shaped quads for area1 and area2.
-	 	        		area1 = getQuadrilateralArea(lower_left, upper_left, middle_top, point);
-	 	        		area2 = getQuadrilateralArea(lower_right, upper_right, middle_top, point);
-	 	        	}
-	 	        }
-	 	        else
-	 	        {
-	 	        	//System.out.println("Area 3 is a triangle (2).");
-
-	 	        	// Get the odd shaped quad for area2.
-	 	        	area2 = getQuadrilateralArea(point, middle_top, upper_right, lower_right);
-
-	 	        	area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	 	        	area4 = getQuadrilateralArea(lower_left, middle_left, point, middle_bottom);
-	 	        }
-
-	 	    }
-	    }
-	    else if(area4IsTriangle)
-	    {
-
-	    	x = middle_bottom.getX();
-	 	    y = middle_bottom.getY();
-
-	 	    if(x == x4 && y == y4)
-	 	    {
-	 	    	//System.out.println("Area 4 is a triangle(1).");
-	 	    	// Area4 lacks a middle bottom.
-	 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_left, point);
-
-	 	    	// Get the odd shaped quad for area3.
-	 	    	area3 = DataMapper.getQuadrilateralArea(lower_left, point, middle_right, lower_right);
-
-	 	    	area1 = getQuadrilateralArea(middle_left, upper_left, middle_top, point);
-	 	        area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-	 	    }
-	 	    else
-	 	    {
-	 	    	//System.out.println("Area 4 is a triangle(2).");
-
-	 	    	// Area4 lacks a middle left.
-	 	    	area4 = DataMapper.getTriangleArea(lower_left, middle_bottom, point);
-
-	 	    	// Get the odd shaped quad for area1.
-	 	    	area1 = DataMapper.getQuadrilateralArea(lower_left, upper_left, middle_top, point);
-
-	 	    	area2 = getQuadrilateralArea(point, middle_top, upper_right, middle_right);
-		        area3 = getQuadrilateralArea(middle_bottom, point, middle_right, lower_right);
-	 	    }
-	    }
-
-
-	    total_area =  DataMapper.getQuadrilateralArea(lower_left, upper_left, upper_right, lower_right);
-	    double sum_of_areas = area1 + area2 + area3 + area4;
-
-	    double difference = Math.abs(total_area - sum_of_areas);
-
-	    //System.out.println("Difference between total area and separate areas is " + difference);
-
-
-	    //System.out.println("Total area calculated from cell directly is " + total_area);
-	    //System.out.println("Total area calculated by summing seperate areas is " + (area1 + area2 + area3 + area4));
-	    //System.out.println();
-
-
-	    double weight1 = area3 / sum_of_areas;
-	    double weight2 = area4 / sum_of_areas;
-	    double weight3 = area1 / sum_of_areas;
-	    double weight4 = area2 / sum_of_areas;
-	    double value = sample1.intensity * weight1 + sample2.intensity * weight2 + sample3.intensity * weight3 + sample4.intensity * weight4;
-
-	    //System.out.println("Intensity 1 = " + sample1.intensity + ", intensity 2 = " +  sample2.intensity);
-	    //System.out.println("Intensity 3 = " + sample3.intensity + ", intensity 4 = " +  sample4.intensity);
-	    //System.out.println("Resulting value = " + value);
-	    return(value);
-    }
+	{
+		// sample1..sample4 are the upper left, upper right, lower right and
+		// lower left corners of the cell.
+		//
+		// The cell is split into two triangles along a diagonal and the point is
+		// interpolated linearly in the triangle that contains it. The result
+		// equals each sample's intensity at its own corner, and along each side
+		// of the cell depends only on that side's two corners, so neighboring
+		// cells agree along the edges they share.
+		Point2D.Double ul = new Point2D.Double(sample1.x, sample1.y);
+		Point2D.Double ur = new Point2D.Double(sample2.x, sample2.y);
+		Point2D.Double lr = new Point2D.Double(sample3.x, sample3.y);
+		Point2D.Double ll = new Point2D.Double(sample4.x, sample4.y);
+
+		// A diagonal can be used only if it lies inside the cell, i.e. the two
+		// corners not on it are strictly on opposite sides of it. For a convex
+		// cell both diagonals qualify; for a concave cell only the one through
+		// the reflex corner does.
+		double ul_side = Math.signum(getSignedDoubleArea(ll, ur, ul));
+		double lr_side = Math.signum(getSignedDoubleArea(ll, ur, lr));
+		double ur_side = Math.signum(getSignedDoubleArea(ul, lr, ur));
+		double ll_side = Math.signum(getSignedDoubleArea(ul, lr, ll));
+		boolean ll_ur_ok = ul_side * lr_side < 0;
+		boolean ul_lr_ok = ur_side * ll_side < 0;
+
+		boolean use_ll_ur;
+		if(ll_ur_ok && ul_lr_ok)
+		{
+			// Convex: use the shorter diagonal, which gives better-shaped
+			// triangles. Ties go to lower left - upper right.
+			double ll_ur_length2 = (ur.x - ll.x) * (ur.x - ll.x) + (ur.y - ll.y) * (ur.y - ll.y);
+			double ul_lr_length2 = (lr.x - ul.x) * (lr.x - ul.x) + (lr.y - ul.y) * (lr.y - ul.y);
+			use_ll_ur = ll_ur_length2 <= ul_lr_length2;
+		}
+		else if(ll_ur_ok)
+			use_ll_ur = true;
+		else if(ul_lr_ok)
+			use_ll_ur = false;
+		else
+		{
+			System.out.println("Interpolation cell is degenerate or self-intersecting.");
+			return(Double.NaN);
+		}
+
+		// Pick the triangle on the point's side of the diagonal. A point on the
+		// diagonal itself gets the same value from either triangle.
+		Sample s1, s2, s3;
+		if(use_ll_ur)
+		{
+			double point_side = Math.signum(getSignedDoubleArea(ll, ur, point));
+			if(point_side == 0 || point_side == ul_side)
+			{ s1 = sample1; s2 = sample2; s3 = sample4; }   // upper left, upper right, lower left
+			else
+			{ s1 = sample2; s2 = sample3; s3 = sample4; }   // upper right, lower right, lower left
+		}
+		else
+		{
+			double point_side = Math.signum(getSignedDoubleArea(ul, lr, point));
+			if(point_side == 0 || point_side == ur_side)
+			{ s1 = sample1; s2 = sample2; s3 = sample3; }   // upper left, upper right, lower right
+			else
+			{ s1 = sample1; s2 = sample3; s3 = sample4; }   // upper left, lower right, lower left
+		}
+
+		Point2D.Double a = new Point2D.Double(s1.x, s1.y);
+		Point2D.Double b = new Point2D.Double(s2.x, s2.y);
+		Point2D.Double c = new Point2D.Double(s3.x, s3.y);
+		double[] weight = getBarycentricWeights(point, a, b, c);
+		if(weight == null)
+		{
+			System.out.println("Interpolation triangle is degenerate.");
+			return(Double.NaN);
+		}
+
+		// The point is already on the correct side of the diagonal, so a
+		// negative weight means it is outside one of the cell's sides. Outside
+		// points get a linear extrapolation from the nearer triangle. A small
+		// tolerance keeps points that are on a side but have been rounded a
+		// hair outside it from producing warnings.
+		if(weight[0] < -OUTSIDE_TOLERANCE || weight[1] < -OUTSIDE_TOLERANCE || weight[2] < -OUTSIDE_TOLERANCE)
+		{
+			System.out.println("Point is outside the interpolation cell; extrapolating.");
+			System.out.println("Point x = " + point.x + ", y = " + point.y);
+		}
+
+		double value = s1.intensity * weight[0] + s2.intensity * weight[1] + s3.intensity * weight[2];
+		return(value);
+	}
 
 	public static Point[]  getOrderedPositionList(int xdimension, int ydimension, int direction)
 	{
+		if(xdimension < 1 || ydimension < 1)
+			throw new IllegalArgumentException("Grid dimensions must be at least 1, got " + xdimension + " x " + ydimension + ".");
+		if(direction < 1 || direction > 4)
+			throw new IllegalArgumentException("Direction must be 1, 2, 3 or 4, got " + direction + ".");
+
 		int number_of_positions = xdimension * ydimension;
 		Point[] position_list = new Point[number_of_positions];
 
@@ -1612,682 +898,30 @@ public class DataMapper
 	}
 
 	// The cell list is a list of eight sample lists.
+	// Returns a list of eight sample lists for the neighbors of cell
+	// (xindex, yindex), in the order NW, N, NE, W, E, SW, S, SE (y index
+	// increasing southward). A neighbor that is outside the grid or not
+	// populated gets an empty list, so the position is implicit in the order.
+	// Works for any grid size, including grids one cell wide or tall.
 	public static ArrayList getNeighborList(int xindex, int yindex, int xdim, int ydim, ArrayList close_data_array, boolean isPopulated[][])
 	{
+		if(xindex < 0 || xindex >= xdim || yindex < 0 || yindex >= ydim)
+			throw new IllegalArgumentException("Cell (" + xindex + ", " + yindex + ") is outside the " + xdim + " x " + ydim + " grid.");
+
+		int[][] offset = {{-1, -1}, {0, -1}, {1, -1},
+		                  {-1,  0},          {1,  0},
+		                  {-1,  1}, {0,  1}, {1,  1}};
+
 		ArrayList neighbor_list = new ArrayList();
-		int       location_type = getLocationType(xindex, yindex, xdim, ydim);
-
-		//Let's handle the main case first.
-		if(location_type == 5)
+		for(int k = 0; k < offset.length; k++)
 		{
-		    int northwest_index =  (yindex - 1) * xdim + xindex - 1;
-		    int i               =  northwest_index / xdim;
-		    int j               =  northwest_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(northwest_index);
-		        neighbor_list.add(current_list);  //1
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int north_index =  (yindex - 1) * xdim + xindex;
-		    i               =  north_index / xdim;
-		    j               =  north_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(north_index);
-		        neighbor_list.add(current_list);//2
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int northeast_index =  (yindex - 1) * xdim + xindex + 1;
-		    i                   =  northeast_index / xdim;
-		    j                   =  northeast_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(northeast_index);
-		        neighbor_list.add(current_list);//3
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int west_index  =  yindex * xdim + xindex - 1;
-		    i               =  west_index / xdim;
-		    j               =  west_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(west_index);
-		        neighbor_list.add(current_list);//4
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int east_index  =  yindex * xdim + xindex + 1;
-		    i               =  east_index / xdim;
-		    j               =  east_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(east_index);
-		        neighbor_list.add(current_list);//5
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-		    int southwest_index =  (yindex + 1) * xdim + xindex - 1;
-		    i                   =  southwest_index / xdim;
-		    j                   =  southwest_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(southwest_index);
-		        neighbor_list.add(current_list);//6
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int south_index =  (yindex + 1) * xdim + xindex;
-		    i               =  south_index / xdim;
-		    j               =  south_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(south_index);
-		        neighbor_list.add(current_list);//7
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int southeast_index =  (yindex + 1) * xdim + xindex + 1;
-		    i                   =  southeast_index / xdim;
-		    j                   =  southeast_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		    	ArrayList current_list = (ArrayList)close_data_array.get(southeast_index);
-		        neighbor_list.add(current_list);//8
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-		}
-		else if(location_type == 1)
-		{
-			//Let's go ahead and add empty lists so we have 8 lists later.
-		    //The position information is now implicit in the order.
-		    //The first four lists--NW, N, NE, W--are empty.
-		    for(int m = 0; m < 4; m++)
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);	//4
-		    }
-
-			int east_index      =  1;
-		    int i               =  0;
-		    int j               =  1;
-		    if(isPopulated[i][j])
-		    {
-			    ArrayList current_list = (ArrayList)close_data_array.get(east_index);
-			    neighbor_list.add(current_list); //5
-			}
+			int x = xindex + offset[k][0];
+			int y = yindex + offset[k][1];
+			if(x >= 0 && x < xdim && y >= 0 && y < ydim && isPopulated[y][x])
+				neighbor_list.add(close_data_array.get(y * xdim + x));
 			else
-			{
-			    ArrayList empty_list = new ArrayList();
-			    neighbor_list.add(empty_list);
-			}
-
-		    //SW is empty
-		    ArrayList empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list); //6
-
-		    int south_index =  (yindex + 1) * xdim + xindex;
-		    i               =  south_index / xdim;
-		    j               =  south_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		    	ArrayList current_list = (ArrayList)close_data_array.get(south_index);
-		        neighbor_list.add(current_list); //7
-		    }
-		    else
-			{
-			    empty_list = new ArrayList();
-			    neighbor_list.add(empty_list);
-			}
-
-		    int southeast_index =  (yindex + 1) * xdim + xindex + 1;
-		    i                   =  southeast_index / xdim;
-		    j                   =  southeast_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		    	ArrayList current_list = (ArrayList)close_data_array.get(southeast_index);
-		        neighbor_list.add(current_list);	//8
-		    }
-		    else
-			{
-			    empty_list = new ArrayList();
-			    neighbor_list.add(empty_list);
-			}
-
+				neighbor_list.add(new ArrayList());
 		}
-		else if(location_type == 2)
-		{
-			//First three lists--NW, N, NE--are empty;
-			for(int m = 0; m < 3; m++)
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);	//3
-		    }
-
-			int west_index  =  xindex - 1;
-		    int i           =  0;
-		    int j           =  west_index;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(west_index);
-		        neighbor_list.add(current_list); //4
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int east_index  =  xindex + 1;
-		    i               =  0;
-		    j               =  east_index;
-		    if(isPopulated[i][j])
-		    {
-			    ArrayList current_list = (ArrayList)close_data_array.get(east_index);
-			    neighbor_list.add(current_list); //5
-			}
-			else
-			{
-			    ArrayList empty_list = new ArrayList();
-			    neighbor_list.add(empty_list);
-			}
-
-		    int southwest_index =  xdim + xindex - 1;
-		    i                   =  southwest_index / xdim;
-		    j                   =  southwest_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(southwest_index);
-		        neighbor_list.add(current_list);  //6
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-
-		    int south_index =  xdim + xindex;
-		    i               =  south_index / xdim;
-		    j               =  south_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(south_index);
-		        neighbor_list.add(current_list); //7
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int southeast_index =  (yindex + 1) * xdim + xindex + 1;
-		    i                   =  southeast_index / xdim;
-		    j                   =  southeast_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(southeast_index);
-		        neighbor_list.add(current_list); //8
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		}
-		else if(location_type == 3)
-		{
-			//First three lists--NW, N, NE--are empty;
-			for(int m = 0; m < 3; m++)
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);	//3
-		    }
-
-			int west_index      =  xindex - 1;
-		    int i               =  0;
-		    int j               =  west_index;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(west_index);
-		        neighbor_list.add(current_list);  //4
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    //E is empty;
-		    ArrayList empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list); //5
-
-	    	int southwest_index =  xdim + xindex - 1;
-		    i                   =  1;
-		    j                   =  southwest_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(southwest_index);
-		        neighbor_list.add(current_list); //6
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int south_index =  xdim + xindex;
-		    i               =  1;
-		    j               =  xindex;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(south_index);
-		        neighbor_list.add(current_list);  //7
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    //SE is empty.
-		    empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list); //8
-		}
-		else if(location_type == 4)
-		{
-			//NW is empty
-			ArrayList empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list); //1
-
-			int north_index     =  (yindex - 1) * xdim + xindex;
-		    int i               =  north_index / xdim;
-		    int j               =  north_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(north_index);
-		        neighbor_list.add(current_list);//2
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int northeast_index =  (yindex - 1) * xdim + xindex + 1;
-		    i                   =  northeast_index / xdim;
-		    j                   =  northeast_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(northeast_index);
-		        neighbor_list.add(current_list);//3
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    //W is empty
-		    empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list);//4
-
-			int east_index  =  yindex * xdim + xindex + 1;
-		    i               =  east_index / xdim;
-		    j               =  east_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(east_index);
-		        neighbor_list.add(current_list);//5
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    //SW is empty
-		    empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list);//6
-
-		    int south_index =  (yindex + 1) * xdim + xindex;
-		    i               =  south_index / xdim;
-		    j               =  south_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(south_index);
-		        neighbor_list.add(current_list);//7
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int southeast_index =  (yindex + 1) * xdim + xindex + 1;
-		    i                   =  southeast_index / xdim;
-		    j                   =  southeast_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(southeast_index);
-		        neighbor_list.add(current_list);//8
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-		}
-		else if(location_type == 6)
-		{
-			int northwest_index =  (yindex - 1) * xdim + xindex - 1;
-		    int i               =  northwest_index / xdim;
-		    int j               =  northwest_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(northwest_index);
-		        neighbor_list.add(current_list);//1
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int north_index =  (yindex - 1) * xdim + xindex;
-		    i               =  north_index / xdim;
-		    j               =  north_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(north_index);
-		        neighbor_list.add(current_list);//2
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    //NE is empty
-		    ArrayList empty_list = new ArrayList();
-		    neighbor_list.add(empty_list);//3
-
-		    int west_index  =  yindex * xdim + xindex - 1;
-		    i               =  west_index / xdim;
-		    j               =  west_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(west_index);
-		        neighbor_list.add(current_list);//4
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    //E is empty
-		    empty_list = new ArrayList();
-		    neighbor_list.add(empty_list);//5
-
-		    int southwest_index =  (yindex + 1) * xdim + xindex - 1;
-		    i                   =  southwest_index / xdim;
-		    j                   =  southwest_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(southwest_index);
-		        neighbor_list.add(current_list);//6
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int south_index =  (yindex + 1) * xdim + xindex;
-		    i               =  south_index / xdim;
-		    j               =  south_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(south_index);
-		        neighbor_list.add(current_list);//7
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    //SE is empty
-		    empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list);//8
-		}
-		else if(location_type == 7)
-		{
-			//NW is empty
-			ArrayList empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list);//1
-
-		    int north_index     =  (yindex - 1) * xdim + xindex;
-		    int i               =  north_index / xdim;
-		    int j               =  north_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(north_index);
-		        neighbor_list.add(current_list);//2
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int northeast_index =  (yindex - 1) * xdim + xindex + 1;
-		    i                   =  northeast_index / xdim;
-		    j                   =  northeast_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(northeast_index);
-		        neighbor_list.add(current_list);//3
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    //W is empty
-		    empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list);//4
-
-	    	int east_index  =  yindex * xdim + xindex + 1;
-		    i               =  east_index / xdim;
-		    j               =  east_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(east_index);
-		        neighbor_list.add(current_list);//5
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-		    //Next three--SW, S, SE--are empty
-		    for(int m = 0; m < 3; m++)
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);//8
-		    }
-
-		}
-		else if(location_type == 8)
-		{
-			int northwest_index =  (yindex - 1) * xdim + xindex - 1;
-		    int i               =  northwest_index / xdim;
-		    int j               =  northwest_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(northwest_index);
-		        neighbor_list.add(current_list);//1
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int north_index =  (yindex - 1) * xdim + xindex;
-		    i               =  north_index / xdim;
-		    j               =  north_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(north_index);
-		        neighbor_list.add(current_list);//2
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int northeast_index =  (yindex - 1) * xdim + xindex + 1;
-		    i                   =  northeast_index / xdim;
-		    j                   =  northeast_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(northeast_index);
-		        neighbor_list.add(current_list);//3
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int west_index  =  yindex * xdim + xindex - 1;
-		    i               =  west_index / xdim;
-		    j               =  west_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(west_index);
-		        neighbor_list.add(current_list);//4
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int east_index  =  yindex * xdim + xindex + 1;
-		    i               =  east_index / xdim;
-		    j               =  east_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(east_index);
-		        neighbor_list.add(current_list);//5
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-		    //Next three--SW, S, SE--are empty
-		    for(int m = 0; m < 3; m++)
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);	//8
-		    }
-		}
-		else if(location_type == 9)
-		{
-			int northwest_index =  (yindex - 1) * xdim + xindex - 1;
-		    int i               =  northwest_index / xdim;
-		    int j               =  northwest_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(northwest_index);
-		        neighbor_list.add(current_list);  //1
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    int north_index =  (yindex - 1) * xdim + xindex;
-		    i               =  north_index / xdim;
-		    j               =  north_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(north_index);
-		        neighbor_list.add(current_list);//2
-		    }
-		    else
-		    {
-		    	ArrayList empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-
-		    //NE is empty
-		    ArrayList empty_list = new ArrayList();
-	    	neighbor_list.add(empty_list);//3
-
-		    int west_index  =  yindex * xdim + xindex - 1;
-		    i               =  west_index / xdim;
-		    j               =  west_index % xdim;
-		    if(isPopulated[i][j])
-		    {
-		        ArrayList current_list = (ArrayList)close_data_array.get(west_index);
-		        neighbor_list.add(current_list);//4
-		    }
-		    else
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);
-		    }
-		    //Next four--E, SW, S, SE--are empty
-		    for(int m = 0; m < 4; m++)
-		    {
-		    	empty_list = new ArrayList();
-		    	neighbor_list.add(empty_list);	//8
-		    }
-		}
-	    return(neighbor_list);
+		return(neighbor_list);
 	}
 }
