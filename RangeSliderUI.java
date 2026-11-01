@@ -202,8 +202,8 @@ class RangeSliderUI extends BasicSliderUI {
         } else {
             // Determine position of selected range by moving from the middle
             // of one thumb to the other.
-            int lowerY = thumbRect.x + (thumbRect.width / 2);
-            int upperY = upperThumbRect.x + (upperThumbRect.width / 2);
+            int lowerY = thumbRect.y + (thumbRect.height / 2);
+            int upperY = upperThumbRect.y + (upperThumbRect.height / 2);
             
             // Determine track position.
             int cx = (trackBounds.width / 2) - 2;
@@ -382,6 +382,11 @@ class RangeSliderUI extends BasicSliderUI {
      */
     public class RangeTrackListener extends TrackListener {
         
+        /** True while both thumbs were under the press and none is chosen yet. */
+        private boolean choosingThumb;
+        /** Mouse position of the press that started choosingThumb. */
+        private int pressX, pressY;
+        
         @Override
         public void mousePressed(MouseEvent e) {
             if (!slider.isEnabled()) {
@@ -395,6 +400,21 @@ class RangeSliderUI extends BasicSliderUI {
                 slider.requestFocus();
             }
             
+            // If the thumbs overlap and both are under the mouse, wait for the
+            // first drag: moving toward higher values picks the upper thumb,
+            // moving toward lower values picks the lower thumb.  Otherwise a
+            // thumb sitting on top of the other could only be moved one way.
+            choosingThumb = false;
+            if (thumbRect.contains(currentMouseX, currentMouseY)
+                    && upperThumbRect.contains(currentMouseX, currentMouseY)) {
+                choosingThumb = true;
+                pressX = currentMouseX;
+                pressY = currentMouseY;
+                lowerDragging = false;
+                upperDragging = false;
+                return;
+            }
+
             // Determine which thumb is pressed.  If the upper thumb is 
             // selected (last one dragged), then check its position first;
             // otherwise check the position of the lower thumb first.
@@ -449,6 +469,7 @@ class RangeSliderUI extends BasicSliderUI {
         
         @Override
         public void mouseReleased(MouseEvent e) {
+            choosingThumb = false;
             lowerDragging = false;
             upperDragging = false;
             slider.setValueIsAdjusting(false);
@@ -463,6 +484,30 @@ class RangeSliderUI extends BasicSliderUI {
 
             currentMouseX = e.getX();
             currentMouseY = e.getY();
+
+            if (choosingThumb) {
+                boolean towardHigher;
+                if (slider.getOrientation() == JSlider.HORIZONTAL) {
+                    int dx = currentMouseX - pressX;
+                    if (dx == 0) {
+                        return;
+                    }
+                    towardHigher = (dx > 0) != drawInverted();
+                } else {
+                    int dy = currentMouseY - pressY;
+                    if (dy == 0) {
+                        return;
+                    }
+                    towardHigher = (dy < 0) != drawInverted();
+                }
+
+                Rectangle chosen = towardHigher ? upperThumbRect : thumbRect;
+                offset = (slider.getOrientation() == JSlider.HORIZONTAL) ? pressX - chosen.x : pressY - chosen.y;
+                upperThumbSelected = towardHigher;
+                upperDragging = towardHigher;
+                lowerDragging = !towardHigher;
+                choosingThumb = false;
+            }
 
             if (lowerDragging) {
                 slider.setValueIsAdjusting(true);

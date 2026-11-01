@@ -146,6 +146,9 @@ public class YFencePlotter
 	
 	String             graph_label = new String("");
 	
+	// Config file read at startup and written on exit.
+	String             config_filename;
+	
 	int                smooth               = 5;
 	double             scale_factor         = 1.;
 	double             minimum_y            = 0;
@@ -281,18 +284,8 @@ public class YFencePlotter
 		File file = new File(filename);
 		if (file.exists())
 		{
-			// Get the current directory and see if it contains a config file.
-			StringTokenizer tokenizer = new StringTokenizer(filename, "/");
-			String current_directory = new String("");
-			String directory         = new String("");
-			while(tokenizer.hasMoreTokens())
-			{
-				directory = new String(current_directory);
-				String  next_string = tokenizer.nextToken();
-				current_directory   = new String(current_directory + next_string + "/");
-			}
-			
-			String config_filename = new String(directory + "wand.cfg");
+			// Look for a config file in the same folder as the data file.
+			config_filename = new File(new File(filename).getAbsoluteFile().getParentFile(), "wand.cfg").getPath();
 			File config_file = new File(config_filename);
 			if(config_file.exists())
 			{
@@ -344,9 +337,9 @@ public class YFencePlotter
 				            //System.out.println("Key is " + key);
 				            //System.out.println("Value is " + value);
 				            if(key.equals("Offset"))
-				    	        data_offset = Double.valueOf(value);
+				    	        data_offset = parseNumber(value);
 				            else if(key.equals("Range")) 
-				        	    data_range = Double.valueOf(value);
+				        	    data_range = parseNumber(value);
 				            else if(key.equals("ReverseView")) 
 					        {
 					        	if(value.equals("true"))
@@ -371,15 +364,15 @@ public class YFencePlotter
 				            else if(key.equals("Smooth")) 
 				        	    smooth = Integer.parseInt(value);
 				            else if(key.equals("XStep"))
-					    	    normal_xstep = Double.valueOf(value);
+					    	    normal_xstep = parseNumber(value);
 					        else if(key.equals("YStep")) 
-					        	normal_ystep = Double.valueOf(value);
+					        	normal_ystep = parseNumber(value);
 					        else if(key.equals("XLocation"))
-					    	    xlocation = Double.valueOf(value);
+					    	    xlocation = parseNumber(value);
 					        else if(key.equals("YLocation")) 
-					        	ylocation = Double.valueOf(value);
+					        	ylocation = parseNumber(value);
 					        else if(key.equals("ScaleFactor")) 
-					        	scale_factor = Double.valueOf(value);
+					        	scale_factor = parseNumber(value);
 				            else if(key.equals("Clipping")) 
 					        {
 					        	if(value.equals("true"))
@@ -389,6 +382,7 @@ public class YFencePlotter
 					        } 
 				            else if(key.equals("Label")) 
 					        {
+					        	value = line.trim().substring(key.length()).trim();
 				            	show_label = true;
 				            	graph_label = value;
 					        } 
@@ -407,9 +401,9 @@ public class YFencePlotter
 					        		show_position = false;
 					        } 
 				            else if(key.equals("Maximum")) 
-					        	maximum_y = Double.valueOf(value);
+					        	maximum_y = parseNumber(value);
 				            else if(key.equals("Minimum")) 
-					        	minimum_y = Double.valueOf(value);
+					        	minimum_y = parseNumber(value);
 				            else if(key.equals("AppendData")) 
 					        {
 					        	if(value.equals("true"))
@@ -422,15 +416,15 @@ public class YFencePlotter
 				            else if(key.equals("AppendSensor")) 
 				            	append_sensor = Integer.parseInt(value);
 				            else if(key.equals("AppendIntensity")) 
-					        	append_intensity = Double.valueOf(value);
+					        	append_intensity = parseNumber(value);
 				            else if(key.equals("AppendX")) 
-					        	append_x = Double.valueOf(value);
+					        	append_x = parseNumber(value);
 				            else if(key.equals("AppendY")) 
-					        	append_y = Double.valueOf(value);
+					        	append_y = parseNumber(value);
 				            else if(key.equals("AppendXAbs")) 
-					        	append_x_abs = Double.valueOf(value);
+					        	append_x_abs = parseNumber(value);
 				            else if(key.equals("AppendYAbs")) 
-					        	append_y_abs = Double.valueOf(value);
+					        	append_y_abs = parseNumber(value);
 				            else if(key.equals("AppendXPosition")) 
 				            	append_x_position = Integer.parseInt(value);
 				            else if(key.equals("AppendYPosition")) 
@@ -449,11 +443,11 @@ public class YFencePlotter
 				            else if(key.equals("StartSensor")) 
 				            	startpoint_sensor = Integer.parseInt(value);
 				            else if(key.equals("StartX")) 
-				            	startpoint_x = Double.valueOf(value);
+				            	startpoint_x = parseNumber(value);
 				            else if(key.equals("StartY")) 
-				            	startpoint_y = Double.valueOf(value);
+				            	startpoint_y = parseNumber(value);
 				            else if(key.equals("StartIntensity")) 
-				            	startpoint_intensity = Double.valueOf(value);
+				            	startpoint_intensity = parseNumber(value);
 				            else if(key.equals("StartXPosition")) 
 				            	startpoint_x_position = Integer.parseInt(value);
 				            else if(key.equals("StartYPosition")) 
@@ -472,11 +466,11 @@ public class YFencePlotter
 				            else if(key.equals("MidSensor")) 
 				            	midpoint_sensor = Integer.parseInt(value);
 				            else if(key.equals("MidX")) 
-				            	midpoint_x = Double.valueOf(value);
+				            	midpoint_x = parseNumber(value);
 				            else if(key.equals("MidY")) 
-				            	midpoint_y = Double.valueOf(value);
+				            	midpoint_y = parseNumber(value);
 				            else if(key.equals("MidIntensity")) 
-				            	midpoint_intensity = Double.valueOf(value);
+				            	midpoint_intensity = parseNumber(value);
 				            else if(key.equals("MidXPosition")) 
 				            	midpoint_x_position = Integer.parseInt(value);
 				            else if(key.equals("MidYPosition")) 
@@ -495,11 +489,11 @@ public class YFencePlotter
 				            else if(key.equals("EndSensor")) 
 				            	endpoint_sensor = Integer.parseInt(value);
 				            else if(key.equals("EndX")) 
-				            	endpoint_x = Double.valueOf(value);
+				            	endpoint_x = parseNumber(value);
 				            else if(key.equals("EndY")) 
-				            	endpoint_y = Double.valueOf(value);
+				            	endpoint_y = parseNumber(value);
 				            else if(key.equals("EndIntensity")) 
-				            	endpoint_intensity = Double.valueOf(value);
+				            	endpoint_intensity = parseNumber(value);
 				            else if(key.equals("EndXPosition")) 
 				            	endpoint_x_position = Integer.parseInt(value);
 				            else if(key.equals("EndYPosition")) 
@@ -560,9 +554,9 @@ public class YFencePlotter
 			
 			ArrayList original_data = new ArrayList();
 			global_xmin          = Double.MAX_VALUE;
-			global_xmax          = 0;
+			global_xmax          = -Double.MAX_VALUE;
 			global_ymin          = Double.MAX_VALUE;
-			global_ymax          = 0;
+			global_ymax          = -Double.MAX_VALUE;
 			global_intensity_min = Double.MAX_VALUE;
 			global_intensity_max = -Double.MAX_VALUE;
 			
@@ -575,20 +569,20 @@ public class YFencePlotter
 				int number_of_entries = length / 3;
 				for (int i = 0; i < number_of_entries; i++)
 				{
-					double x = Double.valueOf(number_tokens.nextToken());
-					double y = Double.valueOf(number_tokens.nextToken());
-					double intensity = Double.valueOf(number_tokens.nextToken());
+					double x = Double.parseDouble(number_tokens.nextToken());
+					double y = Double.parseDouble(number_tokens.nextToken());
+					double intensity = Double.parseDouble(number_tokens.nextToken());
 					if (x < global_xmin)
 						global_xmin = x;
-					else if (x > global_xmax)
+					if (x > global_xmax)
 						global_xmax = x;
 					if (y < global_ymin)
 						global_ymin = y;
-					else if (y > global_ymax)
+					if (y > global_ymax)
 						global_ymax = y;
 					if (intensity < global_intensity_min)
 						global_intensity_min = intensity;
-					else if (intensity > global_intensity_max)
+					if (intensity > global_intensity_max)
 						global_intensity_max = intensity;
 					Sample current_sample = new Sample(x, y, intensity);
 					original_data.add(current_sample);
@@ -599,25 +593,25 @@ public class YFencePlotter
 					try
 					{
 						line = reader.readLine();
-						if (line != null)
+						if (line != null && line.trim().length() > 0)
 						{
 							number_tokens = new StringTokenizer(line, " ");
 							for (int i = 0; i < number_of_entries; i++)
 							{
-								double x = Double.valueOf(number_tokens.nextToken());
-								double y = Double.valueOf(number_tokens.nextToken());
-								double intensity = Double.valueOf(number_tokens.nextToken());
+								double x = Double.parseDouble(number_tokens.nextToken());
+								double y = Double.parseDouble(number_tokens.nextToken());
+								double intensity = Double.parseDouble(number_tokens.nextToken());
 								if (x < global_xmin)
 									global_xmin = x;
-								else if (x > global_xmax)
+								if (x > global_xmax)
 									global_xmax = x;
 								if (y < global_ymin)
 									global_ymin = y;
-								else if (y > global_ymax)
+								if (y > global_ymax)
 									global_ymax = y;
 								if (intensity < global_intensity_min)
 									global_intensity_min = intensity;
-								else if (intensity > global_intensity_max)
+								if (intensity > global_intensity_max)
 									global_intensity_max = intensity;
 								Sample current_sample = new Sample(x, y, intensity);
 								original_data.add(current_sample);
@@ -859,7 +853,7 @@ public class YFencePlotter
 	        	{
 		        	try
 		            {
-		            	PrintWriter output  = new PrintWriter("wand.cfg");	
+		            	PrintWriter output  = new PrintWriter(config_filename);	
 		            	
 		            	String _id          = new String("");
 		            	String _visible     = new String("");
@@ -1033,8 +1027,17 @@ public class YFencePlotter
 		
 		for(int i = 0; i < 5; i++)
 		{
-			visible[i] = true;
-			transparent[i] = false;
+			if(!config_file_exists)
+			{
+				visible[i] = true;
+				transparent[i] = false;
+			}
+			if(!visible[i])
+				sensor_state[i] = 2;
+			else if(transparent[i])
+				sensor_state[i] = 1;
+			else
+				sensor_state[i] = 0;
 		}
 		JMenuBar menu_bar = new JMenuBar();
 		
@@ -1054,6 +1057,8 @@ public class YFencePlotter
 		        FileDialog file_dialog = new FileDialog(frame, "Save Graph", FileDialog.SAVE);
 		        file_dialog.setVisible(true);
 		        String filename = file_dialog.getFile();
+		        if(filename == null)
+		        	return;
 		        int           image_xdim   = buffered_image.getWidth();
 				int           image_ydim   = buffered_image.getHeight();
 				BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
@@ -1062,12 +1067,11 @@ public class YFencePlotter
 				String current_directory = file_dialog.getDirectory();
 				try 
     	        {  
-    	            ImageIO.write(print_image, "png", new File(current_directory + filename + ".png")); 
+    	            ImageIO.write(print_image, "png", new File(current_directory, filename.endsWith(".png") ? filename : filename + ".png")); 
     	        } 
     	        catch(IOException e2) 
     	        {  
-    	            //e2.printStackTrace(); 
-    	            e2.toString();
+    	            System.out.println("Could not save graph: " + e2.toString());
     	        }  
 			}
 		};
@@ -1086,6 +1090,8 @@ public class YFencePlotter
 				FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
 		        file_dialog.setVisible(true);
 		        String filename = file_dialog.getFile();
+		        if(filename == null)
+		        	return;
 		    
 				String current_directory = file_dialog.getDirectory();
 				
@@ -1094,7 +1100,7 @@ public class YFencePlotter
 				System.out.println("Writing text file.");
 				
 				
-				try (PrintWriter output = new PrintWriter(current_directory + filename + ".txt"))
+				try (PrintWriter output = new PrintWriter(new File(current_directory, filename.endsWith(".txt") ? filename : filename + ".txt")))
 			    {
 				    // Separate the sensor information into separate blocks.
 				    // This is a format that makes gnuplot easier to use,
@@ -1201,11 +1207,12 @@ public class YFencePlotter
 					            // Will do that at the end when we have both
 					            // values.
 					            if(key.equals("Offset"))
-					    	        data_offset = Double.valueOf(value);
+					    	        data_offset = parseNumber(value);
 					            else if(key.equals("Range")) 
-					        	    data_range = Double.valueOf(value);
+					        	    data_range = parseNumber(value);
 					            else if(key.equals("Label")) 
 						        {
+						        	value = line.trim().substring(key.length()).trim();
 					            	show_label = true;
 					            	graph_label = value;
 						        } 
@@ -1291,7 +1298,7 @@ public class YFencePlotter
 					            }
 						        else if(key.equals("ScaleFactor")) 
 						        {
-						        	scale_factor = Double.valueOf(value);
+						        	scale_factor = parseNumber(value);
 						        }
 					            // We need to reset the bounds text in the dynamic range dialog
 					            // if there is clipping.  Process at the end when we have
@@ -1304,17 +1311,17 @@ public class YFencePlotter
 						        		data_clipped = false;
 						        } 
 					            else if(key.equals("Maximum")) 
-						        	maximum_y = Double.valueOf(value);
+						        	maximum_y = parseNumber(value);
 					            else if(key.equals("Minimum")) 
-						        	minimum_y = Double.valueOf(value);
+						        	minimum_y = parseNumber(value);
 					            else if(key.equals("XStep"))
-						    	    normal_xstep = Double.valueOf(value);
+						    	    normal_xstep = parseNumber(value);
 						        else if(key.equals("YStep")) 
-						        	normal_ystep = Double.valueOf(value);
+						        	normal_ystep = parseNumber(value);
 						        else if(key.equals("XLocation"))
-						    	    xlocation = Double.valueOf(value);
+						    	    xlocation = parseNumber(value);
 						        else if(key.equals("YLocation")) 
-						        	ylocation = Double.valueOf(value);
+						        	ylocation = parseNumber(value);
 					            else if(key.equals("AppendData")) 
 						        {
 						        	if(value.equals("true"))
@@ -1327,15 +1334,15 @@ public class YFencePlotter
 					            else if(key.equals("AppendSensor")) 
 					            	append_sensor = Integer.parseInt(value);
 					            else if(key.equals("AppendX")) 
-						        	append_x = Double.valueOf(value);
+						        	append_x = parseNumber(value);
 					            else if(key.equals("AppendY")) 
-						        	append_y = Double.valueOf(value);
+						        	append_y = parseNumber(value);
 					            else if(key.equals("AppendIntensity")) 
-						        	append_intensity = Double.valueOf(value);
+						        	append_intensity = parseNumber(value);
 					            else if(key.equals("AppendXAbs")) 
-						        	append_x_abs = Double.valueOf(value);
+						        	append_x_abs = parseNumber(value);
 					            else if(key.equals("AppendYAbs")) 
-						        	append_y_abs = Double.valueOf(value);
+						        	append_y_abs = parseNumber(value);
 					            else if(key.equals("AppendXPosition")) 
 					            	append_x_position = Integer.parseInt(value);
 					            else if(key.equals("AppendYPosition")) 
@@ -1354,11 +1361,11 @@ public class YFencePlotter
 					            else if(key.equals("StartSensor")) 
 					            	startpoint_sensor = Integer.parseInt(value);
 					            else if(key.equals("StartX")) 
-					            	startpoint_x = Double.valueOf(value);
+					            	startpoint_x = parseNumber(value);
 					            else if(key.equals("StartY")) 
-					            	startpoint_y = Double.valueOf(value);
+					            	startpoint_y = parseNumber(value);
 					            else if(key.equals("StartIntensity")) 
-					            	startpoint_intensity = Double.valueOf(value);
+					            	startpoint_intensity = parseNumber(value);
 					            else if(key.equals("StartXPosition")) 
 					            	startpoint_x_position = Integer.parseInt(value);
 					            else if(key.equals("StartYPosition")) 
@@ -1377,11 +1384,11 @@ public class YFencePlotter
 					            else if(key.equals("MidSensor")) 
 					            	midpoint_sensor = Integer.parseInt(value);
 					            else if(key.equals("MidX")) 
-					            	midpoint_x = Double.valueOf(value);
+					            	midpoint_x = parseNumber(value);
 					            else if(key.equals("MidY")) 
-					            	midpoint_y = Double.valueOf(value);
+					            	midpoint_y = parseNumber(value);
 					            else if(key.equals("MidIntensity")) 
-					            	midpoint_intensity = Double.valueOf(value);
+					            	midpoint_intensity = parseNumber(value);
 					            else if(key.equals("MidXPosition")) 
 					            	midpoint_x_position = Integer.parseInt(value);
 					            else if(key.equals("MidYPosition")) 
@@ -1400,11 +1407,11 @@ public class YFencePlotter
 					            else if(key.equals("EndSensor")) 
 					            	endpoint_sensor = Integer.parseInt(value);
 					            else if(key.equals("EndX")) 
-					            	endpoint_x = Double.valueOf(value);
+					            	endpoint_x = parseNumber(value);
 					            else if(key.equals("EndY")) 
-					            	endpoint_y = Double.valueOf(value);
+					            	endpoint_y = parseNumber(value);
 					            else if(key.equals("EndIntensity")) 
-					            	endpoint_intensity = Double.valueOf(value);
+					            	endpoint_intensity = parseNumber(value);
 					            else if(key.equals("EndXPosition")) 
 					            	endpoint_x_position = Integer.parseInt(value);
 					            else if(key.equals("EndYPosition")) 
@@ -1917,9 +1924,9 @@ public class YFencePlotter
 			public void actionPerformed(ActionEvent e)
 			{
 				String bound_string = lower_bound.getText();
-				double min          = Double.valueOf(bound_string);
+				double min          = parseNumber(bound_string);
 				bound_string        = upper_bound.getText();
-				double max          = Double.valueOf(bound_string);
+				double max          = parseNumber(bound_string);
 				
 				minimum_y = min;
 				maximum_y = max;
@@ -1932,29 +1939,16 @@ public class YFencePlotter
 				
 				int min_value = 0;
 				int max_value = 100;
-				
-				if(min > seg_min)
+				double seg_range = seg_max - seg_min;
+				if(seg_range > 0)
 				{
-					min -= seg_min;
-					min *= 100;
-					min /= current_range;
-				    min_value = (int) min;
-				    if(min_value < 0)
-				    	min_value = - min_value;	
+					min_value = (int)Math.round((min - seg_min) / seg_range * 100);
+					max_value = (int)Math.round((max - seg_min) / seg_range * 100);
 				}
+				min_value = Math.max(0, Math.min(100, min_value));
+				max_value = Math.max(0, Math.min(100, max_value));
 				
-				if(max < seg_max)
-				{
-					max -= seg_min;
-					max *= 100;
-					max /= current_range;
-				    max_value = (int) max;
-				    if(max_value < 0)
-				    	max_value = - max_value;	
-				}
-				
-				dynamic_range_slider.setValue(min_value);
-				dynamic_range_slider.setUpperValue(max_value);
+				dynamic_range_slider.setRange(min_value, max_value);
 				dynamic_button_changing = false;	
 				data_canvas.repaint();
 			}
@@ -1976,8 +1970,7 @@ public class YFencePlotter
 				lower_bound.setText(lower_bound_string);
 				upper_bound.setText(upper_bound_string);
 				dynamic_button_changing = true;
-				dynamic_range_slider.setValue(0);
-				dynamic_range_slider.setUpperValue(100);
+				dynamic_range_slider.setRange(0, 100);
 				dynamic_button_changing = false;
 				data_clipped = false;
 				dynamic_range_canvas.repaint();
@@ -1992,8 +1985,7 @@ public class YFencePlotter
 		dynamic_range_slider.setOrientation(JSlider.VERTICAL);
 		dynamic_range_slider.setMinimum(0);
 		dynamic_range_slider.setMaximum(100);
-		dynamic_range_slider.setValue(0);
-		dynamic_range_slider.setUpperValue(100);
+		dynamic_range_slider.setRange(0, 100);
 		DynamicRangeSliderHandler dynamic_range_slider_handler = new DynamicRangeSliderHandler();
 		dynamic_range_slider.addChangeListener(dynamic_range_slider_handler);
 		dynamic_range_canvas = new DynamicRangeCanvas();
@@ -2654,7 +2646,7 @@ public class YFencePlotter
                         slope_output.setText(slope_header);
 			    		
                         slope_output.append(" ");
-			    		if(startpoint_line < 10)
+			    		if(midpoint_line < 10)
 							slope_output.append(" ");
 						slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
 						if(midpoint_x < 10)
@@ -2795,8 +2787,8 @@ public class YFencePlotter
 	            	output.write("mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n");
 	            	//output.write("end_index " + endpoint_index + "\n");
 	            	output.write("end_intensity " + String.format("%.2f", endpoint_intensity) + " nT\n");
-	            	output.write("end_x " + String.format("%.2f", endpoint_x) + " m m\n");
-	            	output.write("end_y " + String.format("%.2f", endpoint_y) + "\n");
+	            	output.write("end_x " + String.format("%.2f", endpoint_x) + " m\n");
+	            	output.write("end_y " + String.format("%.2f", endpoint_y) + " m\n");
 	            	output.write("end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n");
 	            	
 	            	double amplitude1 = midpoint_intensity - startpoint_intensity;
@@ -3029,13 +3021,12 @@ public class YFencePlotter
 			public void actionPerformed(ActionEvent e)
 			{
 				String range_string   = range_information.getText();
-				double current_range  = Double.valueOf(range_string);
+				double current_range  = parseNumber(range_string);
 				current_range /= data_length;
 
-				if(current_range < 0 || current_range > (1 - data_offset))
+				if(current_range <= 0 || current_range > .998)
 				{
-					if(current_range < .998 || current_range > (1 - data_offset))
-						System.out.println("Invalid input: range = " + range_string);
+					System.out.println("Invalid input: range = " + range_string);
 					range_information.setText(String.format("%.2f", data_range * data_length));
 				} 
 				else
@@ -3044,6 +3035,7 @@ public class YFencePlotter
 					double range_delta = current_range - data_range;
 					data_offset -= range_delta / 2;
 					data_range  = current_range;
+					clampOffset();
 					
                     
 					// Clear selected points since we're at a new position.
@@ -3143,6 +3135,7 @@ public class YFencePlotter
 				*/
 				
 				data_offset -= line_length;
+				clampOffset();
 				
 				current_line = (int)Math.floor(data_offset * 30);
 				line_information.setText(" " + current_line + " ");
@@ -3197,6 +3190,7 @@ public class YFencePlotter
 					data_offset += 2 * (line_length - line_offset); 
 				*/	
 				data_offset += line_length;
+				clampOffset();
 				
 				current_line = (int)Math.floor(data_offset * 30);
 				line_information.setText(" " + current_line + " ");
@@ -3300,6 +3294,7 @@ public class YFencePlotter
 					double current_offset = current_sample.y;
 					
 					data_offset = current_offset / data_length - data_range / 2;
+					clampOffset();
 					
 					// Clear data since we're at a new position.
 					append_data     = false;
@@ -4103,6 +4098,12 @@ public class YFencePlotter
 			for(int i = 0; i < number_of_segments; i++)
 			{
 				ArrayList sample_list = (ArrayList)relative_data_array.get(i);
+				if(sample_list.size() == 0)
+				{
+					System.out.println("No samples in data space.");
+					g.drawImage(buffered_image, 0, 0, null);
+					return;
+				}
 			    Sample end_sample = (Sample)sample_list.get(sample_list.size() - 1);	
 			    end_position[i] = end_sample.x;
 			}
@@ -4157,9 +4158,10 @@ public class YFencePlotter
 					
 					for(int j = list.size() - 1; j >= 0; j--)
 					{
-					    Sample sample = (Sample)list.get(j);
-					    sample.y = (ymax - sample.y) + ymin;
-					    reverse_list.add(sample);
+					    Sample sample  = (Sample)list.get(j);
+					    Sample flipped = new Sample(sample.x, (ymax - sample.y) + ymin, sample.intensity);
+					    flipped.index  = sample.index;
+					    reverse_list.add(flipped);
 					}
 					reverse_array.add(reverse_list);
 					
@@ -4255,7 +4257,7 @@ public class YFencePlotter
 				double current_range    = b1 - b2;
 				double current_position = b2;
 			
-				if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_xstep  && i != (number_of_segments - 1))
+				if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_ystep  && i != (number_of_segments - 1))
 				{
 					double zero_y = Math.abs(minimum_y);
 					zero_y /= maximum_y - minimum_y;
@@ -4590,7 +4592,6 @@ public class YFencePlotter
 					Point2D.Double point = new Point2D.Double();
 					point.x              = sample.y;
 					point.y              = sample.intensity;
-					point.y *= scale_factor;
 					if (point.y < minimum_y)
 						point.y = minimum_y;
 					else if (point.y > maximum_y)
@@ -4722,11 +4723,11 @@ public class YFencePlotter
 						
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-							pixel_data_list.add(4 - i);   	
+							pixel_data_list.add(i);   	
 						}
 						else
 						{
-						    pixel_data_list.add(i);
+						    pixel_data_list.add(4 - i);
 						}
 						pixel_data_list.add(sample);
 					} 
@@ -4747,11 +4748,11 @@ public class YFencePlotter
 						
 						if((!reverse_view && flight_line_odd) || (reverse_view && !flight_line_odd))
 						{
-							new_pixel_list.add(4 - i);   	
+							new_pixel_list.add(i);   	
 						}
 						else
 						{
-							new_pixel_list.add(i);
+							new_pixel_list.add(4 - i);
 						}
 						
 						new_pixel_list.add(sample);
@@ -4760,7 +4761,7 @@ public class YFencePlotter
 							int line = (int) pixel_data_list.get(p);
 							int sensor = (int) pixel_data_list.get(p + 1);
 
-							if(start_flight_line != line || i != sensor)
+							if(start_flight_line != line || (int)new_pixel_list.get(1) != sensor)
 							{
 								previous_sample = (Sample) pixel_data_list.get(p + 2);
 								new_pixel_list.add(line);
@@ -5087,7 +5088,7 @@ public class YFencePlotter
 			        }
 			    }
 			    
-			    if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_xstep  && i != (number_of_segments - 1))
+			    if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_ystep  && i != (number_of_segments - 1))
 				{
 					double zero_y = Math.abs(minimum_y);
 					zero_y /= maximum_y - minimum_y;
@@ -5356,8 +5357,9 @@ public class YFencePlotter
 					// Make sure the last segment contains at least two points.
 					if(data_offset + data_range > 1 - .002)
 					{
-						data_offset = 1 - .002;
-						data_range  = .998;
+						data_offset = 1 - .002 - data_range;
+						if(data_offset < 0)
+							data_offset = 0;
 					}
 					
 					// Clear selected points since we're at a new position.
@@ -5459,6 +5461,8 @@ public class YFencePlotter
 						break outer;
 					sample_list = pixel_data[y + 1][x - 1];
 					size = sample_list.size();
+					if (size != 0)
+						break outer;
 					sample_list = pixel_data[y - 1][x + 1];
 					size = sample_list.size();
 					if (size != 0)
@@ -5948,9 +5952,9 @@ public class YFencePlotter
 				//we have to do the same thing to our global min/max to
 				//make our logic work.
 				String global_max_string = String.format("%.2f", seg_max);
-				double adjusted_global_max = Double.valueOf(global_max_string);
+				double adjusted_global_max = parseNumber(global_max_string);
 				String global_min_string = String.format("%.2f", seg_min);
-				double adjusted_global_min = Double.valueOf(global_min_string);
+				double adjusted_global_min = parseNumber(global_min_string);
 				
 				
 				String intensity_string = new String("foo");
@@ -6094,16 +6098,10 @@ public class YFencePlotter
 			
 			if (dynamic_button_changing == false)
 			{
-				if(data_clipped)
-				{
-				    min = minimum_y;
-				    max = maximum_y;
-				}
-				else
-				{
-					min = seg_min;
-				    max = seg_max;  	
-				}
+				// Slider positions are fractions of the current segment\'s range,
+				// matching the Adjust button.
+				min = seg_min;
+				max = seg_max;
 				
 				double current_range      = max - min;
 				
@@ -6996,6 +6994,31 @@ public class YFencePlotter
 	}
 	
 	
+	// Keeps the data segment inside the data set.
+	void clampOffset()
+	{
+		if(data_range > 1)
+			data_range = 1;
+		if(data_offset + data_range > 1)
+			data_offset = 1 - data_range;
+		if(data_offset < 0)
+			data_offset = 0;
+	}
+	
+	// Parses a number written by String.format() in the default locale,
+	// including grouping separators such as "1,234.56".
+	public static double parseNumber(String s)
+	{
+		try
+		{
+			return java.text.NumberFormat.getInstance().parse(s.trim()).doubleValue();
+		}
+		catch(java.text.ParseException e)
+		{
+			throw new NumberFormatException("Not a number: " + s);
+		}
+	}
+
 	public double getDistance(double x, double y, double x_origin, double y_origin)
 	{
 	    double distance  = Math.sqrt((x - x_origin) * (x - x_origin) + (y - y_origin) * (y - y_origin));

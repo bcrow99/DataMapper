@@ -83,6 +83,62 @@ public class RangeSlider extends JSlider {
     }
 
     /**
+     * Sets the lower and upper values together, firing a single change event.
+     * Unlike calling setValue() and setUpperValue() one after the other, the
+     * result doesn't depend on the current values or on the order of the
+     * calls.  If lower is greater than upper the two are swapped, and both
+     * are clamped to the slider's minimum and maximum.
+     */
+    public void setRange(int lower, int upper) {
+        if (lower > upper) {
+            int temp = lower;
+            lower = upper;
+            upper = temp;
+        }
+        int minimum = getMinimum();
+        int maximum = getMaximum();
+        lower = Math.min(Math.max(lower, minimum), maximum);
+        upper = Math.min(Math.max(upper, minimum), maximum);
+
+        getModel().setRangeProperties(lower, upper - lower, minimum, maximum,
+            getValueIsAdjusting());
+    }
+
+    /**
+     * Sets the minimum value of the slider.  Unlike the default model, which
+     * keeps the extent and so can move the upper value, this keeps both
+     * values where they are and only clamps them to the new bounds.
+     */
+    @Override
+    public void setMinimum(int minimum) {
+        int maximum = Math.max(minimum, getMaximum());
+        int lower   = Math.min(Math.max(getValue(), minimum), maximum);
+        int upper   = Math.min(Math.max(getUpperValue(), lower), maximum);
+
+        // Store the clamped values first, within bounds that include both the
+        // old and new limits, so the model's own update leaves them alone.
+        getModel().setRangeProperties(lower, upper - lower, Math.min(minimum, getMinimum()),
+            Math.max(maximum, getMaximum()), getValueIsAdjusting());
+        super.setMinimum(minimum);
+    }
+
+    /**
+     * Sets the maximum value of the slider.  Unlike the default model, which
+     * keeps the extent and so can move the lower value, this keeps both
+     * values where they are and only clamps them to the new bounds.
+     */
+    @Override
+    public void setMaximum(int maximum) {
+        int minimum = Math.min(getMinimum(), maximum);
+        int upper   = Math.min(Math.max(getUpperValue(), minimum), maximum);
+        int lower   = Math.min(Math.max(getValue(), minimum), upper);
+
+        getModel().setRangeProperties(lower, upper - lower, Math.min(minimum, getMinimum()),
+            Math.max(maximum, getMaximum()), getValueIsAdjusting());
+        super.setMaximum(maximum);
+    }
+
+    /**
      * Returns the upper value in the range.
      */
     public int getUpperValue() 

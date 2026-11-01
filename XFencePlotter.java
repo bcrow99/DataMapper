@@ -335,17 +335,8 @@ public class XFencePlotter
 		File file = new File(filename);
 		if(file.exists())
 		{
-			// Get the current directory and see if it contains a config file.
-			StringTokenizer tokenizer = new StringTokenizer(filename, "/");
-		    String current_directory = new String("");
-			String directory         = new String("");
-			while(tokenizer.hasMoreTokens())
-			{
-			    directory = new String(current_directory);
-				String  next_string = tokenizer.nextToken();
-				current_directory   = new String(current_directory + next_string + "/");
-			}
-			String config_filename = new String(directory + "fence.cfg");
+			// Look for a config file in the same folder as the data file.
+			config_filename = new File(new File(filename).getAbsoluteFile().getParentFile(), "fence.cfg").getPath();
 			File config_file = new File(config_filename);
 			if(config_file.exists())
 			{
@@ -416,9 +407,9 @@ public class XFencePlotter
 				            String value     = config_tokenizer.nextToken();
 				            
 				            if(key.equals("Offset"))
-				    	        offset = Double.valueOf(value);
+				    	        offset = parseNumber(value);
 				            else if(key.equals("Range")) 
-				        	    range = Double.valueOf(value);
+				        	    range = parseNumber(value);
 				            else if(key.equals("ReverseView")) 
 					        {
 					        	if(value.equals("true"))
@@ -449,6 +440,7 @@ public class XFencePlotter
 					        } 
 				            else if(key.equals("Label")) 
 					        {
+					        	value = line.trim().substring(key.length()).trim();
 				            	graph_label = value;
 					        } 
 				            else if(key.equals("ShowID")) 
@@ -468,9 +460,9 @@ public class XFencePlotter
 				            else if(key.equals("Smooth")) 
 				        	    smooth = Integer.parseInt(value);
 				            else if(key.equals("XStep"))
-					    	    normal_xstep = Double.valueOf(value);
+					    	    normal_xstep = parseNumber(value);
 					        else if(key.equals("YStep")) 
-					        	normal_ystep = Double.valueOf(value);
+					        	normal_ystep = parseNumber(value);
 					        else if(key.equals("InOrder")) 
 					        {
 					        	if(value.equals("true"))
@@ -480,14 +472,14 @@ public class XFencePlotter
 					        }
 					        else if(key.equals("SortLocation")) 
 					        {
-					        	sort_location = Double.valueOf(value); 
+					        	sort_location = parseNumber(value); 
 					        }
 					        else if(key.equals("XLocation"))
-					    	    xlocation = Double.valueOf(value);
+					    	    xlocation = parseNumber(value);
 					        else if(key.equals("YLocation")) 
-					        	ylocation = Double.valueOf(value);
+					        	ylocation = parseNumber(value);
 					        else if(key.equals("ScaleFactor")) 
-					        	scale_factor = Double.valueOf(value);
+					        	scale_factor = parseNumber(value);
 				            else if(key.equals("Clipping")) 
 					        {
 					        	if(value.equals("true"))
@@ -496,9 +488,9 @@ public class XFencePlotter
 					        		data_clipped = false;
 					        } 
 				            else if(key.equals("Maximum")) 
-					        	maximum_y = Double.valueOf(value);
+					        	maximum_y = parseNumber(value);
 				            else if(key.equals("Minimum")) 
-					        	minimum_y = Double.valueOf(value);
+					        	minimum_y = parseNumber(value);
 				            else if(key.equals("AppendData")) 
 					        {
 					        	if(value.equals("true"))
@@ -511,15 +503,15 @@ public class XFencePlotter
 				            else if(key.equals("AppendSensor")) 
 				            	append_sensor = Integer.parseInt(value);
 				            else if(key.equals("AppendX")) 
-					        	append_x = Double.valueOf(value);
+					        	append_x = parseNumber(value);
 				            else if(key.equals("AppendY")) 
-					        	append_y = Double.valueOf(value);
+					        	append_y = parseNumber(value);
 				            else if(key.equals("AppendIntensity")) 
-					        	append_intensity = Double.valueOf(value);
+					        	append_intensity = parseNumber(value);
 				            else if(key.equals("AppendXAbs")) 
-					        	append_x_abs = Double.valueOf(value);
+					        	append_x_abs = parseNumber(value);
 				            else if(key.equals("AppendYAbs")) 
-					        	append_y_abs = Double.valueOf(value);
+					        	append_y_abs = parseNumber(value);
 				            else if(key.equals("AppendXPosition")) 
 				            	append_x_position = Integer.parseInt(value);
 				            else if(key.equals("AppendYPosition")) 
@@ -538,11 +530,11 @@ public class XFencePlotter
 				            else if(key.equals("StartSensor")) 
 				            	startpoint_sensor = Integer.parseInt(value);
 				            else if(key.equals("StartX")) 
-				            	startpoint_x = Double.valueOf(value);
+				            	startpoint_x = parseNumber(value);
 				            else if(key.equals("StartY")) 
-				            	startpoint_y = Double.valueOf(value);
+				            	startpoint_y = parseNumber(value);
 				            else if(key.equals("StartIntensity")) 
-				            	startpoint_intensity = Double.valueOf(value);
+				            	startpoint_intensity = parseNumber(value);
 				            else if(key.equals("StartXPosition")) 
 				            	startpoint_x_position = Integer.parseInt(value);
 				            else if(key.equals("StartYPosition")) 
@@ -561,11 +553,11 @@ public class XFencePlotter
 				            else if(key.equals("MidSensor")) 
 				            	midpoint_sensor = Integer.parseInt(value);
 				            else if(key.equals("MidX")) 
-				            	midpoint_x = Double.valueOf(value);
+				            	midpoint_x = parseNumber(value);
 				            else if(key.equals("MidY")) 
-				            	midpoint_y = Double.valueOf(value);
+				            	midpoint_y = parseNumber(value);
 				            else if(key.equals("MidIntensity")) 
-				            	midpoint_intensity = Double.valueOf(value);
+				            	midpoint_intensity = parseNumber(value);
 				            else if(key.equals("MidXPosition")) 
 				            	midpoint_x_position = Integer.parseInt(value);
 				            else if(key.equals("MidYPosition")) 
@@ -584,11 +576,11 @@ public class XFencePlotter
 				            else if(key.equals("EndSensor")) 
 				            	endpoint_sensor = Integer.parseInt(value);
 				            else if(key.equals("EndX")) 
-				            	endpoint_x = Double.valueOf(value);
+				            	endpoint_x = parseNumber(value);
 				            else if(key.equals("EndY")) 
-				            	endpoint_y = Double.valueOf(value);
+				            	endpoint_y = parseNumber(value);
 				            else if(key.equals("EndIntensity")) 
-				            	endpoint_intensity = Double.valueOf(value);
+				            	endpoint_intensity = parseNumber(value);
 				            else if(key.equals("EndXPosition")) 
 				            	endpoint_x_position = Integer.parseInt(value);
 				            else if(key.equals("EndYPosition")) 
@@ -653,9 +645,9 @@ public class XFencePlotter
 			
 			ArrayList original_data = new ArrayList();
 			global_xmin = Double.MAX_VALUE;
-			global_xmax = Double.MIN_VALUE;
+			global_xmax = -Double.MAX_VALUE;
 			global_ymin = Double.MAX_VALUE;
-			global_ymax = Double.MIN_VALUE;
+			global_ymax = -Double.MAX_VALUE;
 			try
 			{
 				BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
@@ -665,17 +657,17 @@ public class XFencePlotter
 				int number_of_entries = length / 3;
 				for (int i = 0; i < number_of_entries; i++)
 				{
-					double x = Double.valueOf(number_tokens.nextToken());
-					double y = Double.valueOf(number_tokens.nextToken());
+					double x = Double.parseDouble(number_tokens.nextToken());
+					double y = Double.parseDouble(number_tokens.nextToken());
 					if (x < global_xmin)
 						global_xmin = x;
-					else if (x > global_xmax)
+					if (x > global_xmax)
 						global_xmax = x;
 					if (y < global_ymin)
 						global_ymin = y;
-					else if (y > global_ymax)
+					if (y > global_ymax)
 						global_ymax = y;
-					double intensity = Double.valueOf(number_tokens.nextToken());
+					double intensity = Double.parseDouble(number_tokens.nextToken());
 					Sample current_sample = new Sample(x, y, intensity);
 					original_data.add(current_sample);
 				}
@@ -684,22 +676,22 @@ public class XFencePlotter
 					try
 					{
 						line = reader.readLine();
-						if (line != null)
+						if (line != null && line.trim().length() > 0)
 						{
 							number_tokens = new StringTokenizer(line, " ");
 							for (int i = 0; i < number_of_entries; i++)
 							{
-								double x = Double.valueOf(number_tokens.nextToken());
-								double y = Double.valueOf(number_tokens.nextToken());
+								double x = Double.parseDouble(number_tokens.nextToken());
+								double y = Double.parseDouble(number_tokens.nextToken());
 								if (x < global_xmin)
 									global_xmin = x;
-								else if (x > global_xmax)
+								if (x > global_xmax)
 									global_xmax = x;
 								if (y < global_ymin)
 									global_ymin = y;
-								else if (y > global_ymax)
+								if (y > global_ymax)
 									global_ymax = y;
-								double intensity = Double.valueOf(number_tokens.nextToken());
+								double intensity = Double.parseDouble(number_tokens.nextToken());
 								Sample current_sample = new Sample(x, y, intensity);
 								original_data.add(current_sample);
 							}
@@ -823,15 +815,15 @@ public class XFencePlotter
 					Sample closest_sample = (Sample)data.get(index);
 					if(closest_sample.y < 15)
 					{
-					    Sample previous_sample = (Sample)data.get(index - 5);
-					    Sample next_sample = (Sample)data.get(index + 5);
+					    Sample previous_sample = (Sample)data.get(index >= 5 ? index - 5 : index);
+					    Sample next_sample = (Sample)data.get(index + 5 < data.size() ? index + 5 : index);
 					    if(previous_sample.y < next_sample.y)
 					    {
 					    	//System.out.println("Data is increasing.");
 					    	boolean data_in_bounds = false;
 					    	while(!data_in_bounds)
 					    	{
-					    		for(int j = index + 5; j < data.size(); j++)
+					    		for(int j = index + 5; j < data.size(); j += 5)
 					    		{
 					    		    Sample sample = (Sample)data.get(j);
 					    		    if(sample.y >= 15)
@@ -848,7 +840,7 @@ public class XFencePlotter
 					    	boolean data_in_bounds = false;
 					    	while(!data_in_bounds)
 					    	{
-					    		for(int j = index - 5; j > 0; j--)
+					    		for(int j = index - 5; j >= 0; j -= 5)
 					    		{
 					    		    Sample sample = (Sample)data.get(j);
 					    		    if(sample.y >= 15)
@@ -863,15 +855,15 @@ public class XFencePlotter
 					}
 					else if(closest_sample.y > 75)
 					{
-						Sample previous_sample = (Sample)data.get(index - 5);
-					    Sample next_sample = (Sample)data.get(index + 5);	
+						Sample previous_sample = (Sample)data.get(index >= 5 ? index - 5 : index);
+					    Sample next_sample = (Sample)data.get(index + 5 < data.size() ? index + 5 : index);	
 					    if(previous_sample.y < next_sample.y)
 					    {
 					    	boolean data_in_bounds = false;
 					    	
 					    	while(!data_in_bounds)
 					    	{
-					    		for(int j = index - 5; j > 0; j--)
+					    		for(int j = index - 5; j >= 0; j -= 5)
 					    		{
 					    		    Sample sample = (Sample)data.get(j);
 					    		    if(sample.y <= 75)
@@ -888,7 +880,7 @@ public class XFencePlotter
 					    	boolean data_in_bounds = false;
 					    	while(!data_in_bounds)
 					    	{
-					    		for(int j = index + 5; j < data.size(); j++)
+					    		for(int j = index + 5; j < data.size(); j += 5)
 					    		{
 					    		    Sample sample = (Sample)data.get(j);
 					    		    if(sample.y <= 75)
@@ -929,7 +921,7 @@ public class XFencePlotter
 	        {
 	        	try
 	            {
-	            	PrintWriter output  = new PrintWriter("fence.cfg");	
+	            	PrintWriter output  = new PrintWriter(config_filename);	
 	            	String id           = new String("");
 	            	String _visible     = new String("");
 	            	String _transparent = new String("");
@@ -1096,37 +1088,18 @@ public class XFencePlotter
 		JPanel canvas_panel = new JPanel(new BorderLayout());
 		canvas_panel.add(data_canvas, BorderLayout.CENTER);
 		
-		range_scrollbar        = new JScrollBar(JScrollBar.HORIZONTAL, 2000, 3, 0, 2003);
-		double normal_start    = (offset - 15) / 60;
-		double normal_stop     = (offset + range - 15) / 60;
-		double normal_range    = normal_stop - normal_start;
-		
+		// The scrollbar positions the center of the range, the slider its ends.
+		range_scrollbar = new JScrollBar(JScrollBar.HORIZONTAL, scrollbar_resolution, 3, 0, scrollbar_resolution + 3);
 		RangeScrollbarHandler range_scrollbar_handler = new RangeScrollbarHandler();
-		range_scrollbar.addAdjustmentListener(range_scrollbar_handler);	
-		
-		// Taking advantage of an implementation detail and setting a semaphore
-		// so the scrollbar handler doesn't do anything when starting up.
-		range_slider_changing = true;
-		
-		double normal_position = normal_start + normal_range / 2;
-		normal_position       *= 2000;
-		range_scrollbar.setValue((int)normal_position);
-		range_slider_changing = false;
-		
+		range_scrollbar.addAdjustmentListener(range_scrollbar_handler);
+
 		range_slider = new RangeSlider();
 		range_slider.setMinimum(0);
-		range_slider.setMaximum(2000);
+		range_slider.setMaximum(slider_resolution);
 		RangeSliderHandler range_slider_handler = new RangeSliderHandler();
 		range_slider.addChangeListener(range_slider_handler);
-		
-		range_scrollbar_changing = true;
-		normal_position  = (offset + range - 15) / 60;
-		normal_position *= 2000;
-		range_slider.setUpperValue((int)normal_position);
-		normal_position  = (offset - 15) / 60;
-		normal_position *= 2000;
-		range_slider.setValue((int)normal_position);
-		range_scrollbar_changing = false;
+
+		updateRangeControls();
 	
 		JPanel segment_panel = new JPanel(new BorderLayout());
 		segment_panel.add(range_scrollbar, BorderLayout.NORTH);
@@ -1254,6 +1227,8 @@ public class XFencePlotter
 				{
 					String number_of_pairs_string = input_tokenizer.nextToken();
 					number_of_pairs = Integer.parseInt(number_of_pairs_string);
+					if(number_of_pairs > 10)
+						number_of_pairs = 10;
 				}
 
 				String[] line_sensor_pair = new String[10];
@@ -1378,6 +1353,8 @@ public class XFencePlotter
 		        FileDialog file_dialog = new FileDialog(frame, "Save Graph", FileDialog.SAVE);
 		        file_dialog.setVisible(true);
 		        String filename = file_dialog.getFile();
+		        if(filename == null)
+		        	return;
 		        int           image_xdim   = buffered_image.getWidth();
 				int           image_ydim   = buffered_image.getHeight();
 				BufferedImage print_image  = new BufferedImage(image_xdim, image_ydim, BufferedImage.TYPE_INT_RGB);
@@ -1386,11 +1363,11 @@ public class XFencePlotter
 				String current_directory = file_dialog.getDirectory();
 				try 
     	        {  
-    	            ImageIO.write(print_image, "png", new File(current_directory + filename + ".png")); 
+    	            ImageIO.write(print_image, "png", new File(current_directory, filename.endsWith(".png") ? filename : filename + ".png")); 
     	        } 
     	        catch(IOException e2) 
     	        {  
-    	            e2.toString();
+    	            System.out.println("Could not save graph: " + e2.toString());
     	        }  
 			}
 		};
@@ -1405,12 +1382,14 @@ public class XFencePlotter
 		        FileDialog file_dialog = new FileDialog(frame, "Save Segment", FileDialog.SAVE);
 		        file_dialog.setVisible(true);
 		        String filename = file_dialog.getFile();
+		        if(filename == null)
+		        	return;
 		    
 				String current_directory = file_dialog.getDirectory();
 				
 				// General purpose text file to use with gnuplot and as a source of segmented data.
 				System.out.println("Writing text file.");
-			    try (PrintWriter output = new PrintWriter(current_directory + filename + ".txt"))
+			    try (PrintWriter output = new PrintWriter(new File(current_directory, filename.endsWith(".txt") ? filename : filename + ".txt")))
 			    {
 				    // The first 4 elements in the sensor data are local min, local max, global min,
 			        // and global max.
@@ -1472,12 +1451,14 @@ public class XFencePlotter
 		        FileDialog file_dialog = new FileDialog(frame, "Save Fence Plot", FileDialog.SAVE);
 		        file_dialog.setVisible(true);
 		        String filename = file_dialog.getFile();
+		        if(filename == null)
+		        	return;
 		    
 				String current_directory = file_dialog.getDirectory();
 				
 				// Special format to generate fence plots in gnuplot.
 				System.out.println("Writing fence plot file.");
-			    try (PrintWriter output = new PrintWriter(current_directory + filename + ".txt"))
+			    try (PrintWriter output = new PrintWriter(new File(current_directory, filename.endsWith(".txt") ? filename : filename + ".txt")))
 			    {
 				    // The first 4 elements in the sensor data are local min, local max, global min,
 				    // and global max.
@@ -1665,9 +1646,9 @@ public class XFencePlotter
 					            // Will do that at the end when we have both
 					            // values.
 					            if(key.equals("Offset"))
-					    	        offset = Double.valueOf(value);
+					    	        offset = parseNumber(value);
 					            else if(key.equals("Range")) 
-					        	    range = Double.valueOf(value);
+					        	    range = parseNumber(value);
 					            else if(key.equals("ReverseView")) 
 						        {
 						        	if(value.equals("true"))
@@ -1731,6 +1712,7 @@ public class XFencePlotter
 						        } 
 					            else if(key.equals("Label")) 
 						        {
+						        	value = line.trim().substring(key.length()).trim();
 					            	label_input.setText(value);
 					            	graph_label = value;
 						        } 
@@ -1761,7 +1743,7 @@ public class XFencePlotter
 					            }
 						        else if(key.equals("ScaleFactor")) 
 						        {
-						        	scale_factor = Double.valueOf(value);
+						        	scale_factor = parseNumber(value);
 						        }
 					            // We need to reset the bounds text in the dynamic range dialog
 					            // if there is clipping.  Process at the end when we have
@@ -1774,15 +1756,15 @@ public class XFencePlotter
 						        		data_clipped = false;
 						        } 
 					            else if(key.equals("Maximum")) 
-						        	maximum_y = Double.valueOf(value);
+						        	maximum_y = parseNumber(value);
 					            else if(key.equals("Minimum")) 
-						        	minimum_y = Double.valueOf(value);
+						        	minimum_y = parseNumber(value);
 					            else if(key.equals("XStep"))
-						    	    normal_xstep = Double.valueOf(value);
+						    	    normal_xstep = parseNumber(value);
 						        else if(key.equals("YStep")) 
-						        	normal_ystep = Double.valueOf(value);
+						        	normal_ystep = parseNumber(value);
 						        else if(key.equals("SortLocation")) 
-						        	sort_location = Double.valueOf(value); 
+						        	sort_location = parseNumber(value); 
 						        else if(key.equals("InOrder")) 
 						        {
 						        	if(value.equals("true"))
@@ -1791,9 +1773,9 @@ public class XFencePlotter
 						        		in_order = false;	
 						        }
 						        else if(key.equals("XLocation"))
-						    	    xlocation = Double.valueOf(value);
+						    	    xlocation = parseNumber(value);
 						        else if(key.equals("YLocation")) 
-						        	ylocation = Double.valueOf(value);
+						        	ylocation = parseNumber(value);
 					            else if(key.equals("AppendData")) 
 						        {
 						        	if(value.equals("true"))
@@ -1806,15 +1788,15 @@ public class XFencePlotter
 					            else if(key.equals("AppendSensor")) 
 					            	append_sensor = Integer.parseInt(value);
 					            else if(key.equals("AppendX")) 
-						        	append_x = Double.valueOf(value);
+						        	append_x = parseNumber(value);
 					            else if(key.equals("AppendY")) 
-						        	append_y = Double.valueOf(value);
+						        	append_y = parseNumber(value);
 					            else if(key.equals("AppendIntensity")) 
-						        	append_intensity = Double.valueOf(value);
+						        	append_intensity = parseNumber(value);
 					            else if(key.equals("AppendXAbs")) 
-						        	append_x_abs = Double.valueOf(value);
+						        	append_x_abs = parseNumber(value);
 					            else if(key.equals("AppendYAbs")) 
-						        	append_y_abs = Double.valueOf(value);
+						        	append_y_abs = parseNumber(value);
 					            else if(key.equals("AppendXPosition")) 
 					            	append_x_position = Integer.parseInt(value);
 					            else if(key.equals("AppendYPosition")) 
@@ -1833,11 +1815,11 @@ public class XFencePlotter
 					            else if(key.equals("StartSensor")) 
 					            	startpoint_sensor = Integer.parseInt(value);
 					            else if(key.equals("StartX")) 
-					            	startpoint_x = Double.valueOf(value);
+					            	startpoint_x = parseNumber(value);
 					            else if(key.equals("StartY")) 
-					            	startpoint_y = Double.valueOf(value);
+					            	startpoint_y = parseNumber(value);
 					            else if(key.equals("StartIntensity")) 
-					            	startpoint_intensity = Double.valueOf(value);
+					            	startpoint_intensity = parseNumber(value);
 					            else if(key.equals("StartXPosition")) 
 					            	startpoint_x_position = Integer.parseInt(value);
 					            else if(key.equals("StartYPosition")) 
@@ -1856,11 +1838,11 @@ public class XFencePlotter
 					            else if(key.equals("MidSensor")) 
 					            	midpoint_sensor = Integer.parseInt(value);
 					            else if(key.equals("MidX")) 
-					            	midpoint_x = Double.valueOf(value);
+					            	midpoint_x = parseNumber(value);
 					            else if(key.equals("MidY")) 
-					            	midpoint_y = Double.valueOf(value);
+					            	midpoint_y = parseNumber(value);
 					            else if(key.equals("MidIntensity")) 
-					            	midpoint_intensity = Double.valueOf(value);
+					            	midpoint_intensity = parseNumber(value);
 					            else if(key.equals("MidXPosition")) 
 					            	midpoint_x_position = Integer.parseInt(value);
 					            else if(key.equals("MidYPosition")) 
@@ -1879,11 +1861,11 @@ public class XFencePlotter
 					            else if(key.equals("EndSensor")) 
 					            	endpoint_sensor = Integer.parseInt(value);
 					            else if(key.equals("EndX")) 
-					            	endpoint_x = Double.valueOf(value);
+					            	endpoint_x = parseNumber(value);
 					            else if(key.equals("EndY")) 
-					            	endpoint_y = Double.valueOf(value);
+					            	endpoint_y = parseNumber(value);
 					            else if(key.equals("EndIntensity")) 
-					            	endpoint_intensity = Double.valueOf(value);
+					            	endpoint_intensity = parseNumber(value);
 					            else if(key.equals("EndXPosition")) 
 					            	endpoint_x_position = Integer.parseInt(value);
 					            else if(key.equals("EndYPosition")) 
@@ -1913,50 +1895,8 @@ public class XFencePlotter
 		                	upper_bound.setText(String.format("%,.2f", maximum_y));	
 					    }
 					    
-					    // Reset scrollbar and slider to current settings. 
-					    double normal_range           = range / 60.;
-					    double normal_start_position  = (offset - 15) /60;
-					    double normal_end_position    = normal_start_position + normal_range;
-					    double normal_center_position = normal_start_position + normal_range / 2;
-					    
-					    // The slider will fire the scrollbar and ad infinitum, 
-					    // unless it knows it's being fired by the scrollbar and not the user.
-					    range_scrollbar_changing = true;
-					    
-					    // We have to know the current state of the slider to reset it correctly;
-					    // This should be hidden in the implementation of the range slider but
-					    // we can deal with it.
-					    int slider_lower_value = range_slider.getValue();
-					    int slider_upper_value = range_slider.getUpperValue();
-					    
-					    double current_start_position = slider_lower_value;
-					    double current_end_position   = slider_upper_value;
-					    current_start_position /= 2000;
-					    current_end_position   /= 2000;
-					    
-					    slider_lower_value = (int)(normal_start_position * 2000.);
-					    slider_upper_value = (int)(normal_end_position * 2000.);
-					    
-					    if(current_end_position > normal_start_position)
-					    {
-					        range_slider.setValue(slider_lower_value);
-					        range_slider.setUpperValue(slider_upper_value);
-					    }
-					    else
-					    {
-					        range_slider.setUpperValue(slider_upper_value);	
-					        range_slider.setValue(slider_lower_value);
-					    }
-					    
-					    range_scrollbar_changing = false;
-					    
-					    //Likewise with the scrollbar--setting semaphore to prevent oscillation.
-					    range_slider_changing = true;
-					    
-					    int scrollbar_value = (int)(normal_center_position * 2000.);
-					    range_scrollbar.setValue(scrollbar_value);
-					    
-					    range_slider_changing = false;
+					    // Reset scrollbar and slider to current settings.
+					    updateRangeControls();
 					    
 					    // If we change any parameter that affects what
 					    // data segment we're looking at, we need to
@@ -2500,9 +2440,9 @@ public class XFencePlotter
 				double line_min     = (double) data_array.get(2);
 				double line_max     = (double) data_array.get(3);
 				String bound_string = lower_bound.getText();
-				double min          = Double.valueOf(bound_string);
+				double min          = parseNumber(bound_string);
 				bound_string        = upper_bound.getText();
-				double max          = Double.valueOf(bound_string);
+				double max          = parseNumber(bound_string);
 				double global_min   = 0;
 				double global_max   = 0;
 				
@@ -2547,8 +2487,7 @@ public class XFencePlotter
 				    else
 				    	max_value = (int) ((global_max - min) / current_range * 100);
 				}
-				dynamic_range_slider.setValue(min_value);
-				dynamic_range_slider.setUpperValue(max_value);
+				dynamic_range_slider.setRange(min_value, max_value);
 				dynamic_button_changing = false;	
 			}
 		};
@@ -2569,8 +2508,7 @@ public class XFencePlotter
 					lower_bound.setText(lower_bound_string);
 					upper_bound.setText(upper_bound_string);
 					dynamic_button_changing = true;
-					dynamic_range_slider.setValue(0);
-					dynamic_range_slider.setUpperValue(100);
+					dynamic_range_slider.setRange(0, 100);
 					dynamic_button_changing = false;
 				} 
 				else
@@ -2581,8 +2519,7 @@ public class XFencePlotter
 					upper_bound.setText(upper_bound_string);
 
 					dynamic_button_changing = true;
-					dynamic_range_slider.setValue(0);
-					dynamic_range_slider.setUpperValue(100);
+					dynamic_range_slider.setRange(0, 100);
 					dynamic_button_changing = false;
 				}
 				data_clipped = false;
@@ -2598,8 +2535,7 @@ public class XFencePlotter
 		dynamic_range_slider.setOrientation(JSlider.VERTICAL);
 		dynamic_range_slider.setMinimum(0);
 		dynamic_range_slider.setMaximum(100);
-		dynamic_range_slider.setValue(0);
-		dynamic_range_slider.setUpperValue(100);
+		dynamic_range_slider.setRange(0, 100);
 		
 		ChangeListener dynamic_range_slider_handler = new ChangeListener()
 		{
@@ -3280,7 +3216,7 @@ public class XFencePlotter
                         slope_output.setText(slope_header);
 			    		
                         slope_output.append(" ");
-			    		if(startpoint_line < 10)
+			    		if(midpoint_line < 10)
 							slope_output.append(" ");
 						slope_output.append(midpoint_line + ":" + midpoint_sensor + "  ");
 						if(midpoint_x < 10)
@@ -3422,8 +3358,8 @@ public class XFencePlotter
 	            	output.write("mid_line_sensor " + midpoint_line + ":" + midpoint_sensor + "\n");
 	            	//output.write("end_index " + endpoint_index + "\n");
 	            	output.write("end_intensity " + String.format("%.2f", endpoint_intensity) + " nT\n");
-	            	output.write("end_x " + String.format("%.2f", endpoint_x) + " m m\n");
-	            	output.write("end_y " + String.format("%.2f", endpoint_y) + "\n");
+	            	output.write("end_x " + String.format("%.2f", endpoint_x) + " m\n");
+	            	output.write("end_y " + String.format("%.2f", endpoint_y) + " m\n");
 	            	output.write("end_line_sensor " + endpoint_line + ":" + endpoint_sensor + "\n");
 	            	
 	            	double amplitude1 = midpoint_intensity - startpoint_intensity;
@@ -3599,6 +3535,10 @@ public class XFencePlotter
 				int number_of_segments     = data_array.size() - 4;
 				ArrayList line_sensor_list = new ArrayList();               
 				Hashtable sensor_table     = new Hashtable();
+				
+				// Make sure the x positions describe the current segments.
+				if(xlist.size() != number_of_segments)
+					checkSegmentOrder();
 		
 				
 				for(int i = 0; i < number_of_segments; i++)
@@ -3614,7 +3554,7 @@ public class XFencePlotter
 				{
 					double addend = .000001;
 					double previous_x = (double)xlist.get(i);
-					for(int j = i + 1; j < 10; j++)
+					for(int j = i + 1; j < number_of_segments; j++)
 					{
 						double x = (double)xlist.get(j);
 						if(previous_x == x)
@@ -3667,7 +3607,7 @@ public class XFencePlotter
 				
 				int size = data_array.size();
 				int number_of_segments = size - 4;
-				order_information.append("\n");
+				order_information.setText("");
 				double previous_x = 0;
 				in_order = true;
 				for(int i = 0; i < number_of_segments; i++)
@@ -4293,52 +4233,8 @@ public class XFencePlotter
 					// Update location map
 					location_canvas.repaint();
 					
-					// Reset the slider.	
-					// Set semaphore to prevent oscillation.
-					//range_scrollbar_changing = true;
-					range_slider_changing = true;
-					
-					double normal_start    = (offset - 15) / 60;
-					double normal_stop     = (offset + range - 15) / 60;
-					double normal_range    = normal_stop - normal_start;
-				
-					
-					
-					// Whether or not values get set correctly depends on current values.
-					int current_start = range_slider.getValue();
-					int current_stop  = range_slider.getUpperValue();
-					//System.out.println("Current start value for slider is " + current_start);
-					//System.out.println("Current stop value for slider is " + current_stop);
-					
-					int new_start = (int) (normal_start * slider_resolution);
-					int new_stop  = (int) (normal_stop * slider_resolution);
-					
-					if(new_start < current_stop)
-					{
-						//System.out.println("Setting lower value first.");
-					    range_slider.setValue(new_start);
-					    range_slider.setUpperValue(new_stop);
-					}
-					else
-					{
-						//System.out.println("Setting upper value first.");
-						range_slider.setUpperValue(new_stop);	
-					    range_slider.setValue(new_start);
-					}
-					// Reset semaphore.
-					range_slider_changing = false;
-					
-					// Reset the scrollbar.
-					// Set semaphore to prevent oscillation.
-					//range_slider_changing = true;
-					range_scrollbar_changing = true;
-				
-					normal_range    = normal_stop - normal_start;
-					double normal_position = normal_start + normal_range / 2;
-					range_scrollbar.setValue((int)(normal_position * scrollbar_resolution));
-					// Reset semaphore.
-					//range_slider_changing = false;
-					range_scrollbar_changing = false;
+					// Reset the slider and scrollbar.
+					updateRangeControls();
 									
 					// Resegment and redraw data.
 					apply_item.doClick();
@@ -4413,7 +4309,7 @@ public class XFencePlotter
 					{
 						for(int i = 0; i < number_of_segments / 2; i++)
 						{
-							int k = (number_of_segments - 1) / (i + 1);
+							int k = number_of_segments - (2 * i) - 1;
 							if(append_gui_index == i)
 							{
 							    if(reverse_view)
@@ -4487,7 +4383,7 @@ public class XFencePlotter
 					{
 						for(int i = 0; i < number_of_segments / 2; i++)
 						{
-							int k = (number_of_segments - 1) / (i + 1);
+							int k = number_of_segments - (2 * i) - 1;
 							if(startpoint_gui_index == i)
 							{
 							    if(reverse_view)
@@ -4561,7 +4457,7 @@ public class XFencePlotter
 					{
 						for(int i = 0; i < number_of_segments / 2; i++)
 						{
-							int k = (number_of_segments - 1) / (i + 1);
+							int k = number_of_segments - (2 * i) - 1;
 							if(midpoint_gui_index == i)
 							{
 							    if(reverse_view)
@@ -4635,7 +4531,7 @@ public class XFencePlotter
 					{
 						for(int i = 0; i < number_of_segments / 2; i++)
 						{
-							int k = (number_of_segments - 1) / (i + 1);
+							int k = number_of_segments - (2 * i) - 1;
 							if(endpoint_gui_index == i)
 							{
 							    if(reverse_view)
@@ -4977,9 +4873,9 @@ public class XFencePlotter
 					if(data_clipped == true)
 					{
 						String bound_string = lower_bound.getText();
-						minimum_y = Double.valueOf(bound_string);
+						minimum_y = parseNumber(bound_string);
 						bound_string = upper_bound.getText();
-						maximum_y = Double.valueOf(bound_string);
+						maximum_y = parseNumber(bound_string);
 					} 
 					else
 					{
@@ -5024,7 +4920,7 @@ public class XFencePlotter
 						double current_value           = maximum_y;
 						double current_intensity_range = maximum_y - minimum_y;
 						
-						if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_xstep && i != number_of_segments - 1)
+						if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_ystep && i != number_of_segments - 1)
 						{
 							double zero_y = Math.abs(minimum_y);
 							zero_y /= maximum_y - minimum_y;
@@ -5281,13 +5177,12 @@ public class XFencePlotter
 						
 						ArrayList plot_list   = new ArrayList();
 						ArrayList sample_list = new ArrayList();
-						for (int j = 4; j < length; j++)
+						for (int j = 0; j < length; j++)
 						{
 							Sample sample = (Sample) sensor_list.get(j);
 							Point2D.Double point = new Point2D.Double();
 							point.x = sample.y;
 							point.y = sample.intensity;
-							point.y *= scale_factor;
 							if (point.y < minimum_y)
 								point.y = minimum_y;
 							else if (point.y > maximum_y)
@@ -5673,7 +5568,7 @@ public class XFencePlotter
 					    }
 					    
 					  
-					    if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_xstep  && i != (number_of_segments - 1))
+					    if(xstep != 0 && xstep != max_xstep && ystep != 0 && ystep != max_ystep  && i != (number_of_segments - 1))
 						{
 							double zero_y = Math.abs(minimum_y);
 							zero_y /= maximum_y - minimum_y;
@@ -5840,7 +5735,7 @@ public class XFencePlotter
 												if(!reverse_view)
 												    graphics_buffer.drawString(end_position_string[i], a2 + 6, (int) current_position + ( 3 * string_height / 4));
 												else
-													graphics_buffer.drawString(end_position_string[number_of_segments - i], a2 + 6, (int) current_position + ( 3 * string_height / 4));
+													graphics_buffer.drawString(end_position_string[number_of_segments - 1 - i], a2 + 6, (int) current_position + ( 3 * string_height / 4));
 											}
 							          }
 						         }
@@ -6058,6 +5953,8 @@ public class XFencePlotter
 						break outer;
 					sample_list = pixel_data[y + 1][x - 1];
 					size = sample_list.size();
+					if (size != 0)
+						break outer;
 					sample_list = pixel_data[y - 1][x + 1];
 					size = sample_list.size();
 					if (size != 0)
@@ -6134,74 +6031,35 @@ public class XFencePlotter
 	{
 		public void adjustmentValueChanged(AdjustmentEvent event)
 		{
-			JScrollBar scrollbar   = (JScrollBar) event.getSource();
-			double normal_position = (double) event.getValue();
-			normal_position       /= 2000;
-			double normal_start    = (offset - 15) / 60;
-			double normal_stop     = (offset + range - 15) / 60;
-			double normal_range    = normal_stop - normal_start;
-			double normal_min      = normal_range / 2;
-			double normal_max      = 1 - normal_range + normal_range / 2;
-			
-			if (scrollbar.getValueIsAdjusting() == false)
-			{
-				if (range_slider_changing == false && range_button_changing == false)
-				{
-					range_scrollbar_changing = true;
+			JScrollBar scrollbar = (JScrollBar) event.getSource();
+			if (scrollbar.getValueIsAdjusting())
+				return;
+			if (range_slider_changing || range_button_changing || range_scrollbar_changing)
+				return;
 
-					double previous_offset = offset;
-					if(normal_position <= normal_min)
-					{
-						offset = 15;
-					}
-					else if(normal_position >= normal_max)
-					{
-						offset = 60 - range + 15;
-					}
-					else
-					{
-						normal_start = normal_position - normal_range / 2;
-						offset       = normal_start * 60 + 15;
-					}
-					
-					boolean moving_down = true;
-					if(previous_offset < offset)
-						moving_down = false;
-					if(offset_information != null)
-					    offset_information.setText(String.format("%,.2f", offset));
+			// The scrollbar gives the center of the range; keep the range the
+			// same and move it, staying inside the 15 to 75 m window.
+			double center = (double) event.getValue() / scrollbar_resolution;
+			center        = center * 60 + 15;
+			offset        = center - range / 2;
+			if (offset < 15)
+				offset = 15;
+			if (offset > 75 - range)
+				offset = 75 - range;
 
-					normal_position  = (offset - 15.)/ 60.;
-					normal_position *= 2000;
-					int lower_value  = (int)normal_position;
-					normal_position = (offset + range - 15) / 60.;
-					normal_position *= 2000;
-					int upper_value  = (int)normal_position;
-					
-					if(moving_down)
-					{
-					    range_slider.setValue(lower_value);
-					    range_slider.setUpperValue(upper_value);
-					}
-					else
-					{
-						range_slider.setUpperValue(upper_value);
-						range_slider.setValue(lower_value);
-					}
-					range_scrollbar_changing = false;
+			updateRangeControls();
 
-					append_data = false;
-					persistent_data = false;
-					sample_information.setText("");
-					
-					slope_output.setText("");
-					startpoint_set = false;
-					midpoint_set = false;
-					endpoint_set = false;
-					
-					// Resegment the data.
-					apply_item.doClick();
-				}
-			}
+			append_data = false;
+			persistent_data = false;
+			sample_information.setText("");
+
+			slope_output.setText("");
+			startpoint_set = false;
+			midpoint_set = false;
+			endpoint_set = false;
+
+			// Resegment the data.
+			apply_item.doClick();
 		}
 	}
 
@@ -6330,48 +6188,8 @@ public class XFencePlotter
 				// Update location map
 				location_canvas.repaint();
 				
-				// Reset the slider.	
-				// Set semaphore to prevent oscillation.
-				range_scrollbar_changing = true;
-				
-				double normal_start    = (offset - 15) / 60;
-				double normal_stop     = (offset + range - 15) / 60;
-				
-				
-				// Whether or not values get set correctly depends on current values.
-				int current_start = range_slider.getValue();
-				int current_stop  = range_slider.getUpperValue();
-				//System.out.println("Current start value for slider is " + current_start);
-				//System.out.println("Current stop value for slider is " + current_stop);
-				
-				int new_start = (int) (normal_start * slider_resolution);
-				int new_stop  = (int) (normal_stop * slider_resolution);
-				
-				if(new_start < current_stop)
-				{
-					//System.out.println("Setting lower value first.");
-				    range_slider.setValue(new_start);
-				    range_slider.setUpperValue(new_stop);
-				}
-				else
-				{
-					//System.out.println("Setting upper value first.");
-					range_slider.setUpperValue(new_stop);	
-				    range_slider.setValue(new_start);
-				}
-				// Reset semaphore.
-				range_scrollbar_changing = false;
-				
-				// Reset the scrollbar.
-				// Set semaphore to prevent oscillation.
-				range_slider_changing = true;
-				double normal_range    = normal_stop - normal_start;
-				double normal_position = normal_start + normal_range / 2;
-				range_scrollbar.setValue((int)(normal_position * scrollbar_resolution));
-				// Reset semaphore.
-				range_slider_changing = false;
-				
-				offset_information.setText(String.format("%.2f", offset));	
+				// Reset the slider and scrollbar.
+				updateRangeControls();	
 				
 				// Resegment, redraw, and check order of data segments.
 				
@@ -6385,103 +6203,94 @@ public class XFencePlotter
 	{
 		public void actionPerformed(ActionEvent e)
 		{
-			String offset_string  = offset_information.getText();
-			String range_string   = range_information.getText();
-			double current_offset = Double.valueOf(offset_string);
-			double current_range  = Double.valueOf(range_string);
-
-			if (current_offset < 15 || current_offset > (75 - current_range) || current_range < 0 || current_range > (75 - current_offset))
+			double current_offset, current_range;
+			try
 			{
-				System.out.println("Invalid input: offset = " + offset_string + " range = " + range_string);
-
-				offset_information.setText(String.format("%,.2f", offset));
-				range_information.setText(String.format("%,.2f", range));
-			} 
-			else if (range_slider_changing == false && range_scrollbar_changing == false)
-			{
-				range_button_changing = true;
-				offset = current_offset;
-				range  = current_range;
-
-				// Reset the scrollbar.
-				double normal_start    = (offset - 15) / 60;
-				double normal_stop     = (offset + range - 15) / 60;
-				double normal_range    = normal_stop - normal_start;
-				double normal_position = normal_start + normal_range / 2;
-				normal_position       *= 2000;
-				range_scrollbar.setValue((int)normal_position);
-
-				// Reset the slider.
-				normal_start *= 2000;
-				normal_stop  *= 2000;
-				range_slider.setValue((int) normal_start);
-				range_slider.setUpperValue((int)normal_stop);
-				range_button_changing = false;
-
-				// Resegment the data.
-				apply_item.doClick();
-				
+				current_offset = parseNumber(offset_information.getText());
+				current_range  = parseNumber(range_information.getText());
 			}
+			catch (NumberFormatException exception)
+			{
+				current_offset = -1;
+				current_range  = -1;
+			}
+
+			if (current_offset < 15 || current_range <= 0 || current_offset + current_range > 75)
+			{
+				System.out.println("Invalid input: offset = " + offset_information.getText() + " range = " + range_information.getText());
+				offset_information.setText(String.format("%.2f", offset));
+				range_information.setText(String.format("%.2f", range));
+				return;
+			}
+
+			offset = current_offset;
+			range  = current_range;
+			range_button_changing = true;
+			try
+			{
+				updateRangeControls();
+			}
+			finally
+			{
+				range_button_changing = false;
+			}
+
+			append_data = false;
+			persistent_data = false;
+			sample_information.setText("");
+
+			slope_output.setText("");
+			startpoint_set = false;
+			midpoint_set = false;
+			endpoint_set = false;
+
+			// Resegment the data.
+			apply_item.doClick();
 		}
 	};
-	
+
 	class RangeSliderHandler implements ChangeListener
 	{
 		public void stateChanged(ChangeEvent e)
 		{
-			if(range_scrollbar_changing == false && range_button_changing == false)
-			{
-				range_slider_changing = true;
-				RangeSlider slider = (RangeSlider) e.getSource();
-				if (slider.getValueIsAdjusting() == false)
-				{
-					int value = slider.getValue();
-					int upper_value = slider.getUpperValue();
-					
-					// Check to see lower and upper values are the same.
-					// Cleaner to change this in the range slider implementation.
-					if(value == upper_value)
-					{
-						upper_value++;
-						slider.setUpperValue(upper_value);
-					}
-					double lower_normal_position = (double) value;
-					lower_normal_position /= 2000.;
-					
-					double upper_normal_position = (double) upper_value;
-					upper_normal_position /= 2000;
-					
-					double normal_range = upper_normal_position - lower_normal_position;
-					
-					double normal_scrollbar_position = lower_normal_position + normal_range / 2;
-					normal_scrollbar_position *= 2000;
-					range_scrollbar.setValue((int)normal_scrollbar_position);
-					
-					lower_normal_position *= 60.;
-					offset = lower_normal_position + 15;
-					upper_normal_position *= 60.;
-					upper_normal_position += 15.;
-					range = upper_normal_position - offset;
-	
-					offset_information.setText(String.format("%,.2f", offset));
-					range_information.setText(String.format("%,.2f", range));
-					range_slider_changing = false;
+			if (range_scrollbar_changing || range_button_changing || range_slider_changing)
+				return;
+			RangeSlider slider = (RangeSlider) e.getSource();
+			if (slider.getValueIsAdjusting())
+				return;
 
-					append_data = false;
-					persistent_data = false;
-					sample_information.setText("");
-					
-					slope_output.setText("");
-					startpoint_set = false;
-					midpoint_set = false;
-					endpoint_set = false;
-					
-					// Resegment the data.
-					apply_item.doClick();
-				}
+			int value       = slider.getValue();
+			int upper_value = slider.getUpperValue();
+
+			// Keep the range from collapsing to zero width.
+			if (value == upper_value)
+			{
+				if (upper_value < slider.getMaximum())
+					upper_value++;
+				else
+					value--;
 			}
+
+			offset = (double) value / slider_resolution * 60 + 15;
+			range  = (double) (upper_value - value) / slider_resolution * 60;
+
+			// Moves the scrollbar, and the slider if the range was widened.
+			updateRangeControls();
+
+			append_data = false;
+			persistent_data = false;
+			sample_information.setText("");
+
+			slope_output.setText("");
+			startpoint_set = false;
+			midpoint_set = false;
+			endpoint_set = false;
+
+			// Resegment the data.
+			apply_item.doClick();
 		}
 	}
+
 	// End data canvas.
 	
 
@@ -8319,8 +8128,8 @@ public class XFencePlotter
 				{
 					String lower_bound_string = lower_bound.getText();
 					String upper_bound_string = upper_bound.getText();
-					min = Double.valueOf(lower_bound_string);
-					max = Double.valueOf(upper_bound_string);
+					min = parseNumber(lower_bound_string);
+					max = parseNumber(upper_bound_string);
 					current_range = max - min;
 					
 					double global_max = 0;
@@ -8486,6 +8295,38 @@ public class XFencePlotter
 		}
 	}
 	
+	// Positions the range slider (both ends of the range) and the range
+	// scrollbar (its center) to match offset and range, and updates the
+	// offset/range text fields. The guard flags keep the slider and scrollbar
+	// handlers from reacting to these programmatic changes.
+	void updateRangeControls()
+	{
+		boolean previous_scrollbar_changing = range_scrollbar_changing;
+		boolean previous_slider_changing    = range_slider_changing;
+		try
+		{
+			double normal_start = (offset - 15) / 60;
+			double normal_stop  = (offset + range - 15) / 60;
+
+			range_scrollbar_changing = true;
+			range_slider.setRange((int) Math.round(normal_start * slider_resolution),
+			                      (int) Math.round(normal_stop * slider_resolution));
+
+			range_slider_changing = true;
+			range_scrollbar.setValue((int) Math.round((normal_start + normal_stop) / 2 * scrollbar_resolution));
+		}
+		finally
+		{
+			range_scrollbar_changing = previous_scrollbar_changing;
+			range_slider_changing    = previous_slider_changing;
+		}
+
+		if (offset_information != null)
+			offset_information.setText(String.format("%.2f", offset));
+		if (range_information != null)
+			range_information.setText(String.format("%.2f", range));
+	}
+
 	public void checkSegmentOrder()
 	{
 		double current_position = range * sort_location + offset;
@@ -8493,7 +8334,7 @@ public class XFencePlotter
 		
 		int size = data_array.size();
 		int number_of_segments = size - 4;
-		order_information.append("\n");
+		order_information.setText("");
 		double previous_x = 0;
 		in_order = true;
 		for(int i = 0; i < number_of_segments; i++)
@@ -8559,64 +8400,69 @@ public class XFencePlotter
         
 		public void actionPerformed(ActionEvent event)
 		{
+			// Collect the valid line:sensor ids in order, together with each one's
+			// visibility settings, and move them to the top of the list so that
+			// field i always describes segment i. Empty fields and invalid ids
+			// would otherwise leave holes that break segmentation.
+			String[]  id_list    = new String[10];
+			boolean[] vis_list   = new boolean[10];
+			boolean[] trans_list = new boolean[10];
+			int[]     state_list = new int[10];
+			int number_of_segments = 0;
 			for (int i = 0; i < 10; i++)
 			{
+				String line_sensor_pair = sensor[i].getText().trim();
+				if(line_sensor_pair.equals(""))
+					continue;
+				int next_line   = -1;
+				int next_sensor = -1;
 				try
 				{
-					String line_sensor_pair = sensor[i].getText();
-					if(line_sensor_pair.equals(""))
-					{
-					    if(i < 9)
-					    {
-					    	line_sensor_pair = sensor[i + 1].getText();
-					    	sensor[i + 1].setText("");
-					    	sensor[i].setText(line_sensor_pair);
-					    }
-					}
-						
 					StringTokenizer tokenizer = new StringTokenizer(line_sensor_pair, ":");
-					int number_of_tokens = tokenizer.countTokens();
-					if (number_of_tokens == 2)
+					if (tokenizer.countTokens() == 2)
 					{
-						String line_string = tokenizer.nextToken(":");
-						int next_line = Integer.parseInt(line_string);
-						String sensor_string = tokenizer.nextToken(":");
-						int next_sensor = Integer.parseInt(sensor_string);
-
-						// Do a check for valid input
-						if (next_line >= 0 && next_line < 30 && next_sensor >= 0 && next_sensor < 5)
-						{
-							current_line[i] = next_line;
-							current_sensor[i] = next_sensor;
-						} 
-						else
-						{
-							current_line[i] = -1;
-							current_sensor[i] = -1;
-						}
-					} 
-					else
-					{
-						current_line[i] = -1;
-						current_sensor[i] = -1;
+						next_line   = Integer.parseInt(tokenizer.nextToken().trim());
+						next_sensor = Integer.parseInt(tokenizer.nextToken().trim());
 					}
 				} 
-				catch (Exception exception)
+				catch (NumberFormatException exception)
 				{
-					current_line[i] = -1;
-					current_sensor[i] = -1;
+					next_line = -1;
 				}
+				
+				if (next_line >= 0 && next_line < line_index.length && next_sensor >= 0 && next_sensor < 5)
+				{
+					current_line[number_of_segments]   = next_line;
+					current_sensor[number_of_segments] = next_sensor;
+					id_list[number_of_segments]        = line_sensor_pair;
+					vis_list[number_of_segments]       = visible[i];
+					trans_list[number_of_segments]     = transparent[i];
+					state_list[number_of_segments]     = sensor_state[i];
+					number_of_segments++;
+				}
+				else
+					System.out.println("Ignoring invalid line:sensor id \"" + line_sensor_pair + "\".");
 			}
 			
-			int number_of_segments = 0;
-			//System.out.println("Current set of line/sensors: ");
-			for(int i = 0; i < 10; i++)
+			for (int i = 0; i < 10; i++)
 			{
-			    if(current_line[i] != -1)	
-			    {
-			        //System.out.print(current_line[i] + ":" + current_sensor[i] + " ");	
-			        number_of_segments++;
-			    }
+				if (i < number_of_segments)
+				{
+					sensor[i].setText(id_list[i]);
+					visible[i]      = vis_list[i];
+					transparent[i]  = trans_list[i];
+					sensor_state[i] = state_list[i];
+				}
+				else
+				{
+					sensor[i].setText("");
+					current_line[i]   = -1;
+					current_sensor[i] = -1;
+					visible[i]        = true;
+					transparent[i]    = false;
+					sensor_state[i]   = 0;
+				}
+				sensor_canvas[i].repaint();
 			}
 			
 			// We want to clear the entire data array, and not just the lists,
@@ -8671,7 +8517,7 @@ public class XFencePlotter
 			    	}
 			    	else
 			    	{
-			    		for(int j = stop; j >= start; j--)
+			    		for(int j = stop - 1; j >= start; j--)
 			            {
 			        	    Sample sample = (Sample)src_list.get(j);
 			        	    if(sample.y >= 15 && sample.y < 75)
@@ -8706,7 +8552,7 @@ public class XFencePlotter
 			    	}
 			    	else
 			    	{
-			    		for(int j = stop; j >= start; j--)
+			    		for(int j = stop - 1; j >= start; j--)
 			            {
 			        	    Sample sample = (Sample)src_list.get(j);
 			        	    dst_list.add(sample);
@@ -8753,6 +8599,27 @@ public class XFencePlotter
 		    		}
 		    		raw_array.add(smooth_list);
 			    }
+			    
+			    // A window narrower than the sample spacing can leave a segment
+			    // empty, and the plots expect at least one sample per segment.
+			    // Use the sample on this line closest to the middle of the window.
+			    ArrayList segment_list = (ArrayList)raw_array.get(raw_array.size() - 1);
+			    if(segment_list.size() == 0 && stop > start)
+			    {
+			    	double middle  = offset + range / 2;
+			    	Sample closest = (Sample)src_list.get(start);
+			    	for(int j = start + 1; j < stop; j++)
+			    	{
+			    		Sample sample = (Sample)src_list.get(j);
+			    		if(Math.abs(sample.y - middle) < Math.abs(closest.y - middle))
+			    			closest = sample;
+			    	}
+			    	segment_list.add(closest);
+			    	if(closest.intensity < seg_min)
+			    		seg_min = closest.intensity;
+			    	if(closest.intensity > seg_max)
+			    		seg_max = closest.intensity;
+			    }
 			}
 			
 			data_array.clear();
@@ -8777,8 +8644,6 @@ public class XFencePlotter
 					segment_data.add(new String("no"));
 			 
 				ArrayList sample_list = (ArrayList)raw_array.get(i);
-				
-				Sample sample = (Sample)sample_list.get(0);
 				segment_data.add(sample_list); 
 				
 				int size = segment_data.size();
@@ -8822,6 +8687,20 @@ public class XFencePlotter
 		return(dst);
 	}
 	
+	// Parses a number written by String.format() in the default locale,
+	// including grouping separators such as "1,234.56".
+	public static double parseNumber(String s)
+	{
+		try
+		{
+			return java.text.NumberFormat.getInstance().parse(s.trim()).doubleValue();
+		}
+		catch(java.text.ParseException e)
+		{
+			throw new NumberFormatException("Not a number: " + s);
+		}
+	}
+
 	public double getDistance(double x, double y, double x_origin, double y_origin)
 	{
 	    double distance  = Math.sqrt((x - x_origin) * (x - x_origin) + (y - y_origin) * (y - y_origin));
